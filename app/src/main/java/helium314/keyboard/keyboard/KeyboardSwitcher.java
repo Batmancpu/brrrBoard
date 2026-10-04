@@ -1042,6 +1042,23 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         logTypingListenerInvariant("KeyboardSwitcher.setMainKeyboardFrame", false /* logWhenOk */);
     }
 
+    // The legacy AI-tools panel was removed from brrrBoard. Keep the state-machine
+    // contract intact and return to the normal alphabet keyboard when an old layout
+    // or state attempts to invoke the retired action.
+    @Override
+    public void setAiToolsKeyboard() {
+        if (DEBUG_ACTION) {
+            Log.d(TAG, "setAiToolsKeyboard: retired cloud AI panel");
+        }
+        if (mState != null && mLatinIME != null) {
+            mState.onResetKeyboardStateToAlphabet(
+                    mLatinIME.getCurrentAutoCapsState(),
+                    mLatinIME.getCurrentRecapitalizeState());
+        } else {
+            setAlphabetKeyboard();
+        }
+    }
+
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public void setEmojiKeyboard() {
