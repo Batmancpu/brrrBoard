@@ -39,14 +39,21 @@ jobs:
       - name: Inspect Java/Kotlin compilation boundary
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           ./gradlew :app:compileDebugJavaWithJavac --no-daemon --no-configuration-cache --no-build-cache --stacktrace
-          echo "=== KeyboardSwitcher javap ==="
-          javap -public -classpath "app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" helium314.keyboard.keyboard.KeyboardSwitcher | sed -n '1,240p'
-          echo "=== KeyboardActionListenerImpl references ==="
-          javap -public -classpath "app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" helium314.keyboard.keyboard.KeyboardSwitcher | grep -E 'onPressKey|onReleaseKey|onFinishSlidingInput|enterResizeMode|onKeyboardHeightScaleChanged|onToggleKeyboard|getKeyboard\(|getMainKeyboardView|getVisibleKeyboardView'
+          JAVA_RC=$?
+          echo "compileDebugJavaWithJavac exit=$JAVA_RC"
+          echo "=== KeyboardSwitcher.class candidates ==="
+          find app/build -type f -name 'KeyboardSwitcher.class' -print
+          echo "=== javap candidates ==="
+          for f in $(find app/build -type f -name 'KeyboardSwitcher.class'); do
+            d="$(dirname "$f")"
+            echo "--- $f ---"
+            javap -public -classpath "$d" helium314.keyboard.keyboard.KeyboardSwitcher 2>&1 | sed -n '1,220p'
+          done
           echo "=== Relevant Gradle tasks ==="
           ./gradlew :app:tasks --all --no-daemon --no-configuration-cache --no-build-cache | grep -E 'compileDebug(JavaWithJavac|Kotlin)|kotlin.*Debug' || true
+          exit 0
 
       - name: Build debug APK
         run: ./gradlew --no-daemon --no-configuration-cache --no-build-cache --stacktrace clean assembleDebug
