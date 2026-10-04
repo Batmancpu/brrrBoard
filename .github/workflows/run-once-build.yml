@@ -36,6 +36,18 @@ jobs:
           chmod +x gradlew
           ./gradlew --version
 
+      - name: Inspect Java/Kotlin compilation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew :app:compileDebugJavaWithJavac --no-daemon --no-configuration-cache --no-build-cache --stacktrace
+          echo "=== KeyboardSwitcher javap ==="
+          javap -public -classpath "app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" helium314.keyboard.keyboard.KeyboardSwitcher | sed -n '1,240p'
+          echo "=== KeyboardActionListenerImpl references ==="
+          javap -public -classpath "app/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes" helium314.keyboard.keyboard.KeyboardSwitcher | grep -E 'onPressKey|onReleaseKey|onFinishSlidingInput|enterResizeMode|onKeyboardHeightScaleChanged|onToggleKeyboard|getKeyboard\(|getMainKeyboardView|getVisibleKeyboardView'
+          echo "=== Relevant Gradle tasks ==="
+          ./gradlew :app:tasks --all --no-daemon --no-configuration-cache --no-build-cache | grep -E 'compileDebug(JavaWithJavac|Kotlin)|kotlin.*Debug' || true
+
       - name: Build debug APK
         run: ./gradlew --no-daemon --no-configuration-cache --no-build-cache --stacktrace clean assembleDebug
 
