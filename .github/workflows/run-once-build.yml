@@ -58,6 +58,21 @@ jobs:
       - name: Build debug APK
         run: ./gradlew --no-daemon --no-configuration-cache --no-build-cache --stacktrace clean assembleDebug
 
+      - name: Dump Kotlin Java stubs on build failure
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          set +e
+          echo "=== All KeyboardSwitcher build artifacts ==="
+          find app/build -type f \( -name '*KeyboardSwitcher*' -o -name 'KeyboardSwitcher.java' \) -print
+          echo "=== Generated Java source references ==="
+          grep -RIn --include='*.java' --include='*.kt' 'class KeyboardSwitcher' app/build 2>/dev/null | head -80
+          echo "=== Generated stub declaration ==="
+          for f in $(grep -Rl --include='*.java' 'class KeyboardSwitcher' app/build 2>/dev/null); do
+            echo "--- $f ---"
+            grep -n -B4 -A20 'class KeyboardSwitcher' "$f" | head -80
+          done
+
       - name: Verify APK output
         shell: bash
         run: |
