@@ -1,4 +1,5 @@
 name: One-shot brrrBoard APK build
+# trigger: latest source-fix validation
 
 on:
   push:
