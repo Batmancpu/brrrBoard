@@ -1309,6 +1309,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mEmojiTabStripView.setVisibility(View.GONE);
             mClipboardStripView.setVisibility(View.GONE);
         }
+    }
+
     // Future method for requesting an updating to the shift state.
     @Override
     public void requestUpdatingShiftState(final int autoCapsFlags, @Nullable final RecapitalizeMode recapitalizeMode) {
@@ -1494,3 +1496,4 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             setClipboardKeyboard();
         }
     }
+}
