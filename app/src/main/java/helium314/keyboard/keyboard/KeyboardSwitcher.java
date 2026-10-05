@@ -1310,7 +1310,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mClipboardStripView.setVisibility(View.GONE);
         }
     }
-    }
 
     // Future method for requesting an updating to the shift state.
     @Override
