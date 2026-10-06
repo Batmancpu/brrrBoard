@@ -52,10 +52,13 @@ jobs:
           echo "APK=$APK" >> "$GITHUB_ENV"
           echo "SHA256=$(sha256sum "$APK" | cut -d' ' -f1)"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          "$APKSIGNER" verify --print-certs "$APK" > apk-certs.txt
-          EXPECTED_CERT="$(keytool -list -v -keystore .github/debug.keystore -storepass android -alias androiddebugkey | sed -n 's/^.*SHA256:[[:space:]]*//p' | head -n 1)"
+          CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"
+          printf '%s\n' "$CERT_OUTPUT"
+          EXPECTED_CERT="$(keytool -list -v -keystore .github/debug.keystore -storepass android -alias androiddebugkey | sed -n 's/^.*SHA256:[[:space:]]*//p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
+          ACTUAL_CERT="$(printf '%s\n' "$CERT_OUTPUT" | sed -n 's/^.*SHA-256 digest:[[:space:]]*//p' | head -n 1 | tr -d ':' | tr '[:lower:]' '[:upper:]')"
           test -n "$EXPECTED_CERT"
-          grep -F "$EXPECTED_CERT" apk-certs.txt
+          test -n "$ACTUAL_CERT"
+          test "$EXPECTED_CERT" = "$ACTUAL_CERT"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
