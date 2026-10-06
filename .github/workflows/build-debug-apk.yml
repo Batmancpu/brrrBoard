@@ -75,18 +75,4 @@ jobs:
           VERSION_CODE="$(( $(date +%s) / 60 ))"
           SHORT_SHA="${GITHUB_SHA::7}"
           TAG="mango-${VERSION_NAME}-${VERSION_CODE}-${SHORT_SHA}"
-
-          NOTES="$(cat <<EOF
-Automated personal build from main.
-
-Commit: ${GITHUB_SHA}
-Version name: ${VERSION_NAME}
-Version code floor: ${VERSION_CODE}
-
-The debug APK is signed with the fork's persistent signing key so it can update previous brrrBoard debug installs without uninstalling.
-EOF
-)"
-
-          gh release create "$TAG" "$APK" \
-            --title "Mango brrrBoard ${VERSION_NAME} — ${SHORT_SHA}" \
-            --notes "$NOTES"
+          gh release create "$TAG" "$APK" --title "Mango brrrBoard ${VERSION_NAME} — ${SHORT_SHA}" --notes "Automated personal build from main. Commit: ${GITHUB_SHA}. Version name: ${VERSION_NAME}. Version code: ${VERSION_CODE}. APK uses the fork's persistent signing key for in-place updates."
