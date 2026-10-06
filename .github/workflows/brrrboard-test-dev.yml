@@ -1,7 +1,6 @@
 name: brrrBoard — Test
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
