@@ -1,6 +1,9 @@
 name: brrrBoard — Release
 
 on:
+  push:
+    branches:
+      - real-mangaloads-brrrBoard-6586049785836259601-17166726600989827207
   workflow_dispatch:
 
 permissions:
