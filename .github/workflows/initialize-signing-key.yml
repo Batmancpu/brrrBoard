@@ -1,6 +1,7 @@
 name: brrrBoard — Initialize Signing Key
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,16 +29,7 @@ jobs:
           key_password="$(openssl rand -hex 32)"
           key_alias="brrrBoard"
 
-          keytool -genkeypair \
-            -keystore "$work/brrrBoard-release.jks" \
-            -storetype JKS \
-            -storepass "$store_password" \
-            -keypass "$key_password" \
-            -alias "$key_alias" \
-            -keyalg RSA \
-            -keysize 4096 \
-            -validity 10000 \
-            -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
+          keytool -genkeypair             -keystore "$work/brrrBoard-release.jks"             -storetype JKS             -storepass "$store_password"             -keypass "$key_password"             -alias "$key_alias"             -keyalg RSA             -keysize 4096             -validity 10000             -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
 
           cat > "$work/metadata.json" <<EOF
 {
@@ -48,11 +40,9 @@ jobs:
 EOF
 
           cd "$work"
-          zip -q "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
-            brrrBoard-release.jks metadata.json
+          zip -q "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip"             brrrBoard-release.jks metadata.json
 
-          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
-            > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
+          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip"             > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
 
           cat > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt" <<'EOF'
 brrrBoard signing setup
