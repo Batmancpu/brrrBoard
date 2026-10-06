@@ -1,6 +1,7 @@
 name: brrrBoard — Initialize Signing Key
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
@@ -8,6 +9,7 @@ permissions:
 
 jobs:
   generate:
+    if: \${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
