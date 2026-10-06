@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Restore persistent signing key
         shell: bash
@@ -54,7 +52,10 @@ jobs:
           echo "APK=$APK" >> "$GITHUB_ENV"
           echo "SHA256=$(sha256sum "$APK" | cut -d' ' -f1)"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          "$APKSIGNER" verify --print-certs "$APK"
+          "$APKSIGNER" verify --print-certs "$APK" > apk-certs.txt
+          EXPECTED_CERT="$(keytool -list -v -keystore .github/debug.keystore -storepass android -alias androiddebugkey | sed -n 's/^.*SHA256:[[:space:]]*//p' | head -n 1)"
+          test -n "$EXPECTED_CERT"
+          grep -F "$EXPECTED_CERT" apk-certs.txt
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
