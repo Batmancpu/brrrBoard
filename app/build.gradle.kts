@@ -16,7 +16,11 @@ abstract class GitCommitCountValueSource : ValueSource<Int, ValueSourceParameter
                 standardOutput = output
                 isIgnoreExitValue = true
             }
-            output.toString().trim().toIntOrNull() ?: 1
+            val gitCount = output.toString().trim().toIntOrNull() ?: 1
+            val timeBasedCode = (System.currentTimeMillis() / 60_000L)
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+            maxOf(gitCount, timeBasedCode)
         } catch (e: Exception) {
             1
         }
@@ -32,6 +36,19 @@ plugins {
 
 android {
     compileSdk = 36
+
+    val persistentDebugKeystore = rootProject.file(".github/debug.keystore")
+
+    if (persistentDebugKeystore.isFile) {
+        signingConfigs {
+            create("persistentDebug") {
+                storeFile = persistentDebugKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.orion.frostkeys"
@@ -74,6 +91,9 @@ android {
             isJniDebuggable = false
             applicationIdSuffix = ".debug"
             manifestPlaceholders["stickerProviderAuthority"] = "${defaultConfig.applicationId}.debug.stickercontentprovider"
+            if (persistentDebugKeystore.isFile) {
+                signingConfig = signingConfigs.getByName("persistentDebug")
+            }
         }
         create("runTests") { // build variant for running tests on CI that skips tests known to fail
             isMinifyEnabled = false
@@ -83,7 +103,11 @@ android {
             isDebuggable = true
             isMinifyEnabled = false
             isJniDebuggable = false
-            signingConfig = signingConfigs.getByName("debug")
+            if (persistentDebugKeystore.isFile) {
+                signingConfig = signingConfigs.getByName("persistentDebug")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             applicationIdSuffix = ".debug"
             manifestPlaceholders["stickerProviderAuthority"] = "${defaultConfig.applicationId}.debug.stickercontentprovider"
         }
