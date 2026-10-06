@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   generate:
-    if: \${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,13 +30,9 @@ jobs:
           key_password="$(openssl rand -hex 32)"
           key_alias="brrrBoard"
 
-          keytool -genkeypair             -keystore "$work/brrrBoard-release.jks"             -storetype JKS             -storepass "$store_password"             -keypass "$key_password"             -alias "$key_alias"             -keyalg RSA             -keysize 4096             -validity 10000             -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
+          keytool -genkeypair -keystore "$work/brrrBoard-release.jks" -storetype JKS -storepass "$store_password" -keypass "$key_password" -alias "$key_alias" -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
 
-          printf '{
-  "keystore_password": "%s",
-  "key_alias": "%s",
-  "key_password": "%s"
-}
+          printf '{"keystore_password":"%s","key_alias":"%s","key_password":"%s"}
 '             "$store_password" "$key_alias" "$key_password" > "$work/metadata.json"
 
           cd "$work"
