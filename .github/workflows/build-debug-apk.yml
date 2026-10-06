@@ -1,13 +1,12 @@
 name: brrrBoard — Test
 
-on:
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 permissions:
   contents: read
 
 concurrency:
-  group: brrrBoard-test-${{ github.ref }}
+  group: brrrBoard-test
   cancel-in-progress: false
 
 jobs:
@@ -32,19 +31,23 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x gradlew
-          export BRRR_BUILD_VERSION_CODE="$(date +%s)"
-          export BRRR_BUILD_TIMESTAMP="$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
+
+          export BRRR_BUILD_VERSION_CODE="\$(date +%s)"
+          export BRRR_BUILD_TIMESTAMP="\$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
+
           ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleDebug
 
       - name: Verify debug APK
         shell: bash
         run: |
           set -euo pipefail
-          APK_PATH="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)"
-          test -n "$APK_PATH"
-          test -s "$APK_PATH"
-          sha256sum "$APK_PATH"
-          ls -lh "$APK_PATH"
+
+          apk_path="\$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "\$apk_path"
+          test -s "\$apk_path"
+
+          sha256sum "\$apk_path"
+          ls -lh "\$apk_path"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

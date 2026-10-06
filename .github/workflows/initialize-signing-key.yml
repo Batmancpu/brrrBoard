@@ -1,7 +1,6 @@
 name: brrrBoard — Initialize Signing Key
 
-on:
-  workflow_dispatch:
+on: [workflow_dispatch]
 
 permissions:
   contents: read
@@ -21,53 +20,56 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WORK="$RUNNER_TEMP/brrrBoard-signing"
-          mkdir -p "$WORK"
 
-          STORE_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
-          KEY_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
-          KEY_ALIAS="brrrBoard"
+          work="$RUNNER_TEMP/brrrBoard-signing"
+          mkdir -p "$work"
+
+          store_password="$(openssl rand -hex 32)"
+          key_password="$(openssl rand -hex 32)"
+          key_alias="brrrBoard"
 
           keytool -genkeypair \
-            -keystore "$WORK/brrrBoard-release.jks" \
+            -keystore "$work/brrrBoard-release.jks" \
             -storetype JKS \
-            -storepass "$STORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            -alias "$KEY_ALIAS" \
+            -storepass "$store_password" \
+            -keypass "$key_password" \
+            -alias "$key_alias" \
             -keyalg RSA \
             -keysize 4096 \
             -validity 10000 \
             -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
 
-          cat > "$WORK/metadata.json" <<EOF
+          cat > "$work/metadata.json" <<EOF
 {
-  "keystore_password": "$STORE_PASSWORD",
-  "key_alias": "$KEY_ALIAS",
-  "key_password": "$KEY_PASSWORD"
+  "keystore_password": "$store_password",
+  "key_alias": "$key_alias",
+  "key_password": "$key_password"
 }
 EOF
 
-          cd "$WORK"
-          zip -j "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" brrrBoard-release.jks metadata.json
-          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
+          cd "$work"
+          zip -q "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
+            brrrBoard-release.jks metadata.json
+
+          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
+            > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
 
           cat > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt" <<'EOF'
 brrrBoard signing setup
 
-1. Keep brrrBoard-signing-bundle.zip somewhere safe as the private signing-key backup.
-2. Open BRRRBOARD_SIGNING_BUNDLE.txt.
-3. Copy its entire contents.
-4. In GitHub:
+1. Keep brrrBoard-signing-bundle.zip as the permanent private signing-key backup.
+2. Open BRRRBOARD_SIGNING_BUNDLE.txt and copy its complete contents.
+3. In GitHub, open:
    Settings -> Secrets and variables -> Actions -> New repository secret
-5. Name the secret:
+4. Secret name:
    BRRRBOARD_SIGNING_BUNDLE
-6. Paste the copied value and save it.
+5. Paste the copied value and save it.
+6. Do not run this initializer again after a signing key has been used for a release.
 EOF
 
-          echo "Signing bundle generated."
-          echo "Create exactly one repository secret: BRRRBOARD_SIGNING_BUNDLE"
+          echo "Signing bundle generated successfully."
 
-      - name: Upload signing bundle and setup instructions
+      - name: Upload signing setup
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-signing-setup
