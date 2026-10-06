@@ -1,9 +1,6 @@
-name: Build and release brrrBoard APK
+name: Mango — brrrBoard Release APK
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
