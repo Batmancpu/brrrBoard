@@ -1,0 +1,83 @@
+name: brrrBoard — Initialize Signing Key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Generate dedicated brrrBoard signing keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/brrrBoard-signing"
+          mkdir -p "$WORK"
+
+          STORE_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
+          KEY_PASSWORD="$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 32)"
+          KEY_ALIAS="brrrBoard"
+
+          keytool -genkeypair \
+            -keystore "$WORK/brrrBoard-release.jks" \
+            -storetype JKS \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -alias "$KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 4096 \
+            -validity 10000 \
+            -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
+
+          base64 -w 0 "$WORK/brrrBoard-release.jks" > "$WORK/brrrBoard-release.jks.base64"
+          printf '%s\n' "$STORE_PASSWORD" > "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt"
+          printf '%s\n' "$KEY_ALIAS" > "$WORK/BRRRBOARD_KEY_ALIAS.txt"
+          printf '%s\n' "$KEY_PASSWORD" > "$WORK/BRRRBOARD_KEY_PASSWORD.txt"
+
+          cp "$WORK/brrrBoard-release.jks" "$GITHUB_WORKSPACE/"
+          cp "$WORK/brrrBoard-release.jks.base64" "$GITHUB_WORKSPACE/"
+          cp "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt" "$GITHUB_WORKSPACE/"
+          cp "$WORK/BRRRBOARD_KEY_ALIAS.txt" "$GITHUB_WORKSPACE/"
+          cp "$WORK/BRRRBOARD_KEY_PASSWORD.txt" "$GITHUB_WORKSPACE/"
+
+          zip -j "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
+            "$WORK/brrrBoard-release.jks" \
+            "$WORK/brrrBoard-release.jks.base64" \
+            "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt" \
+            "$WORK/BRRRBOARD_KEY_ALIAS.txt" \
+            "$WORK/BRRRBOARD_KEY_PASSWORD.txt"
+
+          rm -f "$GITHUB_WORKSPACE/brrrBoard-release.jks" \
+                "$GITHUB_WORKSPACE/brrrBoard-release.jks.base64" \
+                "$GITHUB_WORKSPACE/BRRRBOARD_KEYSTORE_PASSWORD.txt" \
+                "$GITHUB_WORKSPACE/BRRRBOARD_KEY_ALIAS.txt" \
+                "$GITHUB_WORKSPACE/BRRRBOARD_KEY_PASSWORD.txt"
+
+          echo "Generated a dedicated brrrBoard signing bundle."
+          echo "Keep the downloaded ZIP private."
+
+      - name: Upload one-time signing bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-signing-bundle
+          path: brrrBoard-signing-bundle.zip
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Print required secret names only
+        run: |
+          echo "Create these repository secrets from the downloaded bundle:"
+          echo "BRRRBOARD_KEYSTORE_BASE64"
+          echo "BRRRBOARD_KEYSTORE_PASSWORD"
+          echo "BRRRBOARD_KEY_ALIAS"
+          echo "BRRRBOARD_KEY_PASSWORD"
