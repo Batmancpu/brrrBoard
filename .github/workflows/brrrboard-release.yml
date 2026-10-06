@@ -1,0 +1,115 @@
+name: brrrBoard — Release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brrrBoard-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Push event — no-op
+        if: ${{ github.event_name == 'push' }}
+        run: echo "Workflow file validated on push; manual job actions are skipped."
+
+      - name: Checkout selected branch or tag
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Set up Gradle
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate signing secret
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          BRRRBOARD_SIGNING_BUNDLE: ${{ secrets.BRRBOARD_SIGNING_BUNDLE }}
+        run: |
+          set -euo pipefail
+          test -n "$BRRRBOARD_SIGNING_BUNDLE"
+
+      - name: Set release identity
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA::7}"
+          build_stamp="$(TZ=Asia/Kolkata date +'%d%m%y%H%M')"
+          version_code="$(date +%s)"
+          build_timestamp="$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
+          tag="brrrBoard-${build_stamp}-${short_sha}"
+
+          echo "BRRR_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "BRRR_BUILD_TIMESTAMP=$build_timestamp" >> "$GITHUB_ENV"
+          echo "BRRR_TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: Build signed release APK
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          BRRRBOARD_SIGNING_BUNDLE: ${{ secrets.BRRRBOARD_SIGNING_BUNDLE }}
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/brrrBoard-signing"
+          mkdir -p "$work"
+
+          printf '%s' "$BRRRBOARD_SIGNING_BUNDLE" | base64 --decode > "$work/bundle.zip"
+          unzip -q "$work/bundle.zip" -d "$work/unpacked"
+
+          keystore="$work/unpacked/brrrBoard-release.jks"
+          store_password="$(jq -r '.keystore_password' "$work/unpacked/metadata.json")"
+          key_alias="$(jq -r '.key_alias' "$work/unpacked/metadata.json")"
+          key_password="$(jq -r '.key_password' "$work/unpacked/metadata.json")"
+
+          test -s "$keystore"
+          test -n "$store_password"
+          test -n "$key_alias"
+          test -n "$key_password"
+
+          chmod +x gradlew
+          BRRRBOARD_KEYSTORE_PATH="$keystore"           BRRRBOARD_KEYSTORE_PASSWORD="$store_password"           BRRRBOARD_KEY_ALIAS="$key_alias"           BRRRBOARD_KEY_PASSWORD="$key_password"           ./gradlew --no-daemon --stacktrace -PversionName=1.0.0 assembleRelease
+
+      - name: Verify signed APK
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$apk_path"
+          test -s "$apk_path"
+          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
+
+          sha256="$(sha256sum "$apk_path" | cut -d' ' -f1)"
+          echo "BRRR_APK_SHA256=$sha256" >> "$GITHUB_ENV"
+
+          build_tools="$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          "$ANDROID_HOME/build-tools/$build_tools/apksigner" verify --verbose "$apk_path"
+          ls -lh "$apk_path"
+          echo "SHA-256: $sha256"
+
+      - name: Publish GitHub release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "$BRRR_TAG" "$APK_PATH"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "brrrBoard — $BRRR_BUILD_TIMESTAMP"             --notes "Signed brrrBoard APK. Build: $BRRR_BUILD_TIMESTAMP. Version code: $BRRR_VERSION_CODE. SHA-256: $BRRR_APK_SHA256."
