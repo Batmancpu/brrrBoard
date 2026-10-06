@@ -30,28 +30,19 @@ jobs:
 
           keytool -genkeypair             -keystore "$work/brrrBoard-release.jks"             -storetype JKS             -storepass "$store_password"             -keypass "$key_password"             -alias "$key_alias"             -keyalg RSA             -keysize 4096             -validity 10000             -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
 
-          cat > "$work/metadata.json" <<EOF
-{
-  "keystore_password": "$store_password",
-  "key_alias": "$key_alias",
-  "key_password": "$key_password"
+          printf '{
+  "keystore_password": "%s",
+  "key_alias": "%s",
+  "key_password": "%s"
 }
-EOF
+'             "$store_password" "$key_alias" "$key_password" > "$work/metadata.json"
 
           cd "$work"
           zip -q "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" brrrBoard-release.jks metadata.json
           base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
 
-          cat > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt" <<'EOF'
-brrrBoard signing setup
-
-1. Keep brrrBoard-signing-bundle.zip as the permanent private signing-key backup.
-2. Open BRRRBOARD_SIGNING_BUNDLE.txt and copy its complete contents.
-3. In GitHub: Settings -> Secrets and variables -> Actions -> New repository secret
-4. Secret name: BRRRBOARD_SIGNING_BUNDLE
-5. Paste the copied value and save it.
-6. Do not run this initializer again after a signing key has been used for a release.
-EOF
+          printf '%s
+'             'brrrBoard signing setup'             ''             '1. Keep brrrBoard-signing-bundle.zip as the permanent private signing-key backup.'             '2. Open BRRRBOARD_SIGNING_BUNDLE.txt and copy its complete contents.'             '3. In GitHub: Settings -> Secrets and variables -> Actions -> New repository secret'             '4. Secret name: BRRRBOARD_SIGNING_BUNDLE'             '5. Paste the copied value and save it.'             '6. Do not run this initializer again after a signing key has been used for a release.'             > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt"
 
       - name: Upload signing setup
         uses: actions/upload-artifact@v4
