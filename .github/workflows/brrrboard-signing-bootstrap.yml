@@ -1,0 +1,60 @@
+name: brrrBoard — Initialize Signing Key
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Push event — no-op
+        if: ${{ github.event_name == 'push' }}
+        run: echo "Workflow file validated on push; manual job actions are skipped."
+
+      - name: Set up JDK 17
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Generate dedicated brrrBoard signing bundle
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/brrrBoard-signing"
+          mkdir -p "$work"
+
+          store_password="$(openssl rand -hex 32)"
+          key_password="$(openssl rand -hex 32)"
+          key_alias="brrrBoard"
+
+          keytool -genkeypair -keystore "$work/brrrBoard-release.jks" -storetype JKS -storepass "$store_password" -keypass "$key_password" -alias "$key_alias" -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
+
+          printf '{"keystore_password":"%s","key_alias":"%s","key_password":"%s"}
+'             "$store_password" "$key_alias" "$key_password" > "$work/metadata.json"
+
+          cd "$work"
+          zip -q "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" brrrBoard-release.jks metadata.json
+          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
+
+          printf '%s
+'             'brrrBoard signing setup'             ''             '1. Keep brrrBoard-signing-bundle.zip as the permanent private signing-key backup.'             '2. Open BRRRBOARD_SIGNING_BUNDLE.txt and copy its complete contents.'             '3. In GitHub: Settings -> Secrets and variables -> Actions -> New repository secret'             '4. Secret name: BRRRBOARD_SIGNING_BUNDLE'             '5. Paste the copied value and save it.'             '6. Do not run this initializer again after a signing key has been used for a release.'             > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt"
+
+      - name: Upload signing setup
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-signing-setup
+          path: |
+            brrrBoard-signing-bundle.zip
+            BRRRBOARD_SIGNING_BUNDLE.txt
+            README-SIGNING-SETUP.txt
+          if-no-files-found: error
+          retention-days: 1
