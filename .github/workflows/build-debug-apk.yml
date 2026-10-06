@@ -1,27 +1,21 @@
-name: Mango — brrrBoard Test APK
+name: brrrBoard — Test
 
 on:
   workflow_dispatch:
-    inputs:
-      description:
-        description: "Optional test-build description"
-        required: false
-        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: brrrBoard-test-apk
+  group: brrrBoard-test-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Checkout exact branch commit
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -31,75 +25,31 @@ jobs:
           distribution: "temurin"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Prepare Gradle wrapper
-        run: chmod +x gradlew
-
-      - name: Create unique test build identity
+      - name: Build and test
         shell: bash
         run: |
           set -euo pipefail
-          SHORT_SHA="${GITHUB_SHA::7}"
-          BUILD_STAMP="$(date -u +'%Y.%m.%d.%H%M%S')"
-          VERSION="2.5.8-test.${BUILD_STAMP}-${SHORT_SHA}"
-          TAG="test-${BUILD_STAMP}-${SHORT_SHA}"
+          chmod +x gradlew
+          export BRRR_BUILD_VERSION_CODE="$(date +%s)"
+          export BRRR_BUILD_TIMESTAMP="$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
+          ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleDebug
 
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
-
-          echo "Version: $VERSION"
-          echo "Tag: $TAG"
-          echo "Commit: $GITHUB_SHA"
-
-      - name: Build debug APK
-        run: ./gradlew --no-daemon --stacktrace -PversionName="${VERSION}" assembleDebug
-
-      - name: Verify APK
+      - name: Verify debug APK
         shell: bash
         run: |
           set -euo pipefail
-
           APK_PATH="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' | head -n 1)"
           test -n "$APK_PATH"
           test -s "$APK_PATH"
-
-          SHA256="$(sha256sum "$APK_PATH" | cut -d' ' -f1)"
-
-          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
-          echo "APK_SHA256=$SHA256" >> "$GITHUB_ENV"
-
-          echo "APK: $APK_PATH"
-          echo "SHA-256: $SHA256"
+          sha256sum "$APK_PATH"
           ls -lh "$APK_PATH"
 
-      - name: Publish GitHub prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          DESCRIPTION="${{ inputs.description }}"
-          NOTES="Test APK built from exact commit $GITHUB_SHA."
-          NOTES="$NOTES
-Version: $VERSION"
-          NOTES="$NOTES
-APK SHA-256: $APK_SHA256"
-
-          if [ -n "$DESCRIPTION" ]; then
-            NOTES="$NOTES
-Description: $DESCRIPTION"
-          fi
-
-          gh release create "$TAG"             "$APK_PATH"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "brrrBoard Test — $VERSION"             --notes "$NOTES"             --prerelease
-
-      - name: Archive build reports on failure
-        if: ${{ failure() }}
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: brrrBoard-test-build-reports
-          path: |
-            app/build/reports
-            build/reports
-          if-no-files-found: warn
+          name: brrrBoard-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
