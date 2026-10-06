@@ -576,7 +576,7 @@ fun SplashScreenView(
                 )
             }
 
-            AnimatedbrrrBoardIcon(
+            AnimatedFrostKeysIcon(
                 modifier = Modifier.size(320.dp),
                 isAnimating = isAnimating,
                 tint = MaterialTheme.colorScheme.primary
