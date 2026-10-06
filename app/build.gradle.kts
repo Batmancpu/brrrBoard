@@ -1,27 +1,9 @@
 import com.android.build.api.variant.ApplicationVariant
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.File
-import java.io.ByteArrayOutputStream
-import javax.inject.Inject
-
-abstract class GitCommitCountValueSource : ValueSource<Int, ValueSourceParameters.None> {
-    @get:Inject
-    abstract val execOperations: ExecOperations
-
-    override fun obtain(): Int {
-        val output = ByteArrayOutputStream()
-        return try {
-            execOperations.exec {
-                commandLine("git", "rev-list", "--count", "HEAD")
-                standardOutput = output
-                isIgnoreExitValue = true
-            }
-            output.toString().trim().toIntOrNull() ?: 1
-        } catch (e: Exception) {
-            1
-        }
-    }
-}
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 plugins {
     id("com.android.application")
@@ -37,8 +19,24 @@ android {
         applicationId = "com.mangoloads.brrrboard"
         minSdk = 23
         targetSdk = 36
-        versionCode = providers.of(GitCommitCountValueSource::class.java) {}.get()
+        val buildTimestamp = providers.environmentVariable("BRRR_BUILD_TIMESTAMP")
+            .orElse(
+                providers.provider {
+                    ZonedDateTime.now(ZoneId.of("Asia/Kolkata"))
+                        .format(DateTimeFormatter.ofPattern("dd MMMM yyyy, h:mm a"))
+                }
+            )
+            .get()
+        val buildVersionCode = providers.environmentVariable("BRRR_BUILD_VERSION_CODE")
+            .orElse(
+                providers.provider {
+                    (System.currentTimeMillis() / 1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                }
+            )
+            .get()
+        versionCode = buildVersionCode
         versionName = project.findProperty("versionName") as? String ?: "1.0.0"
+        buildConfigField("String", "BUILD_TIMESTAMP", "\"$buildTimestamp\"")
         buildConfigField("String", "CONTENT_PROVIDER_AUTHORITY", "\"${applicationId}.stickercontentprovider\"")
         manifestPlaceholders["stickerAuthority"] = "${applicationId}.stickercontentprovider"
         manifestPlaceholders["stickerProviderAuthority"] = "${applicationId}.stickercontentprovider"
@@ -61,6 +59,18 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+
+        create("brrrBoardRelease") {
+            val keystorePath = providers.environmentVariable("BRRRBOARD_KEYSTORE_PATH").orNull
+            val storePasswordValue = providers.environmentVariable("BRRRBOARD_KEYSTORE_PASSWORD").orNull
+            val keyAliasValue = providers.environmentVariable("BRRRBOARD_KEY_ALIAS").orNull
+            val keyPasswordValue = providers.environmentVariable("BRRRBOARD_KEY_PASSWORD").orNull
+
+            if (!keystorePath.isNullOrBlank()) storeFile = file(keystorePath)
+            if (!storePasswordValue.isNullOrBlank()) storePassword = storePasswordValue
+            if (!keyAliasValue.isNullOrBlank()) keyAlias = keyAliasValue
+            if (!keyPasswordValue.isNullOrBlank()) keyPassword = keyPasswordValue
+        }
     }
 
     buildTypes {
@@ -69,6 +79,17 @@ android {
             isShrinkResources = false
             isDebuggable = false
             isJniDebuggable = false
+
+            val releaseSigningReady = listOf(
+                providers.environmentVariable("BRRRBOARD_KEYSTORE_PATH").orNull,
+                providers.environmentVariable("BRRRBOARD_KEYSTORE_PASSWORD").orNull,
+                providers.environmentVariable("BRRRBOARD_KEY_ALIAS").orNull,
+                providers.environmentVariable("BRRRBOARD_KEY_PASSWORD").orNull,
+            ).all { !it.isNullOrBlank() }
+
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("brrrBoardRelease")
+            }
         }
         create("nouserlib") { // same as release, but does not allow the user to provide a library
             isMinifyEnabled = true

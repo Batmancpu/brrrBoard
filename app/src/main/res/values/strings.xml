@@ -868,6 +868,7 @@ New dictionary:
     <string name="about_creator_label">Created by</string>
     <string name="about_website">Website</string>
     <string name="about_contact">Suggestions &amp; Contact</string>
+    <string name="about_version_label">Version</string>
     <string name="about_build_label">Build</string>
     <string name="about_open_source_title">Open-source credits</string>
     <string name="about_open_source_credits">brrrBoard is based on open-source Android keyboard technology. Credits include HeliBoard, AOSP, and FrostKeys where code or architecture was reused or derived from those projects.</string>

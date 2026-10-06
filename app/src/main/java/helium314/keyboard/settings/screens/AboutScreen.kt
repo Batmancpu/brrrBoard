@@ -90,13 +90,24 @@ fun AboutScreen(
             HorizontalDivider()
 
             Text(
-                text = stringResource(R.string.about_build_label),
+                text = stringResource(R.string.about_version_label),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Text(
                 text = BuildConfig.VERSION_NAME,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+
+            Text(
+                text = stringResource(R.string.about_build_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Text(
+                text = BuildConfig.BUILD_TIMESTAMP,
                 style = MaterialTheme.typography.bodyLarge,
             )
 
