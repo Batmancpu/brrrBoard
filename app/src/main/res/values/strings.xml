@@ -106,7 +106,7 @@
     <!-- Description for option enabling or disabling the use of names of people in Contacts for suggestion and correction -->
     <string name="use_contacts_dict_summary">Use names from Contacts for suggestions and corrections</string>
     <string name="contacts_permission_disclosure_title">Contacts Disclosure</string>
-    <string name="contacts_permission_disclosure_message">FrostKeys accesses your device contacts solely to suggest contact names as you type.\n\nYour contact data remains 100% private and stored locally on your device. It is never uploaded or shared with any third party.</string>
+    <string name="contacts_permission_disclosure_message">brrrBoard accesses your device contacts solely to suggest contact names as you type.\n\nYour contact data remains 100% private and stored locally on your device. It is never uploaded or shared with any third party.</string>
     <!-- Option name for enabling or disabling the use of installed app names for suggestion and correction -->
     <string name="use_apps_dict">Look up app names</string>
     <!-- Description for option enabling or disabling the use of installed app names for suggestion and correction -->
@@ -267,12 +267,12 @@
     <!-- Button text for deleting gesture library -->
     <string name="load_gesture_library_button_delete">Delete library</string>
 
-    <!-- FrostKeys custom guides and progressive onboarding strings -->
+    <!-- brrrBoard custom guides and progressive onboarding strings -->
     <string name="gesture_not_loaded_summary">Proprietary library required. Tap to set up.</string>
     <string name="gesture_guide_title">Gesture Typing Setup</string>
     <string name="gesture_guide_desc">Mango.brrrBoard remains 100% offline and respects your privacy. Because of licensing restrictions, the gesture (swipe) typing library cannot be bundled with the open-source app by default. You must manually download and import it.</string>
     <string name="gesture_guide_step1">1. Click below to download the gesture library for your device architecture (%s) from the OpenBoard repository.</string>
-    <string name="gesture_guide_step2">2. Click the import button and select the downloaded file to enable swipe typing. FrostKeys will restart automatically.</string>
+    <string name="gesture_guide_step2">2. Click the import button and select the downloaded file to enable swipe typing. brrrBoard will restart automatically.</string>
     <string name="gesture_guide_download_btn">Download Gesture Library (GitHub)</string>
     <string name="gesture_guide_import_btn">Select &amp; Import Library File</string>
 

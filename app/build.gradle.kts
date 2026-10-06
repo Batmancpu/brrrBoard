@@ -81,8 +81,7 @@ android {
             // and for better performance in case users want to install a debug APK
             isMinifyEnabled = false
             isJniDebuggable = false
-            applicationIdSuffix = ".test"
-            manifestPlaceholders["stickerProviderAuthority"] = "${defaultConfig.applicationId}.test.stickercontentprovider"
+            manifestPlaceholders["stickerProviderAuthority"] = "${defaultConfig.applicationId}.stickercontentprovider"
         }
         create("runTests") { // build variant for running tests on CI that skips tests known to fail
             isMinifyEnabled = false
