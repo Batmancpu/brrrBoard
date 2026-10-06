@@ -1,7 +1,6 @@
 name: brrrBoard — Release
 
 on:
-  push:
   workflow_dispatch:
 
 permissions:
