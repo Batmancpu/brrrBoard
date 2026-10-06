@@ -76,6 +76,7 @@ import helium314.keyboard.latin.common.CoordinateUtils;
 import helium314.keyboard.latin.common.InputPointers;
 import helium314.keyboard.latin.common.ViewOutlineProviderUtilsKt;
 import helium314.keyboard.latin.define.DebugFlags;
+import helium314.keyboard.latin.diagnostics.DiagnosticLogger;
 import helium314.keyboard.latin.inputlogic.InputLogic;
 import helium314.keyboard.latin.personalization.PersonalizationHelper;
 import helium314.keyboard.latin.settings.Settings;
@@ -776,6 +777,7 @@ public class LatinIME extends InputMethodService implements
         mDisplayContext = KtxKt.getDisplayContext(this);
         KeyboardSwitcher.init(this);
         super.onCreate();
+        DiagnosticLogger.INSTANCE.log("IME_CREATE");
         mSavedStateRegistryController.performRestore(null);
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE);
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START);
@@ -1095,6 +1097,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDestroy() {
+        DiagnosticLogger.INSTANCE.log("IME_DESTROY");
         if (mSpeechRecognizer != null) {
             try {
                 mSpeechRecognizer.cancel();
@@ -1258,11 +1261,13 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        DiagnosticLogger.INSTANCE.log("IME_START_INPUT restarting=" + restarting);
         mHandler.onStartInput(editorInfo, restarting);
     }
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
+        DiagnosticLogger.INSTANCE.log("IME_START_INPUT_VIEW restarting=" + restarting);
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
         FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
@@ -1744,6 +1749,8 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onComputeInsets(final InputMethodService.Insets outInsets) {
         super.onComputeInsets(outInsets);
+        DiagnosticLogger.INSTANCE.log("ON_COMPUTE_INSETS");
+
         if (mInputView == null) return;
 
         View visibleKeyboardView = mKeyboardSwitcher.getWrapperView();

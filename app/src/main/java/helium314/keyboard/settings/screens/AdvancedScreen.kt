@@ -89,6 +89,7 @@ fun AdvancedSettingsScreen(
         SettingsWithoutKey.BACKUP_RESTORE,
         if (BuildConfig.DEBUG || prefs.getBoolean(DebugSettings.PREF_SHOW_DEBUG_SETTINGS, Defaults.PREF_SHOW_DEBUG_SETTINGS))
             SettingsWithoutKey.DEBUG_SETTINGS else null,
+        SettingsWithoutKey.EXPORT_DIAGNOSTICS,
         R.string.settings_category_experimental,
         Settings.PREF_EMOJI_MAX_SDK,
         Settings.PREF_BLUR_RENDER_OVERRIDE,
@@ -233,6 +234,14 @@ fun createAdvancedSettings(context: Context) = listOf(
             name = it.title,
             onClick = { SettingsDestination.navigateTo(SettingsDestination.Debug) }
         ) { NextScreenIcon() }
+    },
+    Setting(context, SettingsWithoutKey.EXPORT_DIAGNOSTICS, R.string.export_diagnostic_report_title) {
+        val ctx = LocalContext.current
+        Preference(
+            name = stringResource(R.string.export_diagnostic_report_title),
+            description = stringResource(R.string.export_diagnostic_report_summary),
+            onClick = { helium314.keyboard.latin.diagnostics.DiagnosticExporter.export(ctx) }
+        )
     },
     Setting(context, Settings.PREF_EMOJI_MAX_SDK, R.string.prefs_key_emoji_max_sdk) { setting ->
         val ctx = LocalContext.current
