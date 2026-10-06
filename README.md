@@ -11,7 +11,8 @@ FrostKeys takes the privacy focused foundation of HeliBoard and adds modern, hig
 > **FrostKeys is transitioning to official distribution via Google Play Store.**
 > * **Closed Beta:** Currently underway (all tester slots are currently full).
 > * **Public Launch:** Will be available directly on Google Play Store upon completing the closed testing phase.
-> * **GitHub Releases:** Pre-compiled standalone APK binaries are no longer hosted here. In full compliance with the GPL v3.0 license, the complete source code remains open in this repository for local compilation and inspection.
+> * **This fork — GitHub Releases:** Personal test APKs are automatically published from `main` after successful builds.
+> * **Update continuity:** Fork APKs keep the same package ID/signing identity and use a monotonic Android `versionCode`, so later builds can update earlier fork installs without uninstalling.
 >
 > ⚠️ **Important Security Notice**
 > 
