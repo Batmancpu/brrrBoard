@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: brrrBoard-release
+  group: brrrBoard-release-v2
   cancel-in-progress: false
 
 jobs:
