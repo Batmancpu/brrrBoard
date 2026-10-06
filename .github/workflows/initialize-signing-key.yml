@@ -17,7 +17,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Generate dedicated brrrBoard signing keystore
+      - name: Generate dedicated brrrBoard signing bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -39,45 +39,41 @@ jobs:
             -validity 10000 \
             -dname "CN=brrrBoard, OU=mangoloads, O=mangoloads, L=Unknown, ST=Unknown, C=IN"
 
-          base64 -w 0 "$WORK/brrrBoard-release.jks" > "$WORK/brrrBoard-release.jks.base64"
-          printf '%s\n' "$STORE_PASSWORD" > "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt"
-          printf '%s\n' "$KEY_ALIAS" > "$WORK/BRRRBOARD_KEY_ALIAS.txt"
-          printf '%s\n' "$KEY_PASSWORD" > "$WORK/BRRRBOARD_KEY_PASSWORD.txt"
+          cat > "$WORK/metadata.json" <<EOF
+{
+  "keystore_password": "$STORE_PASSWORD",
+  "key_alias": "$KEY_ALIAS",
+  "key_password": "$KEY_PASSWORD"
+}
+EOF
 
-          cp "$WORK/brrrBoard-release.jks" "$GITHUB_WORKSPACE/"
-          cp "$WORK/brrrBoard-release.jks.base64" "$GITHUB_WORKSPACE/"
-          cp "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt" "$GITHUB_WORKSPACE/"
-          cp "$WORK/BRRRBOARD_KEY_ALIAS.txt" "$GITHUB_WORKSPACE/"
-          cp "$WORK/BRRRBOARD_KEY_PASSWORD.txt" "$GITHUB_WORKSPACE/"
+          cd "$WORK"
+          zip -j "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" brrrBoard-release.jks metadata.json
+          base64 -w 0 "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" > "$GITHUB_WORKSPACE/BRRRBOARD_SIGNING_BUNDLE.txt"
 
-          zip -j "$GITHUB_WORKSPACE/brrrBoard-signing-bundle.zip" \
-            "$WORK/brrrBoard-release.jks" \
-            "$WORK/brrrBoard-release.jks.base64" \
-            "$WORK/BRRRBOARD_KEYSTORE_PASSWORD.txt" \
-            "$WORK/BRRRBOARD_KEY_ALIAS.txt" \
-            "$WORK/BRRRBOARD_KEY_PASSWORD.txt"
+          cat > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt" <<'EOF'
+brrrBoard signing setup
 
-          rm -f "$GITHUB_WORKSPACE/brrrBoard-release.jks" \
-                "$GITHUB_WORKSPACE/brrrBoard-release.jks.base64" \
-                "$GITHUB_WORKSPACE/BRRRBOARD_KEYSTORE_PASSWORD.txt" \
-                "$GITHUB_WORKSPACE/BRRRBOARD_KEY_ALIAS.txt" \
-                "$GITHUB_WORKSPACE/BRRRBOARD_KEY_PASSWORD.txt"
+1. Keep brrrBoard-signing-bundle.zip somewhere safe as the private signing-key backup.
+2. Open BRRRBOARD_SIGNING_BUNDLE.txt.
+3. Copy its entire contents.
+4. In GitHub:
+   Settings -> Secrets and variables -> Actions -> New repository secret
+5. Name the secret:
+   BRRRBOARD_SIGNING_BUNDLE
+6. Paste the copied value and save it.
+EOF
 
-          echo "Generated a dedicated brrrBoard signing bundle."
-          echo "Keep the downloaded ZIP private."
+          echo "Signing bundle generated."
+          echo "Create exactly one repository secret: BRRRBOARD_SIGNING_BUNDLE"
 
-      - name: Upload one-time signing bundle
+      - name: Upload signing bundle and setup instructions
         uses: actions/upload-artifact@v4
         with:
-          name: brrrBoard-signing-bundle
-          path: brrrBoard-signing-bundle.zip
+          name: brrrBoard-signing-setup
+          path: |
+            brrrBoard-signing-bundle.zip
+            BRRRBOARD_SIGNING_BUNDLE.txt
+            README-SIGNING-SETUP.txt
           if-no-files-found: error
           retention-days: 1
-
-      - name: Print required secret names only
-        run: |
-          echo "Create these repository secrets from the downloaded bundle:"
-          echo "BRRRBOARD_KEYSTORE_BASE64"
-          echo "BRRRBOARD_KEYSTORE_PASSWORD"
-          echo "BRRRBOARD_KEY_ALIAS"
-          echo "BRRRBOARD_KEY_PASSWORD"

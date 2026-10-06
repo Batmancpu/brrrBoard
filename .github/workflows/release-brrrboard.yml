@@ -29,26 +29,42 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Restore brrrBoard signing keystore
+      - name: Restore brrrBoard signing bundle
         shell: bash
         env:
-          BRRRBOARD_KEYSTORE_BASE64: ${{ secrets.BRRRBOARD_KEYSTORE_BASE64 }}
+          BRRRBOARD_SIGNING_BUNDLE: \${{ secrets.BRRRBOARD_SIGNING_BUNDLE }}
         run: |
           set -euo pipefail
-          test -n "$BRRRBOARD_KEYSTORE_BASE64"
-          mkdir -p "$RUNNER_TEMP/brrrBoard"
-          printf '%s' "$BRRRBOARD_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/brrrBoard/brrrBoard-release.jks"
-          test -s "$RUNNER_TEMP/brrrBoard/brrrBoard-release.jks"
+          test -n "$BRRRBOARD_SIGNING_BUNDLE"
+          WORK="$RUNNER_TEMP/brrrBoard-signing"
+          mkdir -p "$WORK"
+          printf '%s' "$BRRRBOARD_SIGNING_BUNDLE" | base64 --decode > "$WORK/bundle.zip"
+          unzip -q "$WORK/bundle.zip" -d "$WORK/unpacked"
+
+          test -s "$WORK/unpacked/brrrBoard-release.jks"
+
+          STORE_PASSWORD="$(jq -r '.keystore_password' "$WORK/unpacked/metadata.json")"
+          KEY_ALIAS="$(jq -r '.key_alias' "$WORK/unpacked/metadata.json")"
+          KEY_PASSWORD="$(jq -r '.key_password' "$WORK/unpacked/metadata.json")"
+
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+
+          echo "BRRRBOARD_KEYSTORE_PATH=$WORK/unpacked/brrrBoard-release.jks" >> "$GITHUB_ENV"
+          echo "BRRRBOARD_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "BRRRBOARD_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "BRRRBOARD_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Set release identity
         shell: bash
         run: |
           set -euo pipefail
-          SHORT_SHA="${GITHUB_SHA::7}"
+          SHORT_SHA="\${GITHUB_SHA::7}"
           BUILD_STAMP="$(TZ=Asia/Kolkata date +'%d%m%y%H%M')"
           VERSION_CODE="$(date +%s)"
           BUILD_TIMESTAMP="$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
-          TAG="brrrBoard-${BUILD_STAMP}-${SHORT_SHA}"
+          TAG="brrrBoard-\${BUILD_STAMP}-\${SHORT_SHA}"
 
           echo "BRRR_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "BRRR_BUILD_TIMESTAMP=$BUILD_TIMESTAMP" >> "$GITHUB_ENV"
@@ -56,18 +72,8 @@ jobs:
 
       - name: Build signed release APK
         shell: bash
-        env:
-          BRRRBOARD_KEYSTORE_PATH: ${{ runner.temp }}/brrrBoard/brrrBoard-release.jks
-          BRRRBOARD_KEYSTORE_PASSWORD: ${{ secrets.BRRRBOARD_KEYSTORE_PASSWORD }}
-          BRRRBOARD_KEY_ALIAS: ${{ secrets.BRRRBOARD_KEY_ALIAS }}
-          BRRRBOARD_KEY_PASSWORD: ${{ secrets.BRRRBOARD_KEY_PASSWORD }}
-          BRRR_BUILD_VERSION_CODE: ${{ env.BRRR_VERSION_CODE }}
-          BRRR_BUILD_TIMESTAMP: ${{ env.BRRR_BUILD_TIMESTAMP }}
         run: |
           set -euo pipefail
-          test -n "$BRRRBOARD_KEYSTORE_PASSWORD"
-          test -n "$BRRRBOARD_KEY_ALIAS"
-          test -n "$BRRRBOARD_KEY_PASSWORD"
           chmod +x gradlew
           ./gradlew --no-daemon --stacktrace -PversionName=1.0.0 assembleRelease
 
@@ -89,7 +95,7 @@ jobs:
 
       - name: Publish GitHub release
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: \${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -100,4 +106,9 @@ Build: $BRRR_BUILD_TIMESTAMP"
 Version code: $BRRR_VERSION_CODE"
           NOTES="$NOTES
 APK SHA-256: $BRRR_APK_SHA256"
-          gh release create "$BRRR_TAG" "$APK_PATH"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "brrrBoard — $BRRR_BUILD_TIMESTAMP"             --notes "$NOTES"
+
+          gh release create "$BRRR_TAG" "$APK_PATH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "brrrBoard — $BRRR_BUILD_TIMESTAMP" \
+            --notes "$NOTES"
