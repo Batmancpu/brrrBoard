@@ -28,6 +28,7 @@ android {
             )
             .get()
         val buildVersionCode = providers.environmentVariable("BRRR_BUILD_VERSION_CODE")
+            .map(String::toInt)
             .orElse(
                 providers.provider {
                     (System.currentTimeMillis() / 1000L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
