@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: brrrBoard-test
+  group: brrrBoard-test-v2
   cancel-in-progress: false
 
 jobs:
