@@ -9,20 +9,21 @@ abstract class GitCommitCountValueSource : ValueSource<Int, ValueSourceParameter
     abstract val execOperations: ExecOperations
 
     override fun obtain(): Int {
-        val output = ByteArrayOutputStream()
+        val timeBasedCode = (System.currentTimeMillis() / 60_000L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
+
         return try {
+            val output = ByteArrayOutputStream()
             execOperations.exec {
                 commandLine("git", "rev-list", "--count", "HEAD")
                 standardOutput = output
                 isIgnoreExitValue = true
             }
             val gitCount = output.toString().trim().toIntOrNull() ?: 1
-            val timeBasedCode = (System.currentTimeMillis() / 60_000L)
-                .coerceAtMost(Int.MAX_VALUE.toLong())
-                .toInt()
             maxOf(gitCount, timeBasedCode)
         } catch (e: Exception) {
-            1
+            timeBasedCode
         }
     }
 }
