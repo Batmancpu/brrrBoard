@@ -9,17 +9,22 @@ permissions:
 
 jobs:
   generate:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Push event — no-op
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "Workflow file validated on push; manual job actions are skipped."
+
       - name: Set up JDK 17
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/setup-java@v4
         with:
           java-version: "17"
           distribution: "temurin"
 
       - name: Generate dedicated brrrBoard signing bundle
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -43,6 +48,7 @@ jobs:
 '             'brrrBoard signing setup'             ''             '1. Keep brrrBoard-signing-bundle.zip as the permanent private signing-key backup.'             '2. Open BRRRBOARD_SIGNING_BUNDLE.txt and copy its complete contents.'             '3. In GitHub: Settings -> Secrets and variables -> Actions -> New repository secret'             '4. Secret name: BRRRBOARD_SIGNING_BUNDLE'             '5. Paste the copied value and save it.'             '6. Do not run this initializer again after a signing key has been used for a release.'             > "$GITHUB_WORKSPACE/README-SIGNING-SETUP.txt"
 
       - name: Upload signing setup
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-signing-setup
