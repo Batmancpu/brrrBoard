@@ -99,12 +99,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          notes="Signed brrrBoard APK built from commit $GITHUB_SHA."
-          notes="$notes
-Build: $BRRR_BUILD_TIMESTAMP"
-          notes="$notes
-Version code: $BRRR_VERSION_CODE"
-          notes="$notes
-APK SHA-256: $BRRR_APK_SHA256"
-
-          gh release create "$BRRR_TAG" "$APK_PATH"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "brrrBoard — $BRRR_BUILD_TIMESTAMP"             --notes "$notes"
+          gh release create "$BRRR_TAG" "$APK_PATH"             --repo "$GITHUB_REPOSITORY"             --target "$GITHUB_SHA"             --title "brrrBoard — $BRRR_BUILD_TIMESTAMP"             --notes "Signed brrrBoard APK. Build: $BRRR_BUILD_TIMESTAMP. Version code: $BRRR_VERSION_CODE. SHA-256: $BRRR_APK_SHA256."
