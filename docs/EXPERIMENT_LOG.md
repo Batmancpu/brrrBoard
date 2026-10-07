@@ -71,3 +71,12 @@ This file is the project's durable engineering ledger.
 ## How to record a failed experiment
 
 Use the template above even when the change is abandoned. A failed experiment is useful because it prevents repeating the same hypothesis without new evidence.
+
+## 2026-10-07 — CI unit-test environment failure (JDK 17 vs Android SDK 36)
+
+- **Problem:** the canonical build reached `:app:testDebugUnitTest` but 10/17 tests failed before test bodies ran.
+- **Root cause confirmed:** Robolectric's SDK 36 support requires Java 21; the workflow was installing Java 17. The failures all surfaced as `UnsupportedOperationException` from `DefaultSdkProvider.java:170`.
+- **Change attempted:** first workflow revision intentionally used JDK 17 because the project compiles source/target at Java 17; CI exposed the separate Robolectric runtime requirement.
+- **Result:** FAIL — this was a CI/toolchain configuration bug, not evidence that those ten tests are functionally broken.
+- **Evidence:** GitHub Actions run `37573697017`; 17 tests completed, 10 failed; failed classes included ParserTest, SubtypeTest, XLinkTest, SparkleDustViewTest, ClipboardImageHistoryClipTest, InputLogicTest, StringUtilsTest, SuggestTest, KlipyHistoryDaoTest, and ToolbarUtilsTest. All reported `UnsupportedOperationException at DefaultSdkProvider.java:170`.
+- **Next step:** rerun the complete build with JDK 21; keep Java/Kotlin source compatibility at 17 unless the compiler itself requires a change.
