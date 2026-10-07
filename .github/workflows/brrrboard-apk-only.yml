@@ -1,4 +1,4 @@
-name: brrrBoard — APK Only (Audit)
+name: brrrBoard — APK Only (Audit) # independent APK delivery path
 
 on:
   push:
