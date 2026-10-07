@@ -80,3 +80,29 @@ Use the template above even when the change is abandoned. A failed experiment is
 - **Result:** FAIL — this was a CI/toolchain configuration bug, not evidence that those ten tests are functionally broken.
 - **Evidence:** GitHub Actions run `37573697017`; 17 tests completed, 10 failed; failed classes included ParserTest, SubtypeTest, XLinkTest, SparkleDustViewTest, ClipboardImageHistoryClipTest, InputLogicTest, StringUtilsTest, SuggestTest, KlipyHistoryDaoTest, and ToolbarUtilsTest. All reported `UnsupportedOperationException at DefaultSdkProvider.java:170`.
 - **Next step:** rerun the complete build with JDK 21; keep Java/Kotlin source compatibility at 17 unless the compiler itself requires a change.
+
+
+## 2026-10-07 — APK-only delivery validation
+
+- **Problem:** the normal workflow was blocked by the unit-test gate and GitHub Actions became congested by an in-progress run.
+- **Change:** added `.github/workflows/brrrboard-apk-only.yml` so APK packaging/signing/upload is independently verifiable and not blocked by tests.
+- **Result:** APK **BUILD + SIGNING + ARTIFACT UPLOAD PASS**; GitHub Release publication failed only because the Actions integration received HTTP 403 for the Releases endpoint.
+- **Evidence:** workflow run `37575456832`; APK `FrostKeys_2.5.8-debug.apk`; SHA-256 `1b594eff45b0f9b41c290e4c234cd3a77f46229565de70a07d53d6c66ae9873a`.
+- **Next step:** test this APK on the target phone; keep release publication separate until repository Actions permissions allow Releases.
+
+## 2026-10-07 — Subtype cache/test-state investigation
+
+- **Problem:** `SubtypeTest` failed with `IllegalArgumentException` from `.single()` when resource/enabled subtype collections contained more than one entry.
+- **Change:** clear `resourceSubtypesByLocale` before rebuilding resource subtype caches; isolate enabled/selected subtype preferences in the test.
+- **Result:** APK compiles with the changes; the full regression workflow has not yet completed after these changes, so this is **PROVISIONAL**, not marked fully fixed.
+
+## 2026-10-07 — Emoji detector diagnostic
+
+- **Problem:** `StringUtilsTest.isEmojiDetectsAllAvailableEmojis` still failed under `testRunTests`.
+- **Change:** replaced the silent JVM assertion with an assertion that prints the exact failing emoji and code points.
+- **Result:** diagnostic patch committed; final detector correction awaits the next successful test run.
+
+## 2026-10-07 — CI workflow permission finding
+
+- **Problem:** `gh release create` returned HTTP 403 `Resource not accessible by integration` even though the workflow has `contents: write`.
+- **Result:** GitHub Actions artifact upload works; Release API publication is currently blocked by the connected integration's permissions.
