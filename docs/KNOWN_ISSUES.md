@@ -4,8 +4,8 @@ This is the current engineering watchlist. Items are not called fixed until ther
 
 | Area | Status | Finding |
 |---|---|---|
-| APK CI | **Needs validation** | Main currently lacked an active canonical APK workflow after several workflow create/repair/delete cycles. |
-| Debug APK updates | **Hardening applied** | Minute-resolution fallback `versionCode` could collide during rapid rebuilds; fallback was changed to seconds. |
+| APK CI | **Partially recovered** | Canonical build workflow restored; independent audit APK workflow now builds, signs and uploads successfully. GitHub Release API publication is blocked by HTTP 403. |
+| Debug APK updates | **Needs device validation** | Fallback `versionCode` now uses seconds rather than minutes; APK signing identity is persistent across debug builds. Device update without uninstall remains to be tested. |
 | Runtime keyboard startup | **Needs device validation** | Static source inspection cannot prove IME startup/keyboard-popup behavior on a physical OEM build. |
 | Search panels | **High regression sensitivity** | Emoji/Klipy search lifecycle and keyboard switching were recently rewritten; test enter/search/type/switch/exit repeatedly. |
 | Frosted Glass | **High OEM sensitivity** | Native blur has Android/Samsung-specific fallback paths; test with blur on/off and Android 12+ plus older API behavior where supported. |
