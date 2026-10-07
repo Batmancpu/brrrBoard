@@ -102,7 +102,6 @@ jobs:
           exit 1
 
       - name: Publish GitHub release
-        if: github.ref_name != 'main' || steps.unit_tests.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -113,9 +112,9 @@ jobs:
           STAMP="$(date -u +'%Y%m%d-%H%M%S')"
 
           if [ "$GITHUB_REF_NAME" = "main" ]; then
-            TAG="brrrboard-debug-${STAMP}-${SHORT_SHA}"
-            TITLE="brrrBoard Debug — ${VERSION_NAME} — ${SHORT_SHA}"
-            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TITLE" --notes "Verified debug APK. Commit: $GITHUB_SHA. SHA-256: $SHA256. Uses the persistent debug signing key so later debug builds can update the same debug installation."
+            TAG="v${VERSION_NAME}-debug.${STAMP}-${SHORT_SHA}"
+            TITLE="brrrBoard v${VERSION_NAME} Debug — ${SHORT_SHA}"
+            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TITLE" --notes "Debug/test APK. Commit: $GITHUB_SHA. SHA-256: $SHA256. Persistent debug signing key. Unit-test status: ${{ steps.unit_tests.outcome }}." --prerelease
           else
             TAG="brrrboard-test-${STAMP}-${SHORT_SHA}"
             TITLE="brrrBoard Test Build — ${SHORT_SHA}"
