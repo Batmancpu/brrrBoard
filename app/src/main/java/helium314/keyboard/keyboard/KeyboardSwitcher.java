@@ -78,6 +78,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     private InputView mCurrentInputView;
     private KeyboardWrapperView mKeyboardViewWrapper;
+    private helium314.keyboard.latin.KeyboardFooterView mKeyboardFooterView;
     private View mMainKeyboardFrame;
     private MainKeyboardView mKeyboardView;
     private EmojiPalettesView mEmojiPalettesView;
@@ -1826,6 +1827,21 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
         mKeyboardViewWrapper = mCurrentInputView.findViewById(R.id.keyboard_view_wrapper);
         mKeyboardViewWrapper.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
+
+        mKeyboardFooterView = mCurrentInputView.findViewById(R.id.keyboard_footer);
+        if (mKeyboardFooterView != null) {
+            mKeyboardFooterView.setActions(
+                    () -> {
+                        if (isShowingEmojiPalettes()) {
+                            setAlphabetKeyboard();
+                        } else {
+                            setEmojiKeyboard();
+                        }
+                    },
+                    () -> mLatinIME.showInputPickerDialog()
+            );
+        }
+
         mKeyboardView = mCurrentInputView.findViewById(R.id.keyboard_view);
         mKeyboardView.setHardwareAcceleratedDrawingEnabled(isHardwareAcceleratedDrawingEnabled);
         mKeyboardView.setKeyboardActionListener(mLatinIME.mKeyboardActionListener);
@@ -2101,6 +2117,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         // 2. Update mKeyboardView theme colors and force a redraw
         if (mKeyboardView != null) {
             mKeyboardView.updateThemeColors(colors);
+        }
+
+        if (mKeyboardFooterView != null) {
+            mKeyboardFooterView.updateThemeColors(colors);
         }
 
         // 3. Update mSuggestionStripView background and keys
