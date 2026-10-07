@@ -253,132 +253,45 @@ object FrostedGlassHelper {
     ) {
         val window = service.window?.window ?: return
         val nativeState = nativeBlurState(window)
-        val generation = ++nativeState.generation
-        val overrideMode = service.prefs().getString(Settings.PREF_BLUR_RENDER_OVERRIDE, "auto")
-        val isSamsungDevice = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
-        val shouldTrySamsungBlur = isSamsungDevice || overrideMode == "force_samsung"
+        nativeState.generation++
 
-        if (enable && windowsWithResizeOverlayBlurSuppressed.contains(window)) {
-            configureFrostedGlassInternal(service, inputView, false, allowDelayedNativeCleanup = false)
-            return
-        }
+        /*
+         * Android 15 / ColorOS stability guard:
+         *
+         * The IME window must never use cross-window/native/Samsung blur.
+         * Window-level blur can affect the host application's surface and, on
+         * affected devices, prevent the IME from becoming usable after an
+         * editable field receives focus.
+         *
+         * Keep this helper as a safe visual-background hook only. The frosted
+         * theme falls back to an opaque keyboard surface; all blur mechanisms
+         * are explicitly cleared and no IME-window sizing is modified here.
+         */
+        cancelPendingNativeBlurCleanup(nativeState)
+        clearNativeBlurReady(nativeState)
+        windowsWithAppliedFrostedGlass.remove(window)
 
-        if (!enable) {
-            val hadAppliedFrostedGlass = windowsWithAppliedFrostedGlass.contains(window)
-            val hadDefaultBlurEnabled = defaultBlurStates[window]?.enabled == true
-            if (!hadAppliedFrostedGlass && !hadDefaultBlurEnabled && !hasNativeBlurFlag(window)) {
-                cancelPendingNativeBlurCleanup(nativeState)
-                clearNativeBlurReady(nativeState)
-                if (shouldTrySamsungBlur) {
-                    clearSamsungSemBlur(inputView?.findViewById(R.id.main_keyboard_frame))
-                    if (inputView != null) clearSamsungSemBlur(inputView)
-                    applySamsungLegacyBlur(window, false)
-                }
-                return
-            }
+        // Clear any blur state without changing IME window geometry.
+        clearNativeBackgroundBlur(window)
+        clearSamsungSemBlur(samsungBlurTarget(inputView))
+        applySamsungLegacyBlur(window, false)
 
-            constrainImeWindowToKeyboardBounds(service, window, inputView)
-            if (allowDelayedNativeCleanup &&
-                    scheduleNativeBlurCleanupIfReady(service, window, inputView, nativeState, generation)) {
-                Log.i(TAG, "Frosted glass disabled. Scheduled native blur cleanup.")
-                return
-            }
-
-            cancelPendingNativeBlurCleanup(nativeState)
-            clearNativeBlurReady(nativeState)
-            windowsWithAppliedFrostedGlass.remove(window)
-            val nativeBlurChanged = applyDefaultBlur(service, window, false)
-            if (shouldTrySamsungBlur) {
-                applySamsungSemBlur(window, inputView, false)
-                applySamsungLegacyBlur(window, false)
-            }
-            if (nativeBlurChanged || shouldTrySamsungBlur) {
-                Log.i(TAG, "Frosted glass disabled. Cleared blur state.")
-            }
-            return
-        }
-
-        if (!service.isInputViewShown) {
-            cancelPendingNativeBlurCleanup(nativeState)
-            clearNativeBlurReady(nativeState)
-            windowsWithAppliedFrostedGlass.remove(window)
-            applyDefaultBlur(service, window, false, force = true)
-            Log.d(TAG, "Skipped frosted blur enable while IME input view is hidden.")
-            return
-        }
-
-        constrainImeWindowToKeyboardBounds(service, window, inputView)
-        val blurAvailable = isSystemBlurAvailable(service)
-        val shouldUseSolidFallback = overrideMode == "force_solid" || (!blurAvailable && !shouldTrySamsungBlur)
-
-        if (shouldUseSolidFallback) {
-            cancelPendingNativeBlurCleanup(nativeState)
-            clearNativeBlurReady(nativeState)
-            val nativeBlurChanged = applyDefaultBlur(service, window, false, solidFallbackColor(service))
-            if (shouldTrySamsungBlur) {
-                clearSamsungSemBlur(samsungBlurTarget(inputView))
-                applySamsungLegacyBlur(window, false)
-            }
+        if (enable) {
             applySolidFallbackBackground(service, window, inputView)
             windowsWithAppliedFrostedGlass.add(window)
-            if (nativeBlurChanged) {
-                Log.i(TAG, "Frosted glass blur unavailable or forced solid. Applied opaque frosted fallback.")
-            }
-            return
+            Log.i(TAG, "Frosted glass requested: using opaque stability fallback; IME window blur disabled.")
+        } else {
+            // Restore a transparent AOSP-style IME window background when the
+            // frosted theme is not active or the window is being hidden.
+            window.setBackgroundDrawable(
+                roundedWindowBackground(
+                    service,
+                    Color.TRANSPARENT,
+                    topOnlyCorners = true
+                )
+            )
+            Log.d(TAG, "Frosted glass disabled; IME window blur remains disabled.")
         }
-
-        when (overrideMode) {
-            "force_native" -> {
-                restoreFrostedThemeBackground(service, inputView)
-                if (applyNativeBlur(service, window, inputView, nativeState, generation)) {
-                    Log.i(TAG, "OVERRIDE: Force Native Android Blur requested via window.setBackgroundBlurRadius.")
-                }
-            }
-            "force_samsung" -> {
-                cancelPendingNativeBlurCleanup(nativeState)
-                clearNativeBlurReady(nativeState)
-                if (applySamsungSemBlur(window, inputView, true, force = true)) {
-                    Log.i(TAG, "OVERRIDE: Force Samsung Proprietary Blur applied successfully via SemBlurInfo.")
-                } else if (applySamsungLegacyBlur(window, true)) {
-                    Log.i(TAG, "OVERRIDE: Force Samsung Proprietary Blur fell back to legacy semAddExtensionFlags.")
-                } else {
-                    applySolidFallbackBackground(service, window, inputView)
-                    Log.i(TAG, "OVERRIDE: Force Samsung Proprietary Blur failed; applied opaque frosted fallback.")
-                }
-            }
-            else -> {
-                // "auto" mode - The existing logic
-                if (isSamsungDevice) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        cancelPendingNativeBlurCleanup(nativeState)
-                        clearNativeBlurReady(nativeState)
-                        if (applySamsungSemBlur(window, inputView, true)) {
-                            Log.i(TAG, "AUTO: Samsung device detected (SDK >= S). Applied SemBlurInfo successfully.")
-                        } else if (applySamsungLegacyBlur(window, true)) {
-                            Log.i(TAG, "AUTO: Samsung SemBlurInfo unavailable. Fell back to legacy semAddExtensionFlags.")
-                        } else {
-                            applySolidFallbackBackground(service, window, inputView)
-                            Log.i(TAG, "AUTO: Samsung proprietary blur unavailable. Applied opaque frosted fallback.")
-                        }
-                    } else {
-                        cancelPendingNativeBlurCleanup(nativeState)
-                        clearNativeBlurReady(nativeState)
-                        restoreFrostedThemeBackground(service, inputView)
-                        val nativeBlurChanged = applyDefaultBlur(service, window, true)
-                        val legacyBlurChanged = applySamsungLegacyBlur(window, true)
-                        if (nativeBlurChanged || legacyBlurChanged) {
-                            Log.i(TAG, "AUTO: Older Samsung device detected. Applied Legacy semAddExtensionFlags successfully.")
-                        }
-                    }
-                } else {
-                    restoreFrostedThemeBackground(service, inputView)
-                    if (applyNativeBlur(service, window, inputView, nativeState, generation)) {
-                        Log.i(TAG, "AUTO: Non-Samsung device detected. Requested Native Android window blur.")
-                    }
-                }
-            }
-        }
-        windowsWithAppliedFrostedGlass.add(window)
     }
 
     private fun hasNativeBlurFlag(window: Window): Boolean {
@@ -609,43 +522,31 @@ object FrostedGlassHelper {
         backgroundColor: Int = Color.TRANSPARENT,
         force: Boolean = false
     ): Boolean {
-        val targetRadius = if (enable) {
-            blurRadius(service)
-        } else {
-            0
-        }
-        val backgroundBlurOnly = service.prefs().getBoolean(
-            Settings.PREF_NATIVE_BACKGROUND_BLUR_ONLY,
-            Defaults.PREF_NATIVE_BACKGROUND_BLUR_ONLY
-        )
+        // Stability policy: this routine is retained for internal cleanup/state
+        // compatibility but it can never enable cross-window blur on the IME.
         val desiredState = DefaultBlurState(
-            enabled = enable,
-            radius = targetRadius,
+            enabled = false,
+            radius = 0,
             backgroundColor = backgroundColor,
-            backgroundBlurOnly = backgroundBlurOnly,
+            backgroundBlurOnly = false,
             cornerRadiusPx = keyboardCornerRadiusPx(service)
         )
         if (!force && defaultBlurStates[window] == desiredState) {
             return false
         }
 
-        // AOSP background blur reads its corner radius from a uniform round-rect outline.
-        // Per-corner radii produce a path outline, which native background blur treats as radius 0.
         window.setBackgroundDrawable(
             roundedWindowBackground(
                 service,
                 backgroundColor,
-                topOnlyCorners = !enable
+                topOnlyCorners = true
             )
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val params = window.attributes
-            window.setBackgroundBlurRadius(targetRadius)
-            Log.d(TAG, "window.setBackgroundBlurRadius successfully called without throwing an exception.")
-
-            var layoutParamsChanged = false
             val blurFlag = WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+            var layoutParamsChanged = false
             if ((params.flags and blurFlag) != 0) {
                 params.flags = params.flags and blurFlag.inv()
                 layoutParamsChanged = true
@@ -666,11 +567,13 @@ object FrostedGlassHelper {
     private fun clearNativeBackgroundBlur(window: Window): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
 
-        var layoutParamsChanged = false
-        window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-        window.setBackgroundBlurRadius(0)
-
         val params = window.attributes
+        var layoutParamsChanged = false
+        val blurFlag = WindowManager.LayoutParams.FLAG_BLUR_BEHIND
+        if ((params.flags and blurFlag) != 0) {
+            params.flags = params.flags and blurFlag.inv()
+            layoutParamsChanged = true
+        }
         if (params.blurBehindRadius != 0) {
             params.setBlurBehindRadius(0)
             layoutParamsChanged = true
