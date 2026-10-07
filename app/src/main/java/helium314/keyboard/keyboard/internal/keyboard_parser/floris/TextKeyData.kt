@@ -107,7 +107,17 @@ sealed interface KeyData : AbstractKeyData {
                 keys.add("!icon/settings_key|!code/key_settings")
             if (shouldShowTldPopups(params)) {
                 keys.add(",")
+            } else if (params.mId.isAlphabetKeyboard) {
+                keys.add(",")
             }
+
+            // The compact bottom row removes the visible context punctuation key.
+            // Keep the mode-specific variants available from the new left-side key.
+            when (params.mId.mMode) {
+                KeyboardId.MODE_EMAIL -> keys.add("@")
+                KeyboardId.MODE_URL -> keys.add("/")
+            }
+
             return keys
         }
 
@@ -460,7 +470,15 @@ sealed interface KeyData : AbstractKeyData {
         return when (label) {
             KeyLabel.COMMA -> SimplePopups(getCommaPopupKeys(params))
             KeyLabel.PERIOD -> getPeriodPopups(params)
-            KeyLabel.ACTION -> getActionKeyPopupKeys(params)
+            KeyLabel.ACTION -> {
+                val actionPopups = getActionKeyPopupKeys(params)
+                if (params.mId.isAlphaOrSymbolKeyboard) {
+                    val punctuationPopups = getPeriodPopups(params)
+                    actionPopups?.merge(punctuationPopups) ?: punctuationPopups
+                } else {
+                    actionPopups
+                }
+            }
             KeyLabel.SHIFT -> {
                 if (params.mId.isAlphabetKeyboard) SimplePopups(
                     listOf(
@@ -480,11 +498,17 @@ sealed interface KeyData : AbstractKeyData {
         }
     }
 
-    private fun getPeriodPopups(params: KeyboardParams): SimplePopups =
-        SimplePopups(
-            if (shouldShowTldPopups(params)) params.mLocaleKeyboardInfos.tlds
-            else getPunctuationPopupKeys(params)
-        )
+    private fun getPeriodPopups(params: KeyboardParams): SimplePopups {
+        val keys = if (shouldShowTldPopups(params)) {
+            params.mLocaleKeyboardInfos.tlds.toMutableList()
+        } else {
+            getPunctuationPopupKeys(params).toMutableList()
+        }
+        if (params.mId.isAlphabetKeyboard && "." !in keys) {
+            keys.add(".")
+        }
+        return SimplePopups(keys)
+    }
 }
 
 /**
