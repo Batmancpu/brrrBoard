@@ -9,7 +9,7 @@ abstract class GitCommitCountValueSource : ValueSource<Int, ValueSourceParameter
     abstract val execOperations: ExecOperations
 
     override fun obtain(): Int {
-        val timeBasedCode = (System.currentTimeMillis() / 60_000L)
+        val timeBasedCode = (System.currentTimeMillis() / 1_000L)
             .coerceAtMost(Int.MAX_VALUE.toLong())
             .toInt()
 
