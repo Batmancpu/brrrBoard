@@ -474,7 +474,7 @@ sealed interface KeyData : AbstractKeyData {
                 val actionPopups = getActionKeyPopupKeys(params)
                 if (params.mId.isAlphaOrSymbolKeyboard) {
                     val punctuationPopups = getPeriodPopups(params)
-                    actionPopups?.merge(punctuationPopups) ?: punctuationPopups
+                    (actionPopups?.merge(punctuationPopups) as? PopupSet<AbstractKeyData>) ?: punctuationPopups
                 } else {
                     actionPopups
                 }
