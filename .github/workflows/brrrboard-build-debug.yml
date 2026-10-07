@@ -43,12 +43,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and test
+      - name: Build debug APK
         shell: bash
         run: |
           set -euo pipefail
           chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace testRunTests assembleDebug
+          ./gradlew --no-daemon --stacktrace assembleDebug
 
       - name: Verify APK and signing identity
         shell: bash
@@ -86,7 +86,23 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Run unit tests
+        id: unit_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./gradlew --no-daemon --stacktrace testRunTests
+
+      - name: Fail workflow when tests fail
+        if: steps.unit_tests.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "Unit tests failed; APK was still built, verified, and published for audit/testing."
+          exit 1
+
       - name: Publish GitHub release
+        if: github.ref_name != 'main' || steps.unit_tests.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
