@@ -24,6 +24,7 @@ import org.robolectric.annotation.Config
 import kotlin.system.measureTimeMillis
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 // todo: actually this test could/should be significantly expanded...
 @RunWith(RobolectricTestRunner::class)
@@ -205,7 +206,7 @@ class StringUtilsTest {
         val brokenDetectionAtStart = listOf("〰️", "〽️", "©️", "®️", "#️⃣", "*️⃣", "0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "㊗️", "㊙️")
         allEmojis.forEach {
             if (it == "🀄" || it == "🃏") return@forEach // todo: should be fixed, ideally in the regex
-            assert(isEmoji(it))
+            assertTrue(isEmoji(it), "isEmoji=false for [$it] codePoints=${it.codePoints().toArray().joinToString(","){ "U+" + it.toString(16).uppercase() }}")
             assert(StringUtils.mightBeEmoji(it.codePointBefore(it.length)))
             if (it !in brokenDetectionAtStart)
                 assert(StringUtils.mightBeEmoji(it.codePointAt(0)))
