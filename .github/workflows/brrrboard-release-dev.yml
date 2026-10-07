@@ -1,6 +1,9 @@
 name: brrrBoard — Release
 
 on:
+  push:
+    branches:
+      - real-mangaloads-brrrBoard-6586049785836259601-17166726600989827207
   workflow_dispatch:
 
 permissions:
@@ -47,6 +50,7 @@ jobs:
           version_code="$(date +%s)"
           build_timestamp="$(TZ=Asia/Kolkata date +'%d %B %Y, %-I:%M %p')"
           tag="brrrBoard-${build_stamp}-${short_sha}"
+          echo "BRRR_BUILD_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "BRRR_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "BRRR_BUILD_TIMESTAMP=$build_timestamp" >> "$GITHUB_ENV"
           echo "BRRR_TAG=$tag" >> "$GITHUB_ENV"
