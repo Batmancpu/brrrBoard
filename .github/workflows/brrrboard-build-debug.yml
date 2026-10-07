@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'brrrboard-audit-*'
+      - 'Totally-ChatGPT'
   workflow_dispatch:
 
 permissions:
