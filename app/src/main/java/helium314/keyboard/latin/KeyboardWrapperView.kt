@@ -49,6 +49,12 @@ class KeyboardWrapperView @JvmOverloads constructor(
         // Apply the navigation bar inset as bottom padding on this wrapper,
         // so ALL child panels are pushed above the nav bar uniformly.
         setPadding(paddingLeft, paddingTop, paddingRight, bottomInset)
+
+        // The footer is a sibling of this wrapper, so propagate the same inset explicitly.
+        (parent as? ViewGroup)
+            ?.findViewById<KeyboardFooterView>(R.id.keyboard_footer)
+            ?.setNavigationBarInset(bottomInset)
+
         // Consume the bottom inset so children don't also try to apply it
         return insets.replaceSystemWindowInsets(
             insets.systemWindowInsetLeft,
