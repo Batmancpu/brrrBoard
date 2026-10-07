@@ -864,7 +864,7 @@ New dictionary:
     <string name="license">Open-source license</string>
     <!-- privacy policy for about screen -->
     <string name="privacy_policy">Privacy Policy</string>
-    <string name="privacy_policy_summary">Read brrrBoard's privacy policy online</string>
+    <string name="privacy_policy_summary">Read brrrBoard\'s privacy policy online</string>
     <string name="about_creator_label">Created by</string>
     <string name="about_website">Website</string>
     <string name="about_contact">Suggestions &amp; Contact</string>
