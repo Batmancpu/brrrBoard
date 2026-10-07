@@ -1,9 +1,6 @@
 name: brrrBoard — Release
 
 on:
-  push:
-    branches:
-      - real-mangaloads-brrrBoard-6586049785836259601-17166726600989827207
   workflow_dispatch:
 
 permissions:
@@ -91,7 +88,12 @@ jobs:
           sha256="$(sha256sum "$apk_path" | cut -d' ' -f1)"
           echo "BRRR_APK_SHA256=$sha256" >> "$GITHUB_ENV"
           build_tools="$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          aapt="$ANDROID_HOME/build-tools/$build_tools/aapt"
           "$ANDROID_HOME/build-tools/$build_tools/apksigner" verify --verbose "$apk_path"
+          badging="$("$aapt" dump badging "$apk_path" | head -n 1)"
+          echo "$badging"
+          echo "$badging" | grep -F "package: name='com.mangoloads.brrrboard'" >/dev/null
+          echo "$badging" | grep -F "versionName='1.0.0'" >/dev/null
           ls -lh "$apk_path"
           echo "SHA-256: $sha256"
 
