@@ -235,6 +235,7 @@ object SubtypeSettings {
     }
 
     private fun loadResourceSubtypes(resources: Resources) {
+        resourceSubtypesByLocale.clear()
         getResourceSubtypes(resources).forEach {
             resourceSubtypesByLocale.getOrPut(it.locale()) { ArrayList(2) }.add(it)
         }
