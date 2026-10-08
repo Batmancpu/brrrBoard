@@ -1,0 +1,59 @@
+name: Jules APK Release
+
+on:
+  push:
+    branches:
+      - jules-board-10408838174702712066
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK components
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager             "platforms;android-36"             "build-tools;35.0.0"             "ndk;28.0.13004108"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build installable APK
+        shell: bash
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -f "app/build/outputs/apk/debug/brrrBoard-1.0.0-debug.apk"
+          ls -lh "app/build/outputs/apk/debug/brrrBoard-1.0.0-debug.apk"
+
+      - name: Publish APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TAG="jules-apk-${SHORT_SHA}"
+          TITLE="brrrBoard — Jules iOS 27 Layout — ${SHORT_SHA}"
+
+          gh release create "$TAG"             "app/build/outputs/apk/debug/brrrBoard-1.0.0-debug.apk"             --repo "${GITHUB_REPOSITORY}"             --target "${GITHUB_SHA}"             --title "$TITLE"             --notes "Installable debug APK built from Jules branch \`jules-board-10408838174702712066\`. Commit: ${GITHUB_SHA}."             --prerelease
