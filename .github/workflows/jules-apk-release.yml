@@ -57,3 +57,5 @@ jobs:
           TITLE="brrrBoard — Jules iOS 27 Layout — ${SHORT_SHA}"
 
           gh release create "$TAG"             "app/build/outputs/apk/debug/brrrBoard-1.0.0-debug.apk"             --repo "${GITHUB_REPOSITORY}"             --target "${GITHUB_SHA}"             --title "$TITLE"             --notes "Installable debug APK built from Jules branch \`jules-board-10408838174702712066\`. Commit: ${GITHUB_SHA}."             --prerelease
+
+# Build trigger: create an installable APK from the current Jules branch HEAD.
