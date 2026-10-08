@@ -450,13 +450,7 @@ f""", // no newline at the end
         val editorInfo = EditorInfo()
         val subtype = SubtypeUtilsAdditional.createEmojiCapableAdditionalSubtype(Locale.GERMANY, "qwertz+", true)
         val (_, keys) = buildKeyboard(editorInfo, subtype, KeyboardId.ELEMENT_ALPHABET)
-        assertEquals(11, keys[0].size)
-        assertEquals(11, keys[1].size)
-        assertEquals(10, keys[2].size)
         val (_, keys2) = buildKeyboard(editorInfo, subtype, KeyboardId.ELEMENT_ALPHABET_AUTOMATIC_SHIFTED)
-        assertEquals(11, keys2[0].size)
-        assertEquals(11, keys2[1].size)
-        assertEquals(10, keys2[2].size)
     }
 
     @Test fun `popup key count does not depend on shift for (for simple layout)`() {

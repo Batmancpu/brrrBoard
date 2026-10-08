@@ -1,0 +1,17 @@
+[
+  [
+    { "label": "shift", "width": 0.15 },
+    { "type": "placeholder" },
+    { "label": "delete", "width": 0.15 }
+  ],
+  [
+    { "label": "symbol_alpha", "width": 0.23 },
+    { "label": "space", "width": -1 },
+    { "label": "action", "width": 0.23 }
+  ],
+  [
+    { "label": "!icon/emoji_normal_key|!code/key_emoji", "width": 0.15, "popup": {"relevant": [{"label": "!icon/clipboard_action_key|!code/key_clipboard"}]} },
+    { "type": "placeholder", "width": -1 },
+    { "label": "!icon/shortcut_key|!code/key_language_switch", "width": 0.15 }
+  ]
+]
