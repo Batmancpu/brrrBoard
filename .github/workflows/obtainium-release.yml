@@ -1,3 +1,4 @@
+# Publish the signed APK from main with a monotonically increasing version.
 name: brrrBoard Obtainium Release
 on:
   push:

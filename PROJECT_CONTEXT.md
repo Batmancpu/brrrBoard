@@ -6,8 +6,8 @@
 - **Current goal (2026-11-14):** install and update the personal fork through Obtainium and keep the same private signing identity across releases. Maintain this repository handoff.
 - **Historical product goal:** build a personal, privacy-focused keyboard fork with reliable APK updates, cleaner settings and iOS-inspired controls. Historical milestones also explored offline cleanup, keyboard geometry, diagnostics and Liquid Glass. Current product scope beyond this handoff is open.
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
-- **Current status:** [Obtainium v1.0.3](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.3) is the first successfully published APK. CI verified package `com.orion.frostkeys.brrrboard`, version code `3`, and the pinned signer. The owner has yet to confirm installation.
-- **Next action:** wait for the owner to confirm installing v1.0.3 through Obtainium. Then start a new Obtainium workflow run on `main` for a higher version code, verify the same signer/package, and have the owner update in place. Rerunning the v1.0.3 run keeps its version code.
+- **Current status:** [Obtainium v1.0.3](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.3) is the first successfully published APK. CI verified package `com.orion.frostkeys.brrrboard`, version code `3`, and the pinned signer. The owner confirmed 1.0.3 is installed. The second build is being published for an in-place update test through Chrome because the Obtainium limit was reached.
+- **Next action:** verify the second release, then have the owner install the APK over 1.0.3 and confirm the installed version and settings. Test the Obtainium refresh and update flow separately when available.
 - **Open decisions:** whether to carry selected offline, geometry, diagnostics or iOS-layout changes into `main`; The historical stable-update goal requires a compatible package ID, signer and increasing version code. Physical-device validation remains open.
 
 ## What happened
@@ -29,6 +29,8 @@
 | Nov 14 | Obtainium run 43584759527 passed enrollment and built the unsigned APK. The signer check failed. The verifier now reads both known apksigner output formats and compares the uploaded keystore certificate separately. |
 
 | Nov 14 | [Run 43585285361](https://github.com/Batmancpu/brrrBoard/actions/runs/43585285361) built, signed, verified and published `brrrBoard.apk` as `v1.0.3`. The feed is paused at this release pending a first install. |
+
+| Nov 14 | The owner confirmed v1.0.3 is installed and chose Chrome for the update test due to the Obtainium limit. Triggered a new signed release from `main` using a workflow comment and a context update. |
 
 ## Technical details worth retaining
 
