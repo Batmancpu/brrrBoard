@@ -100,6 +100,10 @@ private object AppUpgrade {
         // Obtainium uses its own small, sequential version codes and application ID.
         // The upstream version thresholds below apply to the other APK variants.
         if (BuildConfig.BUILD_TYPE == "obtainium") {
+            val oldBrand = prefs.getString(Settings.PREF_SPACE_BAR_TEXT, null)
+            if (oldBrand in setOf("FrostKeys", "Frost Keys", "BRR Board", "brrrBoard")) {
+                prefs.edit { putString(Settings.PREF_SPACE_BAR_TEXT, Defaults.PREF_SPACE_BAR_TEXT) }
+            }
             upgradeToolbarPrefs(prefs)
             LayoutUtilsCustom.onLayoutFileChanged()
             prefs.edit { putInt(Settings.PREF_VERSION_CODE, BuildConfig.VERSION_CODE) }

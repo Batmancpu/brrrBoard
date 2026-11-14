@@ -1,4 +1,4 @@
-# FrostKeys / brrrBoard agent instructions
+# brrBoard agent instructions
 
 1. At the start of a project task, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) and [docs/PROJECT_CONVERSATION.md](docs/PROJECT_CONVERSATION.md). Check the current branch, HEAD, and working tree. Verify relevant code, release, or CI claims before continuing. The context page is the current checkpoint. The conversation record preserves original project requests in order.
 2. Update both documents within each project task. In the conversation record, quote project-relevant user requests and corrections verbatim, preserving language and order. Capture the agent's project-relevant decisions, promised deliverables, material instructions, and corrections. Append when the user changes goals, constraints, or priorities, even when no code changes. Mark superseded decisions and keep the original entries.
@@ -8,4 +8,6 @@
 
 ## Current product requirements
 
-Follow [the phased BRR Board plan](docs/BRR_BOARD_ROADMAP.md). Keep the keyboard fully offline and preserve the existing Obtainium update identity. Research iOS 27 actual layout and behavior and recover prior button placement from this repository. Use the existing Frosted Glass renderer, with rounded edges and tuned defaults. Implement the local Hinglish dictionary and inline offline dictation. Publish one signed APK per completed phase and update the handoff with what was verified.
+Follow [the phased brrBoard plan](docs/BRR_BOARD_ROADMAP.md). Keep the keyboard fully offline and preserve the existing Obtainium update identity. Research iOS 27 actual layout and behavior and recover prior button placement from this repository. Use the existing Frosted Glass renderer, with rounded edges and tuned defaults. Implement the local Hinglish dictionary and inline offline dictation. Publish one signed APK per completed phase and update the handoff with what was verified.
+
+Use the exact public label `brrBoard` and the maintainer’s MangoLoads link. Keep historical and license attribution. Prioritize inline on-device dictation and clean onboarding labels.

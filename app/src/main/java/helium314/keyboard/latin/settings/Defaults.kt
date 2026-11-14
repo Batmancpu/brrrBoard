@@ -168,7 +168,7 @@ object Defaults {
     const val PREF_ABC_AFTER_SYMBOL_SPACE = true
     const val PREF_ABC_AFTER_NUMPAD_SPACE = false
     const val PREF_REMOVE_REDUNDANT_POPUPS = true
-    const val PREF_SPACE_BAR_TEXT = "BRR Board"
+    const val PREF_SPACE_BAR_TEXT = "brrBoard"
     const val PREF_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss"
     const val PREF_SEND_GIFS_AS_STICKERS = false
     const val PREF_USE_5_WORD_SUGGESTION_CHIPS = false

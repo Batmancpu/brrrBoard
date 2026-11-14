@@ -16,6 +16,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <application android:label="@string/english_ime_name"
             android:name="helium314.keyboard.latin.App"
             android:icon="@mipmap/ic_launcher"
@@ -126,20 +128,14 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <provider
-            android:name="helium314.keyboard.latin.stickers.StickerContentProvider"
-            android:authorities="${stickerProviderAuthority}"
-            android:enabled="true"
-            android:exported="true"
-            android:grantUriPermissions="true"
-            android:readPermission="com.whatsapp.sticker.READ">
-            <intent-filter>
-                <action android:name="com.whatsapp.intent.action.ENABLE_STICKER_PACK" />
-            </intent-filter>
-        </provider>
+
     </application>
 
     <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+
         <!-- To detect other IMEs -->
         <intent>
             <!-- changed to * as it's supposed to help with finding other keyboard apps, see https://github.com/HeliBorg/HeliBoard/issues/1340 -->

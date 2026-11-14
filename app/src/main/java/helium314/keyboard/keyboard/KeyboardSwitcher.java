@@ -364,7 +364,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                             || (newKeyboard.mId.mElementId >= KeyboardId.ELEMENT_EMOJI_RECENTS
                                     && newKeyboard.mId.mElementId != KeyboardId.ELEMENT_NUMPAD));
                     keyboardView.setKeyPreviewPopupEnabled(currentSettingsValues.mKeyPreviewPopupOn);
-                    keyboardView.updateShortcutKey(mRichImm.isShortcutImeReady());
+                    keyboardView.updateShortcutKey(newKeyboard.mId.mHasShortcutKey);
                     final boolean subtypeChanged = (oldKeyboard == null)
                             || !newKeyboard.mId.mSubtype.equals(oldKeyboard.mId.mSubtype);
                     final int languageOnSpacebarFormatType = LanguageOnSpacebarUtils
@@ -405,7 +405,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         try {
             keyboardView.setKeyboardForCaseSwitch(newKeyboard);
             keyboardView.setKeyPreviewPopupEnabled(settingsValues.mKeyPreviewPopupOn);
-            keyboardView.updateShortcutKey(mRichImm.isShortcutImeReady());
+            keyboardView.updateShortcutKey(newKeyboard.mId.mHasShortcutKey);
             final boolean subtypeChanged = oldKeyboard == null
                     || !newKeyboard.mId.mSubtype.equals(oldKeyboard.mId.mSubtype);
             final int languageOnSpacebarFormatType = LanguageOnSpacebarUtils

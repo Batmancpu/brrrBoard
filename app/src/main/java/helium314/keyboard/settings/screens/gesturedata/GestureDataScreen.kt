@@ -590,7 +590,7 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
             appendLink("YouTube", Links.GESTURE_DATA_VIDEO_YOUTUBE)
             appendLine()
             append("• ")
-            appendLink("FrostKeys wiki", Links.GESTURE_DATA_WIKI)
+            appendLink("brrBoard wiki", Links.GESTURE_DATA_WIKI)
             appendLine()
             appendLine()
             append("Tool for visualizing gesture data:")

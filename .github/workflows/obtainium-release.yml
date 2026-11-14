@@ -1,5 +1,5 @@
 # Publish the signed APK from main with a monotonically increasing version.
-name: brrrBoard Obtainium Release
+name: brrBoard Obtainium Release
 on:
   push:
     branches: [main]
@@ -70,7 +70,7 @@ jobs:
           test "${#unsigned[@]}" -eq 1
           test -s "${unsigned[0]}"
           "$sdk_tools/zipalign" -P 16 -f 4 "${unsigned[0]}" "$work/aligned.apk"
-          apk="$RUNNER_TEMP/brrrBoard.apk"
+          apk="$RUNNER_TEMP/brrBoard.apk"
           "$sdk_tools/apksigner" sign --ks "$work/signing.p12" --ks-key-alias brrrboard \
             --ks-pass env:KEYSTORE_PASSWORD --out "$apk" "$work/aligned.apk"
           cert="$("$sdk_tools/apksigner" verify --print-certs "$apk" | sed -nE 's/^.*certificate SHA-256 digest:[[:space:]]*([0-9a-fA-F]{64})[[:space:]]*$/\1/p' | tr '[:upper:]' '[:lower:]' | sort -u)"
@@ -80,7 +80,7 @@ jobs:
           fi
           apk_permissions="$("$sdk_tools/aapt" dump permissions "$apk")"
           if grep -Eq 'android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)' <<< "$apk_permissions"; then
-            echo "::error::Offline BRR Board APK declares a network permission."
+            echo "::error::Offline brrBoard APK declares a network permission."
             exit 1
           fi
           if unzip -Z1 "$apk" | grep -Fx 'assets/default_backup.zip' >/dev/null; then
@@ -90,7 +90,9 @@ jobs:
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done
-          package="$("$sdk_tools/aapt" dump badging "$apk" | sed -n '1p')"
+          badging="$("$sdk_tools/aapt" dump badging "$apk")"
+          grep -Fx "application-label:'brrBoard'" <<< "$badging"
+          package="${badging%%$'\n'*}"
           [[ "$package" == "package: name='com.orion.frostkeys.brrrboard' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
           printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - name: Publish GitHub release
@@ -101,12 +103,12 @@ jobs:
           set -euo pipefail
           version="1.0.$GITHUB_RUN_NUMBER"
           last_run="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-            --jq '.[] | select(.draft == false and (.name | startswith("brrrBoard Obtainium "))) | .tag_name | select(test("^v1\\.0\\.[0-9]+$")) | split(".") | last' \
+            --jq '.[] | select(.draft == false and (.name | (startswith("brrBoard Obtainium ") or startswith("brrrBoard Obtainium ")))) | .tag_name | select(test("^v1\\.0\\.[0-9]+$")) | split(".") | last' \
             | sort -n | tail -n 1)"
           if [[ -n "$last_run" ]] && (( last_run >= GITHUB_RUN_NUMBER )); then
             echo "An equal or newer Obtainium release is already published."
             exit 0
           fi
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "brrrBoard Obtainium $version" --latest \
+            --title "brrBoard Obtainium $version" --latest \
             --notes "Commit: $GITHUB_SHA. APK SHA-256: $SHA256."

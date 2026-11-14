@@ -72,8 +72,8 @@ class StickerContentProvider : ContentProvider() {
                     val identifier = file.name
                     cursor.addRow(arrayOf<Any>(
                         identifier,
-                        "FrostKeys Pack $identifier",
-                        "FrostKeys",
+                        "brrBoard Pack $identifier",
+                        "brrBoard",
                         "tray_icon.png",
                         "publisher@example.com",
                         "https://example.com",
@@ -108,8 +108,8 @@ class StickerContentProvider : ContentProvider() {
         if (stickersDir.exists() && stickersDir.isDirectory) {
             cursor.addRow(arrayOf<Any>(
                 identifier,
-                "FrostKeys Pack $identifier",
-                "FrostKeys",
+                "brrBoard Pack $identifier",
+                "brrBoard",
                 "tray_icon.png",
                 "publisher@example.com",
                 "https://example.com",

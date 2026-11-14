@@ -5,8 +5,6 @@ import helium314.keyboard.settings.LocalSearchState
 import helium314.keyboard.settings.StaticSearchField
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.TextFieldDefaults
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -139,9 +137,6 @@ fun MainSettingsScreen(
         val showDataGathering = remember {
             JniUtils.sHaveGestureLib && System.currentTimeMillis() < END_DATE_EPOCH_MILLIS + TWO_WEEKS_IN_MILLIS
         }
-        val discordJoined = remember(b?.value) {
-            ctx.prefs().getBoolean("pref_discord_joined", false)
-        }
         val isGestureComplete = remember(b?.value) {
             val gesturePrefs = listOf("pref_gesture_input", "pref_gesture_space_after")
             gesturePrefs.any { ctx.prefs().getBoolean(it, true) }
@@ -152,16 +147,6 @@ fun MainSettingsScreen(
         val allStepsComplete = isGestureComplete && isDictionaryComplete
         val isDismissed = remember(b?.value) {
             ctx.prefs().getBoolean("pref_quick_setup_dismissed", false)
-        }
-
-        if (!discordJoined) {
-            DiscordInviteCard(
-                onJoinClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://discord.gg/fjqJHq8c9j"))
-                    ctx.startActivity(intent)
-                    SettingsActivity.clickedDiscordJoin = true
-                }
-            )
         }
 
         if (!isDismissed || !allStepsComplete) {
@@ -613,58 +598,6 @@ private fun QuickSetupStep(
         }
     }
 }
-@Composable
-private fun DiscordInviteCard(
-    onJoinClick: () -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF5865F2)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 0.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onJoinClick() }
-                .padding(16.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_discord_white),
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(36.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Join our Discord Server",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Get announcements, sneak peeks, and share ideas! Tap here to join.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "chevron_left",
-                fontFamily = materialSymbols,
-                fontSize = 24.sp,
-                color = Color.White.copy(alpha = 0.8f),
-                modifier = (if (LocalLayoutDirection.current == LayoutDirection.Ltr) Modifier.scale(-1f, 1f) else Modifier)
-            )
-        }
-    }
-}
-
 @Preview
 @Composable
 private fun PreviewScreen() {

@@ -1,4 +1,4 @@
-# FrostKeys / brrrBoard project context
+# brrBoard project context
 
 ## Resume here
 
@@ -7,7 +7,8 @@
 - **Product direction supported by repository history:** a personal, privacy-focused Android keyboard fork with cleaner settings and iOS-inspired controls. Earlier PRs explored offline cleanup, geometry, diagnostics and Liquid Glass. PR intent and the status of features on main are documented below. The owner has now set the product requirements in the [BRR Board roadmap](docs/BRR_BOARD_ROADMAP.md).
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
 - **Current status:** [v1.0.7](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.7) is the signed backup-defaults checkpoint. It bundles three imported offline dictionaries and uses the owner's selected reusable defaults. The earlier 1.0.3 → 1.0.4 update was confirmed through Chrome. A fresh install and in-place upgrade to v1.0.7 still need device verification.
-- **Next action:** verify the signed backup-defaults checkpoint on a fresh install and on an update. Check Frosted Glass in both themes, Hinglish and emoji suggestions, and that existing explicit preferences survive. Continue the layout, offline cleanup and inline voice roadmap.
+- **Latest owner feedback:** v1.0.7 fresh install and backup-derived setup work on the phone. The priority is consistent `brrBoard` branding, English in the OS picker, MangoLoads in About, and mic use without switching keyboards.
+- **Next action:** verify the renamed signed release and test offline dictation on the owner’s device. The platform on-device recognizer is used exclusively. The external Dictate provider, whose selected engine can be cloud-backed, is not used in this build. Continue the layout and dictionary expansion once the device test is recorded.
 - **Open decisions:** which historical offline, geometry, diagnostics, and iOS-layout changes to bring into `main`, and in what order. The release test through Obtainium and explicit settings retention confirmation remain open.
 
 ## What happened

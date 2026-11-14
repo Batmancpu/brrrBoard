@@ -187,14 +187,6 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
     override fun onResume() {
         super.onResume()
         paused = false
-        if (clickedTelegramJoin) {
-            clickedTelegramJoin = false
-            prefs.edit().putBoolean("pref_telegram_joined", true).apply()
-        }
-        if (clickedDiscordJoin) {
-            clickedDiscordJoin = false
-            prefs.edit().putBoolean("pref_discord_joined", true).apply()
-        }
     }
 
     fun setForceTheme(theme: String?, night: Boolean?) {
@@ -247,8 +239,6 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
 
         var forceNight: Boolean? = null
         var forceTheme: String? = null
-        var clickedTelegramJoin = false
-        var clickedDiscordJoin = false
         var activeOverlay by mutableStateOf<(@androidx.compose.runtime.Composable (dev.chrisbanes.haze.HazeState) -> Unit)?>(null)
         var isTopBarHidden by mutableStateOf(false)
     }

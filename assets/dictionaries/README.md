@@ -1,14 +1,14 @@
 # Importable Dictionaries
 
 This folder contains dictionary files intended for manual import through the
-FrostKeys dictionary picker.
+brrBoard dictionary picker.
 
 ## Burmese_Myanmar.dict
 
 `Burmese_Myanmar.dict` is an AOSP/HeliBoard-compatible binary dictionary for
-locale `my`, dictionary type `main`. Users can import it from FrostKeys settings:
+locale `my`, dictionary type `main`. Users can import it from brrBoard settings:
 
-1. Open FrostKeys settings.
+1. Open brrBoard settings.
 2. Go to Dictionaries.
 3. Choose Burmese/Myanmar.
 4. Tap Add dictionary and select `Burmese_Myanmar.dict`.

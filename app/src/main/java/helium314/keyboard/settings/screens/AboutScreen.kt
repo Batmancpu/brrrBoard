@@ -56,10 +56,9 @@ fun AboutScreen(
         SettingsWithoutKey.PRIVACY_POLICY,
         SettingsWithoutKey.LICENSE,
         SettingsWithoutKey.HIDDEN_FEATURES,
-        SettingsWithoutKey.GITHUB_WIKI,
+        SettingsWithoutKey.MANGOLOADS,
+        SettingsWithoutKey.INLINE_VOICE,
         SettingsWithoutKey.GITHUB,
-        SettingsWithoutKey.DISCORD,
-        SettingsWithoutKey.TELEGRAM,
         SettingsWithoutKey.SAVE_LOG,
     )
     SearchSettingsScreen(
@@ -148,18 +147,22 @@ fun createAboutSettings(context: Context) = listOf(
             icon = R.drawable.ic_settings_about_hidden_features
         )
     },
-    Setting(context, SettingsWithoutKey.GITHUB_WIKI, R.string.about_wiki_link, R.string.about_wiki_link_description) {
+    Setting(context, SettingsWithoutKey.MANGOLOADS, R.string.about_mangoloads, R.string.about_mangoloads_description) {
         val ctx = LocalContext.current
         Preference(
             name = it.title,
             description = it.description,
-            onClick = {
-                val intent = Intent()
-                intent.data = Links.WIKI_URL.toUri()
-                intent.action = Intent.ACTION_VIEW
-                ctx.startActivity(intent)
-            },
-            icon = R.drawable.ic_settings_about_wiki
+            onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Links.MANGOLOADS.toUri())) },
+            icon = R.drawable.ic_settings_about
+        )
+    },
+    Setting(context, SettingsWithoutKey.INLINE_VOICE, R.string.inline_voice_setup, R.string.inline_voice_setup_summary) {
+        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { launcher.launch(android.Manifest.permission.RECORD_AUDIO) },
+            icon = R.drawable.ic_settings_about
         )
     },
     Setting(context, SettingsWithoutKey.GITHUB, R.string.about_github_link) {
@@ -174,34 +177,6 @@ fun createAboutSettings(context: Context) = listOf(
                 ctx.startActivity(intent)
             },
             icon = R.drawable.ic_settings_about_github
-        )
-    },
-    Setting(context, SettingsWithoutKey.DISCORD, R.string.join_discord_community) {
-        val ctx = LocalContext.current
-        Preference(
-            name = it.title,
-            description = it.description,
-            onClick = {
-                val intent = Intent()
-                intent.data = "https://discord.gg/fjqJHq8c9j".toUri()
-                intent.action = Intent.ACTION_VIEW
-                ctx.startActivity(intent)
-            },
-            icon = R.drawable.ic_discord
-        )
-    },
-    Setting(context, SettingsWithoutKey.TELEGRAM, R.string.join_telegram_community) {
-        val ctx = LocalContext.current
-        Preference(
-            name = it.title,
-            description = it.description,
-            onClick = {
-                val intent = Intent()
-                intent.data = "https://t.me/FrostKeys".toUri()
-                intent.action = Intent.ACTION_VIEW
-                ctx.startActivity(intent)
-            },
-            icon = R.drawable.ic_telegram
         )
     },
     Setting(context, SettingsWithoutKey.SAVE_LOG, R.string.save_log) { setting ->

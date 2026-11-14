@@ -171,7 +171,7 @@
         android:isAsciiCapable="true"
     />
     <subtype android:icon="@drawable/ic_ime_switcher"
-        android:label="@string/subtype_en_GB"
+        android:label="@string/subtype_english_picker"
         android:subtypeId="0xb045e755"
         android:imeSubtypeLocale="en_GB"
         android:languageTag="en-GB"

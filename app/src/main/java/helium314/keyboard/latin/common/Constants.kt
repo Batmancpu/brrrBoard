@@ -7,7 +7,8 @@ object Links {
     const val DICTIONARY_NORMAL_SUFFIX = "dictionaries/"
     const val DICTIONARY_EXPERIMENTAL_SUFFIX = "dictionaries_experimental/"
     const val DICTIONARY_EMOJI_CLDR_SUFFIX = "emoji_cldr_signal_dictionaries/"
-    const val GITHUB = "https://github.com/AshwinSoni-01/FrostKeys"
+    const val GITHUB = "https://github.com/Batmancpu/brrrBoard"
+    const val MANGOLOADS = "https://batmancpu.github.io/mangoloads/"
     private const val UPSTREAM_GITHUB = "https://github.com/HeliBorg/HeliBoard"
     const val LICENSE = "$GITHUB/blob/main/LICENSE"
     const val WIKI_URL = "$UPSTREAM_GITHUB/wiki"
@@ -18,7 +19,7 @@ object Links {
     const val GESTURE_DATA_VIDEO_YOUTUBE = "https://youtu.be/CyjumVTWtJA"
     const val SWIPE_O_SCOPE = "https://codeberg.org/eclexic/swipe-o-scope"
     const val GESTURE_DATA_WIKI = "$WIKI_URL/Tutorial:-How-to-Contribute-Gesture-Data"
-    const val PRIVACY_POLICY = "https://ashwinsoni-01.github.io/FrostKeys/PrivacyPolicy.html"
+    const val PRIVACY_POLICY = "$GITHUB/blob/main/PRIVACY_POLICY.md"
 }
 
 val combiningRange = 0x300..0x35b

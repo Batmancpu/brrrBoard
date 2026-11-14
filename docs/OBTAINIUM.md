@@ -1,9 +1,9 @@
-# Install and update brrrBoard in Obtainium
+# Install and update brrBoard in Obtainium
 
 Once the first APK appears under [GitHub Releases](https://github.com/Batmancpu/brrrBoard/releases):
 
 1. In Obtainium, tap **Add App** and enter `https://github.com/Batmancpu/brrrBoard`.
-2. Set **Filter Release Titles by Regular Expression** to `^brrrBoard Obtainium `. Leave prereleases disabled.
+2. Set **Filter Release Titles by Regular Expression** to `^brr+Board Obtainium`. Leave prereleases disabled.
 3. Tap **Add**, then **Install**. For later builds, refresh in Obtainium and tap **Update**.
 
 The new package ID is `com.orion.frostkeys.brrrboard`. It can install alongside the old APKs. If migrating, export and import settings where supported, and enable the newly installed keyboard in Android settings.

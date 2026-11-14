@@ -144,7 +144,7 @@ android {
                     output.versionName.set(obtainiumBuild.orElse(1).map { "1.0.$it" })
                 }
                 if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                    output.outputFileName = "FrostKeys_${defaultConfig.versionName}-${variant.buildType}.apk"
+                    output.outputFileName = "brrBoard_${defaultConfig.versionName}-${variant.buildType}.apk"
                 }
             }
         }

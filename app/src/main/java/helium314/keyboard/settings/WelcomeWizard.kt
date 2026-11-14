@@ -93,6 +93,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -286,7 +287,7 @@ fun WelcomeWizard(
             if (isEnabled && isCurrent) {
                 close()
             } else {
-                showToast("Please make sure to both Enable and Switch to Frostkeys!")
+                showToast("Please make sure to both Enable and Switch to brrBoard!")
             }
         }
     }
@@ -537,7 +538,7 @@ fun SplashScreenView(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "FrostKeys",
+                text = stringResource(R.string.english_ime_name),
                 style = MaterialTheme.typography.displayMedium.copy(
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Medium,
@@ -576,7 +577,7 @@ fun SplashScreenView(
                 )
             }
 
-            AnimatedFrostKeysIcon(
+            AnimatedBoardIcon(
                 modifier = Modifier.size(320.dp),
                 isAnimating = isAnimating,
                 tint = MaterialTheme.colorScheme.primary
@@ -652,7 +653,7 @@ fun SetupScreenView(
                             selected = isEnabled,
                             headlineContent = {
                                 Text(
-                                    text = "Enable Frostkeys",
+                                    text = stringResource(R.string.setup_step1_title, stringResource(R.string.english_ime_name)),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -662,7 +663,7 @@ fun SetupScreenView(
                             },
                             supportingContent = {
                                 Text(
-                                    text = "Check \"Frostkeys\" in your language & input settings.",
+                                    text = stringResource(R.string.setup_step1_instruction, stringResource(R.string.english_ime_name)),
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 13.sp,
                                         fontFamily = fontFamily
@@ -702,7 +703,7 @@ fun SetupScreenView(
                                 if (isEnabled) {
                                     onSwitchClicked()
                                 } else {
-                                    showToast("Please enable FrostKeys first!")
+                                    showToast("Please enable brrBoard first!")
                                 }
                             },
                             shape = RoundedCornerShape(8.dp),
@@ -710,7 +711,7 @@ fun SetupScreenView(
                             selected = isCurrent,
                             headlineContent = {
                                 Text(
-                                    text = "Switch to Frostkeys",
+                                    text = stringResource(R.string.setup_step2_title, stringResource(R.string.english_ime_name)),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontSize = 17.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -720,7 +721,7 @@ fun SetupScreenView(
                             },
                             supportingContent = {
                                 Text(
-                                    text = "Select \"Frostkeys\" as your active text-input method.",
+                                    text = stringResource(R.string.setup_step2_instruction, stringResource(R.string.english_ime_name)),
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 13.sp,
                                         fontFamily = fontFamily
@@ -760,7 +761,7 @@ fun SetupScreenView(
                                 if (isCurrent) {
                                     isEssentialExpanded = !isEssentialExpanded
                                 } else {
-                                    showToast("Please switch to Frostkeys first!")
+                                    showToast("Please switch to brrBoard first!")
                                 }
                             },
                             shape = if (isEssentialExpanded && isCurrent) {
@@ -781,7 +782,7 @@ fun SetupScreenView(
                             },
                             supportingContent = {
                                 Text(
-                                    text = "Configure these essential settings to unlock full potential of Frostkeys.",
+                                    text = "Configure these essential settings to unlock full potential of brrBoard.",
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         fontSize = 13.sp,
                                         fontFamily = fontFamily

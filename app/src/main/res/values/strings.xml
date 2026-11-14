@@ -9,11 +9,11 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"
     tools:ignore="MissingTranslation">
     <!-- Name of Android spell checker service. The app name should not be translated. -->
-    <string name="spell_checker_service_name">BRR Board Spell Checker</string>
+    <string name="spell_checker_service_name">brrBoard Spell Checker</string>
     <!-- Title for IME settings screen. The app name should not be translated. -->
-    <string name="ime_settings">BRR Board Settings</string>
+    <string name="ime_settings">brrBoard Settings</string>
     <!-- Title for the spell checking service settings screen. The app name should not be translated. -->
-    <string name="android_spell_checker_settings">BRR Board Spell Checker Settings</string>
+    <string name="android_spell_checker_settings">brrBoard Spell Checker Settings</string>
     <!-- Option to provide vibrate/haptic feedback on keypress -->
     <string name="vibrate_on_keypress">Vibrate on keypress</string>
     <!-- Option to provide vibrate/haptic feedback on keypress even in do not disturb mode -->
@@ -106,7 +106,7 @@
     <!-- Description for option enabling or disabling the use of names of people in Contacts for suggestion and correction -->
     <string name="use_contacts_dict_summary">Use names from Contacts for suggestions and corrections</string>
     <string name="contacts_permission_disclosure_title">Contacts Disclosure</string>
-    <string name="contacts_permission_disclosure_message">BRR Board accesses your device contacts solely to suggest contact names as you type.\n\nYour contact data remains 100% private and stored locally on your device. It is never uploaded or shared with any third party.</string>
+    <string name="contacts_permission_disclosure_message">brrBoard accesses your device contacts solely to suggest contact names as you type.\n\nYour contact data remains 100% private and stored locally on your device. It is never uploaded or shared with any third party.</string>
     <!-- Option name for enabling or disabling the use of installed app names for suggestion and correction -->
     <string name="use_apps_dict">Look up app names</string>
     <!-- Description for option enabling or disabling the use of installed app names for suggestion and correction -->
@@ -271,12 +271,12 @@
     <!-- Button text for deleting gesture library -->
     <string name="load_gesture_library_button_delete">Delete library</string>
 
-    <!-- BRR Board custom guides and progressive onboarding strings -->
+    <!-- brrBoard custom guides and progressive onboarding strings -->
     <string name="gesture_not_loaded_summary">Proprietary library required. Tap to set up.</string>
     <string name="gesture_guide_title">Gesture Typing Setup</string>
-    <string name="gesture_guide_desc">BRR Board remains 100% offline and respects your privacy. Because of licensing restrictions, the gesture (swipe) typing library cannot be bundled with the open-source app by default. You must manually download and import it.</string>
+    <string name="gesture_guide_desc">brrBoard remains 100% offline and respects your privacy. Because of licensing restrictions, the gesture (swipe) typing library cannot be bundled with the open-source app by default. You must manually download and import it.</string>
     <string name="gesture_guide_step1">1. Click below to download the gesture library for your device architecture (%s) from the OpenBoard repository.</string>
-    <string name="gesture_guide_step2">2. Click the import button and select the downloaded file to enable swipe typing. BRR Board will restart automatically.</string>
+    <string name="gesture_guide_step2">2. Click the import button and select the downloaded file to enable swipe typing. brrBoard will restart automatically.</string>
     <string name="gesture_guide_download_btn">Download Gesture Library (GitHub)</string>
     <string name="gesture_guide_import_btn">Select &amp; Import Library File</string>
 
@@ -285,11 +285,11 @@
     <string name="klipy_get_key_btn">Get Klipy API Key 🔑</string>
 
     <string name="dict_guide_title">Offline Word Suggestions</string>
-    <string name="dict_guide_desc">BRR Board uses offline dictionary files to suggest words as you type.\n\nTo download a dictionary (or emoji dictionary):\n1. Click the button below to open the dictionary page on Codeberg.\n2. Open the relevant folder: \'dictionaries\' for standard languages, or \'emoji_cldr_signal_dictionaries\' for emojis.\n3. Locate and select the dictionary file for your language.\n4. Click the tiny download button (small icon on the right) or click the \'View raw\' / \'Raw\' button to download the file.\n\n💡 Tip: Tap directly on any language in the list below to get a direct download link for that specific language\'s dictionary!</string>
+    <string name="dict_guide_desc">brrBoard uses offline dictionary files to suggest words as you type.\n\nTo download a dictionary (or emoji dictionary):\n1. Click the button below to open the dictionary page on Codeberg.\n2. Open the relevant folder: \'dictionaries\' for standard languages, or \'emoji_cldr_signal_dictionaries\' for emojis.\n3. Locate and select the dictionary file for your language.\n4. Click the tiny download button (small icon on the right) or click the \'View raw\' / \'Raw\' button to download the file.\n\n💡 Tip: Tap directly on any language in the list below to get a direct download link for that specific language\'s dictionary!</string>
     <string name="dict_download_btn">Download Dictionaries (Codeberg)</string>
 
-    <string name="quick_setup_title">BRR Board Quick Setup</string>
-    <string name="quick_setup_desc">Configure these essential settings to unlock the full power of BRR Board:</string>
+    <string name="quick_setup_title">brrBoard Quick Setup</string>
+    <string name="quick_setup_desc">Configure these essential settings to unlock the full power of brrBoard:</string>
     <string name="quick_setup_gesture_title">1. Setup Swipe (Gesture) Typing</string>
     <string name="quick_setup_gesture_desc">Import the gesture library for your CPU architecture</string>
     <string name="quick_setup_dict_title">2. Add Offline Dictionaries</string>
@@ -467,6 +467,19 @@
     <string name="custom_emoji_font_safeguard_warning">This font file seems to support standard letters and numbers.\n\nThis usually means it is a regular text font rather than a custom emoji font.\n\nIf you want to set the main keyboard font, please load it under \"Set custom font from file\" instead.\n\nDo you still want to load this as your custom emoji font?</string>
     <!-- Description for English (UK) keyboard subtype
          (UK) should be an abbreviation of United Kingdom. -->
+    <string name="subtype_english_picker">English</string>
+    <string name="about_mangoloads">About MangoLoads</string>
+    <string name="about_mangoloads_description">brrBoard is maintained by Batmancpu. See this and other projects on the MangoLoads website.</string>
+    <string name="inline_voice_setup">Microphone permission</string>
+    <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for offline dictation.</string>
+    <string name="inline_voice_unavailable">Offline dictation requires Android 12 or later and an installed on-device speech service.</string>
+    <string name="inline_voice_permission">Allow microphone access in brrBoard settings → About.</string>
+    <string name="inline_voice_listening">Listening…</string>
+    <string name="inline_voice_processing">Transcribing…</string>
+    <string name="inline_voice_stop">Stop</string>
+    <string name="inline_voice_cancel">Cancel</string>
+    <string name="inline_voice_failure">Offline dictation failed. Check your device’s speech language and try again.</string>
+    <string name="inline_voice_no_model">Install an offline speech model for this language in Android settings.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype
          (US) should be an abbreviation of United States. -->
@@ -1119,7 +1132,7 @@ New dictionary:
     <!-- Text requesting the user to gesture a word
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_please_type">Please gesture type:</string>
-    <!-- Text requesting the user to switch to BRR Board, in case a different keyboard app is active
+    <!-- Text requesting the user to switch to brrBoard, in case a different keyboard app is active
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_please_switch_keyboard">Please switch to %s</string>
     <!-- Button for saving data and go to next word (now only shows up when the word %s is not in suggestions)
@@ -1202,7 +1215,7 @@ New dictionary:
      string will probably be removed once data gathering is finished (end of 2026 latest) -->
     <string name="gesture_data_promotion_message">
         Hey there!\n
-        Since you installed the gesture typing library, you might be interested in the BRR Board project for creating a fully open gesture typing library.
+        Since you installed the gesture typing library, you might be interested in the brrBoard project for creating a fully open gesture typing library.
         You can help by contributing gesture data. For more information visit the gesture data gathering screen.
     </string>
     <!-- Message asking the user to contribute to gesture data gathering again (dialog in main settings)

@@ -193,6 +193,7 @@ public class LatinIME extends InputMethodService implements
 
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
     private View mInputView;
+    private final InlineDictation mInlineDictation = new InlineDictation(this);
     private InsetsOutlineProvider mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
 
@@ -1026,6 +1027,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDestroy() {
+        mInlineDictation.cancel();
         mIsDestroyed = true;
         sInstance = null;
         mHandler.removeCallbacksAndMessages(null);
@@ -1127,6 +1129,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void setInputView(final View view) {
+        mInlineDictation.cancel();
         ViewTreeLifecycleOwner.set(view, this);
         ViewTreeSavedStateRegistryOwner.set(view, this);
         ViewTreeViewModelStoreOwner.set(view, this);
@@ -1177,6 +1180,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        mInlineDictation.cancel();
         mHandler.onStartInput(editorInfo, restarting);
     }
 
@@ -1189,6 +1193,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mInlineDictation.cancel();
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -1197,6 +1202,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mInlineDictation.cancel();
         mHandler.onFinishInput();
     }
 
@@ -1459,6 +1465,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mInlineDictation.cancel();
         super.onWindowHidden();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
         Log.i(TAG, "onWindowHidden");
@@ -1882,7 +1889,10 @@ public class LatinIME extends InputMethodService implements
             }
         }
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
-            mRichImm.switchToShortcutIme(this);
+            if (mSettings.getCurrent().mInputAttributes.mShouldShowVoiceInputKey) {
+                mInlineDictation.start(mInputView, mRichImm.getCurrentSubtypeLocale());
+            }
+            return;
         }
         if (event.getKeyCode() == KeyCode.AI_TOOLS || event.getKeyCode() == -214
                 || event.getKeyCode() == KeyCode.GIFS || event.getKeyCode() == KeyCode.STICKERS) {
