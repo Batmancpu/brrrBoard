@@ -7,7 +7,7 @@
 - **Product direction supported by repository history:** a personal, privacy-focused Android keyboard fork with cleaner settings and iOS-inspired controls. Earlier PRs explored offline cleanup, geometry, diagnostics and Liquid Glass. PR intent and the status of features on main are documented below. The owner has now set the product requirements in the [BRR Board roadmap](docs/BRR_BOARD_ROADMAP.md).
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
 - **Current status:** the owner reported that the Chrome in-place update from v1.0.3 to [v1.0.4](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.4) worked. CI verified the same pinned signer and package `com.orion.frostkeys.brrrboard` with version codes 3 and 4. The owner did not separately report settings retention. The phone's Obtainium limit led to testing through Chrome.
-- **Next action:** verify the signed Phase 1 checkpoint, then remove remaining AI/media runtime paths and dependencies. Phase 2 layout references, Hinglish assets and inline voice remain pending. Follow the [roadmap](docs/BRR_BOARD_ROADMAP.md).
+- **Next action:** install the v1.0.6 checkpoint over v1.0.4 and check startup, typing and settings. Remove remaining AI and media implementations, dependencies and stale settings, then proceed with layout, Hinglish and inline dictation per the roadmap.
 - **Open decisions:** which historical offline, geometry, diagnostics, and iOS-layout changes to bring into `main`, and in what order. The release test through Obtainium and explicit settings retention confirmation remain open.
 
 ## What happened
@@ -31,6 +31,8 @@
 | Nov 14 | The owner confirmed the in-place update worked and requested a handoff for Codex that preserves exact project conversation, changing goals, and engineering history. Added the linked conversation record and strengthened the agent instructions. |
 
 | Nov 14 | [Baseline attempt 43612601748](https://github.com/Batmancpu/brrrBoard/actions/runs/43612601748) failed Kotlin compilation because WelcomeWizard and a preview still referenced removed cloud UI. Removed those references. Blocked legacy AI/GIF/sticker key commands and panel-toggle entry points while their source/dependencies are audited. |
+
+| Nov 14 | [Run 43612969896](https://github.com/Batmancpu/brrrBoard/actions/runs/43612969896) built and published [v1.0.6](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.6). CI checked the signer, higher version code, unchanged package and the absence of INTERNET and ACCESS_NETWORK_STATE from the signed APK. The APK carries the BRR Board primary labels and blocks legacy online commands. Device validation and full source cleanup remain pending. |
 
 ## Technical details worth retaining
 
