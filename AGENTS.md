@@ -1,0 +1,6 @@
+# FrostKeys / brrrBoard agent instructions
+
+1. At the start of any project task, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md). Check the current branch, HEAD, and working tree. Read linked source, CI evidence, or logs relevant to the task before resuming.
+2. Keep `PROJECT_CONTEXT.md` current during the work. Update it when the user changes the goal, scope, plan, or a decision, after each meaningful checkpoint, and before handing off or ending the session. Include small fixes and failed attempts with enough detail for another agent to continue.
+3. Keep the current goal, constraints, status, and next action at the top. Append dated history rather than overwriting earlier decisions. Label proposals, verified results, unresolved questions, and superseded decisions. Include changed paths and symbols, commit or PR links, commands and results, blockers, and any unfinished working-tree changes. Use [the experiment log](docs/EXPERIMENT_LOG.md) and [known issues](docs/KNOWN_ISSUES.md) for supporting detail and link the relevant entries from the handoff.
+4. Record only project information appropriate for this public repository. Keep signing keys, tokens, private conversations, and keyboard or clipboard contents out of the handoff.
