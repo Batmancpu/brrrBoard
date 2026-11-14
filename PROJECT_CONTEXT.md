@@ -3,12 +3,12 @@
 ## Resume here
 
 - **Repository:** [Batmancpu/brrrBoard](https://github.com/Batmancpu/brrrBoard), the user's fork of [AshwinSoni-01/FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), based on HeliBoard.
-- **Current goal (2026-11-14):** install and update the personal fork through Obtainium and keep the same private signing identity across releases. Maintain this repository handoff.
-- **Historical product goal:** build a personal, privacy-focused keyboard fork with reliable APK updates, cleaner settings and iOS-inspired controls. Historical milestones also explored offline cleanup, keyboard geometry, diagnostics and Liquid Glass. Current product scope beyond this handoff is open.
+- **Confirmed goals (2026-11-14):** keep a stable signing identity and make the normal phone update flow Obtainium → Refresh → Update. Keep enough repository context that a new chat or agent can resume the same work, including verbatim project requests, changes of direction, and results. [Conversation record](docs/PROJECT_CONVERSATION.md).
+- **Product direction supported by repository history:** a personal, privacy-focused Android keyboard fork with cleaner settings and iOS-inspired controls. Earlier PRs explored offline cleanup, geometry, diagnostics and Liquid Glass. PR intent and the status of features on main are documented below. The owner's complete long-term feature spec and priorities have yet to be confirmed.
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
-- **Current status:** the owner confirmed v1.0.3 is installed. [v1.0.4](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.4) is published as a direct APK for an in-place update from Chrome while Obtainium is limited. CI verified the pinned signer, package `com.orion.frostkeys.brrrboard`, and higher version code `4`.
-- **Next action:** verify the second release, then have the owner install the APK over 1.0.3 and confirm the installed version and settings. Test the Obtainium refresh and update flow separately when available.
-- **Open decisions:** whether to carry selected offline, geometry, diagnostics or iOS-layout changes into `main`; The historical stable-update goal requires a compatible package ID, signer and increasing version code. Physical-device validation remains open.
+- **Current status:** the owner reported that the Chrome in-place update from v1.0.3 to [v1.0.4](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.4) worked. CI verified the same pinned signer and package `com.orion.frostkeys.brrrboard` with version codes 3 and 4. The owner did not separately report settings retention. The phone's Obtainium limit led to testing through Chrome.
+- **Next action for Codex:** use this handoff and the [conversation record](docs/PROJECT_CONVERSATION.md) to resume the owner's next request. When the owner wants to test Obtainium again, use the existing v1.0.4 install as the baseline, publish one higher-version build, and verify Refresh → Update on-device. The packaging and signer stay fixed. A new APK is unnecessary for the handoff itself.
+- **Open decisions:** which historical offline, geometry, diagnostics, and iOS-layout changes to bring into `main`, and in what order. The release test through Obtainium and explicit settings retention confirmation remain open.
 
 ## What happened
 
@@ -21,18 +21,14 @@
 | Oct 8 | [PR #6](https://github.com/Batmancpu/brrrBoard/pull/6) tried iOS 27-style defaults, including bottom-row Emoji and input-method switching keys and revised dimensions/scaling. It closed without merging. The Jules branch later published [a branch APK](https://github.com/Batmancpu/brrrBoard/releases/tag/jules-apk-2d178e4). |
 | Oct 14 | [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12) merged upstream FrostKeys updates including scoped screenshot-folder access, clipboard image handling, 16 KB native-library work and dictionary loading guards. The following [main run](https://github.com/Batmancpu/brrrBoard/actions/runs/38551096640) reached the test gate. |
 | Nov 14 | Reviewed repository identity, live branches, PRs #1–#6, current workflow, existing engineering logs, release metadata, and the last main build's job log. Added this handoff and the root agent instructions. New Android builds, device installs and updates were outside this documentation task. |
-
 | Nov 14 | Added a dedicated Obtainium build/package, main-only signing and release workflow, and owner enrollment script. The legacy debug key is public, so the new app uses a separate package and private signer. The workflow run number drives version code, version name and release tag. Enrollment and device verification are pending. |
-
 | Nov 14 | Retried the Obtainium workflow after the owner added all three signing values under Actions Secrets. Enrollment failed because the fingerprint was previously read only from Variables. Added support for the fingerprint as an Actions secret. Wait for the first install before publishing the update test. |
-
 | Nov 14 | Obtainium run 43584759527 passed enrollment and built the unsigned APK. The signer check failed. The verifier now reads both known apksigner output formats and compares the uploaded keystore certificate separately. |
-
 | Nov 14 | [Run 43585285361](https://github.com/Batmancpu/brrrBoard/actions/runs/43585285361) built, signed, verified and published `brrrBoard.apk` as `v1.0.3`. The feed is paused at this release pending a first install. |
-
 | Nov 14 | The owner confirmed v1.0.3 is installed and chose Chrome for the update test due to the Obtainium limit. Triggered a new signed release from `main` using a workflow comment and a context update. |
-
 | Nov 14 | [Run 43587440323](https://github.com/Batmancpu/brrrBoard/actions/runs/43587440323) signed, verified and published v1.0.4. The comparison to v1.0.3 contains only documentation and a workflow comment. Waiting for confirmation that Android updates 1.0.3 in place. |
+
+| Nov 14 | The owner confirmed the in-place update worked and requested a handoff for Codex that preserves exact project conversation, changing goals, and engineering history. Added the linked conversation record and strengthened the agent instructions. |
 
 ## Technical details worth retaining
 
@@ -43,7 +39,7 @@
 
 ## Add a handoff entry
 
-Append one dated entry per work session. Update **Resume here** whenever any of its statements changes. For small fixes, add a short bullet with the affected path, behavior, and verification under that session. Link deep diagnostics from the experiment log.
+Append one dated entry per work session. Preserve the exact project-relevant user wording in [the conversation record](docs/PROJECT_CONVERSATION.md), with a link back to the related work when useful. Update **Resume here** whenever any of its statements changes. For small fixes, add a short bullet with the affected path, behavior, and verification under that session. Link deep diagnostics from the experiment log.
 
 - **Date and starting point** — branch, starting commit, goal and acceptance criteria.
 - **User decisions and plan changes** — previous decision, new decision, reason and remaining questions.
