@@ -30,6 +30,8 @@
 
 | Nov 14 | The owner confirmed the in-place update worked and requested a handoff for Codex that preserves exact project conversation, changing goals, and engineering history. Added the linked conversation record and strengthened the agent instructions. |
 
+| Nov 14 | [Baseline attempt 43612601748](https://github.com/Batmancpu/brrrBoard/actions/runs/43612601748) failed Kotlin compilation because WelcomeWizard and a preview still referenced removed cloud UI. Removed those references. Blocked legacy AI/GIF/sticker key commands and panel-toggle entry points while their source/dependencies are audited. |
+
 ## Technical details worth retaining
 
 - **Main APK identity:** `app/build.gradle.kts` declares base ID `com.orion.frostkeys`, debug suffix `.debug`, version name `2.5.8`, and min SDK 24 at the reviewed baseline. CI verifies the persistent debug signing certificate. The audited main manifest still declares `android.permission.INTERNET`. The README still describes upstream FrostKeys capabilities. [Build config](app/build.gradle.kts) · [Manifest](app/src/main/AndroidManifest.xml).

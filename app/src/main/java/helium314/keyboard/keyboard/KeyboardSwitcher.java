@@ -1417,6 +1417,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void onToggleKeyboard(@NonNull final KeyboardSwitchState toggleState) {
+        if (toggleState == KeyboardSwitchState.AI_TOOLS || toggleState == KeyboardSwitchState.KLIPY) {
+            return;
+        }
         KeyboardSwitchState currentState = getKeyboardSwitchState();
         Log.w(TAG, "onToggleKeyboard() : Current = " + currentState + " : Toggle = " + toggleState);
         if (currentState == toggleState) {
