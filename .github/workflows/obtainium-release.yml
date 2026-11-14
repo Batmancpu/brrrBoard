@@ -83,6 +83,13 @@ jobs:
             echo "::error::Offline BRR Board APK declares a network permission."
             exit 1
           fi
+          if unzip -Z1 "$apk" | grep -Fx 'assets/default_backup.zip' >/dev/null; then
+            echo "::error::The APK contains a full settings backup."
+            exit 1
+          fi
+          for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
+            unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
+          done
           package="$("$sdk_tools/aapt" dump badging "$apk" | sed -n '1p')"
           [[ "$package" == "package: name='com.orion.frostkeys.brrrboard' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
           printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"

@@ -3,7 +3,6 @@ package helium314.keyboard.latin.settings
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
-import android.util.TypedValue
 import android.view.Gravity
 import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardTheme
@@ -20,9 +19,6 @@ import helium314.keyboard.latin.utils.defaultToolbarPref
 object Defaults {
     fun initDynamicDefaults(context: Context) {
         PREF_GESTURE_DYNAMIC_PREVIEW_FOLLOW_SYSTEM = getTransitionAnimationScale(context) != 0.0f
-        val dm = context.resources.displayMetrics
-        val px600 = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 600f, dm)
-        PREF_POPUP_ON = dm.widthPixels >= px600 || dm.heightPixels >= px600
     }
 
     // must correspond to a file name
@@ -43,40 +39,39 @@ object Defaults {
 
     private const val DEFAULT_SIZE_SCALE = 1.0f // 100%
     const val PREF_THEME_STYLE = KeyboardTheme.STYLE_MATERIAL
-    const val PREF_ICON_STYLE = KeyboardTheme.STYLE_MATERIAL
-    const val PREF_THEME_COLORS = KeyboardTheme.THEME_LIGHT
-    const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_DARK
-    const val PREF_THEME_KEY_BORDERS = false
+    const val PREF_ICON_STYLE = KeyboardTheme.STYLE_HOLO
+    const val PREF_THEME_COLORS = KeyboardTheme.THEME_FROSTED_GLASS
+    const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_FROSTED_GLASS
+    const val PREF_THEME_KEY_BORDERS = true
     @JvmField
     val PREF_THEME_DAY_NIGHT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    const val PREF_CUSTOM_ICON_NAMES = ""
+    const val PREF_CUSTOM_ICON_NAMES = "{\"shift_key_locked\":\"sym_keyboard_shift_lock_holo\",\"done_key\":\"sym_keyboard_done_lxx\",\"go_key\":\"sym_keyboard_go_lxx\",\"one_handed\":\"sym_keyboard_start_onehanded_holo\",\"paste\":\"sym_keyboard_paste\",\"enter_key\":\"sym_keyboard_return_lxx\",\"delete_key\":\"sym_keyboard_delete_lxx\",\"send_key\":\"ic_arrow_right_rounded\",\"shift_key\":\"sym_keyboard_shift_holo\",\"shift_key_shifted\":\"sym_keyboard_shifted_holo\",\"space_key_for_number_layout\":\"sym_keyboard_space_holo\",\"toolbar_key\":\"ic_arrow_right_rounded\",\"next_key\":\"ic_arrow_right_rounded\",\"previous_key\":\"ic_arrow_left_rounded\",\"search_key\":\"sym_keyboard_search_lxx\",\"settings\":\"sym_keyboard_settings_lxx\"}"
     const val PREF_TOOLBAR_CUSTOM_KEY_CODES = ""
     const val PREF_AUTO_CAP = true
-    const val PREF_VIBRATE_ON = false
+    const val PREF_VIBRATE_ON = true
     const val PREF_VIBRATE_IN_DND_MODE = false
     const val PREF_SOUND_ON = false
     const val PREF_SUGGEST_EMOJIS = true
-    const val PREF_INLINE_EMOJI_SEARCH = true
+    const val PREF_INLINE_EMOJI_SEARCH = false
     const val PREF_SHOW_EMOJI_DESCRIPTIONS = true
     const val PREF_PERSISTENT_EMOJI_ROW = false
-    @JvmField
-    var PREF_POPUP_ON = true
+    const val PREF_POPUP_ON = false
     const val PREF_AUTO_CORRECTION = true
     const val PREF_MORE_AUTO_CORRECTION = false
     const val PREF_AUTO_CORRECT_THRESHOLD = 0.185f
     const val PREF_AUTOCORRECT_SHORTCUTS = true
     const val PREF_BACKSPACE_REVERTS_AUTOCORRECT = true
-    const val PREF_CENTER_SUGGESTION_TEXT_TO_ENTER = false
+    const val PREF_CENTER_SUGGESTION_TEXT_TO_ENTER = true
     const val PREF_SHOW_SUGGESTIONS = true
-    const val PREF_ALWAYS_SHOW_SUGGESTIONS = false
-    const val PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = true
+    const val PREF_ALWAYS_SHOW_SUGGESTIONS = true
+    const val PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = false
     const val PREF_KEY_USE_PERSONALIZED_DICTS = true
-    const val PREF_KEY_USE_DOUBLE_SPACE_PERIOD = true
+    const val PREF_KEY_USE_DOUBLE_SPACE_PERIOD = false
     const val PREF_BLOCK_POTENTIALLY_OFFENSIVE = true
-    const val PREF_SHOW_LANGUAGE_SWITCH_KEY = false
-    const val PREF_LANGUAGE_SWITCH_KEY = "internal"
+    const val PREF_SHOW_LANGUAGE_SWITCH_KEY = true
+    const val PREF_LANGUAGE_SWITCH_KEY = "input_method"
     const val PREF_SHOW_EMOJI_KEY = false
-    const val PREF_VARIABLE_TOOLBAR_DIRECTION = true
+    const val PREF_VARIABLE_TOOLBAR_DIRECTION = false
     const val PREF_ADDITIONAL_SUBTYPES = "de${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwerty${Separators.SETS}" +
             "fr${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwertz${Separators.SETS}" +
             "hu${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwerty"
@@ -92,17 +87,17 @@ object Defaults {
     val PREF_BOTTOM_PADDING_SCALE = arrayOf(DEFAULT_SIZE_SCALE, 0f, DEFAULT_SIZE_SCALE, 0f)
     @JvmField
     val PREF_SIDE_PADDING_SCALE = Array(8) { 0f }
-    const val PREF_KEYBOARD_CORNER_RADIUS = 12
+    const val PREF_KEYBOARD_CORNER_RADIUS = 32
     const val PREF_FONT_SCALE = DEFAULT_SIZE_SCALE
-    const val PREF_EMOJI_FONT_SCALE = DEFAULT_SIZE_SCALE
+    const val PREF_EMOJI_FONT_SCALE = 1.3046509f
     const val PREF_EMOJI_KEY_FIT = true
     const val PREF_EMOJI_SKIN_TONE = ""
     @JvmField
     val PREF_SPACE_HORIZONTAL_SWIPE = KeyboardActionListener.SwipeAction.MOVE_CURSOR.name
     @JvmField
-    val PREF_SPACE_VERTICAL_SWIPE = KeyboardActionListener.SwipeAction.NONE.name
+    val PREF_SPACE_VERTICAL_SWIPE = KeyboardActionListener.SwipeAction.TOUCHPAD_MODE.name
     const val PREF_DELETE_SWIPE = true
-    const val PREF_AUTOSPACE_AFTER_PUNCTUATION = false
+    const val PREF_AUTOSPACE_AFTER_PUNCTUATION = true
     const val PREF_AUTOSPACE_AFTER_SUGGESTION = true
     const val PREF_AUTOSPACE_AFTER_GESTURE_TYPING = true
     const val PREF_AUTOSPACE_BEFORE_GESTURE_TYPING = true
@@ -117,13 +112,13 @@ object Defaults {
     const val PREF_KEY_LONGPRESS_TIMEOUT = 300
     const val PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY = true
     const val PREF_GESTURE_PREVIEW_TRAIL = true
-    const val PREF_GESTURE_FLOATING_PREVIEW_TEXT = true
+    const val PREF_GESTURE_FLOATING_PREVIEW_TEXT = false
     const val PREF_GESTURE_FLOATING_PREVIEW_DYNAMIC = true
     @JvmField
     var PREF_GESTURE_DYNAMIC_PREVIEW_FOLLOW_SYSTEM = true
-    const val PREF_GESTURE_SPACE_AWARE = false
+    const val PREF_GESTURE_SPACE_AWARE = true
     const val PREF_GESTURE_FAST_TYPING_COOLDOWN = 500
-    const val PREF_GESTURE_TRAIL_FADEOUT_DURATION = 800
+    const val PREF_GESTURE_TRAIL_FADEOUT_DURATION = 240
     const val PREF_SHOW_SETUP_WIZARD_ICON = true
     const val PREF_USE_CONTACTS = false
     const val PREF_USE_APPS = false
@@ -136,10 +131,10 @@ object Defaults {
     const val PREF_SHOW_NUMBER_ROW_IN_SYMBOLS = true
     const val PREF_LOCALIZED_NUMBER_ROW = true
     const val PREF_SHOW_NUMBER_ROW_HINTS = false
-    const val PREF_CUSTOM_CURRENCY_KEY = ""
-    const val PREF_SHOW_HINTS = true
+    const val PREF_CUSTOM_CURRENCY_KEY = "₹"
+    const val PREF_SHOW_HINTS = false
     const val PREF_POPUP_KEYS_ORDER = POPUP_KEYS_ORDER_DEFAULT
-    const val PREF_POPUP_KEYS_HINT_ORDER = POPUP_KEYS_LABEL_DEFAULT
+    const val PREF_POPUP_KEYS_HINT_ORDER = "number:true|language_priority:false|layout:false|symbols:false|language:false"
     const val PREF_SHOW_POPUP_HINTS = false
     const val PREF_SHOW_TLD_POPUP_KEYS = true
     const val PREF_MORE_POPUP_KEYS = "main"
@@ -153,15 +148,15 @@ object Defaults {
     const val PREF_CLIPBOARD_HISTORY_PINNED_FIRST = true
     const val PREF_ADD_TO_PERSONAL_DICTIONARY = false
     @JvmField
-    val PREF_NAVBAR_COLOR = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    const val PREF_NARROW_KEY_GAPS = false
-    const val PREF_ENABLED_SUBTYPES = ""
-    const val PREF_SELECTED_SUBTYPE = ""
-    const val PREF_URL_DETECTION = false
+    val PREF_NAVBAR_COLOR = true
+    const val PREF_NARROW_KEY_GAPS = true
+    const val PREF_ENABLED_SUBTYPES = "hi-Latn${Separators.SET}"
+    const val PREF_SELECTED_SUBTYPE = "hi-Latn${Separators.SET}"
+    const val PREF_URL_DETECTION = true
     const val PREF_DONT_SHOW_MISSING_DICTIONARY_DIALOG = false
     const val PREF_TOOLBAR_MODE = "EXPANDABLE"
     const val PREF_TOOLBAR_HIDING_GLOBAL = true
-    const val PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE = false
+    const val PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE = true
     const val PREF_QUICK_PIN_TOOLBAR_KEYS = false
     val PREF_PINNED_TOOLBAR_KEYS = defaultPinnedToolbarPref
     val PREF_PERSISTENT_TOOLBAR_KEY = defaultPersistentToolbarKey
@@ -172,10 +167,10 @@ object Defaults {
     const val PREF_ABC_AFTER_CLIP = false
     const val PREF_ABC_AFTER_SYMBOL_SPACE = true
     const val PREF_ABC_AFTER_NUMPAD_SPACE = false
-    const val PREF_REMOVE_REDUNDANT_POPUPS = false
+    const val PREF_REMOVE_REDUNDANT_POPUPS = true
     const val PREF_SPACE_BAR_TEXT = "BRR Board"
     const val PREF_TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss"
-    const val PREF_SEND_GIFS_AS_STICKERS = true
+    const val PREF_SEND_GIFS_AS_STICKERS = false
     const val PREF_USE_5_WORD_SUGGESTION_CHIPS = false
     const val PREF_EMOJI_RECENT_KEYS = ""
     const val PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID = 0
@@ -187,28 +182,28 @@ object Defaults {
     const val PREF_USER_COLORS = "[]"
     const val PREF_USER_MORE_COLORS = 0
     const val PREF_USER_ALL_COLORS = ""
-    const val PREF_SAVE_SUBTYPE_PER_APP = false
+    const val PREF_SAVE_SUBTYPE_PER_APP = true
     const val PREF_SPELLCHECK_SUGGEST = true
 
-    const val PREF_FROSTED_BLUR_RADIUS = 65
-    const val PREF_FROSTED_KEY_TRANSPARENCY = 115 // ~45% (Higher for light theme)
-    const val PREF_FROSTED_COLOR_BLEND = 70
-    const val PREF_FROSTED_SATURATION = 130
-    const val PREF_FROSTED_BG_TRANSPARENCY = 125
-    const val PREF_FROSTED_SPECIAL_VIBRANCY = 100
-    const val PREF_FROSTED_ALPHABET_VIBRANCY = 100
+    const val PREF_FROSTED_BLUR_RADIUS = 150
+    const val PREF_FROSTED_KEY_TRANSPARENCY = 98
+    const val PREF_FROSTED_COLOR_BLEND = 100
+    const val PREF_FROSTED_SATURATION = 250
+    const val PREF_FROSTED_BG_TRANSPARENCY = 95
+    const val PREF_FROSTED_SPECIAL_VIBRANCY = 398
+    const val PREF_FROSTED_ALPHABET_VIBRANCY = 500
 
-    const val PREF_FROSTED_BLUR_RADIUS_NIGHT = 65
-    const val PREF_FROSTED_KEY_TRANSPARENCY_NIGHT = 64 // ~25%
-    const val PREF_FROSTED_COLOR_BLEND_NIGHT = 70
-    const val PREF_FROSTED_SATURATION_NIGHT = 115
-    const val PREF_FROSTED_BG_TRANSPARENCY_NIGHT = 80
-    const val PREF_FROSTED_SPECIAL_VIBRANCY_NIGHT = 100
-    const val PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT = 100
+    const val PREF_FROSTED_BLUR_RADIUS_NIGHT = 150
+    const val PREF_FROSTED_KEY_TRANSPARENCY_NIGHT = 93
+    const val PREF_FROSTED_COLOR_BLEND_NIGHT = 100
+    const val PREF_FROSTED_SATURATION_NIGHT = 250
+    const val PREF_FROSTED_BG_TRANSPARENCY_NIGHT = 92
+    const val PREF_FROSTED_SPECIAL_VIBRANCY_NIGHT = 0
+    const val PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT = 72
 
     const val PREF_FROSTED_DUST_ENABLED = false
-    const val PREF_FROSTED_DUST_ALPHA = 5f
-    const val PREF_FROSTED_DUST_ALPHA_NIGHT = 5f
+    const val PREF_FROSTED_DUST_ALPHA = 5.0f
+    const val PREF_FROSTED_DUST_ALPHA_NIGHT = 5.0f
 
     const val LIMIT_EXPENSIVE_RENDERING = false
     const val PREF_BLUR_RENDER_OVERRIDE = "auto"

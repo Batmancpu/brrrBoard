@@ -101,3 +101,9 @@ The owner requested an iOS 27 keyboard layout and behavior, including key placem
 > So?
 
 **Assistant outcome.** Recorded the roadmap, checked the upstream dictation issue and historical layout PRs, and started the signed offline baseline build.
+
+### Backup-based defaults
+
+> All right, so proceed, dude. What are you waiting for? Implement these one by one or however you think is the best. And let me also give you a backup of my current Frost key. So it will give you all the possible settings. I don't know, maybe dictionaries or emoji keyboard or each and everything. I want you to look at that, identify what it is giving and make it the default of this app that we are developing. Like this backup that I'm providing should already be included in every version of this Frost Keys app because this is the default. Okay? So here it is. And I want the next installable APK, the next update that you will give after doing what you're doing to be something substantial. All right
+
+**Assistant action.** Converted the backup's reusable preferences into source defaults and added its three imported dictionary assets. Retired startup restore of the old full backup and kept explicit preferences intact on upgrade. The new APK verifies the bundled asset bytes in CI.

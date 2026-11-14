@@ -48,36 +48,21 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
 
-private var isRestoringDefaultBackup = false
 private const val PREF_DEFAULT_BACKUP_RESTORED = "default_backup_restored"
 private const val VERSION_FROSTED_DUST_DEFAULT_OFF = 2409
 
 fun checkVersionUpgrade(context: Context) {
     val prefs = context.prefs()
-    var oldVersion = prefs.getInt(Settings.PREF_VERSION_CODE, 0)
-    var restoredDefaultBackupForFreshInstall = false
+    val oldVersion = prefs.getInt(Settings.PREF_VERSION_CODE, 0)
     val isFreshInstall = prefs.all.keys.none {
         it != PREF_DEFAULT_BACKUP_RESTORED && it != Settings.PREF_VERSION_CODE && it != Settings.PREF_EMOJI_MAX_SDK
     }
-    if (oldVersion == 0 && isFreshInstall && !prefs.getBoolean(PREF_DEFAULT_BACKUP_RESTORED, false) && !isRestoringDefaultBackup) {
-        isRestoringDefaultBackup = true
-        try {
-            context.assets.open("default_backup.zip").use { inputStream ->
-                helium314.keyboard.settings.preferences.restoreSilently(context, inputStream)
-            }
-        } catch (e: Exception) {
-            Log.w("AppUpgrade", "Failed to restore default backup", e)
-        } finally {
-            prefs.edit { putBoolean(PREF_DEFAULT_BACKUP_RESTORED, true) }
-            isRestoringDefaultBackup = false
-        }
-        oldVersion = prefs.getInt(Settings.PREF_VERSION_CODE, 0)
-        restoredDefaultBackupForFreshInstall = true
-    } else if (oldVersion == 0 && !isFreshInstall && !prefs.getBoolean(PREF_DEFAULT_BACKUP_RESTORED, false)) {
-        prefs.edit { putBoolean(PREF_DEFAULT_BACKUP_RESTORED, true) }
+    if (oldVersion == 0 && isFreshInstall) {
+        prefs.edit { putInt(Settings.PREF_VERSION_CODE, BuildConfig.VERSION_CODE) }
+        return
     }
     if (oldVersion != BuildConfig.VERSION_CODE)
-        AppUpgrade.onUpgrade(context, restoredDefaultBackupForFreshInstall)
+        AppUpgrade.onUpgrade(context)
 }
 
 fun transferOldPinnedClips(context: Context) {
@@ -102,7 +87,7 @@ fun transferOldPinnedClips(context: Context) {
 }
 
 private object AppUpgrade {
-    fun onUpgrade(context: Context, restoredDefaultBackupForFreshInstall: Boolean) {
+    fun onUpgrade(context: Context) {
         val prefs = context.prefs()
         val oldVersion = prefs.getInt(Settings.PREF_VERSION_CODE, 0)
         // clear extracted dictionaries, in case updated version contains newer ones
@@ -111,6 +96,14 @@ private object AppUpgrade {
                 if (!file.name.endsWith(USER_DICTIONARY_SUFFIX))
                     file.delete()
             }
+        }
+        // Obtainium uses its own small, sequential version codes and application ID.
+        // The upstream version thresholds below apply to the other APK variants.
+        if (BuildConfig.BUILD_TYPE == "obtainium") {
+            upgradeToolbarPrefs(prefs)
+            LayoutUtilsCustom.onLayoutFileChanged()
+            prefs.edit { putInt(Settings.PREF_VERSION_CODE, BuildConfig.VERSION_CODE) }
+            return
         }
         if (oldVersion <= 1000) { // upgrade old custom layouts name
             val oldShiftSymbolsFile = getCustomLayoutFile("custom.shift_symbols", context)
@@ -696,8 +689,7 @@ private object AppUpgrade {
                     putString(Settings.PREF_SPACE_VERTICAL_SWIPE, prefs.getString(Settings.PREF_SPACE_VERTICAL_SWIPE, "")!!.uppercase())
             }
         }
-        if (!restoredDefaultBackupForFreshInstall
-                && oldVersion < VERSION_FROSTED_DUST_DEFAULT_OFF
+        if (oldVersion < VERSION_FROSTED_DUST_DEFAULT_OFF
                 && !prefs.contains(Settings.PREF_FROSTED_DUST_ENABLED)) {
             prefs.edit { putBoolean(Settings.PREF_FROSTED_DUST_ENABLED, true) }
         }

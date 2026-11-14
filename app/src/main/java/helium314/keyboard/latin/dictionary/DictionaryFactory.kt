@@ -49,6 +49,7 @@ object DictionaryFactory {
             // file name is <type>_<language tag>.dict
             ?.groupBy { it.substringBefore("_") }
             ?.forEach { (dictType, dicts) ->
+                if (dictType == Dictionary.TYPE_EMOJI && !useEmojiDict) return@forEach
                 if (cachedDicts.any { it.name == "$dictType.dict" })
                     return@forEach // dictionary is already extracted (can't be old because of cleanup on upgrade)
                 val bestMatch = LocaleUtils.getBestMatch(locale, dicts) {

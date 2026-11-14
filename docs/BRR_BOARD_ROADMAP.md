@@ -28,6 +28,10 @@ A fast, fully offline Android keyboard, with iOS 27-style key placement and beha
 
 These values are prior experiments. Validate the current touch targets and Apple reference before adopting them as defaults.
 
+### Owner backup defaults
+
+The backup provides Material keys, Holo icons with individual overrides, 32dp board corners, day and night Frosted Glass, touchpad on vertical space swipe, toolbar choices, a Romanized Hindi subtype and three imported dictionaries. These are the baseline for later iOS layout work. The backup contains no custom layout file. Its two edge-contrast keys have no matching renderer setting on the current branch, so assess them when tuning the shader and contrast. The language-switch microphone icon override is omitted so the keyboard switch can be distinguished from dictation. Existing explicit settings and imported dictionaries keep priority. Learned history and private device state stay outside the repository.
+
 ## Phase 3 — Hinglish
 
 - Identify locale and dictionary loading in DictionaryFacilitator, SubtypeLocaleUtils and existing asset tooling. Bundle a local Romanized Hinglish dictionary with an English fallback where the engine supports it. Preserve Hindi-script and English subtypes.
