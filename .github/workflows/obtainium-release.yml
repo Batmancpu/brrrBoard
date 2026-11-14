@@ -29,10 +29,10 @@ jobs:
           persist-credentials: false
       - name: Check signing enrollment
         env:
-          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 }}
+          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
         run: |
           if [[ ! "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]; then
-            echo "::error::Complete the signing setup in docs/OBTAINIUM.md."
+            echo "::error::Set OBTAINIUM_CERT_SHA256 under Actions Variables or Secrets to a 64-character lowercase fingerprint."
             exit 1
           fi
       - uses: actions/setup-java@v4
@@ -47,7 +47,7 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
-          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 }}
+          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
         run: |
           set -euo pipefail
           : "${KEYSTORE_BASE64:?Missing OBTAINIUM_KEYSTORE_BASE64}"
