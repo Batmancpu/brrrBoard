@@ -1,0 +1,93 @@
+name: brrrBoard Obtainium Release
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradlew'
+      - '.github/workflows/obtainium-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brrrboard-obtainium-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check signing enrollment
+        env:
+          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 }}
+        run: |
+          if [[ ! "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Complete the signing setup in docs/OBTAINIUM.md."
+            exit 1
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build unsigned APK
+        run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
+      - name: Sign and verify APK
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          : "${KEYSTORE_BASE64:?Missing OBTAINIUM_KEYSTORE_BASE64}"
+          : "${KEYSTORE_PASSWORD:?Missing OBTAINIUM_KEYSTORE_PASSWORD}"
+          umask 077
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$work/signing.p12"
+          sdk_tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$sdk_tools"
+          sdk_tools="$(dirname "$sdk_tools")"
+          unsigned=(app/build/outputs/apk/obtainium/*.apk)
+          test "${#unsigned[@]}" -eq 1
+          test -s "${unsigned[0]}"
+          "$sdk_tools/zipalign" -P 16 -f 4 "${unsigned[0]}" "$work/aligned.apk"
+          apk="$RUNNER_TEMP/brrrBoard.apk"
+          "$sdk_tools/apksigner" sign --ks "$work/signing.p12" --ks-key-alias brrrboard \
+            --ks-pass env:KEYSTORE_PASSWORD --out "$apk" "$work/aligned.apk"
+          cert="$("$sdk_tools/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          if [[ "$cert" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Signing certificate differs from the pinned signer."
+            exit 1
+          fi
+          package="$("$sdk_tools/aapt" dump badging "$apk" | sed -n '1p')"
+          [[ "$package" == "package: name='com.orion.frostkeys.brrrboard' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
+          printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="1.0.$GITHUB_RUN_NUMBER"
+          last_run="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | select(.draft == false and (.name | startswith("brrrBoard Obtainium "))) | .tag_name | select(test("^v1\\.0\\.[0-9]+$")) | split(".") | last' \
+            | sort -n | tail -n 1)"
+          if [[ -n "$last_run" ]] && (( last_run >= GITHUB_RUN_NUMBER )); then
+            echo "An equal or newer Obtainium release is already published."
+            exit 0
+          fi
+          gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "brrrBoard Obtainium $version" --latest \
+            --notes "Commit: $GITHUB_SHA. APK SHA-256: $SHA256."

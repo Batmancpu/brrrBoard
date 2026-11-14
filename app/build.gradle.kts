@@ -46,6 +46,7 @@ plugins {
 android {
     compileSdk = 36
 
+    val obtainiumBuild = providers.gradleProperty("obtainiumBuild").map(String::toInt)
     val persistentDebugKeystore = rootProject.file(".github/debug.keystore")
 
     if (persistentDebugKeystore.isFile) {
@@ -86,6 +87,13 @@ android {
             isShrinkResources = false
             isDebuggable = false
             isJniDebuggable = false
+        }
+        create("obtainium") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".brrrboard"
+            manifestPlaceholders["stickerProviderAuthority"] =
+                "${defaultConfig.applicationId}.brrrboard.stickercontentprovider"
+            isMinifyEnabled = false
         }
         create("nouserlib") { // same as release, but does not allow the user to provide a library
             isMinifyEnabled = true
@@ -131,6 +139,10 @@ android {
                 variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/proguard-rules.pro"))
             }
             variant.outputs.forEach { output ->
+                if (variant.buildType == "obtainium") {
+                    output.versionCode.set(obtainiumBuild.orElse(1))
+                    output.versionName.set(obtainiumBuild.orElse(1).map { "1.0.$it" })
+                }
                 if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
                     output.outputFileName = "FrostKeys_${defaultConfig.versionName}-${variant.buildType}.apk"
                 }

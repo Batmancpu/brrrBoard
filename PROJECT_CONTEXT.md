@@ -3,12 +3,12 @@
 ## Resume here
 
 - **Repository:** [Batmancpu/brrrBoard](https://github.com/Batmancpu/brrrBoard), the user's fork of [AshwinSoni-01/FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), based on HeliBoard.
-- **Current goal (2026-11-14):** reconstruct the project state and keep a durable, repository-backed handoff across chats and AI agents. Future entries must capture the user's goals and changes of direction, detailed changes, outcomes, blockers, and the exact next action.
+- **Current goal (2026-11-14):** install and update the personal fork through Obtainium and keep the same private signing identity across releases. Maintain this repository handoff.
 - **Historical product goal:** build a personal, privacy-focused keyboard fork with reliable APK updates, cleaner settings and iOS-inspired controls. Historical milestones also explored offline cleanup, keyboard geometry, diagnostics and Liquid Glass. Current product scope beyond this handoff is open.
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
-- **Current blocker:** the last app build on `main` assembled and signature-verified the APK and uploaded an Actions artifact. One of 180 tests failed, the workflow failed at its unit-test gate, and GitHub Release publication was skipped. The run currently lists no downloadable artifact. [Run 38551096640](https://github.com/Batmancpu/brrrBoard/actions/runs/38551096640).
-- **Next action when app work resumes (proposed):** reproduce the emoji test on current `main` with JDK 21 using `./gradlew :app:testRunTestsUnitTest --tests 'helium314.keyboard.latin.StringUtilsTest.isEmojiDetectsAllAvailableEmojis'`. Read the Gradle XML/HTML report for the failing emoji and code points. If the next request is about APK continuity, first identify the installed APK's package and public signing certificate fingerprint, then choose the intended APK line and validate that a second build updates it in place with a greater `versionCode`. Record actual device results.
-- **Open decisions:** whether to carry selected offline, geometry, diagnostics or iOS-layout changes into `main`; which APK line should receive future updates; whether APK publication should proceed when unit tests fail. The historical stable-update goal requires a compatible package ID, signer and increasing version code. Physical-device validation remains open.
+- **Current blocker:** the new release workflow needs one-time GitHub Actions signing enrollment. The current connection can commit code, while repository secrets require an authenticated owner session. [Setup](docs/OBTAINIUM.md).
+- **Next action:** enroll the signing key, verify the first signed APK, install it through Obtainium, then publish a second build and verify an in-place update. The separate debug emoji test is still open.
+- **Open decisions:** whether to carry selected offline, geometry, diagnostics or iOS-layout changes into `main`; The historical stable-update goal requires a compatible package ID, signer and increasing version code. Physical-device validation remains open.
 
 ## What happened
 
@@ -21,6 +21,8 @@
 | Oct 8 | [PR #6](https://github.com/Batmancpu/brrrBoard/pull/6) tried iOS 27-style defaults, including bottom-row Emoji and input-method switching keys and revised dimensions/scaling. It closed without merging. The Jules branch later published [a branch APK](https://github.com/Batmancpu/brrrBoard/releases/tag/jules-apk-2d178e4). |
 | Oct 14 | [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12) merged upstream FrostKeys updates including scoped screenshot-folder access, clipboard image handling, 16 KB native-library work and dictionary loading guards. The following [main run](https://github.com/Batmancpu/brrrBoard/actions/runs/38551096640) reached the test gate. |
 | Nov 14 | Reviewed repository identity, live branches, PRs #1–#6, current workflow, existing engineering logs, release metadata, and the last main build's job log. Added this handoff and the root agent instructions. New Android builds, device installs and updates were outside this documentation task. |
+
+| Nov 14 | Added a dedicated Obtainium build/package, main-only signing and release workflow, and owner enrollment script. The legacy debug key is public, so the new app uses a separate package and private signer. The workflow run number drives version code, version name and release tag. Enrollment and device verification are pending. |
 
 ## Technical details worth retaining
 
