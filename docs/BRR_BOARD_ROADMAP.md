@@ -19,6 +19,15 @@ A fast, fully offline Android keyboard, with iOS 27-style key placement and beha
 - Tune tint, blur radius, opacity, key corner radius, bottom inset and light/dark contrast using the current Frosted Glass code. Preserve user-set overrides and provide a readable fallback when OEM blur is unavailable, disabled or too slow. Liquid Glass rendering is deferred. Compare captures with stable device, orientation, wallpaper and theme settings. Profile IME open, typing and layout transitions.
 - Publish a signed layout checkpoint with reference screenshots, parser test results and visual/device gaps.
 
+### Recovered layout experiments
+
+| Source | Recovered choices | What to check on current main |
+| --- | --- | --- |
+| PR #1 and #2 | 23% 123 and Return keys, flexible Space, separate footer with Emoji and input-method controls. PR #2 tests a press, slide and release chooser, 32dp shell radius and 12dp key radius. | Preserve email and URL shortcuts, accessibility and working emoji and IME switching. |
+| PR #6 | 15% Shift and Delete, 23% 123 and Return, flexible Space, Emoji lower left with Clipboard on long press, and keyboard switching lower right. Experimental phone height 260dp and side padding 2%. | Check parser row merging, hit targets and height. Compare each subtype to Apple references and decide where the dictation button belongs relative to the old right-corner switch. Preserve tablet layout until reviewed. |
+
+These values are prior experiments. Validate the current touch targets and Apple reference before adopting them as defaults.
+
 ## Phase 3 — Hinglish
 
 - Identify locale and dictionary loading in DictionaryFacilitator, SubtypeLocaleUtils and existing asset tooling. Bundle a local Romanized Hinglish dictionary with an English fallback where the engine supports it. Preserve Hindi-script and English subtypes.
