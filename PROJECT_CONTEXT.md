@@ -6,7 +6,7 @@
 - **Confirmed goals (2026-11-14):** keep a stable signing identity and make the normal phone update flow Obtainium → Refresh → Update. Keep enough repository context that a new chat or agent can resume the same work, including verbatim project requests, changes of direction, and results. [Conversation record](docs/PROJECT_CONVERSATION.md).
 - **Product direction supported by repository history:** a personal, privacy-focused Android keyboard fork with cleaner settings and iOS-inspired controls. Earlier PRs explored offline cleanup, geometry, diagnostics and Liquid Glass. PR intent and the status of features on main are documented below. The owner has now set the product requirements in the [BRR Board roadmap](docs/BRR_BOARD_ROADMAP.md).
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
-- **Current status:** the owner reported that the Chrome in-place update from v1.0.3 to [v1.0.4](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.4) worked. CI verified the same pinned signer and package `com.orion.frostkeys.brrrboard` with version codes 3 and 4. The owner did not separately report settings retention. The phone's Obtainium limit led to testing through Chrome.
+- **Current status:** [v1.0.7](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.7) is the signed backup-defaults checkpoint. It bundles three imported offline dictionaries and uses the owner's selected reusable defaults. The earlier 1.0.3 → 1.0.4 update was confirmed through Chrome. A fresh install and in-place upgrade to v1.0.7 still need device verification.
 - **Next action:** verify the signed backup-defaults checkpoint on a fresh install and on an update. Check Frosted Glass in both themes, Hinglish and emoji suggestions, and that existing explicit preferences survive. Continue the layout, offline cleanup and inline voice roadmap.
 - **Open decisions:** which historical offline, geometry, diagnostics, and iOS-layout changes to bring into `main`, and in what order. The release test through Obtainium and explicit settings retention confirmation remain open.
 
@@ -35,6 +35,8 @@
 | Nov 14 | [Run 43612969896](https://github.com/Batmancpu/brrrBoard/actions/runs/43612969896) built and published [v1.0.6](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.6). CI checked the signer, higher version code, unchanged package and the absence of INTERNET and ACCESS_NETWORK_STATE from the signed APK. The APK carries the BRR Board primary labels and blocks legacy online commands. Device validation and full source cleanup remain pending. |
 
 | Nov 14 | Reviewed the owner's settings backup. Converted reusable preferences to code defaults, bundled the three imported dictionaries as assets, and retired the automatic full-backup restore. Learned typing history, clipboard database, protected and device-specific state, and the personal spacebar caption were excluded. |
+
+| Nov 14 | [Run 43616573473](https://github.com/Batmancpu/brrrBoard/actions/runs/43616573473) published v1.0.7. CI built and checked the signer, package, increasing version code, network permissions, exact bytes of the three dictionary assets, and absence of the old full backup. |
 
 ## Technical details worth retaining
 
