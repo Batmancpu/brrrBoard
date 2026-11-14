@@ -5,3 +5,7 @@
 3. Keep the current goal, acceptance criteria, confirmed state, blockers, and exact next action at the top of PROJECT_CONTEXT.md. Log small changes, attempts, failures, and reversals with paths or symbols, why they changed, exact verification commands and results, relevant commits or CI runs, and any unfinished working-tree changes. Label hardware results as user-reported when applicable. Link [experiment details](docs/EXPERIMENT_LOG.md) and [known issues](docs/KNOWN_ISSUES.md).
 4. Separate explicit owner decisions, evidence from the repo, and agent proposals. Carry forward the latest owner decision. Where the full goal is unknown, record the gap. Keep a short resume section current so a new agent can continue without reading every old log immediately.
 5. This repository is public. Keep signing keys, passwords, tokens, private messages, and keyboard or clipboard contents out of these files. Use a clear omission note when needed and preserve the project decision or outcome.
+
+## Current product requirements
+
+Follow [the phased BRR Board plan](docs/BRR_BOARD_ROADMAP.md). Keep the keyboard fully offline and preserve the existing Obtainium update identity. Research iOS 27 actual layout and behavior and recover prior button placement from this repository. Use the existing Frosted Glass renderer, with rounded edges and tuned defaults. Implement the local Hinglish dictionary and inline offline dictation. Publish one signed APK per completed phase and update the handoff with what was verified.

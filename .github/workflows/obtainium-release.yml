@@ -78,6 +78,11 @@ jobs:
             echo "::error::Signing certificate differs from the pinned signer."
             exit 1
           fi
+          apk_permissions="$("$sdk_tools/aapt" dump permissions "$apk")"
+          if grep -Eq 'android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)' <<< "$apk_permissions"; then
+            echo "::error::Offline BRR Board APK declares a network permission."
+            exit 1
+          fi
           package="$("$sdk_tools/aapt" dump badging "$apk" | sed -n '1p')"
           [[ "$package" == "package: name='com.orion.frostkeys.brrrboard' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
           printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"
