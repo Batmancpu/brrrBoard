@@ -6,7 +6,7 @@
 - **Current goal (2026-11-14):** install and update the personal fork through Obtainium and keep the same private signing identity across releases. Maintain this repository handoff.
 - **Historical product goal:** build a personal, privacy-focused keyboard fork with reliable APK updates, cleaner settings and iOS-inspired controls. Historical milestones also explored offline cleanup, keyboard geometry, diagnostics and Liquid Glass. Current product scope beyond this handoff is open.
 - **Last app baseline reviewed:** `main` at [`2f1ffec`](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12), the 2026-10-14 upstream merge. The only other branch reported by GitHub was `jules-board-10408838174702712066` at `2d178e4`, 135 commits ahead and 56 behind that baseline in [the comparison](https://github.com/Batmancpu/brrrBoard/compare/main...jules-board-10408838174702712066).
-- **Current status:** the owner entered the three signing values as Actions secrets. The first retry failed at enrollment because the workflow read the fingerprint only from Actions Variables. The workflow now also accepts it from Secrets. First signed release pending [Actions verification](https://github.com/Batmancpu/brrrBoard/actions/workflows/obtainium-release.yml).
+- **Current status:** the owner entered the three signing values as Actions secrets. The first retry failed at enrollment because the workflow read the fingerprint only from Actions Variables. The workflow now also accepts it from Secrets. The next run compiled the APK and failed the signature comparison. The workflow now checks the keystore certificate separately and handles both known apksigner digest prefixes. First signed release pending [Actions verification](https://github.com/Batmancpu/brrrBoard/actions/workflows/obtainium-release.yml).
 - **Next action:** verify publication of the first signed APK and wait for the owner to confirm installation through Obtainium. Start a fresh workflow run on `main` for the second APK, which must use the same signer/package and a higher version code. The separate debug emoji test is still open.
 - **Open decisions:** whether to carry selected offline, geometry, diagnostics or iOS-layout changes into `main`; The historical stable-update goal requires a compatible package ID, signer and increasing version code. Physical-device validation remains open.
 
@@ -25,6 +25,8 @@
 | Nov 14 | Added a dedicated Obtainium build/package, main-only signing and release workflow, and owner enrollment script. The legacy debug key is public, so the new app uses a separate package and private signer. The workflow run number drives version code, version name and release tag. Enrollment and device verification are pending. |
 
 | Nov 14 | Retried the Obtainium workflow after the owner added all three signing values under Actions Secrets. Enrollment failed because the fingerprint was previously read only from Variables. Added support for the fingerprint as an Actions secret. Wait for the first install before publishing the update test. |
+
+| Nov 14 | Obtainium run 43584759527 passed enrollment and built the unsigned APK. The signer check failed. The verifier now reads both known apksigner output formats and compares the uploaded keystore certificate separately. |
 
 ## Technical details worth retaining
 

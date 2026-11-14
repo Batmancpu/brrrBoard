@@ -56,6 +56,12 @@ jobs:
           work="$(mktemp -d)"
           trap 'rm -rf "$work"' EXIT
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$work/signing.p12"
+          keystore_cert="$(keytool -exportcert -keystore "$work/signing.p12" -storetype PKCS12 \
+            -storepass:env KEYSTORE_PASSWORD -alias brrrboard | sha256sum | cut -d' ' -f1)"
+          if [[ "$keystore_cert" != "$EXPECTED_CERT" ]]; then
+            echo "::error::The uploaded keystore certificate differs from the pinned signer."
+            exit 1
+          fi
           sdk_tools="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
           test -n "$sdk_tools"
           sdk_tools="$(dirname "$sdk_tools")"
@@ -66,7 +72,7 @@ jobs:
           apk="$RUNNER_TEMP/brrrBoard.apk"
           "$sdk_tools/apksigner" sign --ks "$work/signing.p12" --ks-key-alias brrrboard \
             --ks-pass env:KEYSTORE_PASSWORD --out "$apk" "$work/aligned.apk"
-          cert="$("$sdk_tools/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          cert="$("$sdk_tools/apksigner" verify --print-certs "$apk" | sed -nE 's/^.*certificate SHA-256 digest:[[:space:]]*([0-9a-fA-F]{64})[[:space:]]*$/\1/p' | tr '[:upper:]' '[:lower:]' | sort -u)"
           if [[ "$cert" != "$EXPECTED_CERT" ]]; then
             echo "::error::Signing certificate differs from the pinned signer."
             exit 1
