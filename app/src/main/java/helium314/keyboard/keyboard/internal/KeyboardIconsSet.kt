@@ -97,10 +97,11 @@ class KeyboardIconsSet private constructor() {
         )
 
         // todo: incognito and force incognito should not be the same? or not the same as toolbar key?
+        // Keep the Shift silhouettes consistent with the screenshot reference across icon styles.
         private val keyboardIconsHolo by lazy { hashMapOf(
-            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_holo,
-            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shifted_holo,
-            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_holo,
+            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_outline,
+            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_filled,
+            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_caps,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_holo,
 //            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_holo,
@@ -163,9 +164,9 @@ class KeyboardIconsSet private constructor() {
         } }
 
         private val keyboardIconsMaterial by lazy { hashMapOf(
-            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_lxx,
-            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_lxx,
-            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_lxx,
+            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_outline,
+            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_filled,
+            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_caps,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_lxx,
 //            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_lxx,
@@ -228,9 +229,9 @@ class KeyboardIconsSet private constructor() {
         } }
 
         private val keyboardIconsRounded by lazy { hashMapOf(
-            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_rounded,
-            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_rounded,
-            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_lock_rounded,
+            NAME_SHIFT_KEY to                   R.drawable.sym_keyboard_shift_outline,
+            NAME_SHIFT_KEY_SHIFTED to           R.drawable.sym_keyboard_shift_filled,
+            NAME_SHIFT_KEY_LOCKED to            R.drawable.sym_keyboard_shift_caps,
             NAME_DELETE_KEY to                  R.drawable.sym_keyboard_delete_rounded,
 //            NAME_SPACE_KEY to                   null,
             NAME_ENTER_KEY to                   R.drawable.sym_keyboard_return_rounded,

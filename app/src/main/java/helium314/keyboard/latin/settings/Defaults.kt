@@ -46,7 +46,7 @@ object Defaults {
     const val PREF_THEME_KEY_BORDERS = true
     @JvmField
     val PREF_THEME_DAY_NIGHT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    const val PREF_CUSTOM_ICON_NAMES = "{\"shift_key_locked\":\"sym_keyboard_shift_lock_holo\",\"done_key\":\"sym_keyboard_done_lxx\",\"go_key\":\"sym_keyboard_go_lxx\",\"one_handed\":\"sym_keyboard_start_onehanded_holo\",\"paste\":\"sym_keyboard_paste\",\"enter_key\":\"sym_keyboard_return_lxx\",\"delete_key\":\"sym_keyboard_delete_lxx\",\"send_key\":\"ic_arrow_right_rounded\",\"shift_key\":\"sym_keyboard_shift_holo\",\"shift_key_shifted\":\"sym_keyboard_shifted_holo\",\"space_key_for_number_layout\":\"sym_keyboard_space_holo\",\"toolbar_key\":\"ic_arrow_right_rounded\",\"next_key\":\"ic_arrow_right_rounded\",\"previous_key\":\"ic_arrow_left_rounded\",\"search_key\":\"sym_keyboard_search_lxx\",\"settings\":\"sym_keyboard_settings_lxx\"}"
+    const val PREF_CUSTOM_ICON_NAMES = "{\"shift_key_locked\":\"sym_keyboard_shift_caps\",\"done_key\":\"sym_keyboard_done_lxx\",\"go_key\":\"sym_keyboard_go_lxx\",\"one_handed\":\"sym_keyboard_start_onehanded_holo\",\"paste\":\"sym_keyboard_paste\",\"enter_key\":\"sym_keyboard_return_lxx\",\"delete_key\":\"sym_keyboard_delete_lxx\",\"send_key\":\"ic_arrow_right_rounded\",\"shift_key\":\"sym_keyboard_shift_outline\",\"shift_key_shifted\":\"sym_keyboard_shift_filled\",\"space_key_for_number_layout\":\"sym_keyboard_space_holo\",\"toolbar_key\":\"ic_arrow_right_rounded\",\"next_key\":\"ic_arrow_right_rounded\",\"previous_key\":\"ic_arrow_left_rounded\",\"search_key\":\"sym_keyboard_search_lxx\",\"settings\":\"sym_keyboard_settings_lxx\"}"
     const val PREF_TOOLBAR_CUSTOM_KEY_CODES = ""
     const val PREF_AUTO_CAP = true
     const val PREF_VIBRATE_ON = true
