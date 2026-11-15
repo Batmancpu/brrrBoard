@@ -175,8 +175,12 @@ public final class InputView extends FrameLayout {
             // visible keyboard surface shorter than the alphabetic keyboard.
             final View emoji = findViewById(R.id.emoji_palettes_view);
             final View clipboard = findViewById(R.id.clipboard_history_view);
+            final View toolbarPanel = findViewById(R.id.access_point_menu_view);
             final boolean panelFooter = (emoji != null && emoji.getVisibility() == VISIBLE)
-                    || (clipboard != null && clipboard.getVisibility() == VISIBLE);
+                    || (clipboard != null && clipboard.getVisibility() == VISIBLE)
+                    // The access-point toolbar replaces the key rows but must keep
+                    // the same bottom footer and IME window height as typing mode.
+                    || (toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE);
             final boolean showFooter = typingFooter || panelFooter;
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey);
         }
