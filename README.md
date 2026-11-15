@@ -7,7 +7,8 @@ brrBoard is my offline-first Android keyboard, shaped around how I type and tune
 - English (US/UK) and Romanized Hindi/Hinglish typing
 - Local Emoji and clipboard panels
 - Frosted Glass appearance
-- No app network permission; typing stays on-device
+- Typing dictionaries and suggestions stay on-device; brrBoard itself has no network permission
+- Mic tap uses the selected Android voice-recognition service; my configured DictateKeyboard provider handles transcription and may use its own network service
 
 ## Current build
 

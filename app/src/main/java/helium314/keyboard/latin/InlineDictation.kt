@@ -5,13 +5,10 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.speech.RecognitionListener
-import android.speech.RecognitionSupport
-import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.view.View
@@ -21,7 +18,11 @@ import android.widget.Toast
 import helium314.keyboard.latin.utils.InputTypeUtils
 import java.util.Locale
 
-/** Dictation stays in the current IME window and commits only final results to the active editor. */
+// The default service may use a network provider, so allow longer final-result processing.
+private const val SPEECH_SERVICE_START_TIMEOUT_MS = 8_000L
+private const val TRANSCRIPTION_RESULT_TIMEOUT_MS = 30_000L
+
+/** Dictation uses Android's selected RecognitionService in the current IME and commits final results only. */
 internal class InlineDictation(private val ime: LatinIME) {
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
@@ -61,71 +62,22 @@ internal class InlineDictation(private val ime: LatinIME) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale.toLanguageTag())
-            .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
 
         try {
-            val session = SpeechRecognizer.createOnDeviceSpeechRecognizer(ime)
+            // Use Android's selected RecognitionService (Dictate on the owner's device). This
+            // keeps Dictate's configured provider in control without opening its voice-input IME.
+            val session = SpeechRecognizer.createSpeechRecognizer(ime)
             recognizer = session
             recognitionStarted = false
             stopRequested = false
             footer = inputView.findViewById(R.id.board_footer)
             footer?.showDictationActive(true)
             footer?.setDictationCancelAvailable(true)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                checkSupport(session, intent, speechLocale, romanizedHinglish, connection)
-            } else {
-                listen(session, intent, connection)
-            }
+            listen(session, intent, connection)
         } catch (_: RuntimeException) {
             fail(R.string.inline_voice_failure)
         }
-    }
-
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun checkSupport(
-        session: SpeechRecognizer,
-        intent: Intent,
-        locale: Locale,
-        romanizedHinglish: Boolean,
-        connection: InputConnection,
-    ) {
-        var checking = true
-        fun proceed(installed: List<String> = emptyList()) {
-            if (!checking || recognizer !== session) return
-            checking = false
-            if (stopRequested) {
-                cancel()
-                return
-            }
-            val requested = locale.toLanguageTag()
-            // Some providers install only one regional model for a given language.
-            // A Latin-script Hinglish keyboard can use an installed offline English
-            // model when Hindi is not installed; never make that substitution for
-            // a Hindi-script keyboard or a language other than Hinglish.
-            if (installed.none { it.equals(requested, ignoreCase = true) }) {
-                val sameLanguage = installed.firstOrNull {
-                    val model = Locale.forLanguageTag(it)
-                    model.language == locale.language &&
-                        (model.script.isEmpty() || locale.script.isEmpty() || model.script == locale.script)
-                }
-                val englishFallback = if (romanizedHinglish && sameLanguage == null) {
-                    installed.firstOrNull { it.equals("en-IN", ignoreCase = true) }
-                        ?: installed.firstOrNull { it.equals("en-US", ignoreCase = true) }
-                        ?: installed.firstOrNull { Locale.forLanguageTag(it).language == "en" }
-                } else null
-                (sameLanguage ?: englishFallback)?.let {
-                    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, it)
-                }
-            }
-            listen(session, intent, connection)
-        }
-        // A provider may omit this optional check or fail to call its callback.
-        scheduleDeadline(1500) { proceed() }
-        session.checkRecognitionSupport(intent, ime.mainExecutor, object : RecognitionSupportCallback {
-            override fun onSupportResult(support: RecognitionSupport) = proceed(support.installedOnDeviceLanguages)
-            override fun onError(error: Int) = proceed()
-        })
     }
 
     private fun listen(
@@ -152,7 +104,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                     if (recognizer !== session) return
                     stopRequested = true
                     footer?.showDictationProcessing()
-                    scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
+                    scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
                 }
                 override fun onError(error: Int) {
                     if (recognizer !== session) return
@@ -173,7 +125,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                         ime.currentInputConnection === connection) ime.onTextInput(text)
                 }
             })
-            scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
+            scheduleDeadline(SPEECH_SERVICE_START_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
             recognitionStarted = true
             session.startListening(intent)
         } catch (_: RuntimeException) {
@@ -190,7 +142,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         }
         stopRequested = true
         footer?.showDictationProcessing()
-        scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
+        scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
         runCatching { session.stopListening() }.onFailure {
             fail(R.string.inline_voice_failure)
         }
@@ -231,8 +183,7 @@ internal class InlineDictation(private val ime: LatinIME) {
     companion object {
         @JvmStatic
         fun isAvailable(context: Context): Boolean =
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                runCatching { SpeechRecognizer.isOnDeviceRecognitionAvailable(context) }.getOrDefault(false)
+            runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
 
         private fun canDictate(editor: EditorInfo): Boolean =
             editor.inputType != 0 &&

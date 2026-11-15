@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status:** Batch 0 (recovery, research baseline, and plan checkpoint) is being recorded. No application source has been changed in this batch. The owner authorized implementation and a signed APK; continue in small, reviewable batches and update this file plus PROJECT_CONTEXT.md after each one.
+**Status (2026-11-15):** Batch 0 handoff is committed. Batch 1 traced the dictation mismatch and reviewed the owner's DictateKeyboard issue; the default-service source change and matching privacy/context updates are prepared in one reviewable commit. The signed GitHub build is pending. Continue in small batches and update this file plus PROJECT_CONTEXT.md after each one.
 
 ## Product target
 
@@ -14,7 +14,7 @@ Preserve package/signing/update identity, the existing Frosted Glass renderer, a
 - The remote branch list does not contain the old codex/hinglish-voice-ios-icons draft. The shared-chat record says that draft had a 252-word Hinglish seed, icon/theme edits, and dictation changes, but it was not built or Reno10-verified. The prior chat's private working tree is unavailable, so its exact diff and the exact 252 entries cannot be recovered from GitHub. Reconstruct only the useful decisions and data; do not claim those edits survived.
 - The release already contains measured IME-boundary reporting, default-height calibration, footer parity for Emoji/Clipboard/toolbar panels, 300 ms mic-hold switching, 123 tap-to-Symbols/hold-to-numpad, the three-choice Emoji hold arc, and OS-owned swipe dismissal. These are source facts, not Reno10 acceptance.
 - InputView.onMeasure() currently keeps the footer visible in typing, Emoji, Clipboard, and toolbar modes. LatinIME.onComputeInsets() subtracts main_keyboard_frame bottom padding when reporting the top of the visible keyboard surface. The owner reports a useless bottom inset/gap. First trace actual WindowInsets, frame padding, visible height, and host-content boundary together; do not simply zero an inset that ColorOS or gesture navigation still needs.
-- InlineDictation.start() currently creates SpeechRecognizer.createOnDeviceSpeechRecognizer(). Mic tap is inline in source; the owner reports that the resulting engine does not match their phone's working Dictate service. Android exposes a distinct system-default recognition-service API. Verify service behavior and offline support before changing the route.
+- InlineDictation.start() currently creates SpeechRecognizer.createOnDeviceSpeechRecognizer(), bypassing the configured system recognizer. The owner identified DictateKeyboard (DevEmperor/DictateKeyboard) as the selected Android voice-to-text service and says its configured API provider is their intended transcriber. In Dictate's manifest, DictateRecognitionService is registered for android.speech.RecognitionService; the app separately registers a voice-input IME and a recognition popup. The owner's issue #359 and maintainer response explain that only the standard RecognitionService path leaves brrBoard visible. Replace the on-device factory with SpeechRecognizer.createSpeechRecognizer(context); remove the offline-preference/model-check path so Dictate's configured provider handles transcription. brrBoard remains without INTERNET permission. Device/provider behavior still needs Reno10 verification.
 - DictionaryFacilitator and AndroidSpellCheckerService already provide word-level spelling checks using the keyboard's dictionaries. This is not full grammar proofreading. Apple's iOS 27 Writing Tools Proofread is an Apple Intelligence writing feature; do not imply it is ordinary keyboard prediction or add a network/AI proofreading feature.
 - DictionaryFacilitatorImpl already has a contextual/spatial suggestion path using ComposedData, NgramContext, locale dictionaries, and the native proximity model. The previous proposed fixed 0.35/0.30/0.20/0.15 score was not validated. Prefer improving and measuring this existing decoder over adding a parallel hand-weighted engine.
 - The user-provided iOS 26/27 comparison video is not visually available in this browser session; the owner said to stop trying it. Use the two images in this chat, the visible shared-chat transcript, and current primary sources. Do not claim frame-by-frame video review.
@@ -60,10 +60,10 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 
 ### Microphone and input-method switching
 
-- Mic tap starts the system's default Android SpeechRecognizer service inline in the current IME, and tapping while active stops it. Processing/cancel states remain on the mic/accessibility controls; do not launch a separate recognition window or switch to a different keyboard on tap.
+- Mic tap uses SpeechRecognizer.createSpeechRecognizer() to bind Android's currently selected RecognitionService. With the owner's Dictate service selected, Dictate's configured provider/API handles audio and returns final text through the standard callback while brrBoard stays on screen. Tapping while active stops; processing/cancel states remain on the mic/accessibility controls. Allow up to 30 seconds for the configured provider to return its final result after stop/end-of-speech.
 - Mic hold remains a distinct input-method switch. Keep its threshold and cancellation behavior deliberate so a short tap never accidentally switches keyboards.
-- Request offline preference and check provider/language support. Do not silently fall back to network recognition. Android's system-default RecognitionService is not the same thing as a separately selected voice-input IME; if the Reno10's Dictate is only an IME, public Android APIs may not permit embedding that IME while keeping brrBoard visible. Confirm this distinction through API behavior and device test before promising a specific vendor engine.
-- Do not learn from password, incognito, or fields carrying IME_FLAG_NO_PERSONALIZED_LEARNING. The recognizer/provider may have its own network behavior; the keyboard must make its route and unavailable/offline state explicit.
+- Do not use createOnDeviceSpeechRecognizer(), EXTRA_PREFER_OFFLINE, the ACTION_RECOGNIZE_SPEECH popup, or Dictate's separate voice-input IME for mic tap. The owner wants Dictate's configured provider (which may use its cloud API); brrBoard itself must retain no INTERNET permission and must not store or request the provider's API key. The voice-input IME replaces brrBoard, while the standard RecognitionService route keeps it visible. Confirm that the selected system service is Dictate and that its final transcript returns correctly on the Reno10.
+- Do not invoke recognition in password, incognito, or fields carrying IME_FLAG_NO_PERSONALIZED_LEARNING. Because the selected Dictate provider may send audio over the network, keep these guards in brrBoard, disclose the handoff in the privacy policy, and do not imply the voice path is on-device.
 
 ### Appearance, tint, and icons
 
@@ -91,7 +91,7 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 | 0 — Handoff and plan | Replace README prose; add this plan; update AGENTS.md, PROJECT_CONTEXT.md, and the conversation record with latest owner decisions, source state, and what is unavailable. | GitHub checkpoint; a new chat can identify the release, exact latest goal, blockers, and next source audit. |
 | 1 — Source trace | Trace frame padding and actual WindowInsets path; editor-driven tint refresh; current dictionaries, spell-check, candidate filtering, mic/provider route, gesture conflicts, and current build/permission/signing setup. | Source map and confirmed-vs-hypothesis list recorded; no speculative fix marked complete. |
 | 2 — Geometry and interactions | Correct only confirmed IME-boundary/footer/panel-height defects; tune bottom controls; maintain all panels' outer height; preserve 123, Emoji arc, Android action keys, and native hide animation. | Relevant XML/source validation and signed CI; physical Reno10 checks clearly pending. |
-| 3 — Dictation and suggestions | Route mic tap through the default RecognitionService inline with explicit offline preference/no silent online fallback; refine candidate strip and compact accessory; preserve mic-hold input switching. | CI build; verify lifecycle/focus/password guards in source and supported API path; airplane-mode/provider behavior remains a Reno10 check. |
+| 3 — Dictation and suggestions | Route mic tap through the system-default RecognitionService inline so the owner's configured Dictate provider is used; retain mic-hold input switching; refine candidate strip and compact accessory. | CI build; verify lifecycle/focus/private-field guards; on Reno10 confirm Dictate stays selected, brrBoard remains visible, and final text returns with the configured provider. |
 | 4 — Themes and icons | Reduce modes to system-following OG dark/light plus optional action-only tint; fix stale tint; redraw only mismatched keyboard icons with original vector assets. | Contrast/resource/source checks and CI build; visually confirm on Reno10. |
 | 5 — Dictionary and swipe | Build compact brrPersonal data from checked sources; separate spelling validity from prediction/autocorrect; add deterministic contextual Emoji candidates; validate GlideLib rights and compatibility or keep user import / choose a redistributable alternative. | Held-out phrase/gesture measurements, attribution, privacy checks, APK-size budget; no claim of proprietary swipe support without license and runtime evidence. |
 | 6 — Release | Build signed APK using existing workflow; verify package/signing/update identity, no network permissions, artifact checksum, and relevant test status. | Release link plus exact CI result; owner confirms install/update, layout, swipe, dictation, gestures, and dictation privacy on Reno10. |
@@ -103,7 +103,9 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - Apple iOS 27, predictive text: https://support.apple.com/en-ca/guide/iphone/iphd4ea90231/27/ios/27
 - Apple, predictive Emoji in Messages: https://support.apple.com/en-in/102507
 - Apple iOS 27, Writing Tools Proofread: https://support.apple.com/en-in/guide/iphone/iph6f08da1d2/27/ios/27
-- Android, system-default and on-device SpeechRecognizer APIs: https://developer.android.com/reference/android/speech/SpeechRecognizer
+- Android SpeechRecognizer APIs; createSpeechRecognizer() uses the system default RecognitionService, whereas createOnDeviceSpeechRecognizer() selects a separate on-device route: https://developer.android.com/reference/android/speech/SpeechRecognizer
+- DictateKeyboard issue #359 and maintainer's explanation of the three voice-input mechanisms: https://github.com/DevEmperor/DictateKeyboard/issues/359
+- DictateKeyboard RecognitionService implementation: https://github.com/DevEmperor/DictateKeyboard/blob/main/app/src/main/kotlin/dev/patrickgold/florisboard/dictate/recognition/DictateRecognitionService.kt
 - Android, IME insets: https://developer.android.com/reference/android/inputmethodservice/InputMethodService.Insets
 - Android, no-personalized-learning editor flag: https://developer.android.com/reference/android/view/inputmethod/EditorInfo#IME_FLAG_NO_PERSONALIZED_LEARNING
 - Android, 48 dp accessibility touch targets: https://developer.android.com/guide/topics/ui/accessibility/apps
@@ -118,8 +120,8 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 ## Progress log
 
 - [x] Owner requirements consolidated; main/release state checked; source hotspots reviewed; research references collected.
-- [ ] Batch 0: this plan, personalized README, and synchronized project handoff committed.
-- [ ] Batch 1: source trace complete.
+- [x] Batch 0: plan, personalized README, and agent instructions are committed. PROJECT_CONTEXT.md and the conversation checkpoint are also on GitHub.
+- [ ] Batch 1: dictation source route traced and its implementation prepared; layout/theme/suggestion/dictionary source traces and signed-build verification remain.
 - [ ] Batch 2: geometry/interactions complete.
 - [ ] Batch 3: dictation/suggestions complete.
 - [ ] Batch 4: themes/icons complete.
