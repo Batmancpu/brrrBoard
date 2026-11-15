@@ -5,8 +5,8 @@
 -->
 <!-- todo: remove / merge with ic_settings_languages -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp"
-    android:width="24dp"
+    android:height="28dp"
+    android:width="28dp"
     android:viewportHeight="24"
     android:viewportWidth="24"  >
     <path android:fillColor="#FFF"

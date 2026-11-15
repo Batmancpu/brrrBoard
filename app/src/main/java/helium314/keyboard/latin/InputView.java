@@ -14,7 +14,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
+import android.view.VelocityTracker;
 import android.view.animation.PathInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.core.view.ViewKt;
@@ -45,6 +47,7 @@ public final class InputView extends FrameLayout {
     private boolean mClosingFromToolbar;
     private float mToolbarDownX;
     private float mToolbarDownY;
+    private VelocityTracker mToolbarVelocity;
 
     public InputView(final Context context, final AttributeSet attrs) {
         super(context, attrs, 0);
@@ -77,6 +80,7 @@ public final class InputView extends FrameLayout {
         mMayDragToolbar = false;
         mDraggingToolbar = false;
         mClosingFromToolbar = false;
+        releaseToolbarVelocity();
         mBoardFrame.animate().cancel();
         mBoardFrame.setTranslationY(0f);
         mFooter.reset();
@@ -87,6 +91,7 @@ public final class InputView extends FrameLayout {
         final int action = event.getActionMasked();
         if (mClosingFromToolbar) return true;
         if (action == MotionEvent.ACTION_DOWN) {
+            releaseToolbarVelocity();
             if (mBoardFrame.getTranslationY() != 0f) {
                 mBoardFrame.animate().cancel();
                 mBoardFrame.setTranslationY(0f);
@@ -104,20 +109,27 @@ public final class InputView extends FrameLayout {
                 final float y = mToolbarDownY - mStripLocation[1];
                 mMayDragToolbar = x >= 0 && x < mSuggestionStrip.getWidth()
                         && y >= 0 && y < mSuggestionStrip.getHeight();
+                if (mMayDragToolbar) {
+                    mToolbarVelocity = VelocityTracker.obtain();
+                    mToolbarVelocity.addMovement(event);
+                }
             }
         } else if (action == MotionEvent.ACTION_MOVE && mMayDragToolbar) {
+            if (mToolbarVelocity != null) mToolbarVelocity.addMovement(event);
             final float dx = Math.abs(event.getRawX() - mToolbarDownX);
             final float dy = event.getRawY() - mToolbarDownY;
             final int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
-            if (!mDraggingToolbar && dy > slop && dy > dx * 1.2f) {
+            if (!mDraggingToolbar && dy > slop && dy > dx * 0.85f) {
                 mDraggingToolbar = true;
                 mOwner.cancelBoardDictation();
                 final MotionEvent cancel = MotionEvent.obtain(event);
                 cancel.setAction(MotionEvent.ACTION_CANCEL);
                 super.dispatchTouchEvent(cancel);
                 cancel.recycle();
-            } else if (!mDraggingToolbar && (dx > slop || dy < -slop)) {
+            } else if (!mDraggingToolbar && (dy < -slop ||
+                    (dx > slop * 2 && dx > Math.max(0f, dy) * 1.5f))) {
                 mMayDragToolbar = false;
+                releaseToolbarVelocity();
             }
             if (mDraggingToolbar) {
                 mBoardFrame.setTranslationY(Math.min(mBoardFrame.getHeight(), Math.max(0f, dy)));
@@ -128,12 +140,33 @@ public final class InputView extends FrameLayout {
             mMayDragToolbar = false;
             if (mDraggingToolbar) {
                 mDraggingToolbar = false;
-                settleToolbarDrag(action == MotionEvent.ACTION_UP &&
-                        mBoardFrame.getTranslationY() >= mBoardFrame.getHeight() * 0.5f);
+                final float distance = mBoardFrame.getTranslationY();
+                float velocity = 0f;
+                if (mToolbarVelocity != null) {
+                    mToolbarVelocity.addMovement(event);
+                    mToolbarVelocity.computeCurrentVelocity(1000);
+                    velocity = mToolbarVelocity.getYVelocity();
+                }
+                // A deliberate slow pull still travels halfway. A quick downward
+                // flick can dismiss sooner without the abrupt reset seen on device.
+                final float flingVelocity = 850f * getResources().getDisplayMetrics().density;
+                final boolean dismiss = action == MotionEvent.ACTION_UP &&
+                        (distance >= mBoardFrame.getHeight() * 0.5f ||
+                        (distance >= mBoardFrame.getHeight() * 0.15f && velocity > flingVelocity));
+                releaseToolbarVelocity();
+                settleToolbarDrag(dismiss);
                 return true;
             }
+            releaseToolbarVelocity();
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    private void releaseToolbarVelocity() {
+        if (mToolbarVelocity != null) {
+            mToolbarVelocity.recycle();
+            mToolbarVelocity = null;
+        }
     }
 
     private void settleToolbarDrag(final boolean dismiss) {
@@ -148,8 +181,10 @@ public final class InputView extends FrameLayout {
         }
         mBoardFrame.animate()
                 .translationY(dismiss ? mBoardFrame.getHeight() : 0f)
-                .setDuration(dismiss ? 125 : 190)
-                .setInterpolator(new PathInterpolator(0.18f, 0.84f, 0.36f, 1f))
+                .setDuration(dismiss ? 135 : 210)
+                .setInterpolator(dismiss
+                        ? new PathInterpolator(0.2f, 0.75f, 0.35f, 1f)
+                        : new OvershootInterpolator(0.42f))
                 .withEndAction(finished)
                 .start();
     }
@@ -162,8 +197,15 @@ public final class InputView extends FrameLayout {
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
         if (mFooter != null && mMainKeyboardView != null) {
             final helium314.keyboard.keyboard.Keyboard keyboard = mMainKeyboardView.getKeyboard();
-            final boolean showFooter = keyboard != null && keyboard.mId.isAlphaOrSymbolKeyboard()
+            final boolean typingFooter = keyboard != null && keyboard.mId.isAlphaOrSymbolKeyboard()
                     && mMainKeyboardView.getVisibility() == VISIBLE;
+            // Emoji and Clipboard used to lose the footer entirely. That made their
+            // visible keyboard surface shorter than the alphabetic keyboard.
+            final View emoji = findViewById(R.id.emoji_palettes_view);
+            final View clipboard = findViewById(R.id.clipboard_history_view);
+            final boolean panelFooter = (emoji != null && emoji.getVisibility() == VISIBLE)
+                    || (clipboard != null && clipboard.getVisibility() == VISIBLE);
+            final boolean showFooter = typingFooter || panelFooter;
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey);
         }
         final View resizeOverlay = findViewById(R.id.keyboard_resize_overlay);

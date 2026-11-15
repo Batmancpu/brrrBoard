@@ -18,6 +18,7 @@ import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
@@ -37,6 +38,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
+import androidx.core.graphics.ColorUtils
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.KeyboardTheme
@@ -253,7 +255,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         findViewById<ImageButton>(R.id.access_point_trigger_btn)?.let {
             setupKey(it, colors)
             applyAlphabetIconTint(it, colors)
-            applySpecialKeyCircleBackground(it, colors)
+            applyBoardToolbarBackground(it, colors)
         }
         val pinnedDropListener = View.OnDragListener { target, event -> onPinnedToolbarDrag(target, event) }
         suggestionsMiddleContainer.setOnDragListener(pinnedDropListener)
@@ -978,7 +980,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         colors.setBackground(this, ColorType.STRIP_BACKGROUND)
         findViewById<ImageButton>(R.id.access_point_trigger_btn)?.let {
             applyAlphabetIconTint(it, colors)
-            applySpecialKeyCircleBackground(it, colors)
+            applyBoardToolbarBackground(it, colors)
         }
         updatePersistentToolbarKey()
         colorsState.value = colors
@@ -1174,6 +1176,21 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private fun applySpecialKeyCircleBackground(view: ImageButton, colors: Colors) {
         applySuggestionStripButtonIconSizing(view)
         view.background = createSpecialKeyCircleBackground(colors)
+    }
+
+    private fun applyBoardToolbarBackground(view: ImageButton, colors: Colors) {
+        // iOS-like A mark is part of the slim strip, not a glowing action key.
+        applySuggestionStripButtonIconSizing(view)
+        val mask = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 9.dpToPx(resources).toFloat()
+            setColor(Color.WHITE)
+        }
+        view.background = RippleDrawable(
+            ColorStateList.valueOf(ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_TEXT), 45)),
+            null,
+            mask,
+        )
     }
 
     private fun applyAlphabetIconTint(view: ImageButton, colors: Colors) {

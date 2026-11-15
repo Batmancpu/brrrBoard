@@ -45,6 +45,7 @@ import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.database.ClipboardDao
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ResourceUtils
+import helium314.keyboard.latin.utils.ToolbarMode
 import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.isDarkColor
@@ -96,7 +97,10 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val abcHeight = ResourceUtils.getKeyboardHeight(resources, settings)
         val persistentEmojiEnabled = context.prefs().getBoolean(Settings.PREF_PERSISTENT_EMOJI_ROW, helium314.keyboard.latin.settings.Defaults.PREF_PERSISTENT_EMOJI_ROW)
         val emojiRowHeight = if (persistentEmojiEnabled) (41 * resources.displayMetrics.density).toInt() else 0
-        val toolbarHeight = resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+        // This panel replaces the suggestion strip, while the shared footer now
+        // stays visible. Count only the strip that the normal layout would have.
+        val toolbarHeight = if (settings.mToolbarMode == ToolbarMode.HIDDEN) 0
+            else resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
         val finalHeight = abcHeight + emojiRowHeight + toolbarHeight + paddingTop + paddingBottom - (6 * resources.displayMetrics.density).toInt() + 1
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY))
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), finalHeight)

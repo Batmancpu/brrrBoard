@@ -51,7 +51,8 @@ internal class InlineDictation(private val ime: LatinIME) {
             return
         }
 
-        val speechLocale = if (locale.language == "hi" && locale.script == "Latn")
+        val romanizedHinglish = locale.language == "hi" && locale.script == "Latn"
+        val speechLocale = if (romanizedHinglish)
             Locale.forLanguageTag("hi-IN") else locale
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -63,7 +64,7 @@ internal class InlineDictation(private val ime: LatinIME) {
             val session = SpeechRecognizer.createOnDeviceSpeechRecognizer(ime)
             recognizer = session
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                checkSupport(session, intent, speechLocale, frame, connection)
+                checkSupport(session, intent, speechLocale, romanizedHinglish, frame, connection)
             } else {
                 listen(session, intent, frame, connection)
             }
@@ -77,6 +78,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         session: SpeechRecognizer,
         intent: Intent,
         locale: Locale,
+        romanizedHinglish: Boolean,
         frame: FrameLayout,
         connection: InputConnection,
     ) {
@@ -86,13 +88,23 @@ internal class InlineDictation(private val ime: LatinIME) {
             checking = false
             val requested = locale.toLanguageTag()
             // Some providers install only one regional model for a given language.
+            // A Latin-script Hinglish keyboard can use an installed offline English
+            // model when Hindi is not installed; never make that substitution for
+            // a Hindi-script keyboard or a language other than Hinglish.
             if (installed.none { it.equals(requested, ignoreCase = true) }) {
-                val compatible = installed.firstOrNull {
+                val sameLanguage = installed.firstOrNull {
                     val model = Locale.forLanguageTag(it)
                     model.language == locale.language &&
                         (model.script.isEmpty() || locale.script.isEmpty() || model.script == locale.script)
                 }
-                if (compatible != null) intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, compatible)
+                val englishFallback = if (romanizedHinglish && sameLanguage == null) {
+                    installed.firstOrNull { it.equals("en-IN", ignoreCase = true) }
+                        ?: installed.firstOrNull { it.equals("en-US", ignoreCase = true) }
+                        ?: installed.firstOrNull { Locale.forLanguageTag(it).language == "en" }
+                } else null
+                (sameLanguage ?: englishFallback)?.let {
+                    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, it)
+                }
             }
             listen(session, intent, frame, connection)
         }

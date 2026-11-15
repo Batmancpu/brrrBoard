@@ -64,6 +64,15 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         ViewCompat.addAccessibilityAction(globe, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
             ime.showInputPickerDialog()
+            true
+        }
+        // The ordinary touch gesture deliberately consumes long-press events to allow
+        // sliding through the arc. Expose each shortcut directly for touch exploration.
+        shortcuts.forEach { shortcut ->
+            ViewCompat.addAccessibilityAction(globe, resources.getString(shortcut.label)) { _, _ ->
+                send(shortcut.code)
+                true
+            }
         }
         globe.setOnTouchListener { view, event ->
             when (event.actionMasked) {

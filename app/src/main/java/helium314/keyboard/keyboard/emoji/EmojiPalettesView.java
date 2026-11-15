@@ -79,6 +79,7 @@ import helium314.keyboard.latin.utils.DictionaryInfoUtils;
 import helium314.keyboard.latin.utils.KtxKt;
 import helium314.keyboard.latin.utils.Log;
 import helium314.keyboard.latin.utils.ResourceUtils;
+import helium314.keyboard.latin.utils.ToolbarMode;
 
 
 import java.util.List;
@@ -157,13 +158,16 @@ public final class EmojiPalettesView extends LinearLayout
         final int abcHeight = ResourceUtils.getKeyboardHeight(res, settings);
         final boolean persistentEmojiEnabled = helium314.keyboard.latin.utils.KtxKt.prefs(getContext()).getBoolean(Settings.PREF_PERSISTENT_EMOJI_ROW, helium314.keyboard.latin.settings.Defaults.PREF_PERSISTENT_EMOJI_ROW);
         final int emojiRowHeight = persistentEmojiEnabled ? (int) (41 * res.getDisplayMetrics().density) : 0;
-        int requestedHeight = abcHeight + emojiRowHeight + getPaddingTop() + getPaddingBottom() + 1;
-        if (mSearchMode) {
-            final int searchBarHeight = (int) (48 * res.getDisplayMetrics().density);
-        final int resultHeight = mSearchResultsKeyboard == null ? mEmojiLayoutParams.getEmojiKeyboardHeight()
-                    : mSearchResultsKeyboard.getOccupiedHeight();
-            requestedHeight = abcHeight + searchBarHeight + resultHeight + getPaddingTop() + getPaddingBottom() + 1;
-        }
+        // The normal alphabetic keyboard has a suggestion strip above its keys.
+        // If the emoji category strip is hidden, reclaim that exact height inside
+        // the emoji panel instead. Both modes now retain the shared bottom footer.
+        final View strip = getRootView().findViewById(R.id.strip_container);
+        final boolean normalStripExpected = settings.mToolbarMode != ToolbarMode.HIDDEN;
+        final int missingStripHeight = normalStripExpected &&
+                (strip == null || strip.getVisibility() != View.VISIBLE)
+                ? res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height) : 0;
+        final int requestedHeight = abcHeight + emojiRowHeight + missingStripHeight
+                + getPaddingTop() + getPaddingBottom() + 1;
         final int availableHeight = switch (MeasureSpec.getMode(heightMeasureSpec)) {
             case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec);
             default -> Integer.MAX_VALUE;

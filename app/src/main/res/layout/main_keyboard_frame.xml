@@ -108,7 +108,7 @@
     <helium314.keyboard.latin.BoardFooterView
         android:id="@+id/board_footer"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="38dp"
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
         android:visibility="gone">
