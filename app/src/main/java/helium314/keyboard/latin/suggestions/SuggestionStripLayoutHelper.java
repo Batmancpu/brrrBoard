@@ -19,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -365,7 +366,7 @@ final class SuggestionStripLayoutHelper {
             // by consolidating all slots in the strip.
             final int countInStrip = 1;
             mMoreSuggestionsAvailable = (wordCountToShow > countInStrip);
-            layoutWord(context, mCenterPositionInStrip, stripWidth - mPadding);
+            layoutWord(context, mCenterPositionInStrip, stripWidth - mPadding, suggestedWords.mWillAutoCorrect);
             stripView.addView(centerWordView);
             setLayoutWeight(centerWordView, 1.0f, ViewGroup.LayoutParams.MATCH_PARENT);
             if (SuggestionStripView.DEBUG_SUGGESTIONS) {
@@ -388,7 +389,7 @@ final class SuggestionStripLayoutHelper {
             }
 
             final int width = getSuggestionWidth(positionInStrip, stripWidth);
-            final TextView wordView = layoutWord(context, positionInStrip, width);
+            final TextView wordView = layoutWord(context, positionInStrip, width, suggestedWords.mWillAutoCorrect);
             stripView.addView(wordView);
             setLayoutWeight(wordView, getSuggestionWeight(positionInStrip), ViewGroup.LayoutParams.MATCH_PARENT);
             x += wordView.getMeasuredWidth();
@@ -442,9 +443,20 @@ final class SuggestionStripLayoutHelper {
      * @param width the maximum width for layout in pixels.
      * @return the {@link TextView} containing the suggested word appropriately formatted.
      */
-    private TextView layoutWord(final Context context, final int positionInStrip, final int width) {
+    private TextView layoutWord(final Context context, final int positionInStrip,
+            final int width, final boolean willAutoCorrect) {
         final TextView wordView = mWordViews.get(positionInStrip);
         resetWordViewForStrip(wordView);
+        final Integer suggestionIndex = (Integer)wordView.getTag();
+        if (willAutoCorrect && positionInStrip == mCenterPositionInStrip
+                && suggestionIndex != null
+                && suggestionIndex == SuggestedWords.INDEX_OF_AUTO_CORRECTION) {
+            // Give the high-confidence center correction its own subtle, rounded surface, as in
+            // the supplied iPhone keyboard reference. Side suggestions keep the strip background.
+            wordView.setBackground(new InsetDrawable(createChipBackground(),
+                    mChipHorizontalMargin, mChipVerticalMargin,
+                    mChipHorizontalMargin, mChipVerticalMargin));
+        }
         final CharSequence word = wordView.getText();
         if (positionInStrip == mCenterPositionInStrip && mMoreSuggestionsAvailable) {
             // TODO: This "more suggestions hint" should have a nicely designed icon.

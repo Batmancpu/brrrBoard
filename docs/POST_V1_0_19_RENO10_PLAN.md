@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Batch 0 handoff is committed. Batch 1's default RecognitionService route shipped in signed [v1.0.20](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.20) from commit `dc9477f`; Obtainium run [43749994398](https://github.com/Batmancpu/brrrBoard/actions/runs/43749994398) passed signer verification and release (APK SHA-256 `0e23fdaacb11f0b1fe0e276afaed14e7eb615ac5e41d27fedf24ea8db9f66810`). The owner reports that Reno10 now uses Dictate but returns Hindi. Current Dictate source ignores the caller's recognizer Intent language extras and uses its own saved Active language. This code batch requests English (en-IN for the hi-Latn keyboard), but Dictate must also be set to Active language English and not follow the Hindi keyboard language. This language patch/build is pending; keep the device result explicitly owner-reported.
+**Status (2026-11-15):** Batch 0 handoff is committed. Batch 1's default RecognitionService route and English language request are in signed [v1.0.21](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.21) from commit `2b8b812`; Obtainium run [43751780751](https://github.com/Batmancpu/brrrBoard/actions/runs/43751780751) passed build, signer verification and publishing (APK SHA-256 `4eadc40ca077bda53f0c2217bcaeb319185c252629e8a802c5b7a0af3f45f961`). The owner reports the mic reaches Dictate, but output remains Hindi. Dictate's current RecognitionService ignores the caller's language Intent and uses its own Active language; the owner must set Dictate Active language to English and disable following the hi-Latn keyboard. The current batch adds the reference's center autocorrection highlight; build pending. Keep owner device results distinct from CI.
 
 ## Product target
 
@@ -117,13 +117,18 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - Apple emoji font source/license note: https://github.com/samuelngs/apple-emoji-ttf
 - Current repository code baseline: https://github.com/Batmancpu/brrrBoard/tree/main
 
+## Proofreading and the compact accessory
+
+- The supplied iOS 27 reference's small right-side control is the Writing Tools access point. Apple's Writing Tools Proofread is a system Apple Intelligence feature; it checks grammar and spelling on selected text. It is not ordinary predictive typing.
+- brrBoard currently has Android SpellCheckerService integration for word-level spelling suggestions. Android exposes SpellCheckerService/SentenceSuggestionsInfo, but this source does not implement grammar analysis. Keep the compact accessory visually separate and useful for brrBoard's toolbar; do not claim that it performs grammar proofreading. No cloud/AI proofreader is in scope.
+
 ## Progress log
 
 - [x] Batch 0: handoff, personalized README and agent guidance committed.
-- [x] Batch 1: selected system RecognitionService route and privacy docs shipped in v1.0.20. Signed build passed. Owner reports the Reno10 mic reaches Dictate; transcript language is Hindi and remains unaccepted.
-- [ ] Batch 1a: request English from brrBoard (preserve English US/UK, otherwise en-IN). Dictate ignores caller language extras, so its Active language must be set to English in Dictate itself. Source/docs commit and signed build pending.
+- [x] Batch 1: default RecognitionService route plus English request shipped in v1.0.21. CI signed/published the APK. Owner reports Dictate path works but output remains Hindi until Dictate's own active language is set to English.
 - [ ] Batch 2: trace and correct any confirmed geometry/interactions defects, including visible bottom gap and stable panel boundaries.
-- [ ] Batch 3: implement the requested three-slot center-confidence treatment and any validated suggestion/accessory changes.
+- [ ] Batch 3a: center autocorrection highlight from existing mWillAutoCorrect signal; this commit is pending signed build.
+- [ ] Batch 3b: validate text/Emoji suggestion behavior and separate it from the right-side accessory; add Smart Emoji only after brrPersonal dictionary foundation.
 - [ ] Batch 4: reduce theme choices to system-following OG dark/light plus optional action-key tint; fix stale tint and audit visible icons.
 - [ ] Batch 5: curate brrPersonal, keep spelling-valid terms separate from text prediction/autocorrect, then add bounded offline Emoji ranking and evaluate swipe-library rights/compatibility.
-- [ ] Batch 6: signed APK/source/release checks and a full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.
+- [ ] Batch 6: signed APK/source/release checks and full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.
