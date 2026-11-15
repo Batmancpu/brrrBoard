@@ -475,3 +475,10 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 **Assistant outcome.** Confirmed the v1.0.31 signed release and debug CI result. The user requires English-only Dictate transcription. Dictate's RecognitionService ignores caller language extras and follows its own Active language; brrBoard blocks Devanagari final results but cannot change Dictate's private preference or reliably identify Romanized Hindi. Keep that behavior open until the owner sets Dictate → Languages → Active language = English, turns off Follow keyboard language, and verifies on Reno10.
 
 The Smart Emoji source batch reuses the existing Recents category and local use/recency ranker, prioritizes up to three rows based on current grid width, refreshes its cache after a use, fixes duplicate counting, and records selected Emoji candidates once. The signed CI result for this source batch is pending; Reno10 appearance/quality checks remain open. The final full-transcript audit is still required.
+
+
+### Smart Emoji compile correction
+
+**CI result.** Obtainium [43769250859](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250859) and debug [43769250853](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250853) both stopped during Java compilation. `EmojiCategory.java:287` referenced `TextUtils` without an import. No release APK was produced.
+
+**Correction.** Replace that call with `outputText == null || outputText.isEmpty()`. The source correction is committed separately with updated checkpoint notes; v1.0.31 remains the latest signed release pending the corrected CI run.

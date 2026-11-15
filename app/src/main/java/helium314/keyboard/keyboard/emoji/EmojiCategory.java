@@ -284,7 +284,7 @@ final class EmojiCategory {
     }
 
     public Key findEmojiKey(final String outputText) {
-        if (TextUtils.isEmpty(outputText)) {
+        if (outputText == null || outputText.isEmpty()) {
             return null;
         }
         for (int categoryId = ID_SMILEYS_EMOTION; categoryId < sCategoryElementId.length; categoryId++) {

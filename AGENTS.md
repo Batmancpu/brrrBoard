@@ -75,3 +75,8 @@ The current source batch integrates Smart Emoji into the existing Recents grid. 
 The owner reiterates: Dictate must transcribe English only. The RecognitionService path stays inline, but Dictate's app setting controls the language and ignores the caller's English intent. brrBoard rejects Devanagari-only final output; do not claim it blocks Romanized Hindi. Owner setup remains Dictate → Languages → Active language = English, Follow keyboard language = off. Verify on Reno10.
 
 Next after CI: update this checkpoint with the next release result, then continue the local-learning clear/reset UI, three-slot contextual Emoji audit, swipe-library legal/ABI review, and the complete transcript/screenshots audit. Owner-only ColorOS/Reno10 checks stay explicitly pending.
+
+
+## Build correction — 2026-11-15
+
+The first Smart Emoji source commit `2eea2c02faf49a9665327702c5cbd134edd7cdd5` triggered Obtainium run [43769250859](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250859) and debug run [43769250853](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250853). Both failed Java compilation at `EmojiCategory.java:287` because `TextUtils` was referenced but not imported; no v1.0.32 artifact was produced. The current correction replaces this with a direct null/empty check. Await the corrected commit's signed build. v1.0.31 remains the latest signed release.
