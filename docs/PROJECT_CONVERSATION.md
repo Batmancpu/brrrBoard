@@ -300,3 +300,22 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 **Prepared source patch.** InlineDictation.kt now uses SpeechRecognizer.createSpeechRecognizer() and SpeechRecognizer.isRecognitionAvailable(), removes the on-device model probe and EXTRA_PREFER_OFFLINE hint, retains final-result-only insertion, and allows a 30-second provider response window after stop/end-of-speech. This is prepared but not yet committed; no compilation result is claimed.
 
 **Next action.** Commit this coherent source/docs batch atomically to main so the signed Obtainium workflow runs once. Confirm CI build, signature, package/version and no-network-permission checks; then continue only the confirmed Reno10 layout/theme/dictionary work. Dictation runtime still needs device confirmation with network enabled.
+
+
+## 2026-11-15 — Reno10 Dictate language result and final retrospective request
+
+**User**
+
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work.
+
+**User**
+
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show me English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
+
+**Owner device report.** The owner reports that v1.0.20's mic route reaches Dictate on Reno10, confirming the selected provider path is active. The resulting text is Hindi, so English-only dictation is not accepted yet. This is owner-reported; no device screenshot/log was provided or copied into the public repo.
+
+**Provider source review.** Read Dictate's current `DictateRecognitionService.kt`, `RecognitionSession.kt`, `DictateLanguages.kt`, `DictateLanguagesScreen.kt`, and `DictateController.kt`. `onStartListening(recognizerIntent, ...)` does not inspect `recognizerIntent`; RecognitionSession uses DictateController, whose transcription reads Dictate's saved activeInputLanguage. `languageFollowsKeyboard` can map a hi-Latn keyboard to Hindi inside Dictate. This means an English `RecognizerIntent.EXTRA_LANGUAGE` is the correct standards-compliant request for providers that honor it, but it cannot override Dictate's saved language. The owner needs Dictate Active language = English and language-following off for English-only output through this current Dictate build. brrBoard cannot safely or legitimately modify another app's private preference.
+
+**Source change in this batch.** InlineDictation now requests the current English keyboard region when the locale is English, and requests en-IN for any other keyboard locale. It no longer maps Romanized Hindi keyboard input to hi-IN. The signed build for this change is pending. Do not claim Dictate English output is fixed until the owner verifies with Dictate set to English.
+
+**Project-level final acceptance instruction.** When the planned implementation reaches its end, reread all post-v1.0.19 user requests in this record and the screenshot corrections, verify each against source and build evidence, and implement any supported omission or defect before proposing follow-up work. The user explicitly requests this retrospective; it is a required completion step, not optional cleanup.

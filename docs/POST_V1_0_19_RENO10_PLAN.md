@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Batch 0 handoff is committed. Batch 1 traced the dictation mismatch and reviewed the owner's DictateKeyboard issue; the default-service source change and matching privacy/context updates are prepared in one reviewable commit. The signed GitHub build is pending. Continue in small batches and update this file plus PROJECT_CONTEXT.md after each one.
+**Status (2026-11-15):** Batch 0 handoff is committed. Batch 1's default RecognitionService route shipped in signed [v1.0.20](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.20) from commit `dc9477f`; Obtainium run [43749994398](https://github.com/Batmancpu/brrrBoard/actions/runs/43749994398) passed signer verification and release (APK SHA-256 `0e23fdaacb11f0b1fe0e276afaed14e7eb615ac5e41d27fedf24ea8db9f66810`). The owner reports that Reno10 now uses Dictate but returns Hindi. Current Dictate source ignores the caller's recognizer Intent language extras and uses its own saved Active language. This code batch requests English (en-IN for the hi-Latn keyboard), but Dictate must also be set to Active language English and not follow the Hindi keyboard language. This language patch/build is pending; keep the device result explicitly owner-reported.
 
 ## Product target
 
@@ -14,7 +14,7 @@ Preserve package/signing/update identity, the existing Frosted Glass renderer, a
 - The remote branch list does not contain the old codex/hinglish-voice-ios-icons draft. The shared-chat record says that draft had a 252-word Hinglish seed, icon/theme edits, and dictation changes, but it was not built or Reno10-verified. The prior chat's private working tree is unavailable, so its exact diff and the exact 252 entries cannot be recovered from GitHub. Reconstruct only the useful decisions and data; do not claim those edits survived.
 - The release already contains measured IME-boundary reporting, default-height calibration, footer parity for Emoji/Clipboard/toolbar panels, 300 ms mic-hold switching, 123 tap-to-Symbols/hold-to-numpad, the three-choice Emoji hold arc, and OS-owned swipe dismissal. These are source facts, not Reno10 acceptance.
 - InputView.onMeasure() currently keeps the footer visible in typing, Emoji, Clipboard, and toolbar modes. LatinIME.onComputeInsets() subtracts main_keyboard_frame bottom padding when reporting the top of the visible keyboard surface. The owner reports a useless bottom inset/gap. First trace actual WindowInsets, frame padding, visible height, and host-content boundary together; do not simply zero an inset that ColorOS or gesture navigation still needs.
-- InlineDictation.start() currently creates SpeechRecognizer.createOnDeviceSpeechRecognizer(), bypassing the configured system recognizer. The owner identified DictateKeyboard (DevEmperor/DictateKeyboard) as the selected Android voice-to-text service and says its configured API provider is their intended transcriber. In Dictate's manifest, DictateRecognitionService is registered for android.speech.RecognitionService; the app separately registers a voice-input IME and a recognition popup. The owner's issue #359 and maintainer response explain that only the standard RecognitionService path leaves brrBoard visible. Replace the on-device factory with SpeechRecognizer.createSpeechRecognizer(context); remove the offline-preference/model-check path so Dictate's configured provider handles transcription. brrBoard remains without INTERNET permission. Device/provider behavior still needs Reno10 verification.
+- The v1.0.19 source used SpeechRecognizer.createOnDeviceSpeechRecognizer(), bypassing the configured system recognizer. Batch 1 replaced that with SpeechRecognizer.createSpeechRecognizer() and shipped it as v1.0.20. The owner reports on Reno10 that the mic now reaches Dictate, but the transcript is Hindi. Dictate's current DictateRecognitionService.onStartListening() ignores its recognizer Intent and starts RecognitionSession with Dictate's saved activeInputLanguage; therefore brrBoard can request English but cannot force Dictate to change its private preference. brrBoard now requests the selected English region (en-US/en-GB) or en-IN for other keyboard locales. For the Dictate route to produce English, Dictate's app must have Active language set to English and must not follow a hi-Latn keyboard language. No Hindi-only output should be marked fixed until the owner verifies it. brrBoard remains without INTERNET permission.
 - DictionaryFacilitator and AndroidSpellCheckerService already provide word-level spelling checks using the keyboard's dictionaries. This is not full grammar proofreading. Apple's iOS 27 Writing Tools Proofread is an Apple Intelligence writing feature; do not imply it is ordinary keyboard prediction or add a network/AI proofreading feature.
 - DictionaryFacilitatorImpl already has a contextual/spatial suggestion path using ComposedData, NgramContext, locale dictionaries, and the native proximity model. The previous proposed fixed 0.35/0.30/0.20/0.15 score was not validated. Prefer improving and measuring this existing decoder over adding a parallel hand-weighted engine.
 - The user-provided iOS 26/27 comparison video is not visually available in this browser session; the owner said to stop trying it. Use the two images in this chat, the visible shared-chat transcript, and current primary sources. Do not claim frame-by-frame video review.
@@ -119,12 +119,11 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 
 ## Progress log
 
-- [x] Owner requirements consolidated; main/release state checked; source hotspots reviewed; research references collected.
-- [x] Batch 0: plan, personalized README, and agent instructions are committed. PROJECT_CONTEXT.md and the conversation checkpoint are also on GitHub.
-- [ ] Batch 1: dictation source route traced and its implementation prepared; layout/theme/suggestion/dictionary source traces and signed-build verification remain.
-- [ ] Batch 2: geometry/interactions complete.
-- [ ] Batch 3: dictation/suggestions complete.
-- [ ] Batch 4: themes/icons complete.
-- [ ] Batch 5: dictionary/swipe complete.
-- [ ] Batch 6: signed APK/build verification complete.
-- [ ] Reno10 hardware acceptance reported by owner.
+- [x] Batch 0: handoff, personalized README and agent guidance committed.
+- [x] Batch 1: selected system RecognitionService route and privacy docs shipped in v1.0.20. Signed build passed. Owner reports the Reno10 mic reaches Dictate; transcript language is Hindi and remains unaccepted.
+- [ ] Batch 1a: request English from brrBoard (preserve English US/UK, otherwise en-IN). Dictate ignores caller language extras, so its Active language must be set to English in Dictate itself. Source/docs commit and signed build pending.
+- [ ] Batch 2: trace and correct any confirmed geometry/interactions defects, including visible bottom gap and stable panel boundaries.
+- [ ] Batch 3: implement the requested three-slot center-confidence treatment and any validated suggestion/accessory changes.
+- [ ] Batch 4: reduce theme choices to system-following OG dark/light plus optional action-key tint; fix stale tint and audit visible icons.
+- [ ] Batch 5: curate brrPersonal, keep spelling-valid terms separate from text prediction/autocorrect, then add bounded offline Emoji ranking and evaluate swipe-library rights/compatibility.
+- [ ] Batch 6: signed APK/source/release checks and a full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.

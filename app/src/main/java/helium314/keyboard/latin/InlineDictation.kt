@@ -56,9 +56,9 @@ internal class InlineDictation(private val ime: LatinIME) {
             return
         }
 
-        val romanizedHinglish = locale.language == "hi" && locale.script == "Latn"
-        val speechLocale = if (romanizedHinglish)
-            Locale.forLanguageTag("hi-IN") else locale
+        // brrBoard keeps dictation English-only, including while typing Romanized Hindi.
+        // Preserve the selected English region; otherwise use Indian English for this device.
+        val speechLocale = if (locale.language == "en") locale else Locale.forLanguageTag("en-IN")
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale.toLanguageTag())
