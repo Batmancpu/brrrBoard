@@ -1,6 +1,6 @@
 # brrBoard iOS 27 plan for the Oppo Reno10 5G
 
-Status: owner requested research and a plan for review. Implementation awaits the owner's go-ahead. Last signed baseline: [v1.0.8](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.8).
+Status: owner approved implementation. Begin with the offline mic checkpoint. Last signed baseline: [v1.0.8](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.8).
 
 ## Reference decisions
 
@@ -9,6 +9,14 @@ Status: owner requested research and a plan for review. Implementation awaits th
 - Owner's eight screenshots: use the repeated dark Messages image for the normal three-key bottom row, the light Search image for its blue action key and brighter surface, and the dark clipboard image for a compact paste suggestion. The signed designer image and the explicitly labeled iOS 19 concept are inspiration only. The extra number row is an optional layout setting. Keep raw screenshots and recording out of the public repo.
 - Starting geometry from the dark Messages image, estimated against the keyboard width: roughly 24% / 49% / 24% for 123 / space / Return, allowing for gaps; letter key corner radius about one-sixth the key height. Use staggered QWERTY and separate footer. Confirm visually from normalized crops rather than prescribing Apple points or blur shader values from a static composite.
 - [OPPO India](https://www.oppo.com/in/smartphones/series-reno/reno10/specs/) lists the CPH2531 at 1080 × 2412 with up to 120 Hz. Use actual keyboard content width, density, and navigation insets. Test gesture and three-button navigation, edge touches on the curved screen, portrait, landscape, and default/large display scaling. Respect existing height and inset settings.
+
+## Wallpaper tint, curved edges and touch
+
+- iOS Tinted takes the Android 12+ system dynamic accent, which can reflect the wallpaper or the owner's chosen system palette. Match its color to the nearest light/dark iOS system palette swatch using perceptual color distance. Keep near-neutral accents neutral and use a neutral fallback if dynamic colors are unavailable.
+- Blend the selected swatch into a neutral Frosted Glass surface with bounded strength. Start with a subtle default and a short controlled adjustment range. Reserve stronger accents for appropriate action states. Verify contrast on bright and dark content and keep iOS Clear and OG default independent. Derive colors on theme/configuration changes, cache them and leave per-key drawing free of palette calculations.
+- Tune the outer shell and keycap corner radii separately. Use the current IME width and safe navigation insets to place the footer away from curved edges. Clip the glass to the shell, preserve full key touch targets, and check for edge distortion or dead zones on the Reno10.
+- Use immediate pressed states and the existing haptic setting, with short release transitions and a spring on the drag release. Keep primary key input immediate, skip extra effects with reduced motion, and verify repeated taps and low frame rates. Smart keys, clipboard eligibility and suggestions use local rules and dictionaries. No new AI features.
+- References: [Android Material 3 dynamic color](https://developer.android.com/develop/ui/compose/designsystems/material3#dynamic_color) and [Apple system color guidance](https://developer.apple.com/design/human-interface-guidelines/color).
 
 ## Implementation and commit order
 

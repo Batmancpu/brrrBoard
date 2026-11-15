@@ -2,8 +2,9 @@
 
 ## Resume here
 
-- **Latest owner direction (2026-11-15):** plan review for the Oppo Reno10 5G. See the [iOS 27 implementation plan](docs/IOS27_RENO10_PLAN.md) and the latest conversation entry. On-device dictation is the first implementation checkpoint. Owner video shows v1.0.8 flashing a white listening panel then reporting a language/model error after mic permission was granted. FrostKeys switches to a separate listening interface in the comparison.
-- **Next action:** after the owner says to proceed, start from current main and address the mic failure and toolbar flicker. Then implement the icons/layout and OG default preset, whole-toolbar drag, and globe hold/context-aware controls in separate commits. Preserve signed Obtainium updates and offline behavior.
+- **Latest owner direction (2026-11-15):** proceed with the [iOS 27 implementation plan](docs/IOS27_RENO10_PLAN.md). Add a restrained wallpaper-driven Apple-palette tint, verify the outer curve and edge touch on the Oppo Reno10 5G, and prioritize immediate response and local context rules.
+- **Current checkpoint:** v1.0.8 failed the owner's microphone test after permission was granted. The first source patch checks for installed recognition support when available, allows an installed regional model in the same language, delays the themed listening panel until readiness, and reports model errors separately. Local Gradle could not download the wrapper distribution (network unreachable). Signed CI and Reno10 airplane-mode validation are pending as of this commit.
+- **Next action:** verify signed CI and the upgrade checkpoint, then implement the iOS layout and presets, whole-toolbar drag, and globe/context-aware controls in that order. Keep the prior backup setup available as OG default.
 
 - **Repository:** [Batmancpu/brrrBoard](https://github.com/Batmancpu/brrrBoard), the user's fork of [AshwinSoni-01/FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), based on HeliBoard.
 - **Confirmed goals (2026-11-14):** keep a stable signing identity and make the normal phone update flow Obtainium → Refresh → Update. Keep enough repository context that a new chat or agent can resume the same work, including verbatim project requests, changes of direction, and results. [Conversation record](docs/PROJECT_CONVERSATION.md).

@@ -479,6 +479,8 @@
     <string name="inline_voice_stop">Stop</string>
     <string name="inline_voice_cancel">Cancel</string>
     <string name="inline_voice_failure">Offline dictation failed. Check your device’s speech language and try again.</string>
+    <string name="inline_voice_unsupported_language">Your on-device speech service does not support dictation in this language.</string>
+    <string name="inline_voice_no_speech">No speech was recognized. Try again.</string>
     <string name="inline_voice_no_model">Install an offline speech model for this language in Android settings.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype
