@@ -41,16 +41,10 @@ The supplied glide library remains excluded from public binaries pending redistr
 
 ## Active checkpoint — 2026-11-15
 
-- Latest signed APK: [v1.0.22](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.22), source `f4cfad6cf4ecbfda3a36c63495855dafb818d8bc`, Obtainium run [43752544242](https://github.com/Batmancpu/brrrBoard/actions/runs/43752544242), SHA-256 `c399a48acbb8fd864130a069f4d0fdffa6c72df47d3ea225811940b1ed3970e4`.
-- v1.0.22 implements the screenshot's confident center-candidate fill using the existing `mWillAutoCorrect` flag. CI passed; no Reno10 visual check has been claimed.
-- Dictate RecognitionService integration is in v1.0.20/1.0.21. The owner reports Hindi output. Current Dictate code reads its own Active language and ignores the caller's language Intent; English-only output remains unaccepted until Dictate's Active language is English and keyboard-following is off, then the owner retests.
-- Next: continue the source audit and implement confirmed layout/theme/suggestion/dictionary gaps in focused source+documentation batches. Do not run tests without a user request; use the signed build workflow for release verification. Before declaring this goal complete, perform the requested request-by-request retrospective against all post-v1.0.19 prompts and both screenshots.
+- Latest signed APK: [v1.0.23](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.23), source `e2ea3b475605b7fed8f57593cddbd8c8bb15b69b`, Obtainium run [43754590416](https://github.com/Batmancpu/brrrBoard/actions/runs/43754590416), SHA-256 `b772aded5cb5847f2fd78a19c86febc67ebce832cbff14a879471c107686f577`. The package, signer and Obtainium identity are preserved.
+- v1.0.23 follows system light/dark mode, keeps the OG Frosted Glass palette, and provides one optional Apple-palette tint for action/highlight keys. CI passed; Reno10 visual acceptance is still pending.
+- Current source checkpoint: Batch 4b Shift glyph correction is committed on `main` as [`cc3ee3b`](https://github.com/Batmancpu/brrrBoard/commit/cc3ee3b0b6bda626eee5c5f5aca55c4acfd4c65a). The idle Shift key now uses an original outline vector; one-shot Shift is filled, and Caps Lock adds an underline. Default and built-in icon style maps share this state sequence. Obtainium run [43756115259](https://github.com/Batmancpu/brrrBoard/actions/runs/43756115259) is pending. Do not call it released until signed CI succeeds.
+- Dictate: the owner says the selected service is reached but the result is Hindi. brrBoard uses the selected Android RecognitionService and requests English, but current Dictate ignores the caller's language extras and uses its saved Active language. Only the owner can set Dictate Active language to English and disable keyboard-following; no Hindi-output acceptance is claimed. The user's last instruction also requires the final request-by-request review.
+- Reno10 inset and panel acceptance, prediction relevance, dictionary/Emoji work, swipe-library license/compatibility, and visual checks remain open. No physical-device result is inferred from CI.
+- Next: record run #24 and any debug-run outcome, then continue only source-confirmed visual/interaction gaps. Keep all handoff files current and perform the requested retrospective before completion.
 
-
-## Active source checkpoint — 2026-11-15, Batch 4
-
-- v1.0.22 is still the latest signed release. The current Batch 4 source change is on main with its Obtainium build pending.
-- Theme UI now offers automatic OG light/dark from system mode and a single optional Apple-palette action-key tint. The renderer neutralizes the glass and ordinary keycaps; wallpaper-derived color is reserved for action/special/enter keys. Legacy tinted presets seed the new toggle once; saved theme/color preferences are not overwritten.
-- Reno10 inset acceptance is pending: source places the bottom system inset after the footer and subtracts it from the host boundary. Measure the actual Reno10 navigation/gesture inset before removing any reserved height.
-- Dictate remains Hindi-output-unaccepted until Active language is English and keyboard-following is disabled in Dictate, followed by an owner device retest.
-- Next: wait for the signed Batch 4 build, record its result, then continue confirmed layout/icon/dictionary work. Conduct the required post-v1.0.19 request-by-request and screenshot retrospective before completion.
