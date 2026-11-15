@@ -3,6 +3,9 @@ package helium314.keyboard.settings.screens
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
+import helium314.keyboard.settings.preferences.stageGestureLibrary
+import helium314.keyboard.settings.preferences.installGestureLibrary
 import android.net.Uri
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
@@ -40,7 +43,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.R
-import helium314.keyboard.latin.common.FileUtils
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
@@ -63,9 +65,6 @@ import helium314.keyboard.settings.initPreview
 import helium314.keyboard.latin.utils.previewDark
 import androidx.core.content.edit
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
 
 @Composable
 fun GestureTypingScreen(
@@ -115,42 +114,29 @@ fun GestureTypingScreen(
 fun GestureLibrarySetupGuide() {
     val context = LocalContext.current
     val abi = Build.SUPPORTED_ABIS[0]
-    val libFile = File(context.filesDir?.absolutePath + File.separator + JniUtils.JNI_LIB_IMPORT_FILE_NAME)
-    val prefs = context.protectedPrefs()
     
     var tempFilePath: String? by rememberSaveable { mutableStateOf(null) }
     
     fun renameToLibFileAndRestart(file: File, checksum: String) {
-        libFile.setWritable(true)
-        libFile.delete()
-        prefs.edit(commit = true) { putString(Settings.PREF_LIBRARY_CHECKSUM, checksum) }
-        file.copyTo(libFile)
-        libFile.setReadOnly()
-        file.delete()
-        Runtime.getRuntime().exit(0)
-    }
-
-    val launcher = filePicker { uri ->
-        val tmpfile = File(context.filesDir.absolutePath + File.separator + "tmplib")
         try {
-            val otherTemporaryFile = File(context.filesDir.absolutePath + File.separator + "tmpfile")
-            FileUtils.copyContentUriToNewFile(uri, context, otherTemporaryFile)
-            FileInputStream(otherTemporaryFile).use { inputStream ->
-                FileOutputStream(tmpfile).use { outputStream ->
-                    tmpfile.setReadOnly()
-                    FileUtils.copyStreamToOtherStream(inputStream, outputStream)
-                }
-            }
-            otherTemporaryFile.delete()
-
-            val checksum = ChecksumCalculator.checksum(tmpfile) ?: ""
+            installGestureLibrary(context, file, checksum)
+            Runtime.getRuntime().exit(0)
+        } catch (_: Exception) {
+            file.delete()
+            Toast.makeText(context, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+    val launcher = filePicker { uri ->
+        try {
+            val staged = stageGestureLibrary(context, uri)
+            val checksum = ChecksumCalculator.checksum(staged).orEmpty()
             if (checksum == JniUtils.expectedDefaultChecksum()) {
-                renameToLibFileAndRestart(tmpfile, checksum)
+                renameToLibFileAndRestart(staged, checksum)
             } else {
-                tempFilePath = tmpfile.absolutePath
+                tempFilePath = staged.absolutePath
             }
-        } catch (e: IOException) {
-            tmpfile.delete()
+        } catch (_: Exception) {
+            Toast.makeText(context, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -241,7 +227,7 @@ fun GestureLibrarySetupGuide() {
                     onClick = {
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
                             .addCategory(Intent.CATEGORY_OPENABLE)
-                            .setType("application/octet-stream")
+                            .setType("*/*")
                         launcher.launch(intent)
                     },
                     modifier = Modifier.fillMaxWidth(),

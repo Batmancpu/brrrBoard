@@ -40,11 +40,24 @@ public class TouchpadHandler {
         sTouchpadModeActive = active;
     }
 
+    public boolean isTouchpadModeActive() {
+        return mInTouchpadMode;
+    }
+
+    public void activateFromSpaceHold(int x, int y, KeyboardActionListener listener) {
+        setTouchpadModeActive(true);
+        enableTouchpadMove(x, y, listener);
+        // The long-press timer has already confirmed intentional activation.
+        mTouchpadActivationTime -= Settings.getValues().mKeyLongpressTimeout;
+    }
+
     public void disableTouchpadMode() {
         if (!mInTouchpadMode) return;
         stopEdgeScrolling();
         stopHapticRunnable();
         mInTouchpadMode = false;
+        mTouchpadAccX = 0;
+        mTouchpadAccY = 0;
         sTouchpadModeActive = false;
         mListener.onCustomRequest(Constants.CODE_TOUCHPAD_OFF);
         mListener = null;

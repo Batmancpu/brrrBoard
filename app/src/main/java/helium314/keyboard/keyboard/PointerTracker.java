@@ -956,6 +956,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
             // Touchpad mode
             mTouchpadHandler.enableTouchpadMove(x, y, sListener);
+            if (mTouchpadHandler.isTouchpadModeActive()) return;
 
             // Vertical movement
             int stepsY = dY / sPointerStep;
@@ -1158,6 +1159,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             return;
         }
         sListener.onLongPressKey(key.getCode());
+        if (key.getCode() == Constants.CODE_SPACE && mKeySwipeAllowed
+                && Settings.getValues().mSpaceSwipeVertical == KeyboardActionListener.SwipeAction.TOUCHPAD_MODE) {
+            setReleasedKeyGraphics(key, false);
+            mInVerticalSwipe = true;
+            mTouchpadHandler.activateFromSpaceHold(mLastX, mLastY, sListener);
+            return;
+        }
         if (key.hasNoPanelAutoPopupKey()) {
             cancelKeyTracking();
             final int popupKeyCode = key.getPopupKeys()[0].mCode;
@@ -1218,6 +1226,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onCancelEventInternal() {
+        if (mTouchpadHandler.isTouchpadModeActive()) {
+            mTouchpadHandler.disableTouchpadMode();
+            mInVerticalSwipe = false;
+            mInHorizontalSwipe = false;
+            mKeySwipeAllowed = false;
+            sInKeySwipe = false;
+            sListener.onEndSpaceSwipe();
+        }
         sTimerProxy.cancelKeyTimersOf(this);
         setReleasedKeyGraphics(mCurrentKey, true);
         resetKeySelectionByDraggingFinger();

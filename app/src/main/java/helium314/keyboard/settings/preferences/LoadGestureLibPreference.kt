@@ -3,6 +3,7 @@ package helium314.keyboard.settings.preferences
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.widget.Toast
 import android.os.Build
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,7 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import helium314.keyboard.latin.R
-import helium314.keyboard.latin.common.FileUtils
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
 import helium314.keyboard.latin.utils.JniUtils
@@ -22,9 +22,6 @@ import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.filePicker
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
 import androidx.core.content.edit
 
 @SuppressLint("ApplySharedPref")
@@ -36,38 +33,26 @@ fun LoadGestureLibPreference(setting: Setting) {
     val abi = Build.SUPPORTED_ABIS[0]
     val libFile = File(ctx.filesDir?.absolutePath + File.separator + JniUtils.JNI_LIB_IMPORT_FILE_NAME)
     fun renameToLibFileAndRestart(file: File, checksum: String) {
-        libFile.setWritable(true)
-        libFile.delete()
-        // store checksum in default preferences (see JniUtils)
-        prefs.edit(commit = true) { putString(Settings.PREF_LIBRARY_CHECKSUM, checksum) }
-        file.copyTo(libFile)
-        libFile.setReadOnly()
-        file.delete()
-        Runtime.getRuntime().exit(0) // exit will restart the app, so library will be loaded
+        try {
+            installGestureLibrary(ctx, file, checksum)
+            Runtime.getRuntime().exit(0)
+        } catch (_: Exception) {
+            file.delete()
+            Toast.makeText(ctx, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
+        }
     }
     var tempFilePath: String? by rememberSaveable { mutableStateOf(null) }
     val launcher = filePicker { uri ->
-        val tmpfile = File(ctx.filesDir.absolutePath + File.separator + "tmplib")
         try {
-            val otherTemporaryFile = File(ctx.filesDir.absolutePath + File.separator + "tmpfile")
-            FileUtils.copyContentUriToNewFile(uri, ctx, otherTemporaryFile)
-            FileInputStream(otherTemporaryFile).use { inputStream ->
-                FileOutputStream(tmpfile).use { outputStream ->
-                    tmpfile.setReadOnly() // as per recommendations in https://developer.android.com/about/versions/14/behavior-changes-14#safer-dynamic-code-loading
-                    FileUtils.copyStreamToOtherStream(inputStream, outputStream)
-                }
-            }
-            otherTemporaryFile.delete()
-
-            val checksum = ChecksumCalculator.checksum(tmpfile) ?: ""
+            val staged = stageGestureLibrary(ctx, uri)
+            val checksum = ChecksumCalculator.checksum(staged).orEmpty()
             if (checksum == JniUtils.expectedDefaultChecksum()) {
-                renameToLibFileAndRestart(tmpfile, checksum)
+                renameToLibFileAndRestart(staged, checksum)
             } else {
-                tempFilePath = tmpfile.absolutePath
+                tempFilePath = staged.absolutePath
             }
-        } catch (e: IOException) {
-            tmpfile.delete()
-            // should inform user, but probably the issues will only come when reading the library
+        } catch (_: Exception) {
+            Toast.makeText(ctx, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
         }
     }
     Preference(
@@ -81,7 +66,7 @@ fun LoadGestureLibPreference(setting: Setting) {
                 showDialog = false
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
-                    .setType("application/octet-stream")
+                    .setType("*/*")
                 launcher.launch(intent)
             },
             confirmButtonText = stringResource(R.string.load_gesture_library_button_load),

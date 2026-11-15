@@ -30,3 +30,5 @@ The layout milestone supersedes the small appearance-only release. Offer only OG
 Use v1.0.14 as the current device acceptance baseline. Preserve the owner-confirmed three-way globe hold interaction, wait for the owner's installed-build feedback before behavior changes, and capture any verified narration separately from written requirements.
 
 The latest owner feedback supersedes the globe control requirement. Preserve hold-and-slide selection mechanics on the new Emoji key for Clipboard and Settings, and use microphone hold for the next Android input method. Prioritize synchronized drag/blur, centered suggestions, and keypad geometry. Keep predictions/clipboard local. Review the owner's swipe-typing library only after it is supplied.
+
+Use the [iOS behavior audit](docs/IOS27_BEHAVIOR_AUDIT.md) for follow-up implementation and hardware tests. Keep the owner-supplied GlideLib out of the public bundle pending redistribution rights. Import the expected member locally and preserve user preferences.

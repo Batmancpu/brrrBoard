@@ -1798,6 +1798,8 @@ public final class InputLogic {
         // conditions is
         // not fulfilled, return false.
         if (!inputTransaction.getSettingsValues().mUseDoubleSpacePeriod
+                || !inputTransaction.getSettingsValues().mInputAttributes.mShouldInsertSpacesAutomatically
+                || inputTransaction.getSettingsValues().mInputAttributes.mIsPasswordField
                 || Constants.CODE_SPACE != event.getCodePoint()
                 || !isDoubleSpacePeriodCountdownActive(inputTransaction)) {
             return false;
