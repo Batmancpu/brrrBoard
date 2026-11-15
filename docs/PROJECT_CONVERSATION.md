@@ -327,3 +327,16 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 **Source change in current batch.** In `SuggestionStripLayoutHelper.layoutWord`, add a rounded neutral inset background only to the center item when its tag is `INDEX_OF_AUTO_CORRECTION` and `SuggestedWords.mWillAutoCorrect` is true. Side candidates retain the normal strip background, and the five-chip optional mode is unchanged. The background uses the existing `AUTOFILL_BACKGROUND_CHIP` theme color for light/dark contrast. CI build is pending.
 
 **Proofreading clarification.** Apple's iOS 27 Writing Tools access point can launch Apple Intelligence Proofread on selected text; Apple documents it as a system writing feature for grammar and spelling, not a predictive-word engine. brrBoard's Android spellchecker is word-level and cannot invoke Apple's private Writing Tools. Preserve the compact board toolbar control; do not label it as grammar proofread or add a cloud/AI proofreader. Sources: Apple Support https://support.apple.com/guide/iphone/writing-tools-write-improve-summarize-iph6f08da1d2/27/ios/27 ; Android SpellCheckerService https://developer.android.com/reference/android/service/textservice/package-summary.
+
+
+## 2026-11-15 — Continue from v1.0.22 and Hindi Dictate report
+
+**User**
+
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
+
+**Checkpoint.** Obtainium run 43752544242 completed successfully and published v1.0.22, source commit `f4cfad6cf4ecbfda3a36c63495855dafb818d8bc`. APK SHA-256: `c399a48acbb8fd864130a069f4d0fdffa6c72df47d3ea225811940b1ed3970e4`. The shipped center-suggestion treatment uses the decoder's existing `mWillAutoCorrect` decision and does not alter candidate ranking. The user has not reported Reno10 acceptance of that visual change.
+
+**Dictate language status.** English-only transcription remains open. Current Dictate RecognitionService ignores caller language extras and uses Dictate's saved Active language; brrBoard cannot change Dictate's private setting. Do not claim the English outcome fixed until the owner sets Dictate Active language to English, disables language-following, and reports a successful test. Avoid asking the owner to retest during this continuation; user explicitly asked work to continue.
+
+**Next action.** Continue the code review in the agreed batches, checkpoint each source batch and signed APK in this repository, then conduct the user's requested full retrospective before suggesting next steps.
