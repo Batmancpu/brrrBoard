@@ -39,7 +39,7 @@ Inspect the current release source and conversation record before each continuat
 The supplied glide library remains excluded from public binaries pending redistribution rights. Keep its checksum-validated local import and user-controlled setting. Do not claim the external binary works on the Reno10 until its owner tests it. The owner clarified that active language scope is English and Hinglish, retaining English US/UK; existing locale resources may stay as backups, and no effort should go to adding or polishing unrelated translations.
 
 
-## Active checkpoint — 2026-11-15
+## Historical checkpoint before v1.0.31 — 2026-11-15
 
 - Latest signed APK: [v1.0.29](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.29), source `15c3d318d7cd9a99e1ebce7c0f672dec8bf956eb`, Obtainium run [43760989572](https://github.com/Batmancpu/brrrBoard/actions/runs/43760989572), SHA-256 `c4c02913a3cced3758914b34356687026e6c185523b22eac52f86f5532f1c914`. Package/signing/update identity is preserved.
 - v1.0.29 requests up to three recognition candidates, prefers the first without Devanagari, blocks Hindi-script-only results, and gives a longer hint: Dictate → Languages → Active language = English; Follow keyboard language = off. Dictate currently returns one result and ignores caller language extras. This does not identify Romanized Hindi or set Dictate's private preference.
@@ -49,7 +49,7 @@ The supplied glide library remains excluded from public binaries pending redistr
 - Next: continue the existing dictionary/proximity-decoder audit. PHINC is a CC-BY-4.0, 13,738-pair social-media corpus from 2020; treat it as a baseline and attribute it, not as a current slang list. Do not add a second weighted engine. Complete the post-v1.0.19 request-by-request retrospective before marking the goal complete.
 
 
-## Continuation checkpoint — 2026-11-15
+## Historical continuation checkpoint before v1.0.31 — 2026-11-15
 
 The owner asked to continue the post-v1.0.19 work from the pasted transcript, preserve each small batch in GitHub and the handoff files, and do a complete request-by-request review before marking the goal complete. The latest signed APK reaches Dictate, but the owner reports Hindi transcription and requires English only.
 
@@ -59,14 +59,14 @@ The owner asked to continue the post-v1.0.19 work from the pasted transcript, pr
 - Continue with CI/release evidence, owner-device acceptance, Smart Emoji, settings/clear-reset controls, visual/context audits and the final whole-transcript retrospective. Do not treat this batch as project completion.
 
 
-## CI correction checkpoint — 2026-11-15
+## Historical CI correction checkpoint before PHINC fix — 2026-11-15
 
 - Commit `db36ad5ed77d2c681cfaa9986ad7e0f3a76f3e25` added brrPersonal, but Obtainium run [43766256522](https://github.com/Batmancpu/brrrBoard/actions/runs/43766256522) failed before compilation: pinned PHINC CSV columns are `Sentence` and `English_Translation`; the generator did not recognize `Sentence`. No APK was signed or published.
 - Fix `tools/prepare_brrpersonal.py` to map PHINC's source `Sentence` column and add `tools/**` to Obtainium path filters so generator-only fixes still build and publish.
 - Emoji source audit found existing local use/recency recording and an adaptive top-10 cache in `EmojiPalettesView.AdaptiveEmojiEngine`, but no presentation call site. `addRecentEmoji()` can call `addRecentKey()`, which records again; audit and fix that double count before integrating a Smart Emoji UI.
 
 
-## Latest checkpoint — 2026-11-15
+## Previous checkpoint before v1.0.33 release — 2026-11-15
 
 The PHINC correction is complete. Commit `f752166ff8dcf2daad8c725ebde15798bedf8960` produced signed release [v1.0.31](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.31), Obtainium run [43766685860](https://github.com/Batmancpu/brrrBoard/actions/runs/43766685860), APK SHA-256 `ee8211339f62cc17e47cb1af4ff4ddbbda5cf945470d0089948a82af517c1947`, size 51,020,554 bytes. The debug build passed compilation/signing/artifact upload but its automatic test gate failed 13/180 existing tests in run [43766685891](https://github.com/Batmancpu/brrrBoard/actions/runs/43766685891): currency/parser labels, URL/autospace behavior, and emoji recognition. The prior checkpoint recorded the same baseline. Do not hide this failed gate or manually rerun tests unless requested.
 
@@ -77,6 +77,15 @@ The owner reiterates: Dictate must transcribe English only. The RecognitionServi
 Next after CI: update this checkpoint with the next release result, then continue the local-learning clear/reset UI, three-slot contextual Emoji audit, swipe-library legal/ABI review, and the complete transcript/screenshots audit. Owner-only ColorOS/Reno10 checks stay explicitly pending.
 
 
-## Build correction — 2026-11-15
+## Earlier build correction — resolved in v1.0.33
 
-The first Smart Emoji source commit `2eea2c02faf49a9665327702c5cbd134edd7cdd5` triggered Obtainium run [43769250859](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250859) and debug run [43769250853](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250853). Both failed Java compilation at `EmojiCategory.java:287` because `TextUtils` was referenced but not imported; no v1.0.32 artifact was produced. The current correction replaces this with a direct null/empty check. Await the corrected commit's signed build. v1.0.31 remains the latest signed release.
+The first Smart Emoji workflows failed Java compilation because `EmojiCategory.java` referenced unresolved `TextUtils`; no APK was published by those attempts. Commit `30cd3c69e6bd25d95e008914db5a3bd257fc0288` replaced it with a null/empty check, and Obtainium run [43769819497](https://github.com/Batmancpu/brrrBoard/actions/runs/43769819497) published signed v1.0.33. The failed runs and correction are logged in `docs/POST_V1_0_19_RENO10_PLAN.md`.
+
+
+## Latest checkpoint — 2026-11-15 (v1.0.33)
+
+- Signed release [v1.0.33](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.33), source [30cd3c6](https://github.com/Batmancpu/brrrBoard/commit/30cd3c69e6bd25d95e008914db5a3bd257fc0288), Obtainium run [43769819497](https://github.com/Batmancpu/brrrBoard/actions/runs/43769819497), SHA-256 `15b65ce33695a7cbfa0f27de9202bc59776871af25cf35517a8f0c7ca4b36d49`, size 51,020,554 bytes. Smart Emoji Recents is shipped; Reno10 acceptance is open.
+- Current source adds a confirmation-protected Text Correction action to clear only local UserHistoryDictionary word/word-pair learning. It preserves brrPersonal, Android's system dictionary, and Emoji history. Await signed CI.
+- Dictate's selected RecognitionService route keeps brrBoard visible; issue #359 confirms this. Dictate ignores caller language extras and reads its own Active language. brrBoard's Devanagari guard cannot reliably identify Latin-script Hindi. Set Dictate → Languages → Active language to English and disable Follow keyboard language; verify on Reno10.
+- Commit 30cd3c6 corrected the initial Smart Emoji compile error; v1.0.33 released. Debug run [43769819448](https://github.com/Batmancpu/brrrBoard/actions/runs/43769819448) uploaded a signer-verified APK and failed the automatic `:app:testRunTestsUnitTest` gate with the known 13/180 baseline failures (5 ParserTest, 7 InputLogicTest, 1 StringUtilsTest); no tests were run manually. No tests were run manually.
+- Next: confirm clear-history CI, inspect the contextual Emoji strip and gesture-library import/license/ABI, then perform the full request-by-request retrospective. Reno10 runtime checks are owner-only.

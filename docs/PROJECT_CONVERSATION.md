@@ -482,3 +482,12 @@ The Smart Emoji source batch reuses the existing Recents category and local use/
 **CI result.** Obtainium [43769250859](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250859) and debug [43769250853](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250853) both stopped during Java compilation. `EmojiCategory.java:287` referenced `TextUtils` without an import. No release APK was produced.
 
 **Correction.** Replace that call with `outputText == null || outputText.isEmpty()`. The source correction is committed separately with updated checkpoint notes; v1.0.31 remains the latest signed release pending the corrected CI run.
+
+## 2026-11-15 — English-only Dictate feedback and continuation
+
+**User**
+
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left.
+
+**Assistant outcome.** Confirmed v1.0.33 Smart Emoji Recents and the latest source checkpoint. Issue #359 and Dictate's RecognitionService source confirm brrBoard uses the inline system route, which keeps the keyboard visible, but Dictate ignores the caller's language extras and follows its saved Active language. The app rejects Devanagari-containing results and displays the setting path; it cannot reliably distinguish English from Romanized Hindi. The owner must set Dictate → Languages → Active language = English, disable Follow keyboard language, and verify the result on Reno10 before English-only is accepted. The current source batch adds a confirmation-protected reset of local learned text history only.
+

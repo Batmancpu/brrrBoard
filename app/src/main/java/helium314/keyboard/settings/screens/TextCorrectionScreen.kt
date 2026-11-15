@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.permissions.PermissionsUtil
+import helium314.keyboard.latin.personalization.PersonalizationHelper
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.JniUtils
@@ -60,6 +61,7 @@ fun TextCorrectionScreen(
     val gestureEnabled = JniUtils.sHaveGestureLib && prefs.getBoolean(Settings.PREF_GESTURE_INPUT, Defaults.PREF_GESTURE_INPUT)
     val items = listOf(
         SettingsWithoutKey.EDIT_PERSONAL_DICTIONARY,
+        SettingsWithoutKey.CLEAR_LEARNED_TYPING_HISTORY,
         R.string.settings_category_correction,
         Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE,
         Settings.PREF_AUTO_CORRECTION,
@@ -110,6 +112,29 @@ fun createCorrectionSettings(context: Context) = listOf(
             name = stringResource(R.string.edit_personal_dictionary),
             onClick = { SettingsDestination.navigateTo(SettingsDestination.PersonalDictionaries) },
         ) { NextScreenIcon() }
+    },
+    Setting(
+        context, SettingsWithoutKey.CLEAR_LEARNED_TYPING_HISTORY,
+        R.string.clear_learned_typing_history_title, R.string.clear_learned_typing_history_summary
+    ) {
+        var showConfirmation by rememberSaveable { mutableStateOf(false) }
+        Preference(
+            name = stringResource(R.string.clear_learned_typing_history_title),
+            description = stringResource(R.string.clear_learned_typing_history_summary),
+            onClick = { showConfirmation = true },
+        )
+        if (showConfirmation) {
+            ConfirmationDialog(
+                onDismissRequest = { showConfirmation = false },
+                onConfirmed = {
+                    PersonalizationHelper.removeAllUserHistoryDictionaries(context)
+                    showConfirmation = false
+                },
+                title = { Text(stringResource(R.string.clear_learned_typing_history_confirm_title)) },
+                confirmButtonText = stringResource(R.string.clear_learned_typing_history_confirm_action),
+                content = { Text(stringResource(R.string.clear_learned_typing_history_confirm_message)) }
+            )
+        }
     },
     Setting(context, Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE,
         R.string.prefs_block_potentially_offensive_title, R.string.prefs_block_potentially_offensive_summary

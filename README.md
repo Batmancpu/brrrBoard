@@ -12,11 +12,11 @@ brrBoard is my offline-first Android keyboard, shaped around how I type and tune
 
 ## Current build
 
-The latest signed release is [v1.0.31](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.31).
+The latest signed release is [v1.0.33](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.33).
 
-[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.31/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
+[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.33/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
 
-The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. Shift states and safe saved-icon migration shipped in v1.0.25. v1.0.31 includes the brrPersonal offline dictionary foundation. brrBoard uses the selected Dictate RecognitionService, rejects Hindi-script-only final output, and explains how to set Dictate's Active language to English and turn off Follow keyboard language. Dictate controls its own language; brrBoard cannot force English or reliably detect Romanized Hindi. Reno10 checks, Smart Emoji acceptance, contextual Emoji suggestions, proofreading scope, and swipe-library review remain open.
+The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. Shift states and safe saved-icon migration shipped in v1.0.25. v1.0.33 includes the brrPersonal offline dictionary foundation and adaptive Emoji ranking in the existing Recents grid. brrBoard uses the selected Dictate RecognitionService, rejects Hindi-script-only final output, and explains how to set Dictate's Active language to English and turn off Follow keyboard language. Dictate controls its own language; brrBoard cannot force English or reliably detect Romanized Hindi. Reno10 checks, Smart Emoji acceptance, contextual Emoji suggestions, proofreading scope, and swipe-library review remain open.
 
 ## Project notes
 
