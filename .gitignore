@@ -34,3 +34,4 @@ tools/*.txt
 /*.py
 pr2_body.txt
 VOICE_INPUT_RESEARCH.md
+/app/src/main/assets/brrPersonal.tsv

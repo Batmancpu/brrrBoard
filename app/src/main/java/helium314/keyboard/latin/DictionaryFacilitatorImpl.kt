@@ -21,6 +21,7 @@ import helium314.keyboard.latin.common.decapitalize
 import helium314.keyboard.latin.common.mightBeEmoji
 import helium314.keyboard.latin.common.splitOnWhitespace
 import helium314.keyboard.latin.dictionary.AppsBinaryDictionary
+import helium314.keyboard.latin.dictionary.BrrPersonalDictionary
 import helium314.keyboard.latin.dictionary.ContactsBinaryDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.dictionary.DictionaryFactory
@@ -143,6 +144,8 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             Dictionary.TYPE_USER,
             if (useAppsDict) Dictionary.TYPE_APPS else null,
             if (usePersonalizedDicts) Dictionary.TYPE_USER_HISTORY else null,
+            if (newLocale.language == "en" || (newLocale.language == "hi" && newLocale.script == "Latn"))
+                Dictionary.TYPE_BRR_PERSONAL else null,
             if (useContactsDict && PermissionsUtil.checkAllPermissionsGranted(context, Manifest.permission.READ_CONTACTS))
                 Dictionary.TYPE_CONTACTS else null
         )
@@ -212,7 +215,8 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             // create new or re-use already loaded sub-dicts
             val subDicts: MutableMap<String, ExpandableBinaryDictionary> = HashMap()
             for (subDictType in newSubDictTypes) {
-                if (!isPrimary && (subDictType == Dictionary.TYPE_CONTACTS || subDictType == Dictionary.TYPE_APPS)) {
+                if (!isPrimary && (subDictType == Dictionary.TYPE_CONTACTS || subDictType == Dictionary.TYPE_APPS
+                    || subDictType == Dictionary.TYPE_BRR_PERSONAL)) {
                     continue
                 }
                 val subDict: ExpandableBinaryDictionary
@@ -545,6 +549,11 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 val word = info.word
                 if (isBlacklisted(word) || SupportedEmojis.isUnsupported(word)) // don't add blacklisted words and unsupported emojis
                     continue
+                // Keep curated slang/profanity out of unsolicited completions and predictions.
+                // Deliberate swipe gestures may still resolve to these valid words.
+                if (!composedData.mIsBatchMode && !info.isEmoji
+                    && word.splitOnWhitespace().any { BrrPersonalDictionary.isNoSuggestionWord(it) })
+                    continue
                 if (checkForGarbage
                     // consider the user might use custom main dictionary containing shortcuts
                     //  assume this is unlikely to happen, and take care about common shortcuts that are not actual words (emoji, symbols)
@@ -568,6 +577,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     // meaning that it always has default mConfidence. So we cannot choose to only check preferred
     // locale, and instead simply return true if word is in any of the available dictionaries
     override fun isValidSpellingWord(word: String): Boolean {
+        if (BrrPersonalDictionary.isNoSuggestionWord(word)) return true
         mValidSpellingWordReadCache?.get(word)?.let { return it }
         val result = dictionaryGroups.any { isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it) }
         mValidSpellingWordReadCache?.put(word, result)
@@ -576,6 +586,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     // this is unused, so leave it for now (redirecting to isValidWord seems to defeat the purpose...)
     override fun isValidSuggestionWord(word: String): Boolean {
+        if (BrrPersonalDictionary.isNoSuggestionWord(word)) return false
         return isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, dictionaryGroups[0])
     }
 
@@ -633,6 +644,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 return when (dictType) {
                     Dictionary.TYPE_USER_HISTORY -> UserHistoryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_USER -> UserBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
+                    Dictionary.TYPE_BRR_PERSONAL -> BrrPersonalDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_CONTACTS -> ContactsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     Dictionary.TYPE_APPS -> AppsBinaryDictionary.getDictionary(context, locale, dictFile, dictNamePrefix)
                     else -> throw IllegalArgumentException("unknown dictionary type $dictType")
@@ -731,6 +743,12 @@ private class DictionaryGroup(
         val appsDict = getSubDict(Dictionary.TYPE_APPS)
         if (appsDict != null && appsDict.isInDictionary(word)) {
             appsDict.removeUnigramEntryDynamically(word) // will be gone until next reload of dict
+            addToBlacklist(word)
+            return
+        }
+
+        val personalDict = getSubDict(Dictionary.TYPE_BRR_PERSONAL)
+        if (personalDict?.isValidWord(word) == true) {
             addToBlacklist(word)
             return
         }

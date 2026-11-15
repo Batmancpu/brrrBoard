@@ -33,6 +33,7 @@ public interface DictionaryFacilitator {
 
     String[] ALL_DICTIONARY_TYPES = new String[] {
             Dictionary.TYPE_MAIN,
+            Dictionary.TYPE_BRR_PERSONAL,
             Dictionary.TYPE_CONTACTS,
             Dictionary.TYPE_APPS,
             Dictionary.TYPE_USER_HISTORY,

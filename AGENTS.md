@@ -47,3 +47,13 @@ The supplied glide library remains excluded from public binaries pending redistr
 - Automatic Obtainium run [43760989572](https://github.com/Batmancpu/brrrBoard/actions/runs/43760989572) passed. Automatic debug run [43760989575](https://github.com/Batmancpu/brrrBoard/actions/runs/43760989575) compiled, signer-verified and uploaded a debug APK, then failed its automatic `:app:testRunTestsUnitTest` gate with the known 13/180 failures. No tests were manually run.
 - Reno10 inset/panel acceptance, remaining icons/accessory, suggestion relevance, brrPersonal/dictionary and Emoji work, swipe-library rights/compatibility, and visual checks remain open. CI is not phone acceptance.
 - Next: continue the existing dictionary/proximity-decoder audit. PHINC is a CC-BY-4.0, 13,738-pair social-media corpus from 2020; treat it as a baseline and attribute it, not as a current slang list. Do not add a second weighted engine. Complete the post-v1.0.19 request-by-request retrospective before marking the goal complete.
+
+
+## Continuation checkpoint — 2026-11-15
+
+The owner asked to continue the post-v1.0.19 work from the pasted transcript, preserve each small batch in GitHub and the handoff files, and do a complete request-by-request review before marking the goal complete. The latest signed APK reaches Dictate, but the owner reports Hindi transcription and requires English only.
+
+- Dictate's RecognitionService ignores brrBoard's language extras and reads its own Active language. brrBoard can reject Devanagari output, but cannot set Dictate's private preference or reliably identify Romanized Hindi. The user's device setup is Dictate → Languages → Active language = English; Follow keyboard language = off. Do not mark English-only fixed before Reno10 confirmation.
+- The current brrPersonal batch uses the existing native dictionary/spatial decoder, PHINC CC-BY-4.0 token counts with a 6,000 total-entry ceiling, and a small manual valid-only slang/profanity rules asset. Normal predictions/autocorrection suppress those terms; explicit swipe decoding retains them; emoji shortcuts remain eligible. Personal learned history stays on-device. No parallel ranking formula or app network permission.
+- The build-time generator downloads only a pinned corpus revision during Gradle builds; it does not add runtime network access. Keep attribution in NOTICE and bump the brrPersonal_vN cache name whenever the bundled data/rules change.
+- Continue with CI/release evidence, owner-device acceptance, Smart Emoji, settings/clear-reset controls, visual/context audits and the final whole-transcript retrospective. Do not treat this batch as project completion.

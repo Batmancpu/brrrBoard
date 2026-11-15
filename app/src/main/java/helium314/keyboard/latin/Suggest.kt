@@ -18,6 +18,7 @@ import helium314.keyboard.latin.common.StringUtils
 import helium314.keyboard.latin.define.DebugFlags
 import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_AUTO_CORRECT_USING_NON_WHITE_LISTED_SUGGESTION
 import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_REMOVE_PREVIOUSLY_REJECTED_SUGGESTION
+import helium314.keyboard.latin.dictionary.BrrPersonalDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
@@ -86,11 +87,17 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
 
         // store the original SuggestedWordInfo for typed word, as it will be removed
         // we may want to re-add it in case auto-correction happens, so that the original word can at least be selected
-        val typedWordFirstOccurrenceWordInfo = suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
+        val noSuggestionTypedWord = BrrPersonalDictionary.isNoSuggestionWord(capitalizedTypedWord.dropLast(trailingSingleQuotesCount))
+        if (noSuggestionTypedWord) {
+            // Show emoji shortcuts for the typed term, but never text-complete or correct it.
+            suggestionsContainer.removeAll { !it.isEmoji }
+        }
+        val typedWordFirstOccurrenceWordInfo = if (noSuggestionTypedWord) null else
+            suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
         val firstOccurrenceOfTypedWordInSuggestions = SuggestedWordInfo.removeDupsAndTypedWord(capitalizedTypedWord, suggestionsContainer)
         makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
 
-        val (allowsToBeAutoCorrected, hasAutoCorrection) = shouldBeAutoCorrected(
+        val (decoderAllowsToBeAutoCorrected, decoderHasAutoCorrection) = shouldBeAutoCorrected(
             trailingSingleQuotesCount,
             capitalizedTypedWord,
             suggestionsContainer.firstOrNull(),
@@ -107,7 +114,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             firstOccurrenceOfTypedWordInSuggestions,
             typedWordFirstOccurrenceWordInfo
         )
-         val typedWordInfo = SuggestedWordInfo(capitalizedTypedWord, "", SuggestedWordInfo.MAX_SCORE,
+        val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected && !noSuggestionTypedWord
+        val hasAutoCorrection = decoderHasAutoCorrection && !noSuggestionTypedWord
+        val typedWordInfo = SuggestedWordInfo(capitalizedTypedWord, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
         if (!TextUtils.isEmpty(capitalizedTypedWord)) {
@@ -129,7 +138,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // If there is an incoming autocorrection, make sure typed word is shown, so user is able to override it.
         // Otherwise, if the relevant setting is enabled, show the typed word in the middle.
         val indexOfTypedWord = if (hasAutoCorrection) 2 else 1
-        if ((hasAutoCorrection || (Settings.getValues().mCenterSuggestionTextToEnter && !wordComposer.isResumed)
+        if (!noSuggestionTypedWord
+            && (hasAutoCorrection || (Settings.getValues().mCenterSuggestionTextToEnter && !wordComposer.isResumed)
                 || capitalizedTypedWord != wordComposer.typedWord)
             && suggestionsList.size >= indexOfTypedWord && !TextUtils.isEmpty(capitalizedTypedWord)) {
             if (typedWordFirstOccurrenceWordInfo != null) {

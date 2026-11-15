@@ -1,0 +1,22 @@
+brrPersonal dictionary data notice
+
+The brrPersonal corpus-derived frequency seed is generated from PHINC (Parallel Hinglish Social
+Media Code-Mixed Corpus for Machine Translation), curated by the Lingo Research Group at IIT
+Gandhinagar. PHINC contains Romanized Hindi-English sentences paired with human English
+translations and is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+Source: https://huggingface.co/datasets/LingoIITGN/PHINC
+Pinned source revision: 44b5471df75e508b9d6fcdbcc93df04bb1e84056
+License: https://creativecommons.org/licenses/by/4.0/
+Paper: Vivek Srivastava and Mayank Singh, “PHINC: A Parallel Hinglish Social Media Code-Mixed
+Corpus for Machine Translation,” W-NUT 2020, https://aclanthology.org/2020.wnut-1.7/
+
+Modification: the build-time generator tokenizes only the Romanized Hinglish column, compares
+counts with the paired English translations, removes common English function words, keeps terms
+seen at least twice, caps the corpus-derived lexicon at 6,000 entries, and maps counts to the
+existing decoder's native frequency field. A small owner-requested rules list adds valid-only
+slang/profanity entries with emoji shortcuts. The source corpus is not bundled in the APK.
+This bundled seed is a dated baseline, not a claim to represent every current regional trend.
+
+No user-typed text, clipboard content, or learning history is included in the generated asset.
+Personal learning remains in the app's existing local UserHistoryDictionary.

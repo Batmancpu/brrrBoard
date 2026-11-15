@@ -373,3 +373,18 @@ tasks.matching {
 }.configureEach {
     dependsOn(patchNativeLibs16Kb)
 }
+
+
+// Build a reproducible, offline-at-runtime brrPersonal lexicon from the pinned PHINC corpus.
+val prepareBrrPersonalDictionary = tasks.register<Exec>("prepareBrrPersonalDictionary") {
+    val generator = rootProject.file("tools/prepare_brrpersonal.py")
+    val rules = file("src/main/assets/brrPersonal_rules.tsv")
+    val generatedAsset = file("src/main/assets/brrPersonal.tsv")
+    inputs.files(generator, rules)
+    outputs.file(generatedAsset)
+    commandLine("python3", generator.absolutePath, generatedAsset.absolutePath, rules.absolutePath)
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(prepareBrrPersonalDictionary)
+}

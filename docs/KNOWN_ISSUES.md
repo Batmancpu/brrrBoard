@@ -1,31 +1,22 @@
-# brrrBoard Known Issues & Audit Notes
+# brrBoard Known Issues & Audit Notes
 
-This is the current engineering watchlist. Items are not called fixed until there is evidence from tests or a real device.
+This is the current engineering watchlist. Items are not fixed until CI, source evidence, or Reno10 use establishes the relevant behavior.
 
 | Area | Status | Finding |
 |---|---|---|
-| APK CI | **Partially recovered** | Canonical build workflow restored; independent audit APK workflow now builds, signs and uploads successfully. GitHub Release API publication is blocked by HTTP 403. |
-| Debug APK updates | **Needs device validation** | Fallback `versionCode` now uses seconds rather than minutes; APK signing identity is persistent across debug builds. Device update without uninstall remains to be tested. |
-| Runtime keyboard startup | **Needs device validation** | Static source inspection cannot prove IME startup/keyboard-popup behavior on a physical OEM build. |
-| Search panels | **High regression sensitivity** | Emoji/Klipy search lifecycle and keyboard switching were recently rewritten; test enter/search/type/switch/exit repeatedly. |
-| Frosted Glass | **High OEM sensitivity** | Native blur has Android/Samsung-specific fallback paths; test with blur on/off and Android 12+ plus older API behavior where supported. |
-| Clipboard history | **Needs device validation** | Undo/restore and suggestion-dismissal logic was recently changed; test delete → undo, delete → paste, restart, and pinned entries. |
-| Settings | **Recently fixed** | Debug settings nested-scroll crash was fixed; regression test the Debug screen and search filtering. |
-| Klipy | **Recently fixed** | GIF format filter was corrected; test GIF and sticker search independently. |
-| Signed layout APK | **Built, not fully device-accepted** | [v1.0.13](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.13) completed signer/package validation; the owner's latest recording shows normal search-entry and layout states but not the full interaction matrix. |
-| Unit test gate | **14/180 failures** | [Debug run 43679255037](https://github.com/Batmancpu/brrrBoard/actions/runs/43679255037) assembled, signed and uploaded the APK, then failed its test gate. Earlier pre-layout tests also had 14 failures; compare test names, not only the total. |
-| Globe hold arc | **Owner-reported working** | The owner confirms all three release targets (Emoji, Clipboard, Settings) open correctly. Retest after other layout changes; accessible shortcuts still need TalkBack checks. |
-| Emoji/Clipboard height | **Owner-reported regression; source fix pending** | With normal keyboard footer formerly hidden in panels, Emoji/Clipboard appeared shorter. Source now retains the footer and compensates for the missing 36dp strip. Confirm matching outer height in both portrait and landscape on Reno10. |
-| Footer/toolbar appearance | **Owner-reported regression; source fix pending** | Excess bottom gap, undersized globe/mic, 50dp empty strip and prominent A-button circle. Source reduces strip/footer to 36dp/38dp, enlarges footer icons, removes A fill. Check dimensions against all six reference images and edge touches. |
-| Toolbar swipe | **Owner-reported jerky; source fix pending** | In the recording a partial downward move resets. Source adds less restrictive axis capture, fast-flick dismissal and gentle overshoot on spring return. Check slow/fast gestures and conflicts with predictions/popup gestures before claiming fixed. |
-| Offline dictation and privacy | **Owner-reported failure** | Mic still fails on the Reno10. Source checks compatible installed offline locales and for Romanized Hinglish may choose installed English if Hindi absent. Device may lack a supported on-device speech provider/model; test both languages, Stop/Cancel, airplane mode and stale-focus blocking. Android's 0 B app-usage display alone proves little. |
+| Dictate English-only output | **Owner device check required** | brrBoard uses the selected system RecognitionService and requests English. Dictate ignores caller language extras and follows its own saved Active language. v1.0.29 rejects Devanagari-only output and shows the exact Dictate language setting path. Set Dictate → Languages → Active language = English and turn off Follow keyboard language. Romanized Hindi cannot be reliably identified from a transcript alone. |
+| brrPersonal dictionary | **Source batch awaiting signed CI / device acceptance** | The current batch adds a pinned, attributed PHINC-derived seed, capped at 6,000 total entries, plus a curated valid-only slang/profanity rules asset with emoji shortcuts. It uses the existing native spatial decoder; text suggestions are filtered but deliberate swipe results remain eligible. |
+| Reno10 layout/insets | **Owner device acceptance required** | Confirm host-content boundary, bottom spacing with no visible navigation bar, key hit targets, stable height across letters/symbols/Emoji/Clipboard/toolbar, and ColorOS blur/tint transitions. Source measurements cannot substitute for the actual ColorOS build and display scaling. |
+| Suggestion strip | **Partially implemented; quality check required** | The UI uses three candidate slots and the decoder's existing mWillAutoCorrect signal for center emphasis. Validate English/Hinglish relevance and emoji/clipboard interactions on device; no unvalidated ranking weights. |
+| Smart Emoji | **Not implemented** | Owner requested up to three local rows with typed-word relevance and personal emoji use/recency. |
+| Swipe library | **Not bundled / rights and compatibility unresolved** | Owner reports personal verification of the uploaded GlideLib build. The supplied archive's license/provenance and native ABI/API compatibility still need review before redistribution in a public APK. |
+| Android proofreading | **Platform scope** | Android's installed spell checker can provide word-level spelling assistance. Do not claim Apple's grammar-level Writing Tools Proofread behavior without a distinct, verified local implementation. |
+| Automated debug tests | **Known baseline failures** | Latest debug CI compiled, signer-verified and uploaded an APK but failed the automatic :app:testRunTestsUnitTest gate with 13 of 180 failures. No tests were run manually. |
+| Asset licensing/size | **Do not bundle** | The supplied Apple emoji TTF is about 116 MB and Apple artwork is excluded from the upstream repository's MIT license. It is not in the APK. |
 
-## Evidence standard
+## Acceptance evidence
 
-1. **Build evidence:** CI passes tests and produces a non-empty APK.
-2. **Install evidence:** APK installs successfully.
-3. **Update evidence:** second APK updates the previous install without uninstalling.
-4. **Runtime evidence:** affected feature is exercised on the target device.
-5. **Regression evidence:** existing related tests still pass.
-
-Do not mark an issue as fixed solely because the source compiles.
+1. **Build evidence:** automatic signed CI succeeds and the artifact is non-empty.
+2. **Install/update evidence:** owner verifies installation and in-place update on Reno10.
+3. **Runtime evidence:** the owner exercises the affected path on the actual device.
+4. **Regression evidence:** report existing automatic CI results; no issue is marked fixed solely from compilation.
