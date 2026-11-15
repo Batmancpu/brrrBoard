@@ -1,6 +1,6 @@
 # brrBoard iOS 27 plan for the Oppo Reno10 5G
 
-Status: layout implementation reached the signed v1.0.13 checkpoint; device interaction acceptance is still in progress. The owner requested a single layout-plus-whole-toolbar-dismissal release. The three theme choices and low-opacity caption apply across the board. See PROJECT_CONTEXT.md for release and Reno10 test status.
+Status: signed v1.0.14 is the current device acceptance baseline. See PROJECT_CONTEXT.md. Await v1.0.14 phone observations before changing keyboard behavior.
 
 ## 2026-11-15 owner screen-recording checkpoint
 
@@ -51,3 +51,10 @@ Six comparison images were attached in the chat, not committed here. The cleares
 - Defaults uses language_switch_key=input_method. SettingsValues already distinguishes switching to other IMEs and internal subtypes. Do not globally overwrite the owner's selection when adding the iOS profile.
 - ClipboardHistoryManager already has a recency path and a suggestion view. Audit its plain-text sensitivity and editor guards before using that view in the revised toolbar. Avoid changing history or paste behavior outside this path.
 - Fresh checkout of origin/main before editing. The inspected local checkout was older and had pre-existing staged changes. Canonical main at review was bbe0b38bab8627cf7a7fd08083a343a1864b330d.
+
+### v1.0.14 acceptance on Reno10
+
+- Measure the same outer bounds and bottom alignment in typing, Emoji and Clipboard. Check an empty field, live suggestions, and the compact A control. The release reduces strip height but does not introduce a distinct fully empty-strip collapse policy.
+- Check prediction relevance using the same phrase and keyboard language, including English and Hinglish in a Settings search field and ordinary text. The v1.0.14 patch does not change the ranking logic.
+- From left, center and right in the strip, try a short drag, a long drag, a fast flick, ordinary suggestion taps and the A button. Retain the already confirmed three-way globe shortcut behavior.
+- In airplane mode test offline English and Romanized Hinglish dictation separately, plus Stop, Cancel, and insertion into the active field. Installed English fallback for Romanized Hinglish alone does not establish Hindi or mixed-language accuracy. Capture the actual error on failure.
