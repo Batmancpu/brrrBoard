@@ -26,7 +26,6 @@ import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.view.isGone
-import coil.load
 import helium314.keyboard.compat.ClipboardManagerCompat
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardTypeface
@@ -612,6 +611,15 @@ class ClipboardHistoryManager(
         for (i in 0 until mimeTypeCount) {
             val mimeType = getMimeType(i)
             if (ClipDescription.compareMimeTypes(mimeType, "image/*")) return mimeType
+        }
+        return null
+    }
+
+    private fun android.content.ClipData.imageUri(): Uri? {
+        for (i in 0 until itemCount) {
+            val item = getItemAt(i) ?: continue
+            item.uri?.let { return it }
+            item.intent?.data?.let { return it }
         }
         return null
     }
