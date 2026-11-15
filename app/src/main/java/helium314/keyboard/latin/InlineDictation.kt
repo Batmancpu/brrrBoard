@@ -190,7 +190,8 @@ internal class InlineDictation(private val ime: LatinIME) {
     }
 
     private fun report(message: Int) {
-        Toast.makeText(ime, message, Toast.LENGTH_SHORT).show()
+        val duration = if (message == R.string.inline_voice_hindi_result) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        Toast.makeText(ime, message, duration).show()
     }
 
     companion object {
