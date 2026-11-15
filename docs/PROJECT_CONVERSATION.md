@@ -369,3 +369,17 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 
 **Next action.** Record the signed CI result, keep Dictate English-only unresolved until the owner configures/retests it, then continue source-confirmed visual issues. Finish only after the required request-by-request review of the post-v1.0.19 conversation and both screenshots.
 
+
+
+## 2026-11-15 — v1.0.24 Shift glyph build and saved-map migration
+
+**Build result.** Obtainium run [43756115259](https://github.com/Batmancpu/brrrBoard/actions/runs/43756115259) passed and published [v1.0.24](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.24), source `cc3ee3b0b6bda626eee5c5f5aca55c4acfd4c65a`. APK SHA-256: `efff92614db7f8303000521d8d6477dbc14691f46750e5a0b53e1b9209f5ffd9`. The release compiles, passes pinned signer verification, and preserves package/update identity.
+
+**Existing-install edge case.** Reviewing `CustomizeIconsDialog.kt` showed it saves the entire default icon map when one icon is customized. An existing preference can therefore retain the old Shift asset after a default change. Added a one-time migration in [`AppUpgrade.kt`](https://github.com/Batmancpu/brrrBoard/blob/4d13a045d5fd17bcb427e2f22e5a70cef00e9049/app/src/main/java/helium314/keyboard/latin/AppUpgrade.kt): it replaces only exact old shipped asset names for idle Shift, one-shot Shift, and Caps Lock, preserving other user-selected glyphs and custom icons. Source commit [`4d13a045d5fd17bcb427e2f22e5a70cef00e9049`](https://github.com/Batmancpu/brrrBoard/commit/4d13a045d5fd17bcb427e2f22e5a70cef00e9049). Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374) is pending. v1.0.24 is interim for installs with a saved old icon map; wait for the migration release to accept the Shift correction.
+
+**Automatic debug workflow.** Run [43754830187](https://github.com/Batmancpu/brrrBoard/actions/runs/43754830187) compiled and signer-verified a debug APK, then failed the unit-test gate: 13 of 180 tests failed (ParserTest, InputLogicTest, and Emoji detection). No tests were manually run. Obtainium release CI independently passed.
+
+**Dictate constraint.** The owner reports that the selected Dictate service receives speech but returns Hindi, and requires English only. Dictate's current RecognitionService ignores brrBoard's language extra and uses its saved Active language. brrBoard cannot alter that private preference. Set Dictate Active language to English and disable keyboard-following, then verify on Reno10; no success is claimed yet.
+
+**Next action.** Record run #25's signed result, then continue source-backed keyboard icon/layout and dictionary review. Do not call the overall goal complete until the explicit post-v1.0.19 retrospective and device-only acceptance list are addressed.
+

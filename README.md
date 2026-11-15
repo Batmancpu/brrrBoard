@@ -12,11 +12,11 @@ brrBoard is my offline-first Android keyboard, shaped around how I type and tune
 
 ## Current build
 
-The latest signed release is [v1.0.23](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.23).
+The latest signed release is [v1.0.23](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.24).
 
-[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.23/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
+[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.24/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
 
-The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. The outlined Shift correction is in the next signed build. Reno10 visual/layout checks, Dictate's English-only setting/result, and dictionary/Emoji/symbol/swipe work still need acceptance.
+The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. The outlined idle Shift and active/Caps Lock states shipped in v1.0.24; a saved-icon migration is in the next signed build. Reno10 visual/layout checks, Dictate's English-only result, and dictionary/Emoji/symbol/swipe work still need acceptance.
 
 ## Project notes
 
