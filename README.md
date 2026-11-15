@@ -12,11 +12,11 @@ brrBoard is my offline-first Android keyboard, shaped around how I type and tune
 
 ## Current build
 
-The latest signed release is [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26).
+The latest signed release is [v1.0.29](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.29).
 
-[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.26/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
+[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.29/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
 
-The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. Shift states and safe saved-icon migration shipped in v1.0.25. v1.0.26 rejects Devanagari-script dictation results instead of inserting them and shows a Dictate English-language setup hint. Set Dictate Active language to English and disable keyboard-following; brrBoard cannot override that setting or detect Romanized Hindi. Reno10 visual/layout checks and brrPersonal, Emoji, symbol and swipe work remain open.
+The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. Shift states and safe saved-icon migration shipped in v1.0.25. v1.0.29 prefers non-Devanagari alternatives, blocks Hindi-script-only results, and shows how to set Dictate's Active language to English and turn off Follow keyboard language. Dictate returns one result and controls its own language; brrBoard cannot force English or detect Romanized Hindi. Reno10 checks and brrPersonal, Emoji, symbols, and swipe work remain open.
 
 ## Project notes
 
