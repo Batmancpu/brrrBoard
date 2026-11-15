@@ -18,4 +18,4 @@ Record the last verified commit and release, outstanding verification, and the e
 
 For the active iOS 27 milestone, read the [Oppo Reno10 implementation plan](docs/IOS27_RENO10_PLAN.md). It records the latest priorities, control behavior, presets, device checks, and implementation status.
 
-The owner approved implementation on 2026-11-15. Follow the phased order in the Oppo plan. For iOS Tinted use Android dynamic accent mapped to a restrained iOS palette tint. Preserve OG default, responsive touch, safe curved-edge geometry, and offline rules without new AI features.
+The owner approved implementation on 2026-11-15. Follow the phased order in the Oppo plan. For iOS Tinted keep the Frosted Glass white. Map the Android dynamic accent to a nearby Apple system color only for keys or states the iOS reference highlights, such as Search. Preserve OG default, responsive touch, safe curved-edge geometry, and offline rules without new AI features.
