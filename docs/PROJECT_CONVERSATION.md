@@ -265,3 +265,5 @@ The owner then supplied six iOS-style keyboard comparison images and elaborated 
 **Next checkpoint.** The owner should update/install v1.0.19 and check content overlap at min/default/max heights, keyboard default size, toolbar-panel height, faster mic hold-to-switch, confirmed Emoji hold-menu behavior, native swipe-close/blur, 123 tap/hold, panel alignment and offline dictation. Report behavior only; no typed or clipboard text is needed.
 
 **Local checkpoint.** Saved the same nine-file source/context state in local commit `22ad49b` on `codex/ios27-behavior-cleanup`; the worktree is clean. This preserves the continuation locally without touching the separate `main` checkout, which still has unrelated staged files.
+
+**Final handoff sync.** Updated `PROJECT_CONTEXT.md`, the conversation record, the Reno10 plan and the behavior audit with the successful v1.0.19 release result and the remaining phone acceptance. Those documentation-only changes were synced to GitHub `main` and saved after the source checkpoint. No application code changed after the signed APK was published; the local continuation worktree is clean.
