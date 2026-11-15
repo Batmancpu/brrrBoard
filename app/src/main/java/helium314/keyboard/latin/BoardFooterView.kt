@@ -26,10 +26,11 @@ import kotlin.math.roundToInt
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private lateinit var ime: LatinIME
-    private val globe get() = findViewById<ImageButton>(R.id.board_footer_globe)
+    private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
     private var popup: PopupWindow? = null
     private val targets = ArrayList<ImageButton>()
+    private var dictationActive = false
     private var selected = -1
     private var tracking = false
     private var downX = 0f
@@ -37,7 +38,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
     private val shortcuts = listOf(
-        Shortcut(R.string.emoji, R.drawable.ic_emoji_smileys_emotion_lxx, KeyCode.EMOJI),
         Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, KeyCode.CLIPBOARD),
         Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_lxx, KeyCode.SETTINGS),
     )
@@ -48,10 +48,18 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     fun bind(owner: LatinIME) {
         if (this::ime.isInitialized && ime === owner) return
         ime = owner
-        globe.setOnClickListener { feedback(it); ime.cycleBoardLanguage() }
+        emojiButton.setOnClickListener { feedback(it); send(KeyCode.EMOJI) }
         microphone.setOnClickListener { feedback(it); send(KeyCode.VOICE_INPUT) }
-        globe.setOnLongClickListener {
-            PopupMenu(context, globe).apply {
+        microphone.setOnLongClickListener {
+            ime.switchBoardInputMethod()
+            true
+        }
+        ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
+            ime.switchBoardInputMethod()
+            true
+        }
+        emojiButton.setOnLongClickListener {
+            PopupMenu(context, emojiButton).apply {
                 shortcuts.forEachIndexed { index, shortcut -> menu.add(0, index + 1, index, shortcut.label) }
                 menu.add(0, 4, 4, R.string.board_system_keyboard_picker)
                 setOnMenuItemClickListener {
@@ -62,19 +70,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             }
             true
         }
-        ViewCompat.addAccessibilityAction(globe, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
+        ViewCompat.addAccessibilityAction(emojiButton, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
             ime.showInputPickerDialog()
             true
         }
         // The ordinary touch gesture deliberately consumes long-press events to allow
         // sliding through the arc. Expose each shortcut directly for touch exploration.
         shortcuts.forEach { shortcut ->
-            ViewCompat.addAccessibilityAction(globe, resources.getString(shortcut.label)) { _, _ ->
+            ViewCompat.addAccessibilityAction(emojiButton, resources.getString(shortcut.label)) { _, _ ->
                 send(shortcut.code)
                 true
             }
         }
-        globe.setOnTouchListener { view, event ->
+        emojiButton.setOnTouchListener { view, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     tracking = true
@@ -113,14 +121,22 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             return
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
-        globe.imageTintList = tint
-        microphone.imageTintList = tint
+        emojiButton.imageTintList = tint
+        showDictationActive(dictationActive)
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
+    }
+
+    fun showDictationActive(active: Boolean) {
+        dictationActive = active
+        val colors = Settings.getValues().mColors
+        microphone.imageTintList = ColorStateList.valueOf(
+            colors.get(if (active) ColorType.ACTION_KEY_BACKGROUND else ColorType.KEY_ICON),
+        )
     }
 
     fun reset() {
         tracking = false
-        globe.isPressed = false
+        emojiButton.isPressed = false
         removeCallbacks(openShortcuts)
         popup?.dismiss()
         popup = null
@@ -147,8 +163,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val panel = FrameLayout(context)
         val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.MORE_SUGGESTIONS_BACKGROUND), 242)
         val active = colors.get(ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
-        // Three 48dp touch targets on an arc rising above the lower-left globe.
-        val offsets = listOf(0 to 0, 53 to 16, 86 to 59)
+        // Two 48dp touch targets above the lower-left Emoji button.
+        val offsets = listOf(5 to 8, 56 to 39)
         shortcuts.forEachIndexed { index, shortcut ->
             val button = ImageButton(context).apply {
                 contentDescription = resources.getString(shortcut.label)
@@ -167,12 +183,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 topMargin = dp(y)
             })
         }
-        popup = PopupWindow(panel, dp(134), dp(108), false).apply {
+        popup = PopupWindow(panel, dp(108), dp(88), false).apply {
             isTouchable = false
             isOutsideTouchable = false
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = dp(8).toFloat()
-            showAsDropDown(globe, 0, -globe.height - dp(106), Gravity.LEFT)
+            showAsDropDown(emojiButton, 0, -emojiButton.height - dp(88), Gravity.LEFT)
         }
     }
 

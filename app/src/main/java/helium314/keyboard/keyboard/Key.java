@@ -1160,7 +1160,7 @@ public class Key implements Comparable<Key> {
             // action flags don't need to be specified, they can be deduced from the key
             if (mCode == Constants.CODE_SPACE
                     || mCode == KeyCode.LANGUAGE_SWITCH
-                    || (mCode == KeyCode.SYMBOL_ALPHA && !params.mId.isAlphabetKeyboard())
+                    || mCode == KeyCode.SYMBOL_ALPHA
             )
                 actionFlags |= ACTION_FLAGS_ENABLE_LONG_PRESS;
             if (mCode <= Constants.CODE_SPACE && mCode != KeyCode.MULTIPLE_CODE_POINTS && mIconName == null)

@@ -307,6 +307,8 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
             functionalKeysBottom.clear()
             functionalKeysBottom.addAll(row)
         }
+        if (!params.mId.isAlphabetKeyboard)
+            functionalKeysBottom.removeAll { it.label == KeyLabel.NUMPAD || it.code == KeyCode.NUMPAD }
         // add zwnj key next to space if necessary
         val spaceIndex = functionalKeysBottom.indexOfFirst { it.label == KeyLabel.SPACE && it.width <= 0 } // width could be 0 or -1
         if (spaceIndex >= 0) {

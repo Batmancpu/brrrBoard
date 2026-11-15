@@ -76,7 +76,9 @@ public final class InputView extends FrameLayout {
         mFooter.bind(owner);
     }
 
-    public void resetBoardGesture() {
+    public void resetBoardGesture(final boolean restoreGlass) {
+        if (mOwner != null)
+            FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, restoreGlass);
         mMayDragToolbar = false;
         mDraggingToolbar = false;
         mClosingFromToolbar = false;
@@ -95,6 +97,8 @@ public final class InputView extends FrameLayout {
             if (mBoardFrame.getTranslationY() != 0f) {
                 mBoardFrame.animate().cancel();
                 mBoardFrame.setTranslationY(0f);
+                if (mOwner != null)
+                    FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, true);
             }
             mDraggingToolbar = false;
             mToolbarDownX = event.getRawX();
@@ -122,6 +126,7 @@ public final class InputView extends FrameLayout {
             if (!mDraggingToolbar && dy > slop && dy > dx * 0.85f) {
                 mDraggingToolbar = true;
                 mOwner.cancelBoardDictation();
+                FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, true, false);
                 final MotionEvent cancel = MotionEvent.obtain(event);
                 cancel.setAction(MotionEvent.ACTION_CANCEL);
                 super.dispatchTouchEvent(cancel);
@@ -173,6 +178,7 @@ public final class InputView extends FrameLayout {
         mClosingFromToolbar = dismiss;
         final Runnable finished = () -> {
             if (dismiss) mOwner.onSwipeDownOnToolbar();
+            else FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, true);
         };
         if (android.os.Build.VERSION.SDK_INT >= 26 && !android.animation.ValueAnimator.areAnimatorsEnabled()) {
             mBoardFrame.setTranslationY(dismiss ? mBoardFrame.getHeight() : 0f);
@@ -197,7 +203,8 @@ public final class InputView extends FrameLayout {
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
         if (mFooter != null && mMainKeyboardView != null) {
             final helium314.keyboard.keyboard.Keyboard keyboard = mMainKeyboardView.getKeyboard();
-            final boolean typingFooter = keyboard != null && keyboard.mId.isAlphaOrSymbolKeyboard()
+            final boolean typingFooter = keyboard != null && (keyboard.mId.isAlphaOrSymbolKeyboard() || keyboard.mId.mElementId ==
+                            helium314.keyboard.keyboard.KeyboardId.ELEMENT_NUMPAD)
                     && mMainKeyboardView.getVisibility() == VISIBLE;
             // Emoji and Clipboard used to lose the footer entirely. That made their
             // visible keyboard surface shorter than the alphabetic keyboard.

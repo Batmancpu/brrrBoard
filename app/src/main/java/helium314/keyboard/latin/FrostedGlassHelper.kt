@@ -240,6 +240,22 @@ object FrostedGlassHelper {
         }
     }
 
+    private val windowsWithToolbarDrag: MutableSet<Window> =
+        java.util.Collections.newSetFromMap(java.util.WeakHashMap<Window, Boolean>())
+
+    @JvmStatic
+    fun setToolbarDragBlurSuppressed(
+        service: InputMethodService, inputView: View?, suppressed: Boolean, restore: Boolean
+    ) {
+        val window = service.window?.window ?: return
+        if (suppressed) {
+            if (windowsWithToolbarDrag.add(window))
+                configureFrostedGlassInternal(service, inputView, false, allowDelayedNativeCleanup = false)
+        } else if (windowsWithToolbarDrag.remove(window) && restore) {
+            configureFrostedGlassInternal(service, inputView, isFrostedTheme(service), allowDelayedNativeCleanup = false)
+        }
+    }
+
     @JvmStatic
     fun configureFrostedGlass(service: InputMethodService, inputView: View?, enable: Boolean) {
         configureFrostedGlassInternal(service, inputView, enable, allowDelayedNativeCleanup = true)
@@ -258,7 +274,7 @@ object FrostedGlassHelper {
         val isSamsungDevice = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
         val shouldTrySamsungBlur = isSamsungDevice || overrideMode == "force_samsung"
 
-        if (enable && windowsWithResizeOverlayBlurSuppressed.contains(window)) {
+        if (enable && (windowsWithResizeOverlayBlurSuppressed.contains(window) || windowsWithToolbarDrag.contains(window))) {
             configureFrostedGlassInternal(service, inputView, false, allowDelayedNativeCleanup = false)
             return
         }

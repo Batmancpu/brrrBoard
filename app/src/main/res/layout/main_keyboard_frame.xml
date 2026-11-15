@@ -119,7 +119,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="left|center_vertical"
             android:scaleType="center"
-            android:src="@drawable/sym_keyboard_language_switch_lxx"
+            android:src="@drawable/ic_board_emoji"
             android:contentDescription="@string/board_language_and_shortcuts"
             android:background="?android:attr/selectableItemBackgroundBorderless" />
 
@@ -129,7 +129,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="right|center_vertical"
             android:scaleType="center"
-            android:src="@drawable/sym_keyboard_voice_lxx"
+            android:src="@drawable/ic_board_mic"
             android:contentDescription="@string/board_inline_dictation"
             android:background="?android:attr/selectableItemBackgroundBorderless" />
     </helium314.keyboard.latin.BoardFooterView>

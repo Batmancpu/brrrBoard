@@ -1187,7 +1187,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
-        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture(true);
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
         FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
@@ -1196,7 +1196,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInputView(final boolean finishingInput) {
         mInlineDictation.cancel();
-        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture(false);
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -1845,6 +1845,11 @@ public class LatinIME extends InputMethodService implements
 
     // called when language switch key is pressed (either the keyboard key, or
     // long-press comma)
+    public void switchBoardInputMethod() {
+        mInlineDictation.cancel();
+        if (!ImeCompat.INSTANCE.switchInputMethod(this)) showInputPickerDialog();
+    }
+
     public void cycleBoardLanguage() {
         if (mRichImm.hasMultipleEnabledSubtypesInThisIme(true)) {
             final InputMethodSubtype next = mRichImm.getNextSubtypeInThisIme(true);

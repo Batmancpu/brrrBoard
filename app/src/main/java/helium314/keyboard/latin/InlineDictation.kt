@@ -34,6 +34,7 @@ internal class InlineDictation(private val ime: LatinIME) {
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
     private var panel: LinearLayout? = null
+    private var footer: BoardFooterView? = null
     private var deadline: Runnable? = null
 
     fun start(root: View?, locale: Locale) {
@@ -63,6 +64,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         try {
             val session = SpeechRecognizer.createOnDeviceSpeechRecognizer(ime)
             recognizer = session
+            footer = frame.findViewById(R.id.board_footer)
+            footer?.showDictationActive(true)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 checkSupport(session, intent, speechLocale, romanizedHinglish, frame, connection)
             } else {
@@ -222,6 +225,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         recognizer = null
         panel?.let { (it.parent as? FrameLayout)?.removeView(it) }
         panel = null
+        footer?.showDictationActive(false)
+        footer = null
         if (session != null) runCatching { session.destroy() }
     }
 

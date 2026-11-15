@@ -673,6 +673,26 @@ class ClipboardHistoryManager(
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
 
+    private data class RichPaste(val uri: Uri, val mimeType: String, val timestamp: Long)
+
+    private fun recentRichPaste(editor: EditorInfo?): RichPaste? {
+        editor ?: return null
+        val type = editor.inputType
+        if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
+            InputTypeUtils.isPasswordInputType(type) || InputTypeUtils.isVisiblePasswordInputType(type) ||
+            (editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0) return null
+        val supported = androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(editor)
+        if (supported.isEmpty()) return null
+        val clip = clipboardManager.primaryClip ?: return null
+        if (ClipboardManagerCompat.getClipSensitivity(clip.description) == true) return null
+        val timestamp = ClipboardManagerCompat.getClipTimestamp(clip)
+        if (System.currentTimeMillis() - timestamp > RECENT_TIME_MILLIS) return null
+        val uri = clip.imageUri()?.takeIf { it.scheme == "content" } ?: return null
+        val mime = runCatching { latinIME.contentResolver.getType(uri) }.getOrNull() ?: return null
+        if (supported.none { ClipDescription.compareMimeTypes(mime, it) }) return null
+        return RichPaste(uri, mime, timestamp)
+    }
+
     fun getClipboardSuggestionView(editorInfo: EditorInfo?, parent: ViewGroup?): View? {
         // maybe no need to create a new view
         // but a cache has to consider a few possible changes, so better don't implement without need
@@ -682,7 +702,9 @@ class ClipboardHistoryManager(
         if (!latinIME.mSettings.current.mSuggestClipboardContent) return null
         if (dontShowCurrentSuggestion) return null
         if (parent == null) return null
-        val clip = recentTextClip(editorInfo) ?: return null
+        val clip = recentTextClip(editorInfo)
+        val rich = if (clip == null) recentRichPaste(editorInfo) else null
+        if (clip == null && rich == null) return null
         val connection = latinIME.currentInputConnection ?: return null
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
@@ -690,16 +712,24 @@ class ClipboardHistoryManager(
         binding.clipboardSuggestionPreview.isGone = true
         KeyboardTypeface.applyToTextView(textView)
         val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
-        textView.text = clip.content.take(40)
+        textView.text = clip?.content?.take(40) ?: latinIME.getString(
+            if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image else R.string.board_paste_file,
+        )
         textView.setCompoundDrawablesRelativeWithIntrinsicBounds(clipIcon, null, null, null)
         textView.setOnClickListener {
             if (latinIME.currentInputConnection !== connection ||
-                currentTextSuggestionChanged(clip)) {
+                (if (clip != null) currentTextSuggestionChanged(clip)
+                else recentRichPaste(latinIME.currentInputEditorInfo) != rich)) {
                 binding.root.isGone = true
                 return@setOnClickListener
             }
-            markClipDismissed(clip)
-            latinIME.onTextInput(clip.content.toString())
+            if (clip != null) {
+                markClipDismissed(clip)
+                latinIME.onTextInput(clip.content.toString())
+            } else if (rich != null) {
+                if (!latinIME.commitKlipyContent(rich.uri, textView.text.toString(), rich.mimeType)) return@setOnClickListener
+                dontShowCurrentSuggestion = true
+            }
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
                 KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS,
             )
@@ -721,7 +751,7 @@ class ClipboardHistoryManager(
         colors.setColor(closeButton, ColorType.KEY_TEXT)
         closeButton.setOnClickListener {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
-            markClipDismissed(clip)
+            if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
             removeClipboardSuggestion()
         }
 

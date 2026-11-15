@@ -890,7 +890,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         toolbar.findViewWithTag<View>(ToolbarKey.VOICE)?.isVisible = false
         activatedStateVersion.value++
         if (persistentToolbarKey.tag == ToolbarKey.VOICE) {
-            persistentToolbarKey.isVisible = false
+            persistentToolbarKey.visibility = INVISIBLE
         }
     }
 
@@ -973,7 +973,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         applyAlphabetIconTint(persistentToolbarKey, colors)
         applySpecialKeyCircleBackground(persistentToolbarKey, colors)
         updateToolbarButtonActivatedState(persistentToolbarKey)
-        persistentToolbarKey.isVisible = key != ToolbarKey.VOICE
+        persistentToolbarKey.visibility = if (key == ToolbarKey.VOICE) INVISIBLE else VISIBLE
     }
 
     fun updateThemeColors(colors: Colors) {
@@ -1207,7 +1207,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val drawable = view.drawable ?: return
         if (drawable is FixedSizeDrawable) return
         val tint = view.imageTintList
-        view.setImageDrawable(FixedSizeDrawable(drawable.mutate(), 20.dpToPx(resources)))
+        view.setImageDrawable(FixedSizeDrawable(drawable.mutate(), (if (view.id == R.id.access_point_trigger_btn) 16 else 20).dpToPx(resources)))
         view.imageTintList = tint
     }
 

@@ -1177,9 +1177,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 return;
             }
         }
-        if (code == KeyCode.SYMBOL_ALPHA && Settings.getValues().mLongPressSymbolsForNumpad) {
-            // toggle numpad with sliding input enabled, forcing return to the alpha layout when done
-            sListener.toggleNumpad(true, true);
+        if (code == KeyCode.SYMBOL_ALPHA && mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard()) {
+            cancelKeyTracking();
+            sListener.onReleaseKey(code, false);
+            sListener.toggleNumpad(false, true);
             return;
         }
 
