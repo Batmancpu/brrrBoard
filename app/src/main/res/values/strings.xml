@@ -765,6 +765,8 @@ New dictionary:
     <string name="theme_colors">Color theme (Light mode)</string>
     <!-- Option for choosing colors for night mode -->
     <string name="theme_colors_night">Color theme (Dark mode)</string>
+    <string name="theme_action_tint">Apple accent on action keys</string>
+    <string name="theme_action_tint_summary">Use the closest wallpaper accent on action keys only.</string>
     <!-- Option for choosing whether we use a theme that provides borders to keys -->
     <string name="key_borders">Key borders</string>
     <!-- Option for choosing auto day/night theme switch -->

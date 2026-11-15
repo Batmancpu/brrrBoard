@@ -71,11 +71,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun isDarkThemeActive(context: Context): Boolean {
             if (themeOverride == "dark") return true
             if (themeOverride == "light") return false
-            
-            // Fallback to standard preference/system checks ONLY if override is null
-            val prefs = context.prefs()
-            val autoDayNight = prefs.getBoolean(helium314.keyboard.latin.settings.Settings.PREF_THEME_DAY_NIGHT, helium314.keyboard.latin.settings.Defaults.PREF_THEME_DAY_NIGHT)
-            return autoDayNight && helium314.keyboard.latin.utils.ResourceUtils.isNight(context.resources)
+            return ResourceUtils.isNight(context.resources)
         }
 
         // old themes, now called styles
@@ -110,14 +106,25 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun isIosGlassTheme(themeName: String?) =
             themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
 
-        private val boardThemes = listOf(
-            THEME_FROSTED_GLASS, THEME_OG_FROST_TINTED, THEME_IOS_CLEAR, THEME_IOS_TINTED
-        )
+        private val boardThemes = listOf(THEME_FROSTED_GLASS)
+        private val legacyTintedBoardThemes = setOf(THEME_OG_FROST_TINTED, THEME_IOS_TINTED)
 
         fun getAvailableDefaultColors() = boardThemes
 
         fun supportedTheme(themeName: String?): String =
             if (themeName != null && themeName in boardThemes) themeName else THEME_FROSTED_GLASS
+
+        private fun migrateBoardThemePreferences(prefs: SharedPreferences) {
+            if (prefs.contains(Settings.PREF_THEME_ACTION_TINT)) return
+            val lightTheme = prefs.getString(Settings.PREF_THEME_COLORS, null)
+            val darkTheme = prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, null)
+            prefs.edit {
+                putBoolean(
+                    Settings.PREF_THEME_ACTION_TINT,
+                    lightTheme in legacyTintedBoardThemes || darkTheme in legacyTintedBoardThemes
+                )
+            }
+        }
 
         val STYLES = arrayOf(STYLE_DEFAULT, STYLE_MATERIAL, STYLE_HOLO, STYLE_ROUNDED, STYLE_CIRCLE)
 
@@ -175,8 +182,9 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         @JvmStatic
         fun getColorsForCurrentTheme(context: Context): Colors {
             val prefs = context.prefs()
-            val isNight = SettingsActivity.forceNight ?: (ResourceUtils.isNight(context.resources) && prefs.getBoolean(Settings.PREF_THEME_DAY_NIGHT, Defaults.PREF_THEME_DAY_NIGHT))
-            
+            migrateBoardThemePreferences(prefs)
+            val isNight = SettingsActivity.forceNight ?: ResourceUtils.isNight(context.resources)
+
             val themeName = SettingsActivity.forceTheme ?: if (isNight)
                 prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT)
             else
@@ -232,7 +240,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun iosGlassAlpha(themeName: String): Int = if (themeName == THEME_IOS_TINTED) 205 else 150
 
         private fun getThemeColors(themeName: String, themeStyle: String, context: Context, prefs: SharedPreferences, isNightParam: Boolean): Colors {
-            val isNight = isDarkThemeActive(context)
+            val isNight = isNightParam
             val hasBorders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             val backgroundImage = Settings.readUserBackgroundImage(context, isNight)
             return when (themeName) {
@@ -242,7 +250,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                 }
                 THEME_IOS_CLEAR, THEME_IOS_TINTED -> iosGlassColors(context, hasBorders, themeName)
                 THEME_FROSTED_GLASS, THEME_OG_FROST_TINTED -> {
-                    val ogTinted = themeName == THEME_OG_FROST_TINTED
+                    val ogTinted = prefs.getBoolean(Settings.PREF_THEME_ACTION_TINT, Defaults.PREF_THEME_ACTION_TINT)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val keyTransparency = livePreviewValues?.keyTransparency
                             ?: (if (isNight) prefs.getInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT, Defaults.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT)
@@ -289,61 +297,65 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             ColorUtils.setAlphaComponent(saturatedColor, alpha)
                         }
                         val actionAlpha = (15 + (keyTransparency / 255f * 240)).toInt().coerceIn(0, 255)
+                        // Keep automatic OG surfaces neutral; wallpaper color is reserved for keys that act.
                         val systemAccentColor = if (isNight) ContextCompat.getColor(context, android.R.color.system_accent1_100)
                             else ContextCompat.getColor(context, android.R.color.system_accent1_200)
                         val systemNeutralColor = if (isNight) ContextCompat.getColor(context, android.R.color.system_neutral1_900)
                             else ContextCompat.getColor(context, android.R.color.system_neutral1_50)
-
-                        val accentBase = boostSaturation(systemAccentColor)
-                        val accent = ColorUtils.setAlphaComponent(accentBase, actionAlpha)
+                        val wallpaperAccent = if (ogTinted)
+                            ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
+                        val appleActionAccent = wallpaperAccent?.let(::nearestAppleAccent)
+                            ?: if (ogTinted) IOS_BLUE else 0
+                        val neutralActionColor = if (isNight)
+                            ContextCompat.getColor(context, android.R.color.system_neutral1_700)
+                        else ContextCompat.getColor(context, android.R.color.system_neutral1_100)
+                        val actionColor = if (ogTinted) appleActionAccent else neutralActionColor
+                        val accent = ColorUtils.setAlphaComponent(actionColor, actionAlpha)
+                        val bgBlendRatio = if (isNight) (colorBlendVal - 0.1f).coerceIn(0f, 1f)
+                            else (colorBlendVal + 0.1f).coerceIn(0f, 1f)
                         val baseBg = if (isNight) {
-                            val neutral1 = systemNeutralColor
-                            val accent1 = ContextCompat.getColor(context, android.R.color.system_accent1_700)
-                            val blendRatio = (colorBlendVal - 0.1f).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(neutral1, accent1, blendRatio)
+                            val neutralTarget = ContextCompat.getColor(context, android.R.color.system_neutral1_800)
+                            ColorUtils.blendARGB(systemNeutralColor, neutralTarget, bgBlendRatio)
                         } else {
-                            val neutral1 = systemNeutralColor
-                            val accent1 = ContextCompat.getColor(context, android.R.color.system_accent1_300)
-                            val blendRatio = (colorBlendVal + 0.1f).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(neutral1, accent1, blendRatio)
+                            val neutralTarget = ContextCompat.getColor(context, android.R.color.system_neutral1_100)
+                            ColorUtils.blendARGB(systemNeutralColor, neutralTarget, bgBlendRatio)
                         }
                         val bgAlpha = if (isNight) bgTransparency else (bgTransparency * 0.8f).toInt().coerceAtMost(255)
                         val background = boostSaturation(ColorUtils.setAlphaComponent(baseBg, bgAlpha))
                         val keyBgBase = if (isNight) {
                             val baseColor = ContextCompat.getColor(context, android.R.color.system_neutral1_800)
-                            val accentColor = ContextCompat.getColor(context, android.R.color.system_accent1_200)
+                            val neutralColor = ContextCompat.getColor(context, android.R.color.system_neutral1_700)
                             val finalBlendRatio = (colorBlendVal * 0.7f * alphabetVibrancyVal).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(baseColor, accentColor, finalBlendRatio)
+                            ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         } else {
                             val baseColor = ContextCompat.getColor(context, android.R.color.system_neutral1_0)
-                            val accentColor = ContextCompat.getColor(context, android.R.color.system_accent1_200)
+                            val neutralColor = ContextCompat.getColor(context, android.R.color.system_neutral1_100)
                             val finalBlendRatio = (colorBlendVal * 0.6f * alphabetVibrancyVal).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(baseColor, accentColor, finalBlendRatio)
+                            ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         }
 
                         val keyAlpha = (10 + (keyTransparency / 255f * 245)).toInt().coerceIn(0, 255)
                         val keyBackground = boostAlphabetSaturation(ColorUtils.setAlphaComponent(keyBgBase, keyAlpha))
-                        val functionalBase = boostSaturation(if (isNight) ContextCompat.getColor(context, android.R.color.system_accent2_300)
-                            else ContextCompat.getColor(context, android.R.color.system_accent2_100))
+                        val functionalBase = if (ogTinted) appleActionAccent else if (isNight)
+                            ContextCompat.getColor(context, android.R.color.system_neutral1_700)
+                        else ContextCompat.getColor(context, android.R.color.system_neutral1_100)
                         val functionalKey = ColorUtils.setAlphaComponent(functionalBase, actionAlpha)
 
-                        val specialBgBase = if (isNight) {
+                        val neutralSpecialBase = if (isNight) {
                             val baseColor = ContextCompat.getColor(context, android.R.color.system_neutral1_800)
-                            val accentColor = ContextCompat.getColor(context, android.R.color.system_accent1_200)
+                            val neutralColor = ContextCompat.getColor(context, android.R.color.system_neutral1_700)
                             val finalBlendRatio = (colorBlendVal * 0.7f * specialVibrancyVal).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(baseColor, accentColor, finalBlendRatio)
+                            ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         } else {
                             val baseColor = ContextCompat.getColor(context, android.R.color.system_neutral1_0)
-                            val accentColor = ContextCompat.getColor(context, android.R.color.system_accent1_200)
+                            val neutralColor = ContextCompat.getColor(context, android.R.color.system_neutral1_100)
                             val finalBlendRatio = (colorBlendVal * 0.6f * specialVibrancyVal).coerceIn(0f, 1f)
-                            ColorUtils.blendARGB(baseColor, accentColor, finalBlendRatio)
+                            ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         }
+                        val specialBgBase = if (ogTinted) appleActionAccent else neutralSpecialBase
                         val specialKeyBackground = boostSpecialSaturation(ColorUtils.setAlphaComponent(specialBgBase, keyAlpha))
                         val enterKeyBackground = specialKeyBackground
-                        val wallpaperAccent = if (ogTinted)
-                            ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
-                        val ogFrostKeyAccent = wallpaperAccent?.let(::nearestAppleAccent) ?:
-                            if (ogTinted) IOS_BLUE else 0
+                        val ogFrostKeyAccent = if (ogTinted) appleActionAccent else 0
 
                         val keyText = if (isNight) ContextCompat.getColor(context, android.R.color.system_neutral1_50)
                             else ContextCompat.getColor(context, android.R.color.system_accent3_900)

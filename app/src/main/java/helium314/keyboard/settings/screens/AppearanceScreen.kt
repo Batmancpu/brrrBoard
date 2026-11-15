@@ -57,18 +57,14 @@ fun AppearanceScreen(
     val b = (LocalContext.current.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
     if ((b?.value ?: 0) < 0)
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
-    val dayNightMode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && prefs.getBoolean(Settings.PREF_THEME_DAY_NIGHT, Defaults.PREF_THEME_DAY_NIGHT)
     val isFrostedActive = helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(ctx)
     val items = listOf(
         R.string.settings_screen_theme,
         Settings.PREF_THEME_STYLE,
         Settings.PREF_ICON_STYLE,
         Settings.PREF_CUSTOM_ICON_NAMES,
-        Settings.PREF_THEME_COLORS,
-        if (dayNightMode) Settings.PREF_THEME_COLORS_NIGHT else null,
+        Settings.PREF_THEME_ACTION_TINT,
         Settings.PREF_THEME_KEY_BORDERS,
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-            Settings.PREF_THEME_DAY_NIGHT else null,
         Settings.PREF_NAVBAR_COLOR,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
         SettingsWithoutKey.BACKGROUND_IMAGE,
@@ -200,6 +196,9 @@ fun createAppearanceSettings(context: Context) = listOf(
                 onDismissRequest = { showDialog = false },
                 setting = setting
             )
+    },
+    Setting(context, Settings.PREF_THEME_ACTION_TINT, R.string.theme_action_tint, R.string.theme_action_tint_summary) {
+        SwitchPreference(it, Defaults.PREF_THEME_ACTION_TINT) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
     Setting(context, Settings.PREF_THEME_KEY_BORDERS, R.string.key_borders) {
         SwitchPreference(it, Defaults.PREF_THEME_KEY_BORDERS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }

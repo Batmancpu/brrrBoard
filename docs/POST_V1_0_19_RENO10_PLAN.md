@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Batch 0 handoff, Batch 1 system RecognitionService route, Batch 1a English request, and Batch 3a center autocorrection treatment are committed. Signed [v1.0.22](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.22) from `f4cfad6` passed Obtainium run [43752544242](https://github.com/Batmancpu/brrrBoard/actions/runs/43752544242) (APK SHA-256 `c399a48acbb8fd864130a069f4d0fdffa6c72df47d3ea225811940b1ed3970e4`). The owner reports Dictate is reached but output is Hindi; set Dictate Active language to English and disable language-following, then retest. Geometry/theme/dictionary batches and device acceptance remain open. Do not mark a Reno10 behavior accepted from CI alone.
+**Status (2026-11-15):** Batch 0 handoff, Batch 1 system RecognitionService route, Batch 1a English request, and Batch 3a center autocorrection treatment are committed. Signed [v1.0.22](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.22) from `f4cfad6` passed Obtainium run [43752544242](https://github.com/Batmancpu/brrrBoard/actions/runs/43752544242) (APK SHA-256 `c399a48acbb8fd864130a069f4d0fdffa6c72df47d3ea225811940b1ed3970e4`). The current Batch 4 theme source change is committed in this checkpoint and the next signed build is pending. It follows system light/dark, has one optional action-key tint, and neutralizes glass/ordinary keycaps. The owner reports Dictate is reached but output is Hindi; set Dictate Active language to English and disable language-following, then retest. Geometry/dictionary batches and device acceptance remain open. Do not mark a Reno10 behavior accepted from CI alone.
 
 ## Product target
 
@@ -129,6 +129,7 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - [ ] Batch 2: trace and correct any confirmed geometry/interactions defects, including visible bottom gap and stable panel boundaries.
 - [x] Batch 3a: center autocorrection highlight from existing mWillAutoCorrect signal shipped in signed v1.0.22; Reno10 visual acceptance remains pending.
 - [ ] Batch 3b: validate text/Emoji suggestion behavior and separate it from the right-side accessory; add Smart Emoji only after brrPersonal dictionary foundation.
-- [ ] Batch 4: reduce theme choices to system-following OG dark/light plus optional action-key tint; fix stale tint and audit visible icons.
+- [x] Batch 4a: consolidate theme modes to system-following OG light/dark plus optional Apple-palette action-key tint; neutralize glass and ordinary keycaps; preserve saved preferences and migrate legacy tint. Signed build pending; Reno10 visual acceptance remains open.
+- [ ] Batch 4b: audit visible icon mapping and fix only confirmed mismatches.
 - [ ] Batch 5: curate brrPersonal, keep spelling-valid terms separate from text prediction/autocorrect, then add bounded offline Emoji ranking and evaluate swipe-library rights/compatibility.
 - [ ] Batch 6: signed APK/source/release checks and full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.

@@ -45,3 +45,12 @@ The supplied glide library remains excluded from public binaries pending redistr
 - v1.0.22 implements the screenshot's confident center-candidate fill using the existing `mWillAutoCorrect` flag. CI passed; no Reno10 visual check has been claimed.
 - Dictate RecognitionService integration is in v1.0.20/1.0.21. The owner reports Hindi output. Current Dictate code reads its own Active language and ignores the caller's language Intent; English-only output remains unaccepted until Dictate's Active language is English and keyboard-following is off, then the owner retests.
 - Next: continue the source audit and implement confirmed layout/theme/suggestion/dictionary gaps in focused source+documentation batches. Do not run tests without a user request; use the signed build workflow for release verification. Before declaring this goal complete, perform the requested request-by-request retrospective against all post-v1.0.19 prompts and both screenshots.
+
+
+## Active source checkpoint — 2026-11-15, Batch 4
+
+- v1.0.22 is still the latest signed release. The current Batch 4 source change is on main with its Obtainium build pending.
+- Theme UI now offers automatic OG light/dark from system mode and a single optional Apple-palette action-key tint. The renderer neutralizes the glass and ordinary keycaps; wallpaper-derived color is reserved for action/special/enter keys. Legacy tinted presets seed the new toggle once; saved theme/color preferences are not overwritten.
+- Reno10 inset acceptance is pending: source places the bottom system inset after the footer and subtracts it from the host boundary. Measure the actual Reno10 navigation/gesture inset before removing any reserved height.
+- Dictate remains Hindi-output-unaccepted until Active language is English and keyboard-following is disabled in Dictate, followed by an owner device retest.
+- Next: wait for the signed Batch 4 build, record its result, then continue confirmed layout/icon/dictionary work. Conduct the required post-v1.0.19 request-by-request and screenshot retrospective before completion.

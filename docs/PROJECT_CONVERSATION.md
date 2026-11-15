@@ -340,3 +340,16 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 **Dictate language status.** English-only transcription remains open. Current Dictate RecognitionService ignores caller language extras and uses Dictate's saved Active language; brrBoard cannot change Dictate's private setting. Do not claim the English outcome fixed until the owner sets Dictate Active language to English, disables language-following, and reports a successful test. Avoid asking the owner to retest during this continuation; user explicitly asked work to continue.
 
 **Next action.** Continue the code review in the agreed batches, checkpoint each source batch and signed APK in this repository, then conduct the user's requested full retrospective before suggesting next steps.
+
+
+## 2026-11-15 — Consolidated OG themes and action-key tint (Batch 4a)
+
+**Owner decision from the pasted continuation**
+
+> I don't want the themes shit. I want just three themes. Okay, and this behavior should be automatic. One is the normal dark mode theme, normal light mode theme. The normal dark mode theme is what I have right now, and the normal light mode theme is also the OG theme that is already there, that I have configured myself. I don't know about the light theme; I use the dark theme only. And there should be an option to enable tint. And the behavior should be same. It should match the Material 3 expressive — take the Material 3 expressive color from the wallpaper or ask the system and match it to the closest Apple palette color and just paste it there.
+
+**Source findings.** The prior frosted renderer blended Android wallpaper accent colors into the glass background and normal letter keycaps whether tint was selected or not. Existing nearestAppleAccent already maps system_accent1_500 to the nearest Apple-inspired palette entry with Lab color distance, and OgFrostAccentColors already isolates an action-key accent. Automatic mode was gated by a preference, and four board presets were exposed.
+
+**Source change in Batch 4a.** KeyboardTheme.kt now follows system light/dark, exposes only the OG frosted base choice, and reads a single optional action-tint preference. The glass and ordinary keycaps blend neutral system colors; the wallpaper accent is mapped through the existing nearest-Apple palette helper and applied to action, functional, special, and editor-action key fills only when enabled. A one-time preference migration carries existing OG/iOS tinted selections into the toggle without rewriting saved color values. AppearanceScreen.kt, Settings.java, Defaults.kt, and the default strings resource add the switch and remove separate theme-color/day-night selectors from the visible list. The signed build is pending; no Reno10 visual result is claimed.
+
+**Next action.** Verify Obtainium build and signer, then continue the remaining layout/inset, icon, dictionary and swipe compatibility work. Preserve the device-only acceptance list and complete the required full retrospective.
