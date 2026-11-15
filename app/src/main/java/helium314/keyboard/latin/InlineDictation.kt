@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.RecognitionListener
@@ -31,6 +32,7 @@ internal class InlineDictation(private val ime: LatinIME) {
     private var deadline: Runnable? = null
     private var recognitionStarted = false
     private var stopRequested = false
+    private var detectedSpeechLanguage: String? = null
 
     fun toggle(root: View?, locale: Locale) {
         if (recognizer != null) {
@@ -57,21 +59,25 @@ internal class InlineDictation(private val ime: LatinIME) {
             return
         }
 
-        // Request Indian English when the keyboard locale is not English. Android passes this
-        // hint to its selected RecognitionService, but Dictate currently ignores caller language
-        // extras and uses its own Active language setting. Hindi-script final candidates are
-        // rejected below; Latin-script Hindi cannot be reliably identified here.
+        // Request English for the selected Android RecognitionService. Dictate currently ignores
+        // caller language extras and starts its saved Active language, so its own language setting
+        // still has to be English. Other services may provide Android language-detection metadata,
+        // which is checked before final text is inserted.
         val speechLocale = if (locale.language == "en") locale else Locale.forLanguageTag("en-IN")
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale.toLanguageTag())
             .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            intent.putExtra(RecognizerIntent.EXTRA_ENABLE_LANGUAGE_DETECTION, true)
+        }
 
         try {
             // Use Android's selected RecognitionService (Dictate on the owner's device). This
             // keeps Dictate's configured provider in control without opening its voice-input IME.
             val session = SpeechRecognizer.createSpeechRecognizer(ime)
             recognizer = session
+            detectedSpeechLanguage = null
             recognitionStarted = false
             stopRequested = false
             footer = inputView.findViewById(R.id.board_footer)
@@ -99,6 +105,18 @@ internal class InlineDictation(private val ime: LatinIME) {
                     clearDeadline()
                 }
                 override fun onBeginningOfSpeech() = Unit
+                override fun onLanguageDetection(results: Bundle) {
+                    if (recognizer !== session) return
+                    val language = results.getString(SpeechRecognizer.DETECTED_LANGUAGE) ?: return
+                    val confidence = results.getInt(
+                        SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL,
+                        SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_UNKNOWN,
+                    )
+                    if (confidence == SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_CONFIDENT ||
+                        confidence == SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_HIGHLY_CONFIDENT) {
+                        detectedSpeechLanguage = language
+                    }
+                }
                 override fun onRmsChanged(rmsdB: Float) = Unit
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
                 override fun onPartialResults(partialResults: Bundle?) = Unit
@@ -123,17 +141,23 @@ internal class InlineDictation(private val ime: LatinIME) {
                     if (recognizer !== session) return
                     val candidates = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         .orEmpty()
-                    // Some RecognitionService implementations return alternatives. Prefer the
-                    // first candidate without Devanagari; Dictate currently returns only one.
-                    val text = candidates.firstOrNull { it.isNotBlank() && !containsHindiScript(it) }
+                    val resultLanguage = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        results?.getString(SpeechRecognizer.DETECTED_LANGUAGE)
+                    } else null) ?: detectedSpeechLanguage
+                    val detectedNonEnglish = resultLanguage != null && !isEnglishLanguageTag(resultLanguage)
+                    // Dictate currently returns one candidate and no language tag. Android services
+                    // that provide a confident language tag are filtered here; Devanagari Hindi is
+                    // also rejected even when a service omits that metadata.
+                    val text = if (detectedNonEnglish) "" else candidates
+                        .firstOrNull { it.isNotBlank() && !containsHindiScript(it) }
                         ?.trim().orEmpty()
-                    val rejectedHindi = candidates.isNotEmpty() && text.isEmpty() &&
-                        candidates.any(::containsHindiScript)
+                    val rejectedNonEnglish = candidates.isNotEmpty() && text.isEmpty() &&
+                        (detectedNonEnglish || candidates.any(::containsHindiScript))
                     cancel()
                     if (ime.isInputViewShown && ime.currentInputConnection === connection) {
                         if (text.isNotEmpty()) {
                             ime.onTextInput(text)
-                        } else if (rejectedHindi) {
+                        } else if (rejectedNonEnglish) {
                             report(R.string.inline_voice_hindi_result)
                         }
                     }
@@ -168,6 +192,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         recognizer = null
         recognitionStarted = false
         stopRequested = false
+        detectedSpeechLanguage = null
         footer?.showDictationActive(false)
         footer?.showDictationProcessing(false)
         footer?.setDictationCancelAvailable(false)
@@ -204,6 +229,9 @@ internal class InlineDictation(private val ime: LatinIME) {
         // saved Active language remains authoritative; this does not identify Romanized Hindi.
         private fun containsHindiScript(text: String): Boolean =
             text.any { it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF' }
+
+        private fun isEnglishLanguageTag(languageTag: String): Boolean =
+            Locale.forLanguageTag(languageTag).language.equals(Locale.ENGLISH.language, ignoreCase = true)
 
         private fun canDictate(editor: EditorInfo): Boolean =
             editor.inputType != 0 &&
