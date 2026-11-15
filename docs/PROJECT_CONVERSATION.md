@@ -503,3 +503,8 @@ The Smart Emoji source batch reuses the existing Recents category and local use/
 
 **Assistant outcome.** The corrected confirmation text passed the signed Obtainium workflow. Release [v1.0.35](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.35) is from commit `acacf329aaf058446d5deb4b463a11f8941cc0ce`; the APK is 51,024,650 bytes with SHA-256 `dc4beadfa10a1d13476b5c978bcdebe96231fed2dba9d55da52a3d1c08a40b15`. The debug APK built and passed signer verification, while its automatic unit-test gate was still running. No tests were manually run. The first resource builds failed and the failure plus apostrophe-free correction are recorded above.
 
+
+
+## 2026-11-15 — final-pass microphone privacy correction
+
+**Assistant outcome.** The request-by-request source review found a privacy gap: `SettingsValues.mIncognitoModeEnabled` included the global Always Incognito preference, but `mShowsVoiceInputKey` only mirrored the field-level gate. As a result, the footer could still show the mic and `LatinIME` could dispatch voice input in global incognito. The current source batch now makes mic visibility depend on `!mIncognitoModeEnabled` and gates the voice key event with that same computed flag. The branch is pushed to GitHub; signed CI and final device acceptance remain pending. The existing password and `IME_FLAG_NO_PERSONALIZED_LEARNING` guards remain intact.
