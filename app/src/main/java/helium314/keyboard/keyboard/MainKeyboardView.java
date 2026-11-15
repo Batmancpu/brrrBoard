@@ -889,11 +889,11 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final int code = key.getCode();
         if (code == Constants.CODE_SPACE) {
             // If input language are explicitly selected.
-            if (mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
+            if (usesIosGlass() || mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
                 drawLanguageOnSpacebar(key, canvas, paint);
             }
             // Whether space key needs to show the "..." popup hint for special purposes
-            if (key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes) {
+            if (!usesIosGlass() && key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes) {
                 drawKeyPopupHint(key, canvas, paint, params);
             }
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
@@ -988,12 +988,15 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
         final int width = key.getWidth();
         final int height = key.getHeight();
-        paint.setTextAlign(Align.CENTER);
-        paint.setTextSize(mLanguageOnSpacebarTextSize);
+        final boolean iosGlass = usesIosGlass();
+        paint.setTextAlign(iosGlass ? Align.RIGHT : Align.CENTER);
+        paint.setTextSize(iosGlass ? height * 0.22f : mLanguageOnSpacebarTextSize);
         final String customText = Settings.getValues().mSpaceBarText;
         final String spaceText;
         if (!customText.isEmpty()) {
             spaceText = customText;
+        } else if (iosGlass && mLanguageOnSpacebarFormatType == LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
+            return;
         } else if (DebugFlags.DEBUG_ENABLED) {
             final String l = KeyboardSwitcher.getInstance().getLocaleAndConfidenceInfo();
             spaceText = l != null ? l : layoutLanguageOnSpacebar(paint, keyboard.mId.mSubtype, width);
@@ -1012,12 +1015,17 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             paint.clearShadowLayer();
         }
         paint.setColor(mLanguageOnSpacebarTextColor);
-        paint.setAlpha(mLanguageOnSpacebarAnimAlpha);
+        paint.setAlpha(iosGlass ? Constants.Color.ALPHA_OPAQUE : mLanguageOnSpacebarAnimAlpha);
         if (!fitsTextIntoWidth(width, spaceText, paint)) {
             final float textWidth = TypefaceUtils.getStringWidth(spaceText, paint);
             paint.setTextScaleX((width - mLanguageOnSpacebarHorizontalMargin * 2) / textWidth);
         }
-        canvas.drawText(spaceText, width / 2f, baseline - descent, paint);
+        if (iosGlass) {
+            final float inset = height * 0.12f;
+            canvas.drawText(spaceText, width - inset, height - inset - descent, paint);
+        } else {
+            canvas.drawText(spaceText, width / 2f, baseline - descent, paint);
+        }
         paint.clearShadowLayer();
         paint.setTextScaleX(1.0f);
     }

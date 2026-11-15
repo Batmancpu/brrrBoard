@@ -139,3 +139,9 @@ The owner reported a failed mic test after granting microphone access. In the re
 > Hey, no, no, no, you are not supposed to blend it into the frosted glass dude, no. No, no, no, no, that's bad. I want white tinted. I meant only the enter key and the other key that the original iOS makes blue or something like that. Not the whole, whole frosted glass dude. No, no, no, that is very bad. Please fix this approach
 
 **Assistant action.** Superseded the earlier surface-blending plan. White Frosted Glass and neutral everyday keys; wallpaper-matched Apple color only for actions iOS visibly highlights, such as Search. The mic checkpoint has no tint implementation.
+
+## 2026-11-15 — resume the iOS appearance work
+
+> Okay, so please continue what you were doing
+
+**Assistant action.** Confirmed the signed v1.0.10 microphone build succeeded. Added iOS Clear and iOS Tinted color options, neutral rounded keycaps, and a small lower-right spacebar caption. Scoped the wallpaper accent to the Search action in iOS Tinted. Continued to use the existing Frosted Glass window and touch geometry. The original Frosted Glass preset remains available. Footer and row rearrangement, full OG default, and gesture changes are still queued. Checked the XML and ran git diff --check before the signed build.

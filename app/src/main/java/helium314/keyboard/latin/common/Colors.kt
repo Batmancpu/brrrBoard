@@ -46,6 +46,8 @@ interface Colors {
     /** used in parser to decide background of ZWNJ key */
     val hasKeyBorders: Boolean
     val isFrosted: Boolean get() = false
+    val iosSearchKeyAccent: Int get() = 0
+    val iosSearchKeyForeground: Int get() = Color.BLACK
 
     /** use to check whether colors have changed, for colors (in)directly derived from context,
      *  e.g. night mode or potentially changing system colors */
@@ -419,7 +421,12 @@ class DefaultColors (
     private val enterKeyBackground: Int = functionalKey,
     private val systemAccent: Int? = null,
     private val systemNeutral: Int? = null,
+    override val iosSearchKeyAccent: Int = 0,
+    private val iosSystemAccent: Int? = null,
 ) : Colors {
+    override val iosSearchKeyForeground = if (iosSearchKeyAccent != 0 &&
+        ColorUtils.calculateContrast(Color.WHITE, iosSearchKeyAccent) >= 4.5) Color.WHITE else Color.BLACK
+
     private val navBar: Int
     /** brightened or darkened variant of [background], to be used if exact background color would be
      *  bad contrast, e.g. popup keys popup or no border space bar */
@@ -657,6 +664,9 @@ class DefaultColors (
     }
 
     override fun haveColorsChanged(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && iosSystemAccent != null) {
+            return ContextCompat.getColor(context, android.R.color.system_accent1_500) != iosSystemAccent
+        }
         if (!isFrosted || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || systemAccent == null || systemNeutral == null) {
             return false
         }

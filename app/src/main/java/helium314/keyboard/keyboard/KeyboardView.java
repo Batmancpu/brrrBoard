@@ -25,9 +25,11 @@ import android.os.Trace;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.ColorUtils;
 
 import helium314.keyboard.keyboard.emoji.EmojiPageKeyboardView;
 import helium314.keyboard.keyboard.internal.KeyDrawParams;
@@ -436,6 +438,26 @@ public class KeyboardView extends View {
             return;
         }
 
+        if (usesIosGlass() && !isPopupKeysView() && !key.isSpacer()) {
+            final boolean pressed = key.isPressed() || key.isLocked();
+            int fill;
+            if (isIosHighlightedSearchKey(key, getKeyboard())) {
+                fill = mColors.getIosSearchKeyAccent();
+                if (pressed) {
+                    // Move away from the foreground color to maintain icon contrast.
+                    final int shade = mColors.getIosSearchKeyForeground() == Color.WHITE
+                            ? Color.BLACK : Color.WHITE;
+                    fill = ColorUtils.blendARGB(fill, shade, 0.12f);
+                }
+            } else {
+                fill = KeyBackgroundUtils.fillColorFor(mColors, frostedColorType, pressed);
+            }
+            mBackgroundPaint.setColor(fill);
+            final float radius = Math.min(bgWidth, bgHeight) * 0.17f;
+            canvas.drawRoundRect(bgX, bgY, bgX + bgWidth, bgY + bgHeight, radius, radius, mBackgroundPaint);
+            return;
+        }
+
         if (KeyboardTheme.STYLE_DEFAULT.equals(themeStyle)) {
             if (!key.isSpacer()) {
                 final boolean isSpaceBar = key.getCode() == Constants.CODE_SPACE;
@@ -734,6 +756,8 @@ public class KeyboardView extends View {
                     paint.setColor(mColors.get(isPopupKeySelected(key)
                             ? ColorType.ACTION_KEY_ICON
                             : ColorType.KEY_PREVIEW_TEXT));
+                else if (isIosHighlightedSearchKey(key, keyboard))
+                    paint.setColor(mColors.getIosSearchKeyForeground());
                 else if (mColors.isFrosted())
                     paint.setColor(mColors.get(ColorType.KEY_TEXT));
                 else if (key.hasActionKeyBackground())
@@ -1033,11 +1057,24 @@ public class KeyboardView extends View {
                 || code == KeyCode.DELETE;
     }
 
+    protected final boolean usesIosGlass() {
+        return mColors.getIosSearchKeyAccent() != 0;
+    }
+
+    private boolean isIosHighlightedSearchKey(Key key, Keyboard keyboard) {
+        return usesIosGlass() && !isPopupKeysView()
+                && key.hasActionKeyBackground() && keyboard != null
+                && keyboard.mId.imeAction() == EditorInfo.IME_ACTION_SEARCH
+                && !key.hasCustomActionLabel();
+    }
+
     private void setKeyIconColor(Key key, Drawable icon, Keyboard keyboard) {
         if (shouldDrawSelectionOnlyPopupKey(key)) {
             mColors.setColor(icon, isPopupKeySelected(key)
                     ? ColorType.ACTION_KEY_ICON
                     : ColorType.KEY_PREVIEW_TEXT);
+        } else if (isIosHighlightedSearchKey(key, keyboard)) {
+            icon.setColorFilter(mColors.getIosSearchKeyForeground(), PorterDuff.Mode.SRC_IN);
         } else if (mColors.isFrosted() && (key.hasActionKeyBackground() || isSpecialKey(key))) {
             mColors.setColor(icon, ColorType.KEY_ICON);
         } else if (key.hasActionKeyBackground()) {

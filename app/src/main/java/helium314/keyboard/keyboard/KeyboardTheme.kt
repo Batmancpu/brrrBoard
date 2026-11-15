@@ -102,10 +102,17 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_SAND = "sand"
         const val THEME_VIOLETTE = "violette"
         const val THEME_FROSTED_GLASS = "frosted_glass"
+        const val THEME_IOS_CLEAR = "frosted_ios_clear"
+        const val THEME_IOS_TINTED = "frosted_ios_tinted"
+
+        fun isIosGlassTheme(themeName: String?) =
+            themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
+
         fun getAvailableDefaultColors(prefs: SharedPreferences, isNight: Boolean) = listOfNotNull(
             if (!isNight) THEME_LIGHT else null, THEME_DARK,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) THEME_DYNAMIC else null,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !helium314.keyboard.latin.FrostedGlassHelper.isKnownFrostedGlassBlurUnsupportedDevice()) THEME_FROSTED_GLASS else null,
+            THEME_IOS_CLEAR, THEME_IOS_TINTED,
             if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_HOLO) THEME_HOLO_WHITE else null,
             THEME_DARKER,
             THEME_BLACK,
@@ -189,6 +196,46 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             return getThemeColors(themeName!!, themeStyle!!, context, prefs, isNight)
         }
 
+        private const val IOS_BLUE = -16742145
+
+        // Default light-appearance system colors from Apple's Human Interface Guidelines.
+        private val iosAccentPalette = intArrayOf(
+            IOS_BLUE, 0xffff383c.toInt(), 0xffff8d28.toInt(), 0xffffcc00.toInt(),
+            0xff34c759.toInt(), 0xff00c8b3.toInt(), 0xff00c3d0.toInt(),
+            0xff00c0e8.toInt(), 0xff6155f5.toInt(), 0xffcb30e0.toInt(),
+            0xffff2d55.toInt(), 0xffac7f5e.toInt(),
+        )
+        private val iosAccentLab = iosAccentPalette.map { color ->
+            DoubleArray(3).also { ColorUtils.colorToLAB(color, it) }
+        }
+
+        private fun iosGlassColors(context: Context, hasBorders: Boolean, themeName: String): Colors {
+            val tinted = themeName == THEME_IOS_TINTED
+            val hasNativeBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                !helium314.keyboard.latin.FrostedGlassHelper.isKnownFrostedGlassBlurUnsupportedDevice()
+            val systemAccent = if (tinted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
+            val searchAccent = if (systemAccent == null) IOS_BLUE else {
+                val lab = DoubleArray(3)
+                ColorUtils.colorToLAB(systemAccent, lab)
+                iosAccentPalette[iosAccentLab.indices.minBy { ColorUtils.distanceEuclidean(lab, iosAccentLab[it]) }]
+            }
+            // Keep the renderer's base tint white and the keycaps neutral in both presets.
+            val whiteGlass = ColorUtils.setAlphaComponent(Color.WHITE, iosGlassAlpha(themeName))
+            val background = if (hasNativeBlur) whiteGlass else 0xffeeeeef.toInt()
+            return DefaultColors(
+                STYLE_MATERIAL, hasBorders, 0xff77777b.toInt(), background,
+                Color.WHITE, 0xffdddddf.toInt(), Color.WHITE, 0xff202124.toInt(), 0xff55555a.toInt(),
+                isFrosted = true,
+                specialKeyBackground = 0xffdddddf.toInt(),
+                enterKeyBackground = 0xffdddddf.toInt(),
+                iosSearchKeyAccent = searchAccent,
+                iosSystemAccent = systemAccent,
+            )
+        }
+
+        fun iosGlassAlpha(themeName: String): Int = if (themeName == THEME_IOS_TINTED) 205 else 150
+
         private fun getThemeColors(themeName: String, themeStyle: String, context: Context, prefs: SharedPreferences, isNightParam: Boolean): Colors {
             val isNight = isDarkThemeActive(context)
             val hasBorders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
@@ -198,6 +245,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) DynamicColors(context, themeStyle, hasBorders, backgroundImage)
                     else getThemeColors(THEME_LIGHT, themeStyle, context, prefs, isNight)
                 }
+                THEME_IOS_CLEAR, THEME_IOS_TINTED -> iosGlassColors(context, hasBorders, themeName)
                 THEME_FROSTED_GLASS -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val keyTransparency = livePreviewValues?.keyTransparency

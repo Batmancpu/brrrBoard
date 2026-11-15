@@ -1,6 +1,6 @@
 # brrBoard iOS 27 plan for the Oppo Reno10 5G
 
-Status: owner approved implementation. Begin with the offline mic checkpoint. Last signed baseline: [v1.0.8](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.8).
+Status: the [signed v1.0.10 mic checkpoint](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.10) is available. The first appearance commit implements the two color presets and their key rendering. Geometry and gestures follow as separate changes. Reno10 validation remains pending.
 
 ## Reference decisions
 
@@ -28,7 +28,7 @@ Status: owner approved implementation. Begin with the offline mic checkpoint. La
 
 ## Code audit pointers
 
-- InlineDictation adds a temporary theme-derived panel before onReadyForSpeech, while its onReadyForSpeech callback does nothing. Error paths remove the panel, and two model errors share the same toast. Repair session state before relocating the mic.
+- In v1.0.8, InlineDictation adds a temporary theme-derived panel before onReadyForSpeech, while its onReadyForSpeech callback does nothing. Error paths remove the panel, and two model errors share the same toast. Repair session state before relocating the mic.
 - SuggestionStripView currently uses a fixed 50 dp cutoff in its MoreSuggestionsView detector. LatinIME.onSwipeDownOnToolbar calls requestHideSelf. Keep this final action while replacing the gesture intake and rendering.
 - Defaults uses language_switch_key=input_method. SettingsValues already distinguishes switching to other IMEs and internal subtypes. Do not globally overwrite the owner's selection when adding the iOS profile.
 - ClipboardHistoryManager already has a recency path and a suggestion view. Audit its plain-text sensitivity and editor guards before using that view in the revised toolbar. Avoid changing history or paste behavior outside this path.

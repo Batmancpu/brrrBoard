@@ -801,6 +801,8 @@ New dictionary:
     <!-- Theme name for violette theme -->
     <string name="theme_name_violette" tools:keep="@string/theme_name_violette">Violette</string>
     <string name="theme_name_frosted_glass">Frosted Glass</string>
+    <string name="theme_name_frosted_ios_clear">iOS Clear</string>
+    <string name="theme_name_frosted_ios_tinted">iOS Tinted</string>
     <string name="theme_frosted_glass_settings_header">Frosted Glass Settings</string>
     <string name="pref_frosted_blur_radius_title">Background Blur Radius</string>
     <string name="pref_frosted_key_transparency_title">Key Transparency</string>

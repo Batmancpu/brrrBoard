@@ -954,6 +954,13 @@ object FrostedGlassHelper {
         val isNight = isNight(context)
         val prefs = context.prefs()
 
+        val themeName = SettingsActivity.forceTheme ?: if (isNight)
+            prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT)
+        else prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS)
+        if (themeName != null && KeyboardTheme.isIosGlassTheme(themeName)) {
+            return ColorUtils.setAlphaComponent(Color.WHITE, KeyboardTheme.iosGlassAlpha(themeName))
+        }
+
         // Read user's background transparency setting (0-255 alpha)
         val bgTransparency = KeyboardTheme.livePreviewValues?.bgTransparency
             ?: if (isNight) prefs.getInt(Settings.PREF_FROSTED_BG_TRANSPARENCY_NIGHT, Defaults.PREF_FROSTED_BG_TRANSPARENCY_NIGHT)
