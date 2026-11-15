@@ -1,8 +1,12 @@
-# BRR Board development plan
+# brrBoard development plan
 
 ## Product target
 
-A fast, fully offline Android keyboard, with iOS 27-style key placement and behavior, the existing Frosted Glass renderer with rounded edges and calibrated defaults, a bundled North Indian Hinglish vocabulary, and inline offline dictation. The app label is BRR Board. Preserve the existing Obtainium package ID, signer, and increasing version code. Work on main. Publish a signed APK at each completed phase, with the phase and remaining gaps recorded.
+A fast, fully offline Android keyboard, with iOS 27-style key placement and behavior, the existing Frosted Glass renderer with rounded edges and calibrated defaults, a bundled North Indian Hinglish vocabulary, and inline offline dictation. The app label is `brrBoard`. Preserve the existing Obtainium package ID, signer, and increasing version code. Work on main. Publish a signed APK at each completed phase, with the phase and remaining gaps recorded.
+
+## Latest checkpoint
+
+[v1.0.8](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.8) shipped the exact branding, setup and picker label fixes, MangoLoads About link, and first inline on-device dictation implementation. The owner prioritized these ahead of iOS layout work. See [the project context](../PROJECT_CONTEXT.md#resume-here) for the remaining phone checks and debug failures. The backup settings and three existing dictionaries shipped in v1.0.7. Slang expansion, iOS layout/suggestions, Frosted Glass polish and residual online-code cleanup remain open.
 
 ## Phase 1 — offline baseline and branding
 
