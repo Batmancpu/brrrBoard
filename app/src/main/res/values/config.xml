@@ -18,7 +18,10 @@
     <!-- This config_default_keyboard_height value should match with keyboard-heights.xml -->
     <dimen name="config_default_keyboard_height">205.6dp</dimen>
     <fraction name="config_max_keyboard_height">46%p</fraction>
-    <fraction name="config_min_keyboard_height">-61.8%p</fraction>
+    <!-- Calibrated for the 6.7-inch Reno10 portrait: with the 36dp suggestion strip,
+         38dp footer and ColorOS navigation inset, the full board is about 37% of
+         screen height, matching the 345/932-point iPhone 16 Plus simulator baseline. -->
+    <fraction name="config_min_keyboard_height">-58.0%p</fraction>
 
     <dimen name="config_popup_keys_keyboard_key_height">52.8dp</dimen>
     <!-- Amount of allowance for selecting keys in a mini popup keyboard by sliding finger. -->
