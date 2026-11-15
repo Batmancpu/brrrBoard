@@ -52,6 +52,12 @@ def find_columns(headers: list[str]) -> tuple[str, str]:
              if "codemixed" in key and "english" not in key),
             None,
         )
+    if hinglish is None:
+        # PHINC's pinned CSV calls its Romanized source sentence "Sentence".
+        hinglish = next(
+            (header for header, key in normalized if key == "sentence"),
+            None,
+        )
     english = next(
         (header for header, key in normalized
          if "english" in key and "hinglish" not in key),

@@ -57,3 +57,10 @@ The owner asked to continue the post-v1.0.19 work from the pasted transcript, pr
 - The current brrPersonal batch uses the existing native dictionary/spatial decoder, PHINC CC-BY-4.0 token counts with a 6,000 total-entry ceiling, and a small manual valid-only slang/profanity rules asset. Normal predictions/autocorrection suppress those terms; explicit swipe decoding retains them; emoji shortcuts remain eligible. Personal learned history stays on-device. No parallel ranking formula or app network permission.
 - The build-time generator downloads only a pinned corpus revision during Gradle builds; it does not add runtime network access. Keep attribution in NOTICE and bump the brrPersonal_vN cache name whenever the bundled data/rules change.
 - Continue with CI/release evidence, owner-device acceptance, Smart Emoji, settings/clear-reset controls, visual/context audits and the final whole-transcript retrospective. Do not treat this batch as project completion.
+
+
+## CI correction checkpoint — 2026-11-15
+
+- Commit `db36ad5ed77d2c681cfaa9986ad7e0f3a76f3e25` added brrPersonal, but Obtainium run [43766256522](https://github.com/Batmancpu/brrrBoard/actions/runs/43766256522) failed before compilation: pinned PHINC CSV columns are `Sentence` and `English_Translation`; the generator did not recognize `Sentence`. No APK was signed or published.
+- Fix `tools/prepare_brrpersonal.py` to map PHINC's source `Sentence` column and add `tools/**` to Obtainium path filters so generator-only fixes still build and publish.
+- Emoji source audit found existing local use/recency recording and an adaptive top-10 cache in `EmojiPalettesView.AdaptiveEmojiEngine`, but no presentation call site. `addRecentEmoji()` can call `addRecentKey()`, which records again; audit and fix that double count before integrating a Smart Emoji UI.

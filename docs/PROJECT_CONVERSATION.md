@@ -455,3 +455,12 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 - brrBoard binds to Android's selected SpeechRecognizer/RecognitionService and sends an English hint. The DictateRecognitionService source used by the project ignores that caller intent and reads Dictate's private saved Active language. brrBoard cannot silently change that setting. v1.0.29 rejects Devanagari-only results and asks for Dictate → Languages → Active language = English, Follow keyboard language = off. Latin-script Hindi remains indistinguishable from English using a reliable source signal.
 - Began the next code batch: add an offline brrPersonal dictionary by reusing the native spatial decoder; use a pinned, attributed PHINC baseline plus a small manually curated valid-only slang/profanity list and emoji shortcuts. Keep manual no-suggest terms out of ordinary completions/autocorrect, while retaining them as deliberate swipe results. Do not introduce a separate ranking formula.
 - The owner expects continued small source/release/context checkpoints and a final audit of every post-v1.0.19 request and both screenshots. The current batch is not the end of the project; device checks remain owner-only.
+
+
+### Dictionary CI correction and Emoji implementation audit
+
+**Build result.** The first brrPersonal commit, `db36ad5ed77d2c681cfaa9986ad7e0f3a76f3e25`, triggered Obtainium run [43766256522](https://github.com/Batmancpu/brrrBoard/actions/runs/43766256522). The automatic build failed before Java/Kotlin compilation because the pinned PHINC CSV header is `Sentence,English_Translation` and the generator only recognized headers containing “hinglish” or “code mixed.” No signed APK or release was produced.
+
+**Correction.** The generator now recognizes the pinned source column `Sentence`. The release workflow path filter also includes `tools/**` so a future change confined to the generator triggers the signed build.
+
+**Emoji audit finding.** `EmojiPalettesView.AdaptiveEmojiEngine` already records local emoji use counts and recency and can cache a top-10 fast row, while the emoji use/recency cache has no presentation call site in the audited source. `addRecentEmoji()` records use and then calls `addRecentKey()`, which records the same emoji again. This is an existing partial implementation, not a finished Smart Emoji panel; remove the double count and integrate the ranker into a compact Reno10-compatible row in a follow-up batch.
