@@ -487,7 +487,7 @@
     <string name="inline_voice_unsupported_language">The selected speech service does not support the requested language.</string>
     <string name="inline_voice_no_speech">No speech was recognized. Try again.</string>
     <string name="inline_voice_no_model">The selected speech service does not have the requested language available.</string>
-    <string name="inline_voice_hindi_result">Dictate returned Hindi. Set its Active language to English in Dictate.</string>
+    <string name="inline_voice_hindi_result">Dictate is returning Hindi. In Dictate → Languages, set Active language to English and turn off Follow keyboard language.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype
          (US) should be an abbreviation of United States. -->
