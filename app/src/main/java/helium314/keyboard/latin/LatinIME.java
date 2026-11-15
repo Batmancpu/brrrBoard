@@ -2070,6 +2070,12 @@ public class LatinIME extends InputMethodService implements
     // interface
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        if (suggestionInfo.isEmoji()) {
+            final EmojiPalettesView emojiPalettesView = mKeyboardSwitcher.getEmojiPalettesView();
+            if (emojiPalettesView != null) {
+                emojiPalettesView.addRecentEmoji(suggestionInfo.mWord);
+            }
+        }
         final InputTransaction completeInputTransaction = mInputLogic.onPickSuggestionManually(
                 mSettings.getCurrent(), suggestionInfo,
                 mKeyboardSwitcher.getKeyboardShiftMode(),

@@ -484,6 +484,8 @@ public final class EmojiPalettesView extends LinearLayout
     public void startEmojiPalettes(final KeyVisualAttributes keyVisualAttr,
                final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
         initialize();
+        getRecentsKeyboard().flushPendingRecentKeys();
+        updateAdaptiveEmojiOrder();
         mMainKeyboardActionListener = keyboardActionListener;
         mKeyboardActionListener = keyboardActionListener;
         if (mSearchMode) {
@@ -1280,15 +1282,10 @@ public final class EmojiPalettesView extends LinearLayout
         if (Settings.getValues().mIncognitoModeEnabled) {
             return;
         }
-        AdaptiveEmojiEngine.recordEmojiUsage(getContext(), emoji);
-        if (getRecentsKeyboard() == null || getRecentsKeyboard().getSortedKeys() == null) {
-            return;
-        }
-        for (final Key k : getRecentsKeyboard().getSortedKeys()) {
-            if (emoji.equals(k.getOutputText()) || (k.getCode() > 0 && emoji.equals(new String(Character.toChars(k.getCode()))))) {
-                addRecentKey(k);
-                return;
-            }
+        final Key emojiKey = mEmojiCategory.findEmojiKey(emoji);
+        if (emojiKey != null) {
+            // addRecentKey updates the adaptive count and recent list exactly once.
+            addRecentKey(emojiKey);
         }
     }
 
@@ -1297,6 +1294,7 @@ public final class EmojiPalettesView extends LinearLayout
         private static final String PREF_FAST_ROW_CACHE = "pref_adaptive_emoji_fast_row_cache";
         private static final String PREF_FAST_ROW_LAST_REFRESH = "pref_adaptive_emoji_fast_row_last_refresh";
         private static final long FAST_ROW_REFRESH_INTERVAL_MILLIS = 12L * 60L * 60L * 1000L;
+        private static final int MAX_FAST_ROW_EMOJI_COUNT = 48;
         private static final double RECENCY_DECAY_SECONDS = 7.0 * 24.0 * 60.0 * 60.0;
 
         public static void recordEmojiUsage(@NonNull final Context context, @NonNull final String emoji) {
@@ -1341,7 +1339,11 @@ public final class EmojiPalettesView extends LinearLayout
                             } catch (Exception ignored) {}
                         }
 
-                        prefs.edit().putString(PREF_ADAPTIVE_METADATA, root.toString()).apply();
+                        prefs.edit()
+                                .putString(PREF_ADAPTIVE_METADATA, root.toString())
+                                .remove(PREF_FAST_ROW_CACHE)
+                                .remove(PREF_FAST_ROW_LAST_REFRESH)
+                                .apply();
                     } catch (Exception e) {
                         Log.e("AdaptiveEmojiEngine", "Failed to record emoji usage asynchronously", e);
                     }
@@ -1356,21 +1358,26 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         public static java.util.List<String> getFastRowEmojis(@NonNull final Context context) {
-            final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
-            final long now = System.currentTimeMillis();
-            final java.util.List<String> cached = readCachedFastRow(prefs);
-            if (!shouldRefreshFastRow(prefs, cached, now)) {
-                return cached;
-            }
+            return getFastRowEmojis(context, 10);
+        }
 
-            final java.util.List<String> ranked = getRankedEmojis(context);
-            final java.util.ArrayList<Object> cacheObjects = new java.util.ArrayList<>();
-            cacheObjects.addAll(ranked);
-            prefs.edit()
-                    .putString(PREF_FAST_ROW_CACHE, helium314.keyboard.latin.utils.JsonUtils.listToJsonStr(cacheObjects))
-                    .putLong(PREF_FAST_ROW_LAST_REFRESH, now)
-                    .apply();
-            return ranked;
+        public static java.util.List<String> getFastRowEmojis(@NonNull final Context context, final int maxCount) {
+            synchronized (AdaptiveEmojiEngine.class) {
+                final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
+                final long now = System.currentTimeMillis();
+                java.util.List<String> ranked = readCachedFastRow(prefs);
+                if (shouldRefreshFastRow(prefs, ranked, now)) {
+                    ranked = getRankedEmojis(context);
+                    final java.util.ArrayList<Object> cacheObjects = new java.util.ArrayList<>();
+                    cacheObjects.addAll(ranked);
+                    prefs.edit()
+                            .putString(PREF_FAST_ROW_CACHE, helium314.keyboard.latin.utils.JsonUtils.listToJsonStr(cacheObjects))
+                            .putLong(PREF_FAST_ROW_LAST_REFRESH, now)
+                            .apply();
+                }
+                final int resultCount = Math.max(0, Math.min(maxCount, ranked.size()));
+                return new java.util.ArrayList<>(ranked.subList(0, resultCount));
+            }
         }
 
         private static boolean shouldRefreshFastRow(final android.content.SharedPreferences prefs,
@@ -1476,7 +1483,7 @@ public final class EmojiPalettesView extends LinearLayout
             final java.util.ArrayList<String> result = new java.util.ArrayList<>();
             for (final EmojiScore es : list) {
                 result.add(es.emoji);
-                if (result.size() >= 10) {
+                if (result.size() >= MAX_FAST_ROW_EMOJI_COUNT) {
                     break;
                 }
             }
@@ -1538,6 +1545,24 @@ public final class EmojiPalettesView extends LinearLayout
 
     private DynamicGridKeyboard getRecentsKeyboard() {
         return mEmojiCategory.getKeyboard(EmojiCategory.ID_RECENTS, 0);
+    }
+
+    private void updateAdaptiveEmojiOrder() {
+        if (Settings.getValues().mIncognitoModeEnabled) {
+            return;
+        }
+        final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
+        final int maxRankedCount = Math.min(48, Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
+        recentsKeyboard.prioritizeKeys(
+                AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
+                maxRankedCount);
+        if (initialized && mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
+            final int position = ((EmojiPalettesAdapter) mPager.getAdapter())
+                    .getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
+            if (position != -1) {
+                mPager.getAdapter().notifyItemChanged(position);
+            }
+        }
     }
 
     public void setKeyboardActionListener(final KeyboardActionListener listener) {

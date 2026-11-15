@@ -283,6 +283,22 @@ final class EmojiCategory {
         return (((long) categoryId) << Integer.SIZE) | id;
     }
 
+    public Key findEmojiKey(final String outputText) {
+        if (TextUtils.isEmpty(outputText)) {
+            return null;
+        }
+        for (int categoryId = ID_SMILEYS_EMOTION; categoryId < sCategoryElementId.length; categoryId++) {
+            final Keyboard keyboard = mLayoutSet.getKeyboard(sCategoryElementId[categoryId]);
+            for (final Key key : keyboard.getSortedKeys()) {
+                if (outputText.equals(key.getOutputText())
+                        || (key.getCode() > 0 && outputText.equals(new String(Character.toChars(key.getCode()))))) {
+                    return key;
+                }
+            }
+        }
+        return null;
+    }
+
     public DynamicGridKeyboard getKeyboard(final int categoryId, final int id) {
         synchronized (mCategoryKeyboardMap) {
             final Long categoryKeyboardMapKey = getCategoryKeyboardMapKey(categoryId, id);

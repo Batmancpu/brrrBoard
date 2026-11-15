@@ -64,3 +64,14 @@ The owner asked to continue the post-v1.0.19 work from the pasted transcript, pr
 - Commit `db36ad5ed77d2c681cfaa9986ad7e0f3a76f3e25` added brrPersonal, but Obtainium run [43766256522](https://github.com/Batmancpu/brrrBoard/actions/runs/43766256522) failed before compilation: pinned PHINC CSV columns are `Sentence` and `English_Translation`; the generator did not recognize `Sentence`. No APK was signed or published.
 - Fix `tools/prepare_brrpersonal.py` to map PHINC's source `Sentence` column and add `tools/**` to Obtainium path filters so generator-only fixes still build and publish.
 - Emoji source audit found existing local use/recency recording and an adaptive top-10 cache in `EmojiPalettesView.AdaptiveEmojiEngine`, but no presentation call site. `addRecentEmoji()` can call `addRecentKey()`, which records again; audit and fix that double count before integrating a Smart Emoji UI.
+
+
+## Latest checkpoint — 2026-11-15
+
+The PHINC correction is complete. Commit `f752166ff8dcf2daad8c725ebde15798bedf8960` produced signed release [v1.0.31](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.31), Obtainium run [43766685860](https://github.com/Batmancpu/brrrBoard/actions/runs/43766685860), APK SHA-256 `ee8211339f62cc17e47cb1af4ff4ddbbda5cf945470d0089948a82af517c1947`, size 51,020,554 bytes. The debug build passed compilation/signing/artifact upload but its automatic test gate failed 13/180 existing tests in run [43766685891](https://github.com/Batmancpu/brrrBoard/actions/runs/43766685891): currency/parser labels, URL/autospace behavior, and emoji recognition. The prior checkpoint recorded the same baseline. Do not hide this failed gate or manually rerun tests unless requested.
+
+The current source batch integrates Smart Emoji into the existing Recents grid. It reuses local count/recency ranking, prioritizes up to three rows responsive to grid width, invalidates the 12-hour cache after a usage record, records accepted Emoji strip candidates once, and avoids adaptive ordering or writes in incognito. It adds no category tab or keyboard-height change. The source files are `EmojiPalettesView.java`, `DynamicGridKeyboard.java`, `EmojiCategory.java`, and `LatinIME.java`. Signed CI is pending.
+
+The owner reiterates: Dictate must transcribe English only. The RecognitionService path stays inline, but Dictate's app setting controls the language and ignores the caller's English intent. brrBoard rejects Devanagari-only final output; do not claim it blocks Romanized Hindi. Owner setup remains Dictate → Languages → Active language = English, Follow keyboard language = off. Verify on Reno10.
+
+Next after CI: update this checkpoint with the next release result, then continue the local-learning clear/reset UI, three-slot contextual Emoji audit, swipe-library legal/ABI review, and the complete transcript/screenshots audit. Owner-only ColorOS/Reno10 checks stay explicitly pending.

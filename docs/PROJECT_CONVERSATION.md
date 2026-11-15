@@ -464,3 +464,14 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 **Correction.** The generator now recognizes the pinned source column `Sentence`. The release workflow path filter also includes `tools/**` so a future change confined to the generator triggers the signed build.
 
 **Emoji audit finding.** `EmojiPalettesView.AdaptiveEmojiEngine` already records local emoji use counts and recency and can cache a top-10 fast row, while the emoji use/recency cache has no presentation call site in the audited source. `addRecentEmoji()` records use and then calls `addRecentKey()`, which records the same emoji again. This is an existing partial implementation, not a finished Smart Emoji panel; remove the double count and integrate the ranker into a compact Reno10-compatible row in a follow-up batch.
+
+
+## 2026-11-15 continuation — English-only Dictate and Smart Emoji
+
+**User**
+
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
+
+**Assistant outcome.** Confirmed the v1.0.31 signed release and debug CI result. The user requires English-only Dictate transcription. Dictate's RecognitionService ignores caller language extras and follows its own Active language; brrBoard blocks Devanagari final results but cannot change Dictate's private preference or reliably identify Romanized Hindi. Keep that behavior open until the owner sets Dictate → Languages → Active language = English, turns off Follow keyboard language, and verifies on Reno10.
+
+The Smart Emoji source batch reuses the existing Recents category and local use/recency ranker, prioritizes up to three rows based on current grid width, refreshes its cache after a use, fixes duplicate counting, and records selected Emoji candidates once. The signed CI result for this source batch is pending; Reno10 appearance/quality checks remain open. The final full-transcript audit is still required.

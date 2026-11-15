@@ -200,6 +200,52 @@ final class DynamicGridKeyboard extends Keyboard {
         addKey(usedKey, false);
     }
 
+    /**
+     * Moves the most relevant locally used Emojis to the first three rows of the
+     * existing Recents grid without adding a category or changing the grid size.
+     */
+    public void prioritizeKeys(final List<String> rankedEmojiOutputs, final int maxPrioritizedKeys) {
+        if (!mIsRecents || rankedEmojiOutputs == null || maxPrioritizedKeys <= 0) {
+            return;
+        }
+        synchronized (mLock) {
+            final ArrayList<GridKey> current = new ArrayList<>(mGridKeys);
+            final ArrayList<GridKey> reordered = new ArrayList<>(current.size());
+            final boolean[] selected = new boolean[current.size()];
+            int prioritizedCount = 0;
+            for (final String outputText : rankedEmojiOutputs) {
+                if (outputText == null || prioritizedCount >= maxPrioritizedKeys) {
+                    break;
+                }
+                for (int i = 0; i < current.size(); i++) {
+                    if (!selected[i] && outputText.equals(getKeyOutputText(current.get(i)))) {
+                        selected[i] = true;
+                        reordered.add(current.get(i));
+                        prioritizedCount++;
+                        break;
+                    }
+                }
+            }
+            for (int i = 0; i < current.size(); i++) {
+                if (!selected[i]) {
+                    reordered.add(current.get(i));
+                }
+            }
+            if (!reordered.equals(current)) {
+                mGridKeys.clear();
+                mGridKeys.addAll(reordered);
+                mCachedGridKeys = null;
+            }
+        }
+    }
+
+    private static String getKeyOutputText(final Key key) {
+        if (key.getOutputText() != null) {
+            return key.getOutputText();
+        }
+        return key.getCode() > 0 ? new String(Character.toChars(key.getCode())) : null;
+    }
+
     public void removeAllKeys() {
         synchronized (mLock) {
             mGridKeys.clear();
