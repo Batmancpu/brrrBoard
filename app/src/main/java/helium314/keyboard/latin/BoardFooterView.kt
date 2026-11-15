@@ -29,6 +29,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val DICTATION_RED = 0xFFFF3B30.toInt()
+private const val MIC_SWITCH_HOLD_TIMEOUT_MS = 300L
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private lateinit var ime: LatinIME
@@ -44,8 +45,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var tracking = false
     private var downX = 0f
     private var downY = 0f
+    private var micTracking = false
+    private var micHoldTriggered = false
+    private var micDownX = 0f
+    private var micDownY = 0f
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
+    private val switchInputMethodOnMicHold = Runnable {
+        if (micTracking && isShown && this::ime.isInitialized) {
+            micHoldTriggered = true
+            microphone.isPressed = false
+            feedback(microphone, HapticEvent.KEY_LONG_PRESS)
+            ime.switchBoardInputMethod()
+        }
+    }
     private val shortcuts = listOf(
         Shortcut(R.string.emoji, R.drawable.ic_board_emoji, KeyCode.EMOJI),
         Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, KeyCode.CLIPBOARD),
@@ -60,8 +73,34 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         ime = owner
         emojiButton.setOnClickListener { feedback(it); send(KeyCode.EMOJI) }
         microphone.setOnClickListener { feedback(it); send(KeyCode.VOICE_INPUT) }
-        microphone.setOnLongClickListener {
-            ime.switchBoardInputMethod()
+        // Input-method switching is a distinct mic hold action. Start it sooner
+        // than Android's default 500 ms long-press while preserving tap-to-dictate.
+        microphone.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    microphone.removeCallbacks(switchInputMethodOnMicHold)
+                    micTracking = true
+                    micHoldTriggered = false
+                    micDownX = event.rawX
+                    micDownY = event.rawY
+                    view.isPressed = true
+                    microphone.postDelayed(switchInputMethodOnMicHold, MIC_SWITCH_HOLD_TIMEOUT_MS)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val slop = ViewConfiguration.get(context).scaledTouchSlop
+                    if (micTracking && (abs(event.rawX - micDownX) > slop || abs(event.rawY - micDownY) > slop)) {
+                        micTracking = false
+                        microphone.removeCallbacks(switchInputMethodOnMicHold)
+                        view.isPressed = false
+                    }
+                }
+                MotionEvent.ACTION_UP -> {
+                    val tap = micTracking && !micHoldTriggered
+                    cancelMicHold()
+                    if (tap) view.performClick()
+                }
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> cancelMicHold()
+            }
             true
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
@@ -193,6 +232,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         showDictationActive(false)
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
+        cancelMicHold()
         tracking = false
         emojiButton.isPressed = false
         removeCallbacks(openShortcuts)
@@ -207,9 +247,16 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         super.onDetachedFromWindow()
     }
 
-    private fun feedback(view: android.view.View) {
+    private fun cancelMicHold() {
+        microphone.removeCallbacks(switchInputMethodOnMicHold)
+        micTracking = false
+        micHoldTriggered = false
+        microphone.isPressed = false
+    }
+
+    private fun feedback(view: android.view.View, event: HapticEvent = HapticEvent.KEY_PRESS) {
         AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
-            KeyCode.NOT_SPECIFIED, view, HapticEvent.KEY_PRESS,
+            KeyCode.NOT_SPECIFIED, view, event,
         )
     }
 
