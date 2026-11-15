@@ -165,6 +165,8 @@ internal class InlineDictation(private val ime: LatinIME) {
     private fun showPanel(frame: FrameLayout, session: SpeechRecognizer): Pair<TextView, Button> {
         val colors = Settings.getValues().mColors
         val foreground = colors.get(ColorType.SUGGESTED_WORD)
+        // The glass strip itself is transparent; use the board's base color for contrast.
+        val background = colors.get(if (colors.isFrosted) ColorType.MAIN_BACKGROUND else ColorType.STRIP_BACKGROUND)
         val status = TextView(ime).apply {
             setText(R.string.inline_voice_listening)
             setTextColor(foreground)
@@ -192,7 +194,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         panel = LinearLayout(ime).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(ColorUtils.setAlphaComponent(colors.get(ColorType.STRIP_BACKGROUND), 255))
+            setBackgroundColor(ColorUtils.setAlphaComponent(background, 255))
             isClickable = true
             addView(status, LinearLayout.LayoutParams(0, -1, 1f))
             addView(stop, LinearLayout.LayoutParams(-2, -1))
