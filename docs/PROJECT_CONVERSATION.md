@@ -395,3 +395,13 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 
 **Next action.** Continue the remaining screenshot-visible icon/accessory audit and source-backed geometry work, followed by the finite brrPersonal and emoji/swipe evaluation. Complete the explicit retrospective before suggesting follow-up work.
 
+
+
+## 2026-11-15 — English-only dictation safeguard and corrected provider copy
+
+**Source audit finding.** The selected RecognitionService route was already active, but the visible inline-dictation error and permission text still described an offline/on-device recognizer. That copy no longer matched the owner-selected Dictate service, which may use the owner's network provider. Replaced those messages with selected-service wording.
+
+**Source change.** On final results, InlineDictation now checks for Devanagari characters. If present, it does not insert them and shows a local message directing the owner to set Dictate's Active language to English. The check is intentionally a script safeguard, not a language detector: it cannot identify Hindi written in Latin letters and cannot change Dictate's private Active language. The system service is still requested with the English locale, and no brrBoard INTERNET permission or provider credentials are added.
+
+**Verification.** Source and the two user-facing strings are committed with the handoff. Signed Obtainium build is pending. Device result remains unverified; no claim that Dictate itself is forced to English is made.
+

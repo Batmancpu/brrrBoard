@@ -480,13 +480,14 @@
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Keyboard toolbar</string>
     <string name="inline_voice_setup">Microphone permission</string>
-    <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for offline dictation.</string>
-    <string name="inline_voice_unavailable">Offline dictation requires Android 12 or later and an installed on-device speech service.</string>
+    <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for dictation through your selected Android speech service.</string>
+    <string name="inline_voice_unavailable">No compatible Android speech-recognition service is available.</string>
     <string name="inline_voice_permission">Allow microphone access in brrBoard settings → About.</string>
-    <string name="inline_voice_failure">Offline dictation failed. Check your device’s speech language and try again.</string>
-    <string name="inline_voice_unsupported_language">Your on-device speech service does not support dictation in this language.</string>
+    <string name="inline_voice_failure">Dictation failed. Check your selected speech service and try again.</string>
+    <string name="inline_voice_unsupported_language">The selected speech service does not support the requested language.</string>
     <string name="inline_voice_no_speech">No speech was recognized. Try again.</string>
-    <string name="inline_voice_no_model">Install an offline speech model for this language in Android settings.</string>
+    <string name="inline_voice_no_model">The selected speech service does not have the requested language available.</string>
+    <string name="inline_voice_hindi_result">Dictate returned Hindi. Set its Active language to English in Dictate.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype
          (US) should be an abbreviation of United States. -->

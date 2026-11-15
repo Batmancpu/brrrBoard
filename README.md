@@ -16,7 +16,7 @@ The latest signed release is [v1.0.23](https://github.com/Batmancpu/brrrBoard/re
 
 [Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.25/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
 
-The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. The outlined idle Shift, filled active Shift, Caps Lock underline, and saved-icon migration shipped in v1.0.25. Reno10 visual/layout checks, Dictate's English-only result, and dictionary/Emoji/symbol/swipe work still need acceptance.
+The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. The Shift glyphs and saved-icon migration shipped in v1.0.25. The next build rejects Hindi-script dictation results and shows a Dictate language setup hint; Dictate still must be set to English. Reno10 visual/layout checks and dictionary/Emoji/symbol/swipe work remain open.
 
 ## Project notes
 

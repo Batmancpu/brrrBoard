@@ -122,7 +122,13 @@ internal class InlineDictation(private val ime: LatinIME) {
                         ?.firstOrNull()?.trim().orEmpty()
                     cancel()
                     if (text.isNotEmpty() && ime.isInputViewShown &&
-                        ime.currentInputConnection === connection) ime.onTextInput(text)
+                        ime.currentInputConnection === connection) {
+                        if (containsHindiScript(text)) {
+                            report(R.string.inline_voice_hindi_result)
+                        } else {
+                            ime.onTextInput(text)
+                        }
+                    }
                 }
             })
             scheduleDeadline(SPEECH_SERVICE_START_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
@@ -184,6 +190,11 @@ internal class InlineDictation(private val ime: LatinIME) {
         @JvmStatic
         fun isAvailable(context: Context): Boolean =
             runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
+
+        // This rejects Hindi-script output because the owner requested English only. Dictate's
+        // saved Active language remains authoritative; this does not identify Romanized Hindi.
+        private fun containsHindiScript(text: String): Boolean =
+            text.any { it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF' }
 
         private fun canDictate(editor: EditorInfo): Boolean =
             editor.inputType != 0 &&

@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Signed [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25) from `4d13a045d5fd17bcb427e2f22e5a70cef00e9049` passed Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374); APK SHA-256 `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. It includes the original Shift state vectors and a safe migration of only exact legacy Shift defaults in saved icon maps. Source/build are complete; Reno10 visual acceptance remains open. Dictate still outputs Hindi per the owner report; the service ignores caller language extras and uses its saved Active language, so English-only behavior remains unresolved. Geometry, remaining icons/accessory, brrPersonal, Emoji, QuickPath and device acceptance remain open.
+**Status (2026-11-15):** Signed [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25) from `4d13a045d5fd17bcb427e2f22e5a70cef00e9049` passed Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374); APK SHA-256 `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. Shift outline/active/Caps Lock glyphs and the saved-icon migration are shipped; Reno10 visual acceptance is pending. The current source adds a local Devanagari-result guard and corrects obsolete offline-only dictation copy; signed CI is pending. Dictate still outputs Hindi per owner report; its service ignores caller language extras and uses its saved Active language. English-only device behavior is unresolved. Geometry, remaining icons/accessory, brrPersonal, Emoji, QuickPath and device acceptance remain open.
 
 ## Product target
 
@@ -133,3 +133,8 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - [x] Batch 4b source: original Shift outline/filled/Caps Lock glyphs plus safe saved-icon migration shipped in signed v1.0.25; Reno10 visual acceptance is pending.
 - [ ] Batch 5: curate brrPersonal, keep spelling-valid terms separate from text prediction/autocorrect, then add bounded offline Emoji ranking and evaluate swipe-library rights/compatibility.
 - [ ] Batch 6: signed APK/source/release checks and full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.
+
+
+## Dictate language safety note
+
+The system RecognitionService may be a network-backed provider chosen by the owner. brrBoard requests an English locale and the current source refuses a final result containing Devanagari characters, showing a setup hint instead of inserting that script. This is a script safeguard only: it does not detect Hindi written in Latin characters and does not override Dictate's saved Active language. English-only acceptance still requires the owner to set Dictate Active language to English, disable keyboard-following, and verify on Reno10.
