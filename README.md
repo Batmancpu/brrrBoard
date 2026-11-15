@@ -1,29 +1,29 @@
 # My brrBoard
 
-brrBoard is my offline-first Android keyboard, shaped around how I type and tuned for my OPPO Reno10 5G. I want it to feel as clean and familiar as an iPhone keyboard while behaving properly as an Android IME.
+brrBoard is my personal Android keyboard for the OPPO Reno10 5G. I want the clean, compact feel of an iPhone keyboard with Android's own input-method behavior and useful English/Hinglish typing.
 
-## What it does
+## What I use
 
-- English (US/UK) and Romanized Hindi/Hinglish typing
-- Local Emoji and clipboard panels
-- Frosted Glass appearance
-- Typing dictionaries and suggestions stay on-device; brrBoard itself has no network permission
-- Mic tap uses the selected Android voice-recognition service; my configured DictateKeyboard provider handles transcription and may use its own network service
+- English (US/UK) and Romanized Hindi/Hinglish keyboards
+- brrPersonal: a finite offline dictionary with personal spelling, slang and Emoji shortcuts
+- Frosted Glass visuals with system light/dark appearance and optional Apple-inspired action-key tint
+- Emoji and clipboard panels with local Emoji recency
+- Local word learning and a confirmation-protected way to clear learned typing history
+- Dictation through Android's selected RecognitionService. My Dictate app handles transcription using its own language setting and may use its configured network provider.
 
-## Current build
+## Get the latest signed build
 
-The latest signed release is [v1.0.33](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.33).
+[Download the latest signed APK](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrrBoard.apk) · [Release notes](https://github.com/Batmancpu/brrrBoard/releases/latest) · [Set up Obtainium](docs/OBTAINIUM.md)
 
-[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.33/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
-
-The system-following OG dark/light appearance and optional Apple-palette action-key tint shipped in v1.0.23. Shift states and safe saved-icon migration shipped in v1.0.25. v1.0.33 includes the brrPersonal offline dictionary foundation and adaptive Emoji ranking in the existing Recents grid. brrBoard uses the selected Dictate RecognitionService, rejects Hindi-script-only final output, and explains how to set Dictate's Active language to English and turn off Follow keyboard language. Dictate controls its own language; brrBoard cannot force English or reliably detect Romanized Hindi. Reno10 checks, Smart Emoji acceptance, contextual Emoji suggestions, proofreading scope, and swipe-library review remain open.
+For English-only Dictate transcription, set **Dictate → Languages → Active language → English** and turn off **Follow keyboard language**. brrBoard requests English and refuses non-English results when the RecognitionService reports a confident language tag; Dictate currently controls the actual language itself.
 
 ## Project notes
 
-- [Current project checkpoint](PROJECT_CONTEXT.md)
-- [Post-v1.0.19 Reno10 plan](docs/POST_V1_0_19_RENO10_PLAN.md)
-- [Conversation and handoff log](docs/PROJECT_CONVERSATION.md)
+- [Current checkpoint and exact next steps](PROJECT_CONTEXT.md)
+- [Post-v1.0.19 Reno10 implementation plan](docs/POST_V1_0_19_RENO10_PLAN.md)
+- [Conversation and handoff record](docs/PROJECT_CONVERSATION.md)
+- [Privacy policy](PRIVACY_POLICY.md)
 
 ## Source and licenses
 
-This project is derived from [FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), HeliBoard, OpenBoard, and AOSP LatinIME. See [LICENSE](LICENSE), [Apache notices](LICENSE-Apache-2.0), and [asset license](LICENSE-CC-BY-SA-4.0). The retained upstream icon is credited to Orion under CC BY-SA 4.0.
+This project is based on [FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), HeliBoard, OpenBoard and AOSP LatinIME. See [LICENSE](LICENSE), [Apache notices](LICENSE-Apache-2.0) and [asset license](LICENSE-CC-BY-SA-4.0).
