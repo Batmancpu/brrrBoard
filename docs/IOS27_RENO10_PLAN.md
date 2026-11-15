@@ -10,7 +10,7 @@ The owner specifically superseded the prior finger-follow gesture: the keyboard 
 
 The latest owner correction adds a host-content acceptance requirement: content in the active app must stop at the actual keyboard top and must not be hidden beneath the keyboard at any user-selected height. Keep the keyboard close to the 345/932-point iPhone 16 Plus simulator measurement as a provisional size baseline, while labeling it iOS 26.5 evidence rather than a verified iOS 27 measurement.
 
-## Current draft changes
+## Implemented in v1.0.19
 
 - **Swipe dismissal:** removed translation, custom settle/spring, and drag-time window-blur suppression from `InputView`. Whole-strip downward capture ends with `LatinIME.requestHideSelf(0)` on threshold/flick. Child clicks are canceled only once a downward drag is recognized. The expected native animation and blur-flicker fix need Reno10 confirmation.
 - **Alphabetic 123:** tap stays the persistent Symbols toggle. Hold from alphabetic 123 opens the large numpad. `PointerTracker` saves the starting layout before `SYMBOL_ALPHA` changes the live keyboard; the special hold is handled before popup metadata. Sliding away cancels the hold and cannot accidentally select a symbol. Check pointer-up, long-press timing and return layout on device.
