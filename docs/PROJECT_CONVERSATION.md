@@ -491,3 +491,7 @@ The Smart Emoji source batch reuses the existing Recents category and local use/
 
 **Assistant outcome.** Confirmed v1.0.33 Smart Emoji Recents and the latest source checkpoint. Issue #359 and Dictate's RecognitionService source confirm brrBoard uses the inline system route, which keeps the keyboard visible, but Dictate ignores the caller's language extras and follows its saved Active language. The app rejects Devanagari-containing results and displays the setting path; it cannot reliably distinguish English from Romanized Hindi. The owner must set Dictate → Languages → Active language = English, disable Follow keyboard language, and verify the result on Reno10 before English-only is accepted. The current source batch adds a confirmation-protected reset of local learned text history only.
 
+## 2026-11-15 — learned-history reset build correction
+
+**Assistant outcome.** The first builds for the confirmation-protected reset action failed before APK creation. Obtainium run [43771462834](https://github.com/Batmancpu/brrrBoard/actions/runs/43771462834) reported AAPT's `Invalid unicode escape sequence in string` for the new confirmation resource; debug run [43771462845](https://github.com/Batmancpu/brrrBoard/actions/runs/43771462845) failed the same resource merge. The wording contained unescaped possessive apostrophes. The string is now apostrophe-free, the feature remains unshipped, and corrected signed CI is pending.
+

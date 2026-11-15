@@ -133,7 +133,7 @@
     <string name="clear_learned_typing_history_summary">Erase words and word-pair patterns learned locally by brrBoard.</string>
     <string name="clear_learned_typing_history_confirm_title">Clear learned typing history?</string>
     <string name="clear_learned_typing_history_confirm_action">Clear history</string>
-    <string name="clear_learned_typing_history_confirm_message">This removes brrBoard's locally learned words and word-pair patterns across languages. It keeps the built-in brrPersonal dictionary, Android's system user dictionary, and Emoji history.</string>
+    <string name="clear_learned_typing_history_confirm_message">This removes locally learned words and word-pair patterns from every brrBoard language. The built-in brrPersonal dictionary, Android system user dictionary, and Emoji history stay unchanged.</string>
     <!-- Name of the main dictionary, as opposed to auxiliary dictionaries (medical/entertainment/sports...) -->
     <string name="main_dictionary">Main dictionary</string>
     <!-- Option to enable showing suggestions -->
