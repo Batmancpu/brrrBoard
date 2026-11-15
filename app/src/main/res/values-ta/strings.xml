@@ -248,8 +248,7 @@
     <string name="remove_redundant_popups_summary">அடிப்படை அமைப்பில் ஏற்கனவே இருக்கும் மேல்தோன்றல் விசைகளை அடக்கவும்</string>
     <string name="prefs_long_press_keyboard_to_change_lang">ச்பேச் கீ மூலம் உள்ளீட்டு முறையை மாற்றவும்</string>
     <string name="prefs_long_press_keyboard_to_change_lang_summary">ச்பேச் விசையை நீண்ட நேரம் அழுத்தினால், உள்ளீட்டு முறை தேர்வு மெனுவைத் தூண்டும்</string>
-    <string name="prefs_long_press_symbol_for_numpad">எண்பாடிற்கான சின்னங்கள் விசையை நீண்ட நேரம் அழுத்தவும்</string>
-    <string name="prefs_narrow_key_gaps">குறுகிய முக்கிய இடைவெளிகள்</string>
+<string name="prefs_narrow_key_gaps">குறுகிய முக்கிய இடைவெளிகள்</string>
     <string name="prefs_keyboard_height_scale">விசைப்பலகை உயர அளவு</string>
     <string name="prefs_bottom_padding_scale">கீழே திணிப்பு அளவு</string>
     <string name="prefs_side_padding_scale">பக்க திணிப்பு அளவுகோல்</string>

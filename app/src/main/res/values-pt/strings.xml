@@ -311,8 +311,7 @@
     <string name="quick_pin_toolbar_keys_summary">Isto irá desativar as outras ações ao pressionar para teclas da barra de ferramentas que não estão afixadas</string>
     <string name="show_popup_hints">Mostrar dicas funcionais</string>
     <string name="remove_redundant_popups_summary">Suprimir teclas de pop-ups se presentes no layout de base</string>
-    <string name="prefs_long_press_symbol_for_numpad">Pressionar tecla de símbolos de numpad</string>
-    <string name="prefs_narrow_key_gaps">Teclas com espaços estreitos</string>
+<string name="prefs_narrow_key_gaps">Teclas com espaços estreitos</string>
     <string name="after_numpad_and_space">Pressionando enter ou espaço após outras teclas no numpad</string>
     <string name="day_or_night_image">Definir imagem para o modo de dia ou noite?</string>
     <string name="prefs_key_emoji_max_sdk">Substituir versão de Emoji</string>

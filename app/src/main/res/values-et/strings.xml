@@ -227,8 +227,7 @@
     <string name="quick_pin_toolbar_keys_summary">Selle valiku kasutamisega blokeerid muud pikast vajutusest avanevad tegevused, välja arvatud need mille oled esile tõstnud</string>
     <string name="prefs_narrow_key_gaps">Kitsaste klahvide vahed</string>
     <string name="prefs_bottom_padding_scale">Alumiste veeriste mõõtkava</string>
-    <string name="prefs_long_press_symbol_for_numpad">Sümbolklahvi pika vajutusega avaneb numbriline klahvistik</string>
-    <string name="show_popup_hints">Näita funktsionaalseid vihjeid</string>
+<string name="show_popup_hints">Näita funktsionaalseid vihjeid</string>
     <string name="show_popup_hints_summary">Näita vihjeid, kui klahvi pika vajutusega on võimalik kasutada täiendavad funktsionaalsust</string>
     <string name="remove_redundant_popups">Eemalda mittevajalikud hüpikvalikud</string>
     <string name="remove_redundant_popups_summary">Ära käivita hüpikvalikuid, mis on juba olemas klaviatuuri tavapaigutuses</string>

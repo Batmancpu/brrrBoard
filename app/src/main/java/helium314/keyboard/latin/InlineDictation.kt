@@ -14,18 +14,10 @@ import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.view.Gravity
 import android.view.View
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.EditorInfo
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.graphics.ColorUtils
-import helium314.keyboard.latin.common.ColorType
-import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.InputTypeUtils
 import java.util.Locale
 
@@ -33,13 +25,24 @@ import java.util.Locale
 internal class InlineDictation(private val ime: LatinIME) {
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: SpeechRecognizer? = null
-    private var panel: LinearLayout? = null
     private var footer: BoardFooterView? = null
     private var deadline: Runnable? = null
+    private var recognitionStarted = false
+    private var stopRequested = false
+
+    fun toggle(root: View?, locale: Locale) {
+        if (recognizer != null) {
+            // First tap starts, the next tap stops, and a tap while the result is
+            // processing cancels it. This keeps the footer as the only visible control.
+            if (stopRequested || !recognitionStarted) cancel() else stop()
+            return
+        }
+        start(root, locale)
+    }
 
     fun start(root: View?, locale: Locale) {
         if (recognizer != null) return
-        val frame = root as? FrameLayout ?: return
+        val inputView = root ?: return
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor)) return
         val connection = ime.currentInputConnection ?: return
@@ -64,12 +67,15 @@ internal class InlineDictation(private val ime: LatinIME) {
         try {
             val session = SpeechRecognizer.createOnDeviceSpeechRecognizer(ime)
             recognizer = session
-            footer = frame.findViewById(R.id.board_footer)
+            recognitionStarted = false
+            stopRequested = false
+            footer = inputView.findViewById(R.id.board_footer)
             footer?.showDictationActive(true)
+            footer?.setDictationCancelAvailable(true)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                checkSupport(session, intent, speechLocale, romanizedHinglish, frame, connection)
+                checkSupport(session, intent, speechLocale, romanizedHinglish, connection)
             } else {
-                listen(session, intent, frame, connection)
+                listen(session, intent, connection)
             }
         } catch (_: RuntimeException) {
             fail(R.string.inline_voice_failure)
@@ -82,13 +88,16 @@ internal class InlineDictation(private val ime: LatinIME) {
         intent: Intent,
         locale: Locale,
         romanizedHinglish: Boolean,
-        frame: FrameLayout,
         connection: InputConnection,
     ) {
         var checking = true
         fun proceed(installed: List<String> = emptyList()) {
             if (!checking || recognizer !== session) return
             checking = false
+            if (stopRequested) {
+                cancel()
+                return
+            }
             val requested = locale.toLanguageTag()
             // Some providers install only one regional model for a given language.
             // A Latin-script Hinglish keyboard can use an installed offline English
@@ -109,7 +118,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, it)
                 }
             }
-            listen(session, intent, frame, connection)
+            listen(session, intent, connection)
         }
         // A provider may omit this optional check or fail to call its callback.
         scheduleDeadline(1500) { proceed() }
@@ -122,23 +131,17 @@ internal class InlineDictation(private val ime: LatinIME) {
     private fun listen(
         session: SpeechRecognizer,
         intent: Intent,
-        frame: FrameLayout,
         connection: InputConnection,
     ) {
-        var status: TextView? = null
-        var stop: Button? = null
         try {
             session.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    if (recognizer !== session || panel != null) return
+                    if (recognizer !== session) return
                     if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
                         cancel()
                         return
                     }
                     clearDeadline()
-                    val display = showPanel(frame, session)
-                    status = display.first
-                    stop = display.second
                 }
                 override fun onBeginningOfSpeech() = Unit
                 override fun onRmsChanged(rmsdB: Float) = Unit
@@ -147,8 +150,8 @@ internal class InlineDictation(private val ime: LatinIME) {
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
                 override fun onEndOfSpeech() {
                     if (recognizer !== session) return
-                    status?.setText(R.string.inline_voice_processing)
-                    stop?.isEnabled = false
+                    stopRequested = true
+                    footer?.showDictationProcessing()
                     scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
                 }
                 override fun onError(error: Int) {
@@ -171,61 +174,37 @@ internal class InlineDictation(private val ime: LatinIME) {
                 }
             })
             scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
+            recognitionStarted = true
             session.startListening(intent)
         } catch (_: RuntimeException) {
             fail(R.string.inline_voice_failure)
         }
     }
 
-    private fun showPanel(frame: FrameLayout, session: SpeechRecognizer): Pair<TextView, Button> {
-        val colors = Settings.getValues().mColors
-        val foreground = colors.get(ColorType.SUGGESTED_WORD)
-        // The glass strip itself is transparent; use the board's base color for contrast.
-        val background = colors.get(if (colors.isFrosted) ColorType.MAIN_BACKGROUND else ColorType.STRIP_BACKGROUND)
-        val status = TextView(ime).apply {
-            setText(R.string.inline_voice_listening)
-            setTextColor(foreground)
-            gravity = Gravity.CENTER
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+    fun stop() {
+        val session = recognizer ?: return
+        if (stopRequested) return
+        if (!recognitionStarted) {
+            cancel()
+            return
         }
-        val stop = Button(ime, null, android.R.attr.borderlessButtonStyle).apply {
-            setText(R.string.inline_voice_stop)
-            setTextColor(foreground)
-            setOnClickListener {
-                isEnabled = false
-                status.setText(R.string.inline_voice_processing)
-                scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
-                runCatching { session.stopListening() }.onFailure {
-                    fail(R.string.inline_voice_failure)
-                }
-            }
+        stopRequested = true
+        footer?.showDictationProcessing()
+        scheduleDeadline(8000) { fail(R.string.inline_voice_failure) }
+        runCatching { session.stopListening() }.onFailure {
+            fail(R.string.inline_voice_failure)
         }
-        val cancelButton = Button(ime, null, android.R.attr.borderlessButtonStyle).apply {
-            setText(R.string.inline_voice_cancel)
-            setTextColor(foreground)
-            setOnClickListener { cancel() }
-        }
-        val stripHeight = frame.findViewById<View>(R.id.suggestion_strip_view)?.height ?: 0
-        panel = LinearLayout(ime).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(ColorUtils.setAlphaComponent(background, 255))
-            isClickable = true
-            addView(status, LinearLayout.LayoutParams(0, -1, 1f))
-            addView(stop, LinearLayout.LayoutParams(-2, -1))
-            addView(cancelButton, LinearLayout.LayoutParams(-2, -1))
-            frame.addView(this, FrameLayout.LayoutParams(-1, if (stripHeight > 0) stripHeight else -2, Gravity.TOP))
-        }
-        return status to stop
     }
 
     fun cancel() {
         clearDeadline()
         val session = recognizer
         recognizer = null
-        panel?.let { (it.parent as? FrameLayout)?.removeView(it) }
-        panel = null
+        recognitionStarted = false
+        stopRequested = false
         footer?.showDictationActive(false)
+        footer?.showDictationProcessing(false)
+        footer?.setDictationCancelAvailable(false)
         footer = null
         if (session != null) runCatching { session.destroy() }
     }

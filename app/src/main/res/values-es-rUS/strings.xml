@@ -210,8 +210,7 @@
     <string name="up" tools:keep="@string/up">Arriba</string>
     <string name="down" tools:keep="@string/down">Abajo</string>
     <string name="show_popup_hints_summary">Mostrar pistas si al pulsar prolongadamente una tecla se activan funciones adicionales</string>
-    <string name="prefs_long_press_symbol_for_numpad">Pulsación larga de la tecla de símbolos para cambiar al teclado numérico</string>
-    <string name="prefs_narrow_key_gaps">Reducir la distancia de las teclas</string>
+<string name="prefs_narrow_key_gaps">Reducir la distancia de las teclas</string>
     <string name="subtype_xdq">Kaitag</string>
     <string name="button_title_add_custom_layout">Añadir diseño personalizado</string>
     <string name="button_load_custom">Cargar archivo</string>

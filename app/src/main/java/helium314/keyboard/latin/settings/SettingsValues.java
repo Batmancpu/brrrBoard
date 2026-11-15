@@ -168,7 +168,6 @@ public class SettingsValues {
     public final boolean mSuggestClipboardContent;
     public final SettingsValuesForSuggestion mSettingsValuesForSuggestion;
     public final boolean mIncognitoModeEnabled;
-    public final boolean mLongPressSymbolsForNumpad;
 
     // User-defined colors
     public final Colors mColors;
@@ -317,7 +316,6 @@ public class SettingsValues {
         mSpacingAndPunctuations = new SpacingAndPunctuations(res, mUrlDetectionEnabled);
         mBottomPaddingScale = Settings.readBottomPaddingScale(prefs, isLandscape, isFolded);
         mSidePaddingScale = Settings.readSidePaddingScale(prefs, isLandscape, mIsSplitKeyboardEnabled, isFolded);
-        mLongPressSymbolsForNumpad = prefs.getBoolean(Settings.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD, Defaults.PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD);
         mAutoShowToolbar = false;
         mAutoHideToolbar = false;
         mUseFiveWordSuggestionChips = prefs.getBoolean(Settings.PREF_USE_5_WORD_SUGGESTION_CHIPS, Defaults.PREF_USE_5_WORD_SUGGESTION_CHIPS);

@@ -170,8 +170,7 @@
     <string name="select_word" tools:keep="@string/select_word">Vybrat slovo</string>
     <string name="one_handed" tools:keep="@string/one_handed">Režim ovládání jednou rukou</string>
     <string name="full_left" tools:keep="@string/full_left">Úplně vlevo</string>
-    <string name="prefs_long_press_symbol_for_numpad">Dlouhé stisknutí klávesy se symboly pro numerickou klávesnici</string>
-    <string name="popup_order">Zvolit pořadí kláves vyskakovacího okna</string>
+<string name="popup_order">Zvolit pořadí kláves vyskakovacího okna</string>
     <string name="toolbar_keys">Výběr kláves na panelu nástrojů</string>
     <string name="prefs_narrow_key_gaps">Zmenšit mezery mezi klávesami</string>
     <string name="button_title_add_custom_layout">Přidat vlastní rozložení</string>

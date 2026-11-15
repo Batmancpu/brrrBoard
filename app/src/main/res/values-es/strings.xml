@@ -248,8 +248,7 @@
     <string name="split_spacer_scale">Distancia de separación</string>
     <string name="language_switch_key_switch_both">Cambiar ambos</string>
     <string name="prefs_narrow_key_gaps">Espacio estrecho entre teclas</string>
-    <string name="prefs_long_press_symbol_for_numpad">Mantener pulsadas teclas de símbolos para cambiar al teclado numérico</string>
-    <string name="prefs_bottom_padding_scale">Escala del relleno inferior</string>
+<string name="prefs_bottom_padding_scale">Escala del relleno inferior</string>
     <string name="select_color_key">Texto de tecla</string>
     <string name="select_color_accent">Acento</string>
     <string name="center_suggestion_text_to_enter">Usar siempre la sugerencia central</string>

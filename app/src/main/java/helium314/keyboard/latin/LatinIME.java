@@ -1187,7 +1187,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
-        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture(true);
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
         FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
@@ -1196,7 +1196,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInputView(final boolean finishingInput) {
         mInlineDictation.cancel();
-        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture(false);
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -1913,7 +1913,7 @@ public class LatinIME extends InputMethodService implements
         }
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
             if (mSettings.getCurrent().mInputAttributes.mShouldShowVoiceInputKey) {
-                mInlineDictation.start(mInputView, mRichImm.getCurrentSubtypeLocale());
+                mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
             }
             return;
         }

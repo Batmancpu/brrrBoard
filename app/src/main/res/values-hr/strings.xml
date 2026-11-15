@@ -255,8 +255,7 @@
     <string name="word_right" tools:keep="@string/word_right">Riječ desno</string>
     <string name="page_up" tools:keep="@string/page_up">Stranica gore</string>
     <string name="page_down" tools:keep="@string/page_down">Stranica dolje</string>
-    <string name="prefs_long_press_symbol_for_numpad">Dugi pritisak na tipku simbola za brojčanik</string>
-    <string name="prefs_narrow_key_gaps">Uski razmak tipki</string>
+<string name="prefs_narrow_key_gaps">Uski razmak tipki</string>
     <string name="prefs_bottom_padding_scale">Veličina odmaka dna</string>
     <string name="prefs_side_padding_scale">Veličina odmaka strana</string>
     <string name="prefs_font_scale">Veličina fonta tipkovnice</string>

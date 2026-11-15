@@ -48,6 +48,8 @@ interface Colors {
     val isFrosted: Boolean get() = false
     val iosSearchKeyAccent: Int get() = 0
     val iosSearchKeyForeground: Int get() = Color.BLACK
+    val ogFrostKeyAccent: Int get() = 0
+    val ogFrostKeyAccentForeground: Int get() = Color.WHITE
 
     /** use to check whether colors have changed, for colors (in)directly derived from context,
      *  e.g. night mode or potentially changing system colors */
@@ -423,6 +425,10 @@ class DefaultColors (
     private val systemNeutral: Int? = null,
     override val iosSearchKeyAccent: Int = 0,
     private val iosSystemAccent: Int? = null,
+    override val ogFrostKeyAccent: Int = 0,
+    override val ogFrostKeyAccentForeground: Int = if (ogFrostKeyAccent != 0 &&
+        ColorUtils.calculateContrast(Color.WHITE, ogFrostKeyAccent) >= 4.5) Color.WHITE else Color.BLACK,
+    private val ogFrostSystemAccent: Int? = null,
 ) : Colors {
     override val iosSearchKeyForeground = if (iosSearchKeyAccent != 0 &&
         ColorUtils.calculateContrast(Color.WHITE, iosSearchKeyAccent) >= 4.5) Color.WHITE else Color.BLACK
@@ -545,6 +551,7 @@ class DefaultColors (
     }
 
     override fun get(color: ColorType): Int = when (color) {
+        OG_FROST_ACCENT_BACKGROUND -> if (ogFrostKeyAccent != 0) ogFrostKeyAccent else specialKeyBackground
         TOOL_BAR_KEY_ENABLED_BACKGROUND, EMOJI_CATEGORY_SELECTED, ACTION_KEY_BACKGROUND,
             CLIPBOARD_PIN, SHIFT_KEY_ICON -> accent
         SPECIAL_KEY_BACKGROUND -> specialKeyBackground
@@ -574,6 +581,9 @@ class DefaultColors (
     }
 
     override fun getPressed(color: ColorType): Int = when (color) {
+        OG_FROST_ACCENT_BACKGROUND -> brightenOrDarken(
+            if (ogFrostKeyAccent != 0) ogFrostKeyAccent else specialKeyBackground, true
+        )
         MORE_SUGGESTIONS_WORD_BACKGROUND, MAIN_BACKGROUND -> brightenOrDarken(background, true)
         KEY_BACKGROUND -> if (hasKeyBorders) (if (themeStyle == STYLE_HOLO) keyBackground else brightenOrDarken(keyBackground, true)) else keyBackground
         FUNCTIONAL_KEY_BACKGROUND -> if (hasKeyBorders) brightenOrDarken(functionalKey, true) else keyBackground
@@ -664,6 +674,9 @@ class DefaultColors (
     }
 
     override fun haveColorsChanged(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ogFrostSystemAccent != null) {
+            return ContextCompat.getColor(context, android.R.color.system_accent1_500) != ogFrostSystemAccent
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && iosSystemAccent != null) {
             return ContextCompat.getColor(context, android.R.color.system_accent1_500) != iosSystemAccent
         }
@@ -686,6 +699,43 @@ class DefaultColors (
         ACTION_KEY_ICON -> actionKeyIconColorFilter
         else -> colorFilter(get(color)) // create color filter (not great for performance, so the frequently used filters should be stored)
     }
+}
+
+/** Adds the OG Frost Tinted action color without changing the delegate's keyboard surfaces. */
+internal class OgFrostAccentColors(
+    private val base: Colors,
+    override val ogFrostKeyAccent: Int,
+) : Colors {
+    override val themeStyle get() = base.themeStyle
+    override val hasKeyBorders get() = base.hasKeyBorders
+    override val isFrosted get() = base.isFrosted
+    override val iosSearchKeyAccent get() = base.iosSearchKeyAccent
+    override val iosSearchKeyForeground get() = base.iosSearchKeyForeground
+    override val ogFrostKeyAccentForeground = if (ogFrostKeyAccent != 0 &&
+        ColorUtils.calculateContrast(Color.WHITE, ogFrostKeyAccent) >= 4.5) Color.WHITE else Color.BLACK
+
+    override fun haveColorsChanged(context: Context) = base.haveColorsChanged(context)
+
+    override fun get(color: ColorType): Int = if (color == OG_FROST_ACCENT_BACKGROUND)
+        ogFrostKeyAccent else base.get(color)
+
+    override fun getPressed(color: ColorType): Int = if (color == OG_FROST_ACCENT_BACKGROUND)
+        brightenOrDarken(ogFrostKeyAccent, true) else base.getPressed(color)
+
+    override fun setColor(drawable: Drawable, color: ColorType) {
+        if (color != OG_FROST_ACCENT_BACKGROUND) {
+            base.setColor(drawable, color)
+            return
+        }
+        val states = arrayOf(intArrayOf(android.R.attr.state_pressed), intArrayOf(-android.R.attr.state_pressed))
+        DrawableCompat.setTintMode(drawable, PorterDuff.Mode.MULTIPLY)
+        DrawableCompat.setTintList(drawable, ColorStateList(states, intArrayOf(
+            getPressed(color), get(color)
+        )))
+    }
+
+    override fun setColor(view: ImageView, color: ColorType) = base.setColor(view, color)
+    override fun setBackground(view: View, color: ColorType) = base.setBackground(view, color)
 }
 
 class AllColors(private val colorMap: EnumMap<ColorType, Int>, override val themeStyle: String, override val hasKeyBorders: Boolean, backgroundImage: Drawable?) : Colors {
@@ -866,6 +916,7 @@ enum class ColorType {
     MAIN_BACKGROUND,
     SPECIAL_KEY_BACKGROUND,
     ENTER_KEY_BACKGROUND,
+    OG_FROST_ACCENT_BACKGROUND,
 }
 
 // this is not used any more, but we keep in case a colorMap does not get filled for whatever reason

@@ -194,8 +194,7 @@
     <string name="all_colors">Tüm renkleri göster</string>
     <string name="customize_currencies_detail">Ana ve en fazla 6 ikincil para birimi sembolünü boşlukla ayırarak ayarla</string>
     <string name="prefs_narrow_key_gaps">Anahtar boşluklarını daralt</string>
-    <string name="prefs_long_press_symbol_for_numpad">Sayısal tuş takımı için sembol tuşuna uzun bas</string>
-    <string name="prefs_bottom_padding_scale">Alt dolgu ölçeği</string>
+<string name="prefs_bottom_padding_scale">Alt dolgu ölçeği</string>
     <string name="dictionary_link_text">burada</string>
     <string name="language_switch_key_behavior">Dil değiştirme tuşu davranışı</string>
     <string name="show_popup_keys_more">Yaygın varyantları ekle</string>

@@ -11,6 +11,7 @@ import android.graphics.RectF
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
+import android.view.WindowInsets
 import android.view.ViewOutlineProvider
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
@@ -44,6 +45,11 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     }
 
     init {
+        // Keep the navigation bar inset after the footer instead of inserting it
+        // between the last key row and the footer inside KeyboardWrapperView.
+        fitsSystemWindows = true
+        clipChildren = false
+        clipToPadding = false
         // Also clip via HWUI so hardware-layered descendants respect the rounded keyboard shape.
         // Android 13+ supports path outlines, which lets us keep only the top corners rounded.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -68,6 +74,16 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             }
             clipToOutline = true
         }
+    }
+
+    override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
+        setPadding(paddingLeft, paddingTop, paddingRight, insets.systemWindowInsetBottom)
+        return insets.replaceSystemWindowInsets(
+            insets.systemWindowInsetLeft,
+            insets.systemWindowInsetTop,
+            insets.systemWindowInsetRight,
+            0
+        )
     }
 
     override fun onAttachedToWindow() {

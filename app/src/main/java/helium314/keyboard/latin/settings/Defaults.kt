@@ -89,7 +89,8 @@ object Defaults {
     val PREF_SIDE_PADDING_SCALE = Array(8) { 0f }
     const val PREF_KEYBOARD_CORNER_RADIUS = 32
     const val PREF_FONT_SCALE = DEFAULT_SIZE_SCALE
-    const val PREF_EMOJI_FONT_SCALE = 1.3046509f
+    // Dense emoji cells target eight columns on a phone while retaining useful tap width.
+    const val PREF_EMOJI_FONT_SCALE = 0.95f
     const val PREF_EMOJI_KEY_FIT = true
     const val PREF_EMOJI_SKIN_TONE = ""
     @JvmField
@@ -122,7 +123,6 @@ object Defaults {
     const val PREF_SHOW_SETUP_WIZARD_ICON = true
     const val PREF_USE_CONTACTS = false
     const val PREF_USE_APPS = false
-    const val PREFS_LONG_PRESS_SYMBOLS_FOR_NUMPAD = false
     const val PREF_ONE_HANDED_MODE = false
     @SuppressLint("RtlHardcoded")
     const val PREF_ONE_HANDED_GRAVITY = Gravity.LEFT

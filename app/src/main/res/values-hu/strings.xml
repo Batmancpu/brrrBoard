@@ -336,8 +336,7 @@
     <string name="toolbar_mode_hidden">Rejtett</string>
     <string name="page_down" tools:keep="@string/page_down">Lefelé lapozás</string>
     <string name="quick_pin_toolbar_keys">Eszköztárbillentyű kitűzése nyomva tartáskor</string>
-    <string name="prefs_long_press_symbol_for_numpad">Szimbólumbillentyű nyomva tartása a számbillentyűzethez</string>
-    <string name="subtype_st">Sesotho</string>
+<string name="subtype_st">Sesotho</string>
     <string name="prefs_emoji_key_fit">Emodzsibillentyű méretének beállítása a betűmérettel</string>
     <string name="subtype_dag">Dagbani</string>
     <string name="subtype_with_layout_generic">%1$s (%2$s)</string>

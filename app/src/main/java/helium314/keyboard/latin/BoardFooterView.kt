@@ -2,6 +2,9 @@
 package helium314.keyboard.latin
 
 import android.annotation.SuppressLint
+import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -11,9 +14,9 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.PopupMenu
 import android.widget.PopupWindow
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
@@ -24,6 +27,8 @@ import helium314.keyboard.latin.settings.Settings
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+private const val DICTATION_RED = 0xFFFF3B30.toInt()
+
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
@@ -31,6 +36,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var popup: PopupWindow? = null
     private val targets = ArrayList<ImageButton>()
     private var dictationActive = false
+    private var dictationProcessing = false
+    private var micPulse: ObjectAnimator? = null
+    private var cancelDictationActionId: Int? = null
     private var selected = -1
     private var tracking = false
     private var downX = 0f
@@ -38,6 +46,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
     private val shortcuts = listOf(
+        Shortcut(R.string.emoji, R.drawable.ic_board_emoji, KeyCode.EMOJI),
         Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, KeyCode.CLIPBOARD),
         Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_lxx, KeyCode.SETTINGS),
     )
@@ -56,18 +65,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
             ime.switchBoardInputMethod()
-            true
-        }
-        emojiButton.setOnLongClickListener {
-            PopupMenu(context, emojiButton).apply {
-                shortcuts.forEachIndexed { index, shortcut -> menu.add(0, index + 1, index, shortcut.label) }
-                menu.add(0, 4, 4, R.string.board_system_keyboard_picker)
-                setOnMenuItemClickListener {
-                    if (it.itemId == 4) ime.showInputPickerDialog() else send(shortcuts[it.itemId - 1].code)
-                    true
-                }
-                show()
-            }
             true
         }
         ViewCompat.addAccessibilityAction(emojiButton, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
@@ -122,19 +119,79 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         emojiButton.imageTintList = tint
-        showDictationActive(dictationActive)
+        if (dictationProcessing) showDictationProcessing()
+        else showDictationActive(dictationActive)
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
     }
 
     fun showDictationActive(active: Boolean) {
         dictationActive = active
+        dictationProcessing = false
         val colors = Settings.getValues().mColors
         microphone.imageTintList = ColorStateList.valueOf(
-            colors.get(if (active) ColorType.ACTION_KEY_BACKGROUND else ColorType.KEY_ICON),
+            if (active) DICTATION_RED else colors.get(ColorType.KEY_ICON),
         )
+        microphone.contentDescription = resources.getString(
+            if (active) R.string.board_dictation_stop else R.string.board_inline_dictation,
+        )
+        if (active) startMicPulse() else stopMicPulse()
+    }
+
+    fun showDictationProcessing(processing: Boolean = true) {
+        dictationProcessing = processing
+        if (processing) {
+            showDictationActive(false)
+            dictationProcessing = true
+            microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
+        }
+    }
+
+    fun setDictationCancelAvailable(available: Boolean) {
+        val mic = microphone
+        if (available && cancelDictationActionId == null) {
+            cancelDictationActionId = ViewCompat.addAccessibilityAction(
+                mic, resources.getString(R.string.board_cancel_dictation)
+            ) { _, _ ->
+                ime.cancelBoardDictation()
+                true
+            }
+        } else if (!available) {
+            cancelDictationActionId?.let { ViewCompat.removeAccessibilityAction(mic, it) }
+            cancelDictationActionId = null
+        }
+    }
+
+    private fun startMicPulse() {
+        if (micPulse != null) return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+            !ValueAnimator.areAnimatorsEnabled()) return
+        val mic = microphone
+        micPulse = ObjectAnimator.ofPropertyValuesHolder(
+            mic,
+            PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.12f),
+            PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.12f),
+        ).apply {
+            duration = 620
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopMicPulse() {
+        micPulse?.cancel()
+        micPulse = null
+        if (this::ime.isInitialized) {
+            microphone.scaleX = 1f
+            microphone.scaleY = 1f
+        }
     }
 
     fun reset() {
+        showDictationActive(false)
+        showDictationProcessing(false)
+        setDictationCancelAvailable(false)
         tracking = false
         emojiButton.isPressed = false
         removeCallbacks(openShortcuts)
@@ -163,8 +220,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val panel = FrameLayout(context)
         val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.MORE_SUGGESTIONS_BACKGROUND), 242)
         val active = colors.get(ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
-        // Two 48dp touch targets above the lower-left Emoji button.
-        val offsets = listOf(5 to 8, 56 to 39)
+        // Three 48dp targets form a compact arc above the lower-left button.
+        val offsets = listOf(56 to 0, 0 to 38, 112 to 38)
         shortcuts.forEachIndexed { index, shortcut ->
             val button = ImageButton(context).apply {
                 contentDescription = resources.getString(shortcut.label)
@@ -183,12 +240,23 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 topMargin = dp(y)
             })
         }
-        popup = PopupWindow(panel, dp(108), dp(88), false).apply {
+        val popupWidth = dp(160)
+        val popupHeight = dp(86)
+        emojiButton.getLocationInWindow(screenLocation)
+        val rootWidth = rootView.width
+        val left = (screenLocation[0] + emojiButton.width / 2 - popupWidth / 2)
+            .coerceIn(dp(4), (rootWidth - popupWidth - dp(4)).coerceAtLeast(dp(4)))
+        popup = PopupWindow(panel, popupWidth, popupHeight, false).apply {
             isTouchable = false
             isOutsideTouchable = false
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = dp(8).toFloat()
-            showAsDropDown(emojiButton, 0, -emojiButton.height - dp(88), Gravity.LEFT)
+            showAsDropDown(
+                emojiButton,
+                left - screenLocation[0],
+                -emojiButton.height - popupHeight,
+                Gravity.LEFT,
+            )
         }
     }
 

@@ -283,8 +283,7 @@
     <string name="theme_name_sand" tools:keep="@string/theme_name_sand">Areia</string>
     <string name="theme_name_chocolate" tools:keep="@string/theme_name_chocolate">Chocolate</string>
     <string name="theme_name_cloudy" tools:keep="@string/theme_name_cloudy">Nublado</string>
-    <string name="prefs_long_press_symbol_for_numpad">Prima continuamente a tecla de símbolos para o teclado numérico</string>
-    <string name="load">Carregar</string>
+<string name="load">Carregar</string>
     <string name="settings_category_space">Espaço</string>
     <string name="backspace_reverts_autocorrect">Retrocesso reverte a correção automática</string>
     <string name="layout_symbols_shifted" tools:keep="@string/layout_symbols_shifted">Mais símbolos</string>

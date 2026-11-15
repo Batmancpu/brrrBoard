@@ -210,7 +210,10 @@ object FrostedGlassHelper {
             prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT)
         else
             prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS)
-        return KeyboardTheme.supportedTheme(themeName).contains("frosted")
+        val supportedTheme = KeyboardTheme.supportedTheme(themeName)
+        return supportedTheme == KeyboardTheme.THEME_FROSTED_GLASS ||
+            supportedTheme == KeyboardTheme.THEME_OG_FROST_TINTED ||
+            KeyboardTheme.isIosGlassTheme(supportedTheme)
     }
 
     @JvmStatic
@@ -240,22 +243,6 @@ object FrostedGlassHelper {
         }
     }
 
-    private val windowsWithToolbarDrag: MutableSet<Window> =
-        java.util.Collections.newSetFromMap(java.util.WeakHashMap<Window, Boolean>())
-
-    @JvmStatic
-    fun setToolbarDragBlurSuppressed(
-        service: InputMethodService, inputView: View?, suppressed: Boolean, restore: Boolean
-    ) {
-        val window = service.window?.window ?: return
-        if (suppressed) {
-            if (windowsWithToolbarDrag.add(window))
-                configureFrostedGlassInternal(service, inputView, false, allowDelayedNativeCleanup = false)
-        } else if (windowsWithToolbarDrag.remove(window) && restore) {
-            configureFrostedGlassInternal(service, inputView, isFrostedTheme(service), allowDelayedNativeCleanup = false)
-        }
-    }
-
     @JvmStatic
     fun configureFrostedGlass(service: InputMethodService, inputView: View?, enable: Boolean) {
         configureFrostedGlassInternal(service, inputView, enable, allowDelayedNativeCleanup = true)
@@ -274,7 +261,7 @@ object FrostedGlassHelper {
         val isSamsungDevice = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
         val shouldTrySamsungBlur = isSamsungDevice || overrideMode == "force_samsung"
 
-        if (enable && (windowsWithResizeOverlayBlurSuppressed.contains(window) || windowsWithToolbarDrag.contains(window))) {
+        if (enable && windowsWithResizeOverlayBlurSuppressed.contains(window)) {
             configureFrostedGlassInternal(service, inputView, false, allowDelayedNativeCleanup = false)
             return
         }
@@ -1015,7 +1002,10 @@ object FrostedGlassHelper {
     }
 
     fun shouldWarnAboutFrostedGlassBlurUnsupported(themeName: String?): Boolean {
-        return themeName == KeyboardTheme.THEME_FROSTED_GLASS && isKnownFrostedGlassBlurUnsupportedDevice()
+        val supportedTheme = KeyboardTheme.supportedTheme(themeName)
+        return (supportedTheme == KeyboardTheme.THEME_FROSTED_GLASS ||
+            supportedTheme == KeyboardTheme.THEME_OG_FROST_TINTED ||
+            KeyboardTheme.isIosGlassTheme(supportedTheme)) && isKnownFrostedGlassBlurUnsupportedDevice()
     }
 
     fun isKnownFrostedGlassBlurUnsupportedDevice(): Boolean {

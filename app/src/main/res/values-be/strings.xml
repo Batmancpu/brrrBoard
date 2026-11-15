@@ -231,8 +231,7 @@
     <string name="var_toolbar_direction">Пераменны напрамак панэлі інструментаў</string>
     <string name="theme_name_chocolate" tools:keep="@string/theme_name_chocolate">Шакалад</string>
     <string name="theme_name_cloudy" tools:keep="@string/theme_name_cloudy">Воблачна</string>
-    <string name="prefs_long_press_symbol_for_numpad">Доўгі націск клавішы сімвалаў для лічбавай клавіятуры</string>
-    <string name="delete_layout">Сапраўды выдаліць карыстацкую раскладку %s?</string>
+<string name="delete_layout">Сапраўды выдаліць карыстацкую раскладку %s?</string>
     <string name="dictionary_load_error">Памылка загрузкі файла слоўніка</string>
     <string name="subtype_xdq">кайтагскі</string>
     <string name="layout_symbols" tools:keep="@string/layout_symbols">Сімвалы</string>

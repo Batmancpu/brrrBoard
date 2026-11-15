@@ -241,8 +241,7 @@
     <string name="page_down" tools:keep="@string/page_down">Pàgina avall</string>
     <string name="show_popup_hints_summary">Mostra consells si la pressió llarga d\'una tecla activa una funcionalitat addicional</string>
     <string name="quick_pin_toolbar_keys_summary">Això desactivarà altres accions de pressió llarga per a les tecles de la barra d\'eines que no estiguin fixades</string>
-    <string name="prefs_long_press_symbol_for_numpad">Pressió llarga a la tecla de símbols per al teclat numèric</string>
-    <string name="prefs_bottom_padding_scale">Escala de farciment inferior</string>
+<string name="prefs_bottom_padding_scale">Escala de farciment inferior</string>
     <string name="load_gesture_library">Carrega la biblioteca d\'escriptura gestual</string>
     <string name="load_gesture_library_message">Necessitareu la biblioteca per a \'%s\'. Les biblioteques incompatibles poden fallar quan s\'utilitza l\'escriptura gestual. \n\nAvís: carregar codi extern pot suposar un risc de seguretat. Utilitzeu només una biblioteca d\'una font de confiança.</string>
     <string name="load_gesture_library_button_load">Carregar biblioteca</string>

@@ -432,7 +432,6 @@
     <!-- Description of the settings to change IME indicating long press triggers change. -->
     <string name="prefs_long_press_keyboard_to_change_lang_summary">Long pressing space key will prompt input method selection menu</string>
     <!-- Title of the setting enabling long press on symbols key to switch to numpad -->
-    <string name="prefs_long_press_symbol_for_numpad">Long press symbols key for numpad</string>
     <!-- Title of the setting for reduced distance between keys -->
     <string name="prefs_narrow_key_gaps">Narrow key gaps</string>
     <!-- Title of the setting for setting keyboard height -->
@@ -471,9 +470,12 @@
     <string name="subtype_english_picker">English</string>
     <string name="about_mangoloads">About MangoLoads</string>
     <string name="about_mangoloads_description">brrBoard is maintained by Batmancpu. See this and other projects on the MangoLoads website.</string>
-    <string name="board_language_and_shortcuts">Emoji. Hold for clipboard and settings.</string>
+    <string name="board_language_and_shortcuts">Emoji. Hold to choose Emoji, clipboard, or settings.</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
-    <string name="board_inline_dictation">Dictate text. Hold to switch keyboards.</string>
+    <string name="board_inline_dictation">Start dictation. Hold to switch keyboards.</string>
+    <string name="board_dictation_stop">Stop dictation</string>
+    <string name="board_dictation_processing">Dictation is processing</string>
+    <string name="board_cancel_dictation">Cancel dictation</string>
     <string name="board_paste_image">Paste image</string>
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Keyboard toolbar</string>
@@ -481,10 +483,6 @@
     <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for offline dictation.</string>
     <string name="inline_voice_unavailable">Offline dictation requires Android 12 or later and an installed on-device speech service.</string>
     <string name="inline_voice_permission">Allow microphone access in brrBoard settings → About.</string>
-    <string name="inline_voice_listening">Listening…</string>
-    <string name="inline_voice_processing">Transcribing…</string>
-    <string name="inline_voice_stop">Stop</string>
-    <string name="inline_voice_cancel">Cancel</string>
     <string name="inline_voice_failure">Offline dictation failed. Check your device’s speech language and try again.</string>
     <string name="inline_voice_unsupported_language">Your on-device speech service does not support dictation in this language.</string>
     <string name="inline_voice_no_speech">No speech was recognized. Try again.</string>
@@ -808,6 +806,7 @@ New dictionary:
     <!-- Theme name for violette theme -->
     <string name="theme_name_violette" tools:keep="@string/theme_name_violette">Violette</string>
     <string name="theme_name_frosted_glass">OG Frosted Glass</string>
+    <string name="theme_name_og_frost_tinted">OG Frost Tinted</string>
     <string name="theme_name_frosted_ios_clear">iOS Clear</string>
     <string name="theme_name_frosted_ios_tinted">iOS Tinted</string>
     <string name="theme_frosted_glass_settings_header">Frosted Glass Settings</string>

@@ -326,8 +326,7 @@
     <string name="word_left" tools:keep="@string/word_left">Kata tersisa</string>
     <string name="quick_pin_toolbar_keys">Sematkan tombol bilah alat saat ditekan lama</string>
     <string name="quick_pin_toolbar_keys_summary">Ini akan menonaktifkan tindakan tekan lama lainnya untuk tombol bilah alat yang tidak disematkan</string>
-    <string name="prefs_long_press_symbol_for_numpad">Tekan lama tombol simbol untuk papan nomor</string>
-    <string name="subtype_generic_phonetic">%s (Fonetik)</string>
+<string name="subtype_generic_phonetic">%s (Fonetik)</string>
     <string name="prefs_key_emoji_max_sdk">Ganti versi Emoji</string>
     <string name="long_press_code">Kode tekan lama</string>
     <string name="subtype_dru">Dargwa (Urakhi)</string>

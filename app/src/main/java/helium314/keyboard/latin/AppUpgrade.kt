@@ -49,6 +49,8 @@ import kotlin.collections.component2
 import kotlin.collections.set
 
 private const val PREF_DEFAULT_BACKUP_RESTORED = "default_backup_restored"
+private const val PREF_EMOJI_GRID_COMPACT_DEFAULT_APPLIED = "emoji_grid_compact_default_applied"
+private const val OLD_DEFAULT_EMOJI_FONT_SCALE = 1.3046509f
 private const val VERSION_FROSTED_DUST_DEFAULT_OFF = 2409
 
 fun checkVersionUpgrade(context: Context) {
@@ -90,6 +92,17 @@ private object AppUpgrade {
     fun onUpgrade(context: Context) {
         val prefs = context.prefs()
         val oldVersion = prefs.getInt(Settings.PREF_VERSION_CODE, 0)
+        if (!prefs.getBoolean(PREF_EMOJI_GRID_COMPACT_DEFAULT_APPLIED, false)) {
+            val savedEmojiScale = prefs.getFloat(Settings.PREF_EMOJI_FONT_SCALE, Defaults.PREF_EMOJI_FONT_SCALE)
+            prefs.edit {
+                // Migrate only the former shipped default; leave a user-selected scale alone.
+                if (prefs.contains(Settings.PREF_EMOJI_FONT_SCALE) &&
+                    kotlin.math.abs(savedEmojiScale - OLD_DEFAULT_EMOJI_FONT_SCALE) < 0.0001f) {
+                    putFloat(Settings.PREF_EMOJI_FONT_SCALE, Defaults.PREF_EMOJI_FONT_SCALE)
+                }
+                putBoolean(PREF_EMOJI_GRID_COMPACT_DEFAULT_APPLIED, true)
+            }
+        }
         // clear extracted dictionaries, in case updated version contains newer ones
         DictionaryInfoUtils.getCacheDirectories(context).forEach {
             for (file in it.listFiles()!!) {

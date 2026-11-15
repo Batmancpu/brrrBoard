@@ -333,8 +333,7 @@
     <string name="var_toolbar_direction">Zmienny kierunek paska narzędzi</string>
     <string name="subtype_probhat_bn_BD">%s (Probhat)</string>
     <string name="subtype_generic_student">%s (Uczeń)</string>
-    <string name="prefs_long_press_symbol_for_numpad">Przytrzymaj klawisz symboli, aby wyświetlić klawiaturę numeryczną</string>
-    <string name="center_suggestion_text_to_enter">Zawsze używaj środkowej sugestii</string>
+<string name="center_suggestion_text_to_enter">Zawsze używaj środkowej sugestii</string>
     <string name="center_suggestion_text_to_enter_summary">Po naciśnięciu spacji lub znaku interpunkcyjnego zostanie wpisana środkowa sugestia</string>
     <string name="close_history" tools:keep="@string/close_history">Zamknij schowek</string>
     <string name="subtype_generic_extended">%s (rozszerzony)</string>

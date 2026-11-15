@@ -15,8 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
 import android.view.VelocityTracker;
-import android.view.animation.PathInterpolator;
-import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.core.view.ViewKt;
@@ -44,7 +42,6 @@ public final class InputView extends FrameLayout {
     private final int[] mStripLocation = new int[2];
     private boolean mMayDragToolbar;
     private boolean mDraggingToolbar;
-    private boolean mClosingFromToolbar;
     private float mToolbarDownX;
     private float mToolbarDownY;
     private VelocityTracker mToolbarVelocity;
@@ -76,30 +73,18 @@ public final class InputView extends FrameLayout {
         mFooter.bind(owner);
     }
 
-    public void resetBoardGesture(final boolean restoreGlass) {
-        if (mOwner != null)
-            FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, restoreGlass);
+    public void resetBoardGesture() {
         mMayDragToolbar = false;
         mDraggingToolbar = false;
-        mClosingFromToolbar = false;
         releaseToolbarVelocity();
-        mBoardFrame.animate().cancel();
-        mBoardFrame.setTranslationY(0f);
         mFooter.reset();
     }
 
     @Override
     public boolean dispatchTouchEvent(final MotionEvent event) {
         final int action = event.getActionMasked();
-        if (mClosingFromToolbar) return true;
         if (action == MotionEvent.ACTION_DOWN) {
             releaseToolbarVelocity();
-            if (mBoardFrame.getTranslationY() != 0f) {
-                mBoardFrame.animate().cancel();
-                mBoardFrame.setTranslationY(0f);
-                if (mOwner != null)
-                    FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, true);
-            }
             mDraggingToolbar = false;
             mToolbarDownX = event.getRawX();
             mToolbarDownY = event.getRawY();
@@ -126,7 +111,6 @@ public final class InputView extends FrameLayout {
             if (!mDraggingToolbar && dy > slop && dy > dx * 0.85f) {
                 mDraggingToolbar = true;
                 mOwner.cancelBoardDictation();
-                FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, true, false);
                 final MotionEvent cancel = MotionEvent.obtain(event);
                 cancel.setAction(MotionEvent.ACTION_CANCEL);
                 super.dispatchTouchEvent(cancel);
@@ -137,7 +121,8 @@ public final class InputView extends FrameLayout {
                 releaseToolbarVelocity();
             }
             if (mDraggingToolbar) {
-                mBoardFrame.setTranslationY(Math.min(mBoardFrame.getHeight(), Math.max(0f, dy)));
+                // Let Android/ColorOS own the IME hide transition. Translating the
+                // surface here causes a second movement and a blur flash on release.
                 return true;
             }
         } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL
@@ -145,7 +130,7 @@ public final class InputView extends FrameLayout {
             mMayDragToolbar = false;
             if (mDraggingToolbar) {
                 mDraggingToolbar = false;
-                final float distance = mBoardFrame.getTranslationY();
+                final float distance = Math.max(0f, event.getRawY() - mToolbarDownY);
                 float velocity = 0f;
                 if (mToolbarVelocity != null) {
                     mToolbarVelocity.addMovement(event);
@@ -157,9 +142,10 @@ public final class InputView extends FrameLayout {
                 final float flingVelocity = 850f * getResources().getDisplayMetrics().density;
                 final boolean dismiss = action == MotionEvent.ACTION_UP &&
                         (distance >= mBoardFrame.getHeight() * 0.5f ||
-                        (distance >= mBoardFrame.getHeight() * 0.15f && velocity > flingVelocity));
+                        (distance >= ViewConfiguration.get(getContext()).getScaledTouchSlop() * 2
+                                && velocity > flingVelocity));
                 releaseToolbarVelocity();
-                settleToolbarDrag(dismiss);
+                if (dismiss) mOwner.onSwipeDownOnToolbar();
                 return true;
             }
             releaseToolbarVelocity();
@@ -172,27 +158,6 @@ public final class InputView extends FrameLayout {
             mToolbarVelocity.recycle();
             mToolbarVelocity = null;
         }
-    }
-
-    private void settleToolbarDrag(final boolean dismiss) {
-        mClosingFromToolbar = dismiss;
-        final Runnable finished = () -> {
-            if (dismiss) mOwner.onSwipeDownOnToolbar();
-            else FrostedGlassHelper.setToolbarDragBlurSuppressed(mOwner, this, false, true);
-        };
-        if (android.os.Build.VERSION.SDK_INT >= 26 && !android.animation.ValueAnimator.areAnimatorsEnabled()) {
-            mBoardFrame.setTranslationY(dismiss ? mBoardFrame.getHeight() : 0f);
-            finished.run();
-            return;
-        }
-        mBoardFrame.animate()
-                .translationY(dismiss ? mBoardFrame.getHeight() : 0f)
-                .setDuration(dismiss ? 135 : 210)
-                .setInterpolator(dismiss
-                        ? new PathInterpolator(0.2f, 0.75f, 0.35f, 1f)
-                        : new OvershootInterpolator(0.42f))
-                .withEndAction(finished)
-                .start();
     }
 
     public void setKeyboardTopPadding(final int keyboardTopPadding) {

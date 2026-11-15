@@ -182,8 +182,7 @@
     <string name="prefs_long_press_keyboard_to_change_lang_summary">Apăsarea lungă a tastei spațiu va solicita meniul de selectare a metodei de introducere</string>
     <string name="var_toolbar_direction_summary">Inversează direcția când este selectat un subtip de tastatură de la dreapta la stânga</string>
     <string name="var_toolbar_direction">Direcție variabilă a barei de instrumente</string>
-    <string name="prefs_long_press_symbol_for_numpad">Apasă lung tasta simbol pentru tastatura numerică</string>
-    <string name="button_title_add_custom_layout">Adaugă un aspect personalizat</string>
+<string name="button_title_add_custom_layout">Adaugă un aspect personalizat</string>
     <string name="message_add_custom_layout">Selectează un fișier într-un format compatibil. Informațiile despre formate sunt disponibile %s.</string>
     <string name="button_load_custom">Încarcă fișierul</string>
     <string name="file_read_error">Nu se poate citi fișierul</string>

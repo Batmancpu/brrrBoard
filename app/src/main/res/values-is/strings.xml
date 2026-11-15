@@ -337,8 +337,7 @@
     <string name="quick_pin_toolbar_keys">Festa verkfærastikulykil við að ýta lengi</string>
     <string name="quick_pin_toolbar_keys_summary">Þetta mun gera óvirkar aðgerðir þar sem ýtt er lengi fyrir verkfærastikulykla sem ekki eru festir</string>
     <string name="prefs_long_press_keyboard_to_change_lang">Skipta um innsláttaraðferð með bilslá</string>
-    <string name="prefs_long_press_symbol_for_numpad">Ýttu lengi á táknalykil til að fá talnaborð</string>
-    <string name="center_suggestion_text_to_enter_summary">Við að ýta á bilslá eða greinarmerki verður tillagan í miðjunni sett inn</string>
+<string name="center_suggestion_text_to_enter_summary">Við að ýta á bilslá eða greinarmerki verður tillagan í miðjunni sett inn</string>
     <string name="checksum_mismatch_message">Óþekkt orðasafnsskrá. Ertu viss um að þú hafi fengið hana frá áreiðanlegum aðila og að hún sé fyrir \'%s\'?</string>
     <string name="load_gesture_library_summary">Gefðu upp innfellt aðgerðasafn til að virkja innslátt með bendingum</string>
     <string name="backup_restore_message">Vista eða hlaða inn úr skrá. Aðvörun: endurheimta mun yfirskrifa fyrirliggjandi gögn</string>

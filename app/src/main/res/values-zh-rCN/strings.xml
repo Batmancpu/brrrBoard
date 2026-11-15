@@ -236,8 +236,7 @@
     <string name="show_popup_hints_summary">如果长按某个键会触发其他功能，则显示提示</string>
     <string name="emoji" tools:keep="@string/emoji">表情符号</string>
     <string name="show_popup_hints">显示功能提示</string>
-    <string name="prefs_long_press_symbol_for_numpad">长按数字键盘符号键</string>
-    <string name="prefs_bottom_padding_scale">底部边距比例</string>
+<string name="prefs_bottom_padding_scale">底部边距比例</string>
     <string name="message_add_custom_layout">选择兼容格式的文件。有关格式的信息可用 %s。</string>
     <string name="word_right" tools:keep="@string/word_right">字词向右</string>
     <string name="page_up" tools:keep="@string/page_up">向上翻页</string>

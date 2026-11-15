@@ -290,8 +290,7 @@
     <string name="show_vertical_space_swipe">Вертикальное смахивание по пробелу</string>
     <string name="action_none">Бездействие</string>
     <string name="space_swipe_move_cursor_entry">Переместить курсор</string>
-    <string name="prefs_long_press_symbol_for_numpad">Долгое нажатие клавиши символов вызывает цифровую клавиатуру</string>
-    <string name="subtype_generic_student">%s (Студенческая)</string>
+<string name="subtype_generic_student">%s (Студенческая)</string>
     <string name="language_switch_key_behavior">Действие клавиши смены языка</string>
     <string name="emoji" tools:keep="@string/emoji">Эмодзи</string>
     <string name="pinned_toolbar_keys">Выбрать закреплённые клавиши панели инструментов</string>

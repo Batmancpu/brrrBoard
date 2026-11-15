@@ -285,8 +285,7 @@
     <string name="action_none">Nichts</string>
     <string name="space_swipe_move_cursor_entry">Cursor bewegen</string>
     <string name="show_horizontal_space_swipe">Horizontale Wischgeste der Leertaste</string>
-    <string name="prefs_long_press_symbol_for_numpad">Symbole-Taste für Ziffernblock gedrückt halten</string>
-    <string name="var_toolbar_direction">Variable Symbolleisten-Richtung</string>
+<string name="var_toolbar_direction">Variable Symbolleisten-Richtung</string>
     <string name="var_toolbar_direction_summary">Richtung umkehren, wenn die Tastatur einer Rechts-nach-Links-Sprache ausgewählt ist</string>
     <string name="subtype_generic_student">%s (Student)</string>
     <string name="subtype_probhat_bn_BD">%s (Probhat)</string>

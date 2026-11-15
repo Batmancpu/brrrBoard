@@ -278,8 +278,7 @@ Nouveau dictionnaire:
     <string name="subtype_generic_sebeolsik_390">%s (Sebeolsik 390)</string>
     <string name="subtype_generic_sebeolsik_final">%s (Sebeolsik Final)</string>
     <string name="var_toolbar_direction">Sens variable de la barre d\'outils</string>
-    <string name="prefs_long_press_symbol_for_numpad">Appui long sur la touche des symboles pour afficher le pavé numérique</string>
-    <string name="layout_phone" tools:keep="@string/layout_phone">Pavé téléphonique</string>
+<string name="layout_phone" tools:keep="@string/layout_phone">Pavé téléphonique</string>
     <string name="space_swipe_move_cursor_entry">Déplacer le curseur</string>
     <string name="subtype_xdq">Kaitag</string>
     <string name="action_none">Aucun</string>

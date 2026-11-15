@@ -102,13 +102,16 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         const val THEME_SAND = "sand"
         const val THEME_VIOLETTE = "violette"
         const val THEME_FROSTED_GLASS = "frosted_glass"
+        const val THEME_OG_FROST_TINTED = "og_frost_tinted"
         const val THEME_IOS_CLEAR = "frosted_ios_clear"
         const val THEME_IOS_TINTED = "frosted_ios_tinted"
 
         fun isIosGlassTheme(themeName: String?) =
             themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
 
-        private val boardThemes = listOf(THEME_FROSTED_GLASS, THEME_IOS_CLEAR, THEME_IOS_TINTED)
+        private val boardThemes = listOf(
+            THEME_FROSTED_GLASS, THEME_OG_FROST_TINTED, THEME_IOS_CLEAR, THEME_IOS_TINTED
+        )
 
         fun getAvailableDefaultColors() = boardThemes
 
@@ -197,17 +200,20 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             DoubleArray(3).also { ColorUtils.colorToLAB(color, it) }
         }
 
+        private fun nearestAppleAccent(androidAccent: Int): Int {
+            val lab = DoubleArray(3)
+            ColorUtils.colorToLAB(androidAccent, lab)
+            val index = iosAccentPalette.indices.minBy { ColorUtils.distanceEuclidean(lab, iosAccentLab[it]) }
+            return iosAccentPalette[index]
+        }
+
         private fun iosGlassColors(context: Context, hasBorders: Boolean, themeName: String): Colors {
             val tinted = themeName == THEME_IOS_TINTED
             val hasNativeBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                 !helium314.keyboard.latin.FrostedGlassHelper.isKnownFrostedGlassBlurUnsupportedDevice()
             val systemAccent = if (tinted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                 ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
-            val searchAccent = if (systemAccent == null) IOS_BLUE else {
-                val lab = DoubleArray(3)
-                ColorUtils.colorToLAB(systemAccent, lab)
-                iosAccentPalette[iosAccentLab.indices.minBy { ColorUtils.distanceEuclidean(lab, iosAccentLab[it]) }]
-            }
+            val searchAccent = systemAccent?.let(::nearestAppleAccent) ?: IOS_BLUE
             // Keep the renderer's base tint white and the keycaps neutral in both presets.
             val whiteGlass = ColorUtils.setAlphaComponent(Color.WHITE, iosGlassAlpha(themeName))
             val background = if (hasNativeBlur) whiteGlass else 0xffeeeeef.toInt()
@@ -234,7 +240,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                     else getThemeColors(THEME_LIGHT, themeStyle, context, prefs, isNight)
                 }
                 THEME_IOS_CLEAR, THEME_IOS_TINTED -> iosGlassColors(context, hasBorders, themeName)
-                THEME_FROSTED_GLASS -> {
+                THEME_FROSTED_GLASS, THEME_OG_FROST_TINTED -> {
+                    val ogTinted = themeName == THEME_OG_FROST_TINTED
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         val keyTransparency = livePreviewValues?.keyTransparency
                             ?: (if (isNight) prefs.getInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT, Defaults.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT)
@@ -332,6 +339,10 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                         }
                         val specialKeyBackground = boostSpecialSaturation(ColorUtils.setAlphaComponent(specialBgBase, keyAlpha))
                         val enterKeyBackground = specialKeyBackground
+                        val wallpaperAccent = if (ogTinted)
+                            ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
+                        val ogFrostKeyAccent = wallpaperAccent?.let(::nearestAppleAccent) ?:
+                            if (ogTinted) IOS_BLUE else 0
 
                         val keyText = if (isNight) ContextCompat.getColor(context, android.R.color.system_neutral1_50)
                             else ContextCompat.getColor(context, android.R.color.system_accent3_900)
@@ -354,10 +365,15 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             specialKeyBackground = specialKeyBackground,
                             enterKeyBackground = enterKeyBackground,
                             systemAccent = systemAccentColor,
-                            systemNeutral = systemNeutralColor
+                            systemNeutral = systemNeutralColor,
+                            ogFrostKeyAccent = ogFrostKeyAccent,
+                            ogFrostSystemAccent = wallpaperAccent
                         )
                     } else {
-                        getThemeColors(if (isNight) THEME_DARK else THEME_LIGHT, themeStyle, context, prefs, isNight)
+                        val fallback = getThemeColors(
+                            if (isNight) THEME_DARK else THEME_LIGHT, themeStyle, context, prefs, isNight
+                        )
+                        if (ogTinted) OgFrostAccentColors(fallback, IOS_BLUE) else fallback
                     }
                 }
                 THEME_LIGHT -> DefaultColors(

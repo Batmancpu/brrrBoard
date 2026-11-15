@@ -252,8 +252,7 @@
     <string name="emoji" tools:keep="@string/emoji">אימוג\'י</string>
     <string name="show_popup_hints">הצגת רמזים פונקציונליים</string>
     <string name="show_popup_hints_summary">הצגת רמזים אם לחיצה ממושכת תגרום להפעלת פונקציונליות נוספת</string>
-    <string name="prefs_long_press_symbol_for_numpad">כפתור סימנים בלחיצה ממושכת עבור numpad</string>
-    <string name="prefs_bottom_padding_scale">קנה-מידה גובה המרווח התחתון</string>
+<string name="prefs_bottom_padding_scale">קנה-מידה גובה המרווח התחתון</string>
     <string name="replace_dictionary_message">באמת להחליף את המילון שנוסף ע\"י המשתמש \"%1$s\"?
 \n
 \nהמילון הנוכחי:

@@ -301,8 +301,7 @@
     <string name="show_popup_hints_summary">Rodyti patarimus jei ilgas paspaudimas iškviečia kitus veiksmus</string>
     <string name="remove_redundant_popups">Pašalinti pasikartojančius iššokančius langus</string>
     <string name="remove_redundant_popups_summary">Paslėpti iššokančius mygtukus kurie jau yra</string>
-    <string name="prefs_long_press_symbol_for_numpad">Skaičių įvesčiai ilgai paspausti simbolių mygtuką</string>
-    <string name="prefs_side_padding_scale">Šono dydis</string>
+<string name="prefs_side_padding_scale">Šono dydis</string>
     <string name="prefs_emoji_font_scale">Jaustukų peržiūros šrifto dydis</string>
     <string name="prefs_emoji_key_fit">Keisti jaustukų mygtuko dydį kartu su šrifto dydžiu</string>
     <string name="prefs_emoji_skin_tone">Numatytasis jaustukų temos tonas</string>

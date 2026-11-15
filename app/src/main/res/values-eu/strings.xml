@@ -178,8 +178,7 @@
     <string name="add_dictionary">Hautatu gehitzeko hiztegi bat. .dict formatuan dauden hiztegiak %s deskargatu daitezke.</string>
     <string name="theme_name_darker" tools:keep="@string/theme_name_darker">Ilunago</string>
     <string name="voice" tools:keep="@string/voice">Ahots sarrera</string>
-    <string name="prefs_long_press_symbol_for_numpad">Sakatu luze ikurren tekla teklatu numerikorako</string>
-    <string name="prefs_narrow_key_gaps">Murriztu teklen arteko tarteak</string>
+<string name="prefs_narrow_key_gaps">Murriztu teklen arteko tarteak</string>
     <string name="prefs_bottom_padding_scale">Beheko betegarriaren eskala</string>
     <string name="layout_symbols" tools:keep="@string/layout_symbols">ikurrak</string>
     <string name="user_dict_settings_add_weight_value">Pisua:</string>

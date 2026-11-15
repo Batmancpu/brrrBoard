@@ -400,6 +400,8 @@ public class KeyboardView extends View {
         if (mColors.isFrosted()) {
             if (key.getCode() == Constants.CODE_SPACE) {
                 frostedColorType = ColorType.SPACE_BAR_BACKGROUND;
+            } else if (isOgFrostTintedControlKey(key)) {
+                frostedColorType = ColorType.OG_FROST_ACCENT_BACKGROUND;
             } else if (key.hasActionKeyBackground()) {
                 frostedColorType = ColorType.ENTER_KEY_BACKGROUND;
             } else if (isSpecialKey(key)) {
@@ -453,6 +455,16 @@ public class KeyboardView extends View {
                 fill = KeyBackgroundUtils.fillColorFor(mColors, frostedColorType, pressed);
             }
             mBackgroundPaint.setColor(fill);
+            final float radius = Math.min(bgWidth, bgHeight) * 0.17f;
+            canvas.drawRoundRect(bgX, bgY, bgX + bgWidth, bgY + bgHeight, radius, radius, mBackgroundPaint);
+            return;
+        }
+
+        // On older Android versions, OG Frosted Glass falls back to a solid
+        // renderer. Keep the highlighted controls tinted without recoloring keys.
+        if (!mColors.isFrosted() && isOgFrostTintedControlKey(key)) {
+            mBackgroundPaint.setColor(KeyBackgroundUtils.fillColorFor(
+                    mColors, ColorType.OG_FROST_ACCENT_BACKGROUND, key.isPressed() || key.isLocked()));
             final float radius = Math.min(bgWidth, bgHeight) * 0.17f;
             canvas.drawRoundRect(bgX, bgY, bgX + bgWidth, bgY + bgHeight, radius, radius, mBackgroundPaint);
             return;
@@ -756,6 +768,8 @@ public class KeyboardView extends View {
                     paint.setColor(mColors.get(isPopupKeySelected(key)
                             ? ColorType.ACTION_KEY_ICON
                             : ColorType.KEY_PREVIEW_TEXT));
+                else if (isOgFrostTintedControlKey(key))
+                    paint.setColor(mColors.getOgFrostKeyAccentForeground());
                 else if (isIosHighlightedSearchKey(key, keyboard))
                     paint.setColor(mColors.getIosSearchKeyForeground());
                 else if (mColors.isFrosted())
@@ -1061,6 +1075,17 @@ public class KeyboardView extends View {
         return mColors.getIosSearchKeyAccent() != 0;
     }
 
+    private boolean isOgFrostTintedControlKey(@NonNull final Key key) {
+        if (mColors.getOgFrostKeyAccent() == 0 || isPopupKeysView() || key.isSpacer()) return false;
+        final int code = key.getCode();
+        return key.isShift() || key.hasActionKeyBackground()
+                || code == KeyCode.DELETE
+                || code == KeyCode.SYMBOL_ALPHA
+                || code == KeyCode.SYMBOL
+                || code == KeyCode.ALPHA
+                || code == KeyCode.NUMPAD;
+    }
+
     private boolean isIosHighlightedSearchKey(Key key, Keyboard keyboard) {
         return usesIosGlass() && !isPopupKeysView()
                 && key.hasActionKeyBackground() && keyboard != null
@@ -1073,6 +1098,8 @@ public class KeyboardView extends View {
             mColors.setColor(icon, isPopupKeySelected(key)
                     ? ColorType.ACTION_KEY_ICON
                     : ColorType.KEY_PREVIEW_TEXT);
+        } else if (isOgFrostTintedControlKey(key)) {
+            icon.setColorFilter(mColors.getOgFrostKeyAccentForeground(), PorterDuff.Mode.SRC_IN);
         } else if (isIosHighlightedSearchKey(key, keyboard)) {
             icon.setColorFilter(mColors.getIosSearchKeyForeground(), PorterDuff.Mode.SRC_IN);
         } else if (mColors.isFrosted() && (key.hasActionKeyBackground() || isSpecialKey(key))) {
