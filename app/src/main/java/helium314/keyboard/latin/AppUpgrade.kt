@@ -52,6 +52,7 @@ private const val PREF_DEFAULT_BACKUP_RESTORED = "default_backup_restored"
 private const val PREF_EMOJI_GRID_COMPACT_DEFAULT_APPLIED = "emoji_grid_compact_default_applied"
 private const val OLD_DEFAULT_EMOJI_FONT_SCALE = 1.3046509f
 private const val VERSION_FROSTED_DUST_DEFAULT_OFF = 2409
+private const val PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED = "reno10_shift_icon_migration_applied"
 
 fun checkVersionUpgrade(context: Context) {
     val prefs = context.prefs()
@@ -110,6 +111,33 @@ private object AppUpgrade {
                     file.delete()
             }
         }
+        // Upgrade only the stock Shift glyphs saved by older icon-customization builds. Preserve
+        // any Shift glyph the owner explicitly replaced with a different drawable.
+        if (!prefs.getBoolean(PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED, false)) {
+            val storedIconNames = prefs.getString(Settings.PREF_CUSTOM_ICON_NAMES, null)
+            val savedIconNames = storedIconNames?.let {
+                runCatching { Json.decodeFromString<Map<String, String>>(it).toMutableMap() }.getOrNull()
+            }
+            val legacyShiftIcons = mapOf(
+                "shift_key" to ("sym_keyboard_shift_holo" to "sym_keyboard_shift_outline"),
+                "shift_key_shifted" to ("sym_keyboard_shifted_holo" to "sym_keyboard_shift_filled"),
+                "shift_key_locked" to ("sym_keyboard_shift_lock_holo" to "sym_keyboard_shift_caps")
+            )
+            if (savedIconNames != null) {
+                var changed = false
+                legacyShiftIcons.forEach { (key, names) ->
+                    if (savedIconNames[key] == names.first) {
+                        savedIconNames[key] = names.second
+                        changed = true
+                    }
+                }
+                if (changed) prefs.edit {
+                    putString(Settings.PREF_CUSTOM_ICON_NAMES, Json.encodeToString(savedIconNames))
+                }
+            }
+            prefs.edit { putBoolean(PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED, true) }
+        }
+
         // Obtainium uses its own small, sequential version codes and application ID.
         // The upstream version thresholds below apply to the other APK variants.
         if (BuildConfig.BUILD_TYPE == "obtainium") {
