@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Signed [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25) from `4d13a045d5fd17bcb427e2f22e5a70cef00e9049` passed Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374); APK SHA-256 `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. Shift outline/active/Caps Lock glyphs and the saved-icon migration are shipped; Reno10 visual acceptance is pending. The current source adds a local Devanagari-result guard and corrects obsolete offline-only dictation copy; signed CI is pending. Dictate still outputs Hindi per owner report; its service ignores caller language extras and uses its saved Active language. English-only device behavior is unresolved. Geometry, remaining icons/accessory, brrPersonal, Emoji, QuickPath and device acceptance remain open.
+**Status (2026-11-15 UTC / Nov 16 IST):** Signed [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26), source `cc6c1ae5048204740c0186f72e233671a410571a`, passed Obtainium run [43758269031](https://github.com/Batmancpu/brrrBoard/actions/runs/43758269031); APK SHA-256 `cb95cac9b41c50ddc57f934f5d3040152a45a4ec7cecb3e1ff6beae3f2d41eba`. v1.0.26 corrects dictation provider copy and blocks final results containing Devanagari, but does not force Dictate's saved language or detect Romanized Hindi. Debug run [43758268969](https://github.com/Batmancpu/brrrBoard/actions/runs/43758268969) built/verified/uploaded the APK but the automatic test gate found 13/180 failures; no tests were manually run. English-on-device, Reno10 geometry, remaining icon/accessory, brrPersonal/Emoji, QuickPath rights/compatibility, and all physical acceptance remain open.
 
 ## Product target
 
@@ -126,6 +126,7 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 
 - [x] Batch 0: handoff, personalized README and agent guidance committed.
 - [x] Batch 1: default RecognitionService route plus English request shipped in v1.0.21. CI signed/published the APK. Owner reports Dictate path works but output remains Hindi until Dictate's own active language is set to English.
+- [x] Batch 1b: v1.0.26 corrects selected-service copy and blocks Devanagari-script final results with a Dictate setup hint. It is not full English-language detection; Romanized Hindi and Dictate's saved Active language remain unresolved.
 - [ ] Batch 2: trace and correct any confirmed geometry/interactions defects, including visible bottom gap and stable panel boundaries.
 - [x] Batch 3a: center autocorrection highlight from existing mWillAutoCorrect signal shipped in signed v1.0.22; Reno10 visual acceptance remains pending.
 - [ ] Batch 3b: validate text/Emoji suggestion behavior and separate it from the right-side accessory; add Smart Emoji only after brrPersonal dictionary foundation.
@@ -137,4 +138,6 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 
 ## Dictate language safety note
 
-The system RecognitionService may be a network-backed provider chosen by the owner. brrBoard requests an English locale and the current source refuses a final result containing Devanagari characters, showing a setup hint instead of inserting that script. This is a script safeguard only: it does not detect Hindi written in Latin characters and does not override Dictate's saved Active language. English-only acceptance still requires the owner to set Dictate Active language to English, disable keyboard-following, and verify on Reno10.
+The system RecognitionService may be a network-backed provider chosen by the owner. brrBoard requests an English locale and v1.0.26 refuses a final result containing Devanagari characters, showing a setup hint instead of inserting that script. This is a script safeguard only: it does not detect Hindi written in Latin characters and does not override Dictate's saved Active language. English-only acceptance still requires the owner to set Dictate Active language to English, disable keyboard-following, and verify on Reno10.
+
+The owner's issue [#359](https://github.com/DevEmperor/DictateKeyboard/issues/359) and the maintainer's reply confirm the key route distinction: `SpeechRecognizer` calling Dictate's `RecognitionService` can keep brrBoard visible; calling Dictate's voice-input IME replaces the keyboard, and `ACTION_RECOGNIZE_SPEECH` opens an activity. This project uses the first route. The issue does not expose an API for brrBoard to control Dictate's private Active language.

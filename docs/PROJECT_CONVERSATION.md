@@ -403,5 +403,23 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 
 **Source change.** On final results, InlineDictation now checks for Devanagari characters. If present, it does not insert them and shows a local message directing the owner to set Dictate's Active language to English. The check is intentionally a script safeguard, not a language detector: it cannot identify Hindi written in Latin letters and cannot change Dictate's private Active language. The system service is still requested with the English locale, and no brrBoard INTERNET permission or provider credentials are added.
 
-**Verification.** Source and the two user-facing strings are committed with the handoff. Signed Obtainium build is pending. Device result remains unverified; no claim that Dictate itself is forced to English is made.
+**Verification.** Source and the two user-facing strings are committed in `cc6c1ae5048204740c0186f72e233671a410571a`. Obtainium run [43758269031](https://github.com/Batmancpu/brrrBoard/actions/runs/43758269031) passed and published [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26), APK SHA-256 `cb95cac9b41c50ddc57f934f5d3040152a45a4ec7cecb3e1ff6beae3f2d41eba`. The separate debug run [43758268969](https://github.com/Batmancpu/brrrBoard/actions/runs/43758268969) built, verified and uploaded its APK, then failed the automatic test gate with 13/180 unit-test failures. No tests were manually run. Reno10 behavior remains unverified.
 
+
+## 2026-11-15 UTC / Nov 16 IST — v1.0.26 release and continued whole-project review
+
+**Owner**
+> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work.
+
+**Owner**
+> Also, I want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
+
+**Source and provider review.** Read the owner's DictateKeyboard issue [#359](https://github.com/DevEmperor/DictateKeyboard/issues/359) and the maintainer's explanation. The system `SpeechRecognizer` → selected Dictate `RecognitionService` route leaves brrBoard visible and delivers results through callbacks. The voice-input IME route replaces brrBoard; `ACTION_RECOGNIZE_SPEECH` opens another activity. Dictate's implementation uses its saved Active language and ignores the caller's requested language extras.
+
+**v1.0.26 result.** Main commit `cc6c1ae5048204740c0186f72e233671a410571a` adds a Devanagari script guard: final output containing Devanagari is not inserted; a local message directs the owner to Dictate's English Active language. It also removes obsolete “offline/on-device” claims from dictation copy. Obtainium run [43758269031](https://github.com/Batmancpu/brrrBoard/actions/runs/43758269031) passed and published [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26). APK SHA-256: `cb95cac9b41c50ddc57f934f5d3040152a45a4ec7cecb3e1ff6beae3f2d41eba`.
+
+**Limit.** The guard catches Devanagari characters in `U+0900..U+097F` and `U+A8E0..U+A8FF`; it is not a language detector and cannot detect Romanized Hindi or change Dictate's private preference. Set Dictate Active language to English and disable keyboard-following. English-only Reno10 acceptance is still pending. brrBoard remains without INTERNET permission; the selected provider may use its own network service.
+
+**CI.** Automatic debug run [43758268969](https://github.com/Batmancpu/brrrBoard/actions/runs/43758268969) built, signer-verified and uploaded the debug APK (artifact [14178932977](https://api.github.com/repos/Batmancpu/brrrBoard/actions/artifacts/14178932977), 59.2 MB, expires Nov 29). Its test report found 13/180 failures: five KeyboardParserTest currency/popup cases, seven InputLogicTest URL/autospace cases, and StringUtilsTest.isEmojiDetectsAllAvailableEmojis. Obtainium build passed independently. This batch did not change tests or run them manually.
+
+**Next.** Inspect DictionaryFacilitatorImpl/Suggest and the existing native proximity decoder to design a finite, license-safe `brrPersonal` source. Keep valid-only profanity/slang separate from completions and autocorrection. Do not add a separate hand-weighted ranker. After that, resume confirmed geometry/accessory/icon items and finish with the owner-requested retrospective.
