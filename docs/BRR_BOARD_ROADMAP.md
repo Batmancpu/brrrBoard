@@ -2,11 +2,11 @@
 
 ## Product target
 
-A fast, fully offline Android keyboard, with iOS 27-style key placement and behavior, the existing Frosted Glass renderer with rounded edges and calibrated defaults, a bundled North Indian Hinglish vocabulary, and inline offline dictation. The app label is `brrBoard`. Preserve the existing Obtainium package ID, signer, and increasing version code. Work on main. Publish a signed APK at each completed phase, with the phase and remaining gaps recorded.
+A fast, offline-first Android keyboard with iOS-inspired layout and behavior, the existing Frosted Glass renderer, and a finite North-Indian Romanized Hinglish dictionary. Typing and suggestions are local. Mic tap uses the owner's selected Android RecognitionService (Dictate); Dictate's configured provider may use its own network service, while brrBoard itself has no INTERNET permission. Preserve the existing Obtainium package ID, signer, and increasing version code. Work on main and record each signed checkpoint and remaining phone checks.
 
-## Latest checkpoint
+## Current checkpoint
 
-[v1.0.8](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.8) shipped the exact branding, setup and picker label fixes, MangoLoads About link, and first inline on-device dictation implementation. The owner prioritized these ahead of iOS layout work. See [the project context](../PROJECT_CONTEXT.md#resume-here) for the remaining phone checks and debug failures. The backup settings and three existing dictionaries shipped in v1.0.7. Slang expansion, iOS layout/suggestions, Frosted Glass polish and residual online-code cleanup remain open.
+The latest signed release is [v1.0.35](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.35), source [acacf32](https://github.com/Batmancpu/brrrBoard/commit/acacf329aaf058446d5deb4b463a11f8941cc0ce), Obtainium run [43772005035](https://github.com/Batmancpu/brrrBoard/actions/runs/43772005035), SHA-256 `dc4beadfa10a1d13476b5c978bcdebe96231fed2dba9d55da52a3d1c08a40b15`, 51,024,650 bytes. v1.0.31 contains brrPersonal; v1.0.33 adds adaptive Emoji ranking in the existing Recents grid; v1.0.35 adds a confirmed local learned-typing-history reset. Debug workflow [43772005020](https://github.com/Batmancpu/brrrBoard/actions/runs/43772005020) built and signer-verified the APK, then failed its automatic unit-test gate with the known 13/180 baseline failures (5 ParserTest, 7 InputLogicTest, 1 StringUtilsTest); no tests were manually run. Dictate uses the selected RecognitionService inline; its own Active language controls output, and English-only still requires Dictate setup plus Reno10 confirmation. The active plan is [POST_V1_0_19_RENO10_PLAN.md](POST_V1_0_19_RENO10_PLAN.md); this roadmap's old v1.0.8 phase ordering is historical.
 
 ## Phase 1 — offline baseline and branding
 
@@ -47,7 +47,7 @@ The backup provides Material keys, Holo icons with individual overrides, 32dp bo
 
 - Reproduce [DictateKeyboard #359](https://github.com/DevEmperor/DictateKeyboard/issues/359). The maintainer identifies the shortcut IME and popup paths as keyboard-replacing, and Android RecognitionService as the path that keeps the keyboard visible.
 - Inspect the mic callback and editor lifecycle in LatinIME and the keyboard action handler. Add an in-keyboard listening panel with start, stop, cancel and errors. Scope callbacks to the active InputConnection and destroy or cancel on editor change, keyboard dismissal, password fields and interruption.
-- Prefer the Android on-device recognizer when available. For Dictate, verify the actual provider and offline model configuration before treating it as a supported offline route. A separate provider can have its own networking permissions. Avoid silent fallback to network recognition and offer a clear unavailable state.
+- Use the Android system-selected `RecognitionService` inline so the configured Dictate provider returns text without replacing brrBoard. The owner explicitly selected Dictate's configured API; it may use network. Keep brrBoard itself without INTERNET permission and do not store provider credentials. Dictate's Active language controls output, so English must be selected there and verified on the owner phone. Do not silently switch to a different recognizer.
 - Verify microphone permission, model missing, revoked permission, rotation, focus switch, cancellation, and English/Hindi/Hinglish on an actual device in airplane mode. Publish a signed voice checkpoint, labeling unsupported devices and configurations.
 
 ## Phase 5 — integrated release
