@@ -15,3 +15,5 @@ Follow [the phased brrBoard plan](docs/BRR_BOARD_ROADMAP.md). Keep the keyboard 
 Use the exact public label `brrBoard` and the maintainer’s MangoLoads link. Keep historical and license attribution. Prioritize inline on-device dictation and clean onboarding labels.
 
 Record the last verified commit and release, outstanding verification, and the exact next action at every handoff. Keep ongoing work on `main` and preserve the existing installer identity. Keep the handoff while development is active. Revisit cleanup when the owner says the project is done.
+
+For the active iOS 27 milestone, read the [Oppo Reno10 implementation plan](docs/IOS27_RENO10_PLAN.md). It records the latest priorities, control behavior, presets, device checks, and implementation status.
