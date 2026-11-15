@@ -56,13 +56,15 @@ internal class InlineDictation(private val ime: LatinIME) {
             return
         }
 
-        // brrBoard keeps dictation English-only, including while typing Romanized Hindi.
-        // Preserve the selected English region; otherwise use Indian English for this device.
+        // Request Indian English when the keyboard locale is not English. Android passes this
+        // hint to its selected RecognitionService, but Dictate currently ignores caller language
+        // extras and uses its own Active language setting. Hindi-script final candidates are
+        // rejected below; Latin-script Hindi cannot be reliably identified here.
         val speechLocale = if (locale.language == "en") locale else Locale.forLanguageTag("en-IN")
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             .putExtra(RecognizerIntent.EXTRA_LANGUAGE, speechLocale.toLanguageTag())
-            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
 
         try {
             // Use Android's selected RecognitionService (Dictate on the owner's device). This
@@ -118,15 +120,20 @@ internal class InlineDictation(private val ime: LatinIME) {
                 }
                 override fun onResults(results: Bundle?) {
                     if (recognizer !== session) return
-                    val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()?.trim().orEmpty()
+                    val candidates = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        .orEmpty()
+                    // Some RecognitionService implementations return alternatives. Prefer the
+                    // first candidate without Devanagari; Dictate currently returns only one.
+                    val text = candidates.firstOrNull { it.isNotBlank() && !containsHindiScript(it) }
+                        ?.trim().orEmpty()
+                    val rejectedHindi = candidates.isNotEmpty() && text.isEmpty() &&
+                        candidates.any(::containsHindiScript)
                     cancel()
-                    if (text.isNotEmpty() && ime.isInputViewShown &&
-                        ime.currentInputConnection === connection) {
-                        if (containsHindiScript(text)) {
-                            report(R.string.inline_voice_hindi_result)
-                        } else {
+                    if (ime.isInputViewShown && ime.currentInputConnection === connection) {
+                        if (text.isNotEmpty()) {
                             ime.onTextInput(text)
+                        } else if (rejectedHindi) {
+                            report(R.string.inline_voice_hindi_result)
                         }
                     }
                 }
