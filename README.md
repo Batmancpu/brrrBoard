@@ -12,11 +12,11 @@ brrBoard is my offline-first Android keyboard, shaped around how I type and tune
 
 ## Current build
 
-The latest signed release is [v1.0.19](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.19).
+The latest signed release is [v1.0.22](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.22).
 
-[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.19/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
+[Download the APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.22/brrBoard.apk) · [Set up Obtainium](docs/OBTAINIUM.md) · [Privacy policy](PRIVACY_POLICY.md)
 
-The next Reno10-focused work is in progress: consistent panel sizing, the system dictation route, iOS-inspired key behavior and icons, a compact brrPersonal Hinglish dictionary, and locally ranked Emoji suggestions. These are goals for the next build, not claims about v1.0.19.
+The next Reno10-focused work is in progress: consistent panel sizing, the system dictation route, iOS-inspired key behavior and icons, a compact brrPersonal Hinglish dictionary, and locally ranked Emoji suggestions. The action-key tint and neutral OG surfaces are now in the next signed build workflow; Reno10 visuals, Dictate's English language setting, and the dictionary/Emoji/symbol work still need acceptance.
 
 ## Project notes
 
