@@ -1919,7 +1919,7 @@ public class LatinIME extends InputMethodService implements
             }
         }
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
-            if (mSettings.getCurrent().mInputAttributes.mShouldShowVoiceInputKey) {
+            if (mSettings.getCurrent().mShowsVoiceInputKey) {
                 mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
             }
             return;
