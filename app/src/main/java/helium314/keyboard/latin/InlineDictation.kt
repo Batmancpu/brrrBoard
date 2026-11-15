@@ -16,6 +16,7 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import helium314.keyboard.latin.utils.InputTypeUtils
+import helium314.keyboard.latin.settings.Settings
 import java.util.Locale
 
 // The default service may use a network provider, so allow longer final-result processing.
@@ -45,7 +46,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         if (recognizer != null) return
         val inputView = root ?: return
         val editor = ime.currentInputEditorInfo ?: return
-        if (!ime.isInputViewShown || !canDictate(editor)) return
+        if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
         if (ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             report(R.string.inline_voice_permission)
