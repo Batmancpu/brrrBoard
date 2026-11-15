@@ -198,7 +198,6 @@ public class SettingsValues {
         mKeyPreviewPopupOn = prefs.getBoolean(Settings.PREF_POPUP_ON, Defaults.PREF_POPUP_ON);
         mSlidingKeyInputPreviewEnabled = prefs.getBoolean(
                 DebugSettings.PREF_SLIDING_KEY_INPUT_PREVIEW, Defaults.PREF_SLIDING_KEY_INPUT_PREVIEW);
-        mShowsVoiceInputKey = mInputAttributes.mShouldShowVoiceInputKey;
         final String languagePref = prefs.getString(Settings.PREF_LANGUAGE_SWITCH_KEY, Defaults.PREF_LANGUAGE_SWITCH_KEY);
         mLanguageSwitchKeyToOtherImes = languagePref.equals("input_method") || languagePref.equals("both");
         mLanguageSwitchKeyToOtherSubtypes = languagePref.equals("internal") || languagePref.equals("both");
@@ -269,6 +268,8 @@ public class SettingsValues {
         mSecondaryStripVisible = mToolbarMode != ToolbarMode.HIDDEN || ! mToolbarHidingGlobal;
         mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE) || mInputAttributes.mNoLearning
                 || mInputAttributes.mIsPasswordField;
+        // The selected speech service may send audio off-device; never offer voice input in incognito.
+        mShowsVoiceInputKey = mInputAttributes.mShouldShowVoiceInputKey && !mIncognitoModeEnabled;
         mKeyboardHeightScale = Settings.readHeightScale(prefs, isLandscape, isFolded);
         mBottomRowScale = Settings.readBottomRowScale(prefs, isLandscape, isFolded);
         mSpaceSwipeHorizontal = Settings.readHorizontalSpaceSwipe(prefs);
