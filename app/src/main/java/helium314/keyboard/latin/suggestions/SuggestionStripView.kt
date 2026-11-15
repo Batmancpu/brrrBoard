@@ -78,7 +78,6 @@ import helium314.keyboard.latin.utils.setToolbarButtonsActivatedStateOnPrefChang
 import helium314.keyboard.latin.utils.startDragAndDropCompat
 import helium314.keyboard.latin.utils.updateToolbarButtonActivatedState
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.abs
 import kotlin.math.min
 import androidx.core.view.isGone
 import kotlinx.coroutines.Dispatchers
@@ -363,7 +362,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                 slots.forEachIndexed { index, slot ->
-                                    if (slot == ToolbarKey.VOICE && !Settings.getValues().mShowsVoiceInputKey) {
+                                    if (slot == ToolbarKey.VOICE) {
                                         return@forEachIndexed
                                     }
                                     if (slot === PinnedDropPlaceholder) {
@@ -495,13 +494,6 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             override fun onScroll(down: MotionEvent?, me: MotionEvent, deltaX: Float, deltaY: Float): Boolean {
                 if (down == null) return false
                 val dy = me.y - down.y
-                val dx = me.x - down.x
-
-                if (Settings.getValues().mToolbarSwipeDownToHide && dy > 50.dpToPx(resources) && abs(dy) > abs(dx)) {
-                    listener.onSwipeDownOnToolbar()
-                    return true
-                }
-
                 return if (!isExternalSuggestionVisible && toolbarContainer.visibility != VISIBLE && deltaY > 0 && dy < (-10).dpToPx(resources)) showMoreSuggestions()
                 else false
             }
@@ -893,11 +885,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun updateVoiceKey() {
-        val show = Settings.getValues().mShowsVoiceInputKey
-        toolbar.findViewWithTag<View>(ToolbarKey.VOICE)?.isVisible = show
+        toolbar.findViewWithTag<View>(ToolbarKey.VOICE)?.isVisible = false
         activatedStateVersion.value++
         if (persistentToolbarKey.tag == ToolbarKey.VOICE) {
-            persistentToolbarKey.isVisible = show
+            persistentToolbarKey.isVisible = false
         }
     }
 
@@ -980,7 +971,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         applyAlphabetIconTint(persistentToolbarKey, colors)
         applySpecialKeyCircleBackground(persistentToolbarKey, colors)
         updateToolbarButtonActivatedState(persistentToolbarKey)
-        persistentToolbarKey.isVisible = key != ToolbarKey.VOICE || settingsValues.mShowsVoiceInputKey
+        persistentToolbarKey.isVisible = key != ToolbarKey.VOICE
     }
 
     fun updateThemeColors(colors: Colors) {
@@ -1245,7 +1236,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val drawable = if (isMenuOpen) {
             androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()
         } else {
-            androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_access_point_grid)?.mutate()
+            androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_board_toolbar)?.mutate()
         } ?: return
         accessPointTriggerBtn.setImageDrawable(drawable)
         applyAlphabetIconTint(accessPointTriggerBtn, colors)

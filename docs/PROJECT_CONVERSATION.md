@@ -145,3 +145,9 @@ The owner reported a failed mic test after granting microphone access. In the re
 > Okay, so please continue what you were doing
 
 **Assistant action.** Confirmed the signed v1.0.10 microphone build succeeded. Added iOS Clear and iOS Tinted color options, neutral rounded keycaps, and a small lower-right spacebar caption. Scoped the wallpaper accent to the Search action in iOS Tinted. Continued to use the existing Frosted Glass window and touch geometry. The original Frosted Glass preset remains available. Footer and row rearrangement, full OG default, and gesture changes are still queued. Checked the XML and ran git diff --check before the signed build.
+
+## 2026-11-15 — bundle the layout and toolbar gesture
+
+> Hey, implement the layout next. This update that you gave was really small and a waste of my time. Delete all the unnecessary themes, just keep the OG Frosted Glass and the two themes that you added, and implement the whole layout, each and every button and changes that I wanted, okay? And the small BRR board caption to the lower right is only on iOS, clear and tinted. Add that to every theme and make it less opaque, and implement the whole layout that I suggested. Look at the pictures of the photos that I gave and that, okay? Just do that. The next update should be the layout update, and the whole toolbar swipe to close as well.
+
+**Assistant action.** Combined the new row and footer, right-side toolbar control, interactive downward dismissal, the three theme choices, lower-opacity caption and contextual paste/key changes. Kept native numeric and script-specific layouts. Recorded signed and physical-device verification separately.

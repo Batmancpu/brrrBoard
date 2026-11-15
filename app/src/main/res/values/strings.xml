@@ -470,6 +470,10 @@
     <string name="subtype_english_picker">English</string>
     <string name="about_mangoloads">About MangoLoads</string>
     <string name="about_mangoloads_description">brrBoard is maintained by Batmancpu. See this and other projects on the MangoLoads website.</string>
+    <string name="board_language_and_shortcuts">Switch language. Hold for keyboard shortcuts.</string>
+    <string name="board_system_keyboard_picker">Switch Android keyboard</string>
+    <string name="board_inline_dictation">Dictate text</string>
+    <string name="board_toolbar">Keyboard toolbar</string>
     <string name="inline_voice_setup">Microphone permission</string>
     <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for offline dictation.</string>
     <string name="inline_voice_unavailable">Offline dictation requires Android 12 or later and an installed on-device speech service.</string>
@@ -800,7 +804,7 @@ New dictionary:
     <string name="theme_name_sand" tools:keep="@string/theme_name_sand">Sand</string>
     <!-- Theme name for violette theme -->
     <string name="theme_name_violette" tools:keep="@string/theme_name_violette">Violette</string>
-    <string name="theme_name_frosted_glass">Frosted Glass</string>
+    <string name="theme_name_frosted_glass">OG Frosted Glass</string>
     <string name="theme_name_frosted_ios_clear">iOS Clear</string>
     <string name="theme_name_frosted_ios_tinted">iOS Tinted</string>
     <string name="theme_frosted_glass_settings_header">Frosted Glass Settings</string>

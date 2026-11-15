@@ -1156,6 +1156,7 @@ public class LatinIME extends InputMethodService implements
         }
         super.setInputView(view);
         mInputView = view;
+        if (view instanceof InputView) ((InputView) view).bindBoardControls(this);
         mInsetsUpdater = ViewOutlineProviderUtilsKt.setInsetsOutlineProvider(view);
         FrostedGlassHelper.configureFrostedGlass(this, view, FrostedGlassHelper.isFrostedTheme(this));
         updateSuggestionStripView(view);
@@ -1186,6 +1187,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
         FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
@@ -1194,6 +1196,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInputView(final boolean finishingInput) {
         mInlineDictation.cancel();
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
         mStatsUtilsManager.onFinishInputView();
@@ -1624,6 +1627,10 @@ public class LatinIME extends InputMethodService implements
         Log.i(TAG, "requestHideSelf: " + flags);
     }
 
+    void cancelBoardDictation() {
+        mInlineDictation.cancel();
+    }
+
     @Override
     public void onSwipeDownOnToolbar() {
         requestHideSelf(0);
@@ -1686,19 +1693,21 @@ public class LatinIME extends InputMethodService implements
         final int inputHeight = mInputView.getHeight();
         final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
         final int persistentEmojiRowHeight = mKeyboardSwitcher.isShowingPersistentEmojiRow() ? mKeyboardSwitcher.getPersistentEmojiRowHeight() : 0;
+        final View footer = mInputView.findViewById(R.id.board_footer);
+        final int footerHeight = footer != null && footer.isShown() ? footer.getHeight() : 0;
 
         int keyboardHeight = 0;
         if (visibleKeyboardView != null && visibleKeyboardView.getHeight() > 0) {
             keyboardHeight = visibleKeyboardView.getHeight();
         } else if (mLastKeyboardHeight > 0) {
             // Fallback to last known height to prevent the gap from closing during transitions
-            keyboardHeight = mLastKeyboardHeight - stripHeight - persistentEmojiRowHeight;
+            keyboardHeight = mLastKeyboardHeight - stripHeight - persistentEmojiRowHeight - footerHeight;
             if (keyboardHeight < 0) keyboardHeight = 0;
         }
 
         if (keyboardHeight == 0 && visibleKeyboardView == null) return;
 
-        int visibleTopY = inputHeight - keyboardHeight - stripHeight - persistentEmojiRowHeight;
+        int visibleTopY = inputHeight - keyboardHeight - stripHeight - persistentEmojiRowHeight - footerHeight;
         if (visibleTopY < 0) visibleTopY = 0;
 
         outInsets.contentTopInsets = visibleTopY;
@@ -1711,7 +1720,7 @@ public class LatinIME extends InputMethodService implements
         if (mInsetsUpdater != null) mInsetsUpdater.setInsets(outInsets);
 
         if (keyboardHeight > 0) {
-            mLastKeyboardHeight = keyboardHeight + stripHeight + persistentEmojiRowHeight;
+            mLastKeyboardHeight = keyboardHeight + stripHeight + persistentEmojiRowHeight + footerHeight;
         }
     }
 
@@ -1836,6 +1845,15 @@ public class LatinIME extends InputMethodService implements
 
     // called when language switch key is pressed (either the keyboard key, or
     // long-press comma)
+    public void cycleBoardLanguage() {
+        if (mRichImm.hasMultipleEnabledSubtypesInThisIme(true)) {
+            final InputMethodSubtype next = mRichImm.getNextSubtypeInThisIme(true);
+            if (next != null) switchToSubtype(next);
+        } else {
+            showInputPickerDialog();
+        }
+    }
+
     public void switchToNextSubtype() {
         final boolean switchSubtype = mSettings.getCurrent().mLanguageSwitchKeyToOtherSubtypes;
         final boolean switchIme = mSettings.getCurrent().mLanguageSwitchKeyToOtherImes;

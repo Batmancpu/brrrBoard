@@ -105,4 +105,33 @@
 
     </helium314.keyboard.latin.KeyboardWrapperView>
 
+    <helium314.keyboard.latin.BoardFooterView
+        android:id="@+id/board_footer"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/board_footer_globe"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="left|center_vertical"
+            android:scaleType="center"
+            android:src="@drawable/sym_keyboard_language_switch_lxx"
+            android:contentDescription="@string/board_language_and_shortcuts"
+            android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+        <ImageButton
+            android:id="@+id/board_footer_mic"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="right|center_vertical"
+            android:scaleType="center"
+            android:src="@drawable/sym_keyboard_voice_lxx"
+            android:contentDescription="@string/board_inline_dictation"
+            android:background="?android:attr/selectableItemBackgroundBorderless" />
+    </helium314.keyboard.latin.BoardFooterView>
+
 </helium314.keyboard.latin.RoundedKeyboardFrameView>

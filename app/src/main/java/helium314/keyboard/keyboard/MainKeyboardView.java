@@ -889,11 +889,11 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final int code = key.getCode();
         if (code == Constants.CODE_SPACE) {
             // If input language are explicitly selected.
-            if (usesIosGlass() || mLanguageOnSpacebarFormatType != LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
+            if (!getKeyboard().mId.isNumberLayout()) {
                 drawLanguageOnSpacebar(key, canvas, paint);
             }
             // Whether space key needs to show the "..." popup hint for special purposes
-            if (!usesIosGlass() && key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes) {
+            if (getKeyboard().mId.isNumberLayout() && key.isLongPressEnabled() && mHasMultipleEnabledIMEsOrSubtypes) {
                 drawKeyPopupHint(key, canvas, paint, params);
             }
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
@@ -988,46 +988,20 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         }
         final int width = key.getWidth();
         final int height = key.getHeight();
-        final boolean iosGlass = usesIosGlass();
-        paint.setTextAlign(iosGlass ? Align.RIGHT : Align.CENTER);
-        paint.setTextSize(iosGlass ? height * 0.22f : mLanguageOnSpacebarTextSize);
-        final String customText = Settings.getValues().mSpaceBarText;
-        final String spaceText;
-        if (!customText.isEmpty()) {
-            spaceText = customText;
-        } else if (iosGlass && mLanguageOnSpacebarFormatType == LanguageOnSpacebarUtils.FORMAT_TYPE_NONE) {
-            return;
-        } else if (DebugFlags.DEBUG_ENABLED) {
-            final String l = KeyboardSwitcher.getInstance().getLocaleAndConfidenceInfo();
-            spaceText = l != null ? l : layoutLanguageOnSpacebar(paint, keyboard.mId.mSubtype, width);
-        }
-        else
-            spaceText = layoutLanguageOnSpacebar(paint, keyboard.mId.mSubtype, width);
-        paint.setTypeface(KeyboardTypeface.resolve(spaceText, Typeface.DEFAULT));
-        // Draw language text with shadow
-        final float descent = paint.descent();
-        final float textHeight = -paint.ascent() + descent;
-        final float baseline = height / 2f + textHeight / 2;
-        if (mLanguageOnSpacebarTextShadowRadius > 0.0f) {
-            paint.setShadowLayer(mLanguageOnSpacebarTextShadowRadius, 0, 0,
-                    mLanguageOnSpacebarTextShadowColor);
-        } else {
-            paint.clearShadowLayer();
-        }
-        paint.setColor(mLanguageOnSpacebarTextColor);
-        paint.setAlpha(iosGlass ? Constants.Color.ALPHA_OPAQUE : mLanguageOnSpacebarAnimAlpha);
-        if (!fitsTextIntoWidth(width, spaceText, paint)) {
-            final float textWidth = TypefaceUtils.getStringWidth(spaceText, paint);
-            paint.setTextScaleX((width - mLanguageOnSpacebarHorizontalMargin * 2) / textWidth);
-        }
-        if (iosGlass) {
-            final float inset = height * 0.12f;
-            canvas.drawText(spaceText, width - inset, height - inset - descent, paint);
-        } else {
-            canvas.drawText(spaceText, width / 2f, baseline - descent, paint);
-        }
+        final String caption = Settings.getValues().mSpaceBarText;
+        if (caption.isEmpty()) return;
+        paint.setTextAlign(Align.RIGHT);
+        paint.setTextSize(height * 0.22f);
+        paint.setTypeface(KeyboardTypeface.resolve(caption, Typeface.DEFAULT));
         paint.clearShadowLayer();
-        paint.setTextScaleX(1.0f);
+        paint.setColor(mLanguageOnSpacebarTextColor);
+        paint.setAlpha(Math.round(Color.alpha(mLanguageOnSpacebarTextColor) * 0.58f));
+        paint.setTextScaleX(1f);
+        final float inset = Math.min(height * 0.12f, width * 0.15f);
+        if (paint.measureText(caption) > width - inset * 2f)
+            paint.setTextScaleX((width - inset * 2f) / paint.measureText(caption));
+        canvas.drawText(caption, width - inset, height - inset - paint.descent(), paint);
+        paint.setTextScaleX(1f);
     }
 
     @Override

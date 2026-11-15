@@ -291,6 +291,22 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
             )
             baseKeys.removeAt(baseKeys.lastIndex)
         }
+        // Preserve script-specific joiners and separate numeric keyboards. Regular text uses
+        // a wide three-key row; email and URL fields keep their direct punctuation keys.
+        if (params.mId.isAlphabetKeyboard && !params.mLocaleKeyboardInfos.hasZwnjKey &&
+            functionalKeysBottom.any { it.label == KeyLabel.SPACE } &&
+            functionalKeysBottom.any { it.label == KeyLabel.ACTION } &&
+            functionalKeysBottom.any { it.label == KeyLabel.SYMBOL_ALPHA }) {
+            val mode = params.mId.mMode
+            val contextual = mode == KeyboardId.MODE_EMAIL || mode == KeyboardId.MODE_URL
+            val row = mutableListOf(TextKeyData(label = "123", code = KeyCode.SYMBOL_ALPHA, type = KeyType.FUNCTION, width = if (contextual) 0.18f else 0.24f))
+            if (contextual) row.add(TextKeyData(label = if (mode == KeyboardId.MODE_EMAIL) "@" else "/", width = 0.10f))
+            row.add(TextKeyData(label = KeyLabel.SPACE, width = if (contextual) 0.44f else 0.52f))
+            if (contextual) row.add(TextKeyData(label = KeyLabel.PERIOD, width = 0.10f))
+            row.add(TextKeyData(label = KeyLabel.ACTION, width = if (contextual) 0.18f else 0.24f))
+            functionalKeysBottom.clear()
+            functionalKeysBottom.addAll(row)
+        }
         // add zwnj key next to space if necessary
         val spaceIndex = functionalKeysBottom.indexOfFirst { it.label == KeyLabel.SPACE && it.width <= 0 } // width could be 0 or -1
         if (spaceIndex >= 0) {

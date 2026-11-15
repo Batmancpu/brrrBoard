@@ -108,25 +108,13 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun isIosGlassTheme(themeName: String?) =
             themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
 
-        fun getAvailableDefaultColors(prefs: SharedPreferences, isNight: Boolean) = listOfNotNull(
-            if (!isNight) THEME_LIGHT else null, THEME_DARK,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) THEME_DYNAMIC else null,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !helium314.keyboard.latin.FrostedGlassHelper.isKnownFrostedGlassBlurUnsupportedDevice()) THEME_FROSTED_GLASS else null,
-            THEME_IOS_CLEAR, THEME_IOS_TINTED,
-            if (prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE) == STYLE_HOLO) THEME_HOLO_WHITE else null,
-            THEME_DARKER,
-            THEME_BLACK,
-            if (!isNight) THEME_BLUE_GRAY else null,
-            if (!isNight) THEME_BROWN else null,
-            THEME_CHOCOLATE,
-            THEME_CLOUDY,
-            THEME_FOREST,
-            if (!isNight) THEME_INDIGO else null,
-            if (!isNight) THEME_PINK else null,
-            THEME_OCEAN,
-            if (!isNight) THEME_SAND else null,
-            THEME_VIOLETTE
-        )
+        private val boardThemes = listOf(THEME_FROSTED_GLASS, THEME_IOS_CLEAR, THEME_IOS_TINTED)
+
+        fun getAvailableDefaultColors() = boardThemes
+
+        fun supportedTheme(themeName: String?): String =
+            if (themeName != null && themeName in boardThemes) themeName else THEME_FROSTED_GLASS
+
         val STYLES = arrayOf(STYLE_DEFAULT, STYLE_MATERIAL, STYLE_HOLO, STYLE_ROUNDED, STYLE_CIRCLE)
 
         // These should be aligned with Keyboard.themeId and Keyboard.Case.keyboardTheme
@@ -193,7 +181,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             val hasBorders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             helium314.keyboard.latin.utils.Log.i("KeyboardTheme", "Active theme: colors=$themeName, style=$themeStyle, hasBorders=$hasBorders, isNight=$isNight")
 
-            return getThemeColors(themeName!!, themeStyle!!, context, prefs, isNight)
+            return getThemeColors(supportedTheme(themeName), themeStyle!!, context, prefs, isNight)
         }
 
         private const val IOS_BLUE = -16742145

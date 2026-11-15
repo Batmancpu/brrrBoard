@@ -174,15 +174,13 @@ fun createAppearanceSettings(context: Context) = listOf(
         var showDialog by rememberSaveable { mutableStateOf(false) }
         Preference(
             name = setting.title,
-            description = prefs.getString(setting.key, Defaults.PREF_THEME_COLORS)!!.getStringResourceOrName("theme_name_", ctx),
+            description = KeyboardTheme.supportedTheme(prefs.getString(setting.key, null)).getStringResourceOrName("theme_name_", ctx),
             onClick = { showDialog = true }
         )
         if (showDialog)
             ColorThemePickerDialog(
                 onDismissRequest = { showDialog = false },
-                setting = setting,
-                isNight = false,
-                default = Defaults.PREF_THEME_COLORS
+                setting = setting
             )
     },
     Setting(context, Settings.PREF_THEME_COLORS_NIGHT, R.string.theme_colors_night) { setting ->
@@ -194,15 +192,13 @@ fun createAppearanceSettings(context: Context) = listOf(
         var showDialog by rememberSaveable { mutableStateOf(false) }
         Preference(
             name = setting.title,
-            description = prefs.getString(setting.key, Defaults.PREF_THEME_COLORS_NIGHT)!!.getStringResourceOrName("theme_name_", ctx),
+            description = KeyboardTheme.supportedTheme(prefs.getString(setting.key, null)).getStringResourceOrName("theme_name_", ctx),
             onClick = { showDialog = true }
         )
         if (showDialog)
             ColorThemePickerDialog(
                 onDismissRequest = { showDialog = false },
-                setting = setting,
-                isNight = true,
-                default = Defaults.PREF_THEME_COLORS_NIGHT
+                setting = setting
             )
     },
     Setting(context, Settings.PREF_THEME_KEY_BORDERS, R.string.key_borders) {

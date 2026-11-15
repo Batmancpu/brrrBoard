@@ -13,6 +13,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewConfiguration;
+import android.view.animation.PathInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.core.view.ViewKt;
@@ -33,6 +35,16 @@ public final class InputView extends FrameLayout {
     private KeyboardTopPaddingForwarder mKeyboardTopPaddingForwarder;
     private MoreSuggestionsViewCanceler mMoreSuggestionsViewCanceler;
     private MotionEventForwarder<?, ?> mActiveForwarder;
+    private View mBoardFrame;
+    private SuggestionStripView mSuggestionStrip;
+    private BoardFooterView mFooter;
+    private LatinIME mOwner;
+    private final int[] mStripLocation = new int[2];
+    private boolean mMayDragToolbar;
+    private boolean mDraggingToolbar;
+    private boolean mClosingFromToolbar;
+    private float mToolbarDownX;
+    private float mToolbarDownY;
 
     public InputView(final Context context, final AttributeSet attrs) {
         super(context, attrs, 0);
@@ -46,11 +58,100 @@ public final class InputView extends FrameLayout {
         final SuggestionStripView suggestionStripView =
                 findViewById(R.id.suggestion_strip_view);
         mMainKeyboardView = findViewById(R.id.keyboard_view);
+        mBoardFrame = findViewById(R.id.main_keyboard_frame);
+        mSuggestionStrip = suggestionStripView;
+        mFooter = findViewById(R.id.board_footer);
         mKeyboardTopPaddingForwarder = new KeyboardTopPaddingForwarder(
                 mMainKeyboardView, suggestionStripView);
         mMoreSuggestionsViewCanceler = new MoreSuggestionsViewCanceler(
                 mMainKeyboardView, suggestionStripView);
         ViewKt.doOnNextLayout(this, this::onNextLayout);
+    }
+
+    public void bindBoardControls(final LatinIME owner) {
+        mOwner = owner;
+        mFooter.bind(owner);
+    }
+
+    public void resetBoardGesture() {
+        mMayDragToolbar = false;
+        mDraggingToolbar = false;
+        mClosingFromToolbar = false;
+        mBoardFrame.animate().cancel();
+        mBoardFrame.setTranslationY(0f);
+        mFooter.reset();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(final MotionEvent event) {
+        final int action = event.getActionMasked();
+        if (mClosingFromToolbar) return true;
+        if (action == MotionEvent.ACTION_DOWN) {
+            if (mBoardFrame.getTranslationY() != 0f) {
+                mBoardFrame.animate().cancel();
+                mBoardFrame.setTranslationY(0f);
+            }
+            mDraggingToolbar = false;
+            mToolbarDownX = event.getRawX();
+            mToolbarDownY = event.getRawY();
+            mMayDragToolbar = mOwner != null && mSuggestionStrip.isShown()
+                    && Settings.getValues().mToolbarSwipeDownToHide
+                    && !AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
+                    && !KeyboardSwitcher.getInstance().isResizeModeActive();
+            if (mMayDragToolbar) {
+                mSuggestionStrip.getLocationOnScreen(mStripLocation);
+                final float x = mToolbarDownX - mStripLocation[0];
+                final float y = mToolbarDownY - mStripLocation[1];
+                mMayDragToolbar = x >= 0 && x < mSuggestionStrip.getWidth()
+                        && y >= 0 && y < mSuggestionStrip.getHeight();
+            }
+        } else if (action == MotionEvent.ACTION_MOVE && mMayDragToolbar) {
+            final float dx = Math.abs(event.getRawX() - mToolbarDownX);
+            final float dy = event.getRawY() - mToolbarDownY;
+            final int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+            if (!mDraggingToolbar && dy > slop && dy > dx * 1.2f) {
+                mDraggingToolbar = true;
+                mOwner.cancelBoardDictation();
+                final MotionEvent cancel = MotionEvent.obtain(event);
+                cancel.setAction(MotionEvent.ACTION_CANCEL);
+                super.dispatchTouchEvent(cancel);
+                cancel.recycle();
+            } else if (!mDraggingToolbar && (dx > slop || dy < -slop)) {
+                mMayDragToolbar = false;
+            }
+            if (mDraggingToolbar) {
+                mBoardFrame.setTranslationY(Math.min(mBoardFrame.getHeight(), Math.max(0f, dy)));
+                return true;
+            }
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL
+                || action == MotionEvent.ACTION_POINTER_DOWN) {
+            mMayDragToolbar = false;
+            if (mDraggingToolbar) {
+                mDraggingToolbar = false;
+                settleToolbarDrag(action == MotionEvent.ACTION_UP &&
+                        mBoardFrame.getTranslationY() >= mBoardFrame.getHeight() * 0.5f);
+                return true;
+            }
+        }
+        return super.dispatchTouchEvent(event);
+    }
+
+    private void settleToolbarDrag(final boolean dismiss) {
+        mClosingFromToolbar = dismiss;
+        final Runnable finished = () -> {
+            if (dismiss) mOwner.onSwipeDownOnToolbar();
+        };
+        if (android.os.Build.VERSION.SDK_INT >= 26 && !android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            mBoardFrame.setTranslationY(dismiss ? mBoardFrame.getHeight() : 0f);
+            finished.run();
+            return;
+        }
+        mBoardFrame.animate()
+                .translationY(dismiss ? mBoardFrame.getHeight() : 0f)
+                .setDuration(dismiss ? 125 : 190)
+                .setInterpolator(new PathInterpolator(0.18f, 0.84f, 0.36f, 1f))
+                .withEndAction(finished)
+                .start();
     }
 
     public void setKeyboardTopPadding(final int keyboardTopPadding) {
@@ -59,6 +160,12 @@ public final class InputView extends FrameLayout {
 
     @Override
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
+        if (mFooter != null && mMainKeyboardView != null) {
+            final helium314.keyboard.keyboard.Keyboard keyboard = mMainKeyboardView.getKeyboard();
+            final boolean showFooter = keyboard != null && keyboard.mId.isAlphaOrSymbolKeyboard()
+                    && mMainKeyboardView.getVisibility() == VISIBLE;
+            mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey);
+        }
         final View resizeOverlay = findViewById(R.id.keyboard_resize_overlay);
         final int overlayVisibility = resizeOverlay == null ? View.GONE : resizeOverlay.getVisibility();
         if (resizeOverlay != null && overlayVisibility != View.GONE) {

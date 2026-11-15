@@ -210,7 +210,7 @@ object FrostedGlassHelper {
             prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT)
         else
             prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS)
-        return themeName?.contains("frosted", ignoreCase = true) == true
+        return KeyboardTheme.supportedTheme(themeName).contains("frosted")
     }
 
     @JvmStatic

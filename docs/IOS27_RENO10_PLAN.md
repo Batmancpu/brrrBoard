@@ -1,6 +1,6 @@
 # brrBoard iOS 27 plan for the Oppo Reno10 5G
 
-Status: the [signed v1.0.10 mic checkpoint](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.10) is available. The first appearance commit implements the two color presets and their key rendering. Geometry and gestures follow as separate changes. Reno10 validation remains pending.
+Status: layout implementation in progress. The owner requested a single next release with layout and whole-toolbar dismissal. The three theme choices and low-opacity caption apply across the board. See PROJECT_CONTEXT.md for release and Reno10 test status.
 
 ## Reference decisions
 
