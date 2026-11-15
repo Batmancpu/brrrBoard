@@ -383,3 +383,15 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 
 **Next action.** Record run #25's signed result, then continue source-backed keyboard icon/layout and dictionary review. Do not call the overall goal complete until the explicit post-v1.0.19 retrospective and device-only acceptance list are addressed.
 
+
+
+## 2026-11-15 — v1.0.25 saved-icon migration release
+
+**Build result.** Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374) passed and published [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25), source `4d13a045d5fd17bcb427e2f22e5a70cef00e9049`. APK SHA-256: `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. The build and pinned signer checks passed; package/update identity was preserved.
+
+**Effective Shift update.** v1.0.24 changed the default Shift assets, but the customization dialog can persist the old default map. v1.0.25's migration updates only those exact saved Shift defaults, preserves unrelated user-selected icons, and makes the screenshot-backed Shift correction effective for existing installs. Source changes and build are complete; the owner has not yet visually accepted the result on Reno10.
+
+**Current Dictate constraint.** The owner still requires English-only, no Hindi. brrBoard asks the selected RecognitionService for English; Dictate's current RecognitionService ignores caller language extras and uses Dictate's saved Active language. The app cannot modify that private value. This remains a device setup/acceptance blocker, not a claimed code fix.
+
+**Next action.** Continue the remaining screenshot-visible icon/accessory audit and source-backed geometry work, followed by the finite brrPersonal and emoji/swipe evaluation. Complete the explicit retrospective before suggesting follow-up work.
+

@@ -1,6 +1,6 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
-**Status (2026-11-15):** Signed [v1.0.24](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.24) from `cc3ee3b0b6bda626eee5c5f5aca55c4acfd4c65a` passed Obtainium run [43756115259](https://github.com/Batmancpu/brrrBoard/actions/runs/43756115259); APK SHA-256 `efff92614db7f8303000521d8d6477dbc14691f46750e5a0b53e1b9209f5ffd9`. It ships automatic OG light/dark, optional Apple-palette action tint, and original Shift state vectors. A saved-icon migration in [`4d13a045d5fd17bcb427e2f22e5a70cef00e9049`](https://github.com/Batmancpu/brrrBoard/commit/4d13a045d5fd17bcb427e2f22e5a70cef00e9049) changes only exact old Shift defaults, preserving other custom icons; Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374) is pending. Dictate still returns Hindi per owner report; its current service ignores caller language extras and reads its saved Active language, so English-only device behavior is unresolved. Geometry, brrPersonal, Emoji, QuickPath and Reno10 acceptance remain open.
+**Status (2026-11-15):** Signed [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25) from `4d13a045d5fd17bcb427e2f22e5a70cef00e9049` passed Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374); APK SHA-256 `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. It includes the original Shift state vectors and a safe migration of only exact legacy Shift defaults in saved icon maps. Source/build are complete; Reno10 visual acceptance remains open. Dictate still outputs Hindi per the owner report; the service ignores caller language extras and uses its saved Active language, so English-only behavior remains unresolved. Geometry, remaining icons/accessory, brrPersonal, Emoji, QuickPath and device acceptance remain open.
 
 ## Product target
 
@@ -130,6 +130,6 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - [x] Batch 3a: center autocorrection highlight from existing mWillAutoCorrect signal shipped in signed v1.0.22; Reno10 visual acceptance remains pending.
 - [ ] Batch 3b: validate text/Emoji suggestion behavior and separate it from the right-side accessory; add Smart Emoji only after brrPersonal dictionary foundation.
 - [x] Batch 4a: system-following OG light/dark and optional Apple-palette action-key tint shipped in signed v1.0.23; Reno10 visual acceptance remains open.
-- [ ] Batch 4b: Shift glyphs shipped in v1.0.24; saved-icon migration committed in 4d13a04 and Obtainium run 43756893374 is pending. Reno10 visual acceptance is open.
+- [x] Batch 4b source: original Shift outline/filled/Caps Lock glyphs plus safe saved-icon migration shipped in signed v1.0.25; Reno10 visual acceptance is pending.
 - [ ] Batch 5: curate brrPersonal, keep spelling-valid terms separate from text prediction/autocorrect, then add bounded offline Emoji ranking and evaluate swipe-library rights/compatibility.
 - [ ] Batch 6: signed APK/source/release checks and full request-by-request retrospective. Reno10 hardware acceptance remains the owner's.
