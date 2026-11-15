@@ -1695,6 +1695,12 @@ public class LatinIME extends InputMethodService implements
         final int persistentEmojiRowHeight = mKeyboardSwitcher.isShowingPersistentEmojiRow() ? mKeyboardSwitcher.getPersistentEmojiRowHeight() : 0;
         final View footer = mInputView.findViewById(R.id.board_footer);
         final int footerHeight = footer != null && footer.isShown() ? footer.getHeight() : 0;
+        final View keyboardFrame = mInputView.findViewById(R.id.main_keyboard_frame);
+        // RoundedKeyboardFrameView puts the system navigation-bar inset into its
+        // bottom padding. That padding is part of the IME window, so subtract it
+        // when deriving the residual top inset; otherwise host apps under-resize
+        // by the navigation inset and their last content row sits behind brrBoard.
+        final int navigationInset = keyboardFrame == null ? 0 : keyboardFrame.getPaddingBottom();
 
         int keyboardHeight = 0;
         if (visibleKeyboardView != null && visibleKeyboardView.getHeight() > 0) {
@@ -1707,7 +1713,8 @@ public class LatinIME extends InputMethodService implements
 
         if (keyboardHeight == 0 && visibleKeyboardView == null) return;
 
-        int visibleTopY = inputHeight - keyboardHeight - stripHeight - persistentEmojiRowHeight - footerHeight;
+        int visibleTopY = inputHeight - keyboardHeight - stripHeight - persistentEmojiRowHeight
+                - footerHeight - navigationInset;
         if (visibleTopY < 0) visibleTopY = 0;
 
         outInsets.contentTopInsets = visibleTopY;
