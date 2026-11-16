@@ -1314,8 +1314,8 @@ public class LatinIME extends InputMethodService implements
         switcher.updateKeyboardTheme(mDisplayContext);
         // The input frame can outlive a focused editor. Reapply the freshly loaded
         // theme surface so a recycled background never keeps a stale color filter.
-        if (mInputView != null) {
-            mInputView.refreshBoardFrameBackground();
+        if (mInputView instanceof InputView inputView) {
+            inputView.refreshBoardFrameBackground();
         }
         MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
