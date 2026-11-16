@@ -89,3 +89,8 @@ U+1FAA9 🪩 is covered by the regex's existing U+1FA8E–U+1FAC2 base class and
 ## B03 follow-up — malformed supplementary range
 
 CI's expanded assertion values for U+1FAA9 🪩 were `singleGrapheme=true`, `mightBeEmoji=true`, proving the regex branch was rejecting it. Inspection of the edited pattern found an accidental chained range `\\x{1FA80}-\\x{1FA8E}-\\x{1FAC2}`. The valid original coverage was U+1FA80–U+1FAC2; B03 restores that continuous interval, which includes the newly assigned Emoji 18 points U+1FA8B–D. The implementation error is fixed in the next checkpoint; full CI remains the acceptance gate.
+
+
+## B03 result — complete
+
+The classifier now recognizes the bundled Emoji 18 entries. The failure chain ended at U+1FAA9 🪩 with diagnostics `singleGrapheme=true` and `mightBeEmoji=true`; source review found the actual bug was the malformed `\\x{1FA80}-\\x{1FA8E}-\\x{1FAC2}` class range introduced while coalescing Emoji 18 entries. The final code restores U+1FA80–U+1FAC2 and retains the precise additional Unicode 18 scalars/modifier support. CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) passed APK build/signature and the full 181-test unit task. Local tests and OPPO Reno10 display/insertion remain unverified. B04 is the next eligible batch.

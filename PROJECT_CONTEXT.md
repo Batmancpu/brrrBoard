@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01/B02 complete; B03 regex range repair in CI (2026-11-16).** Latest safe main `7ab4bc5`; v1.0.57 unchanged. Unicode 18 scalar additions are present on the audit branch. CI [43866094468](https://github.com/Batmancpu/brrrBoard/actions/runs/43866094468) built/signer-verified the debug APK and diagnosed U+1FAA9 🪩 with `singleGrapheme=true`, `mightBeEmoji=true`; source review found the preceding coalescing edit had left a malformed `1FA80–1FA8E–1FAC2` regex range. The current fix restores `1FA80–1FAC2`. Full gate pending. No local Gradle/adb; Reno10 unverified. Next: check full CI, then close B03 and proceed to B04 only on green.
+**Implementation session — B00 partial; B01–B03 complete; B04 next (2026-11-16).** Main remains `7ab4bc5`; v1.0.57 is unchanged. B03 completed on the audit branch at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`; CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) passed the debug APK build/signature checks and full 181-test task. Unicode 18 assets are recognized by the corrected `StringUtils.emoRegex`; see the B03 handoff entry. A signed debug test prerelease is available, separate from stable package. No local Gradle/adb or Reno10 testing was possible. Next: B04 lifecycle/panel transition seam per master plan; keep device geometry and toggle acceptance open.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 

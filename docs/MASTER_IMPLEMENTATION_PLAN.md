@@ -59,9 +59,9 @@ Pin US locale and an explicit locale-based blank currency override in KeyboardPa
 
 B02 completed at `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. Product defaults enable URL detection/autospace; test fixtures now specify intended policies before starting fields. A URL connector can leave PHANTOM space pending, so URL resume now accepts NONE or PHANTOM and suppresses automatic spacing after the word is resumed. Seven scoped assertions pass in full CI [43858699048](https://github.com/Batmancpu/brrrBoard/actions/runs/43858699048): 181 tests ran with only the unrelated Emoji classifier test remaining. Build, signer and APK artifact passed; test gate remains red solely for B03. No assertion or setting default was relaxed. Local Gradle remains network-blocked and device tests remain pending.
 
-### B03 — Unicode Emoji classifier and full green gate (B02)
+### B03 — Unicode Emoji classifier and full green gate (B02) — COMPLETE
 
-**In progress — repair regex interval and verify.** The current failure at U+1FAA9 🪩 had `singleGrapheme=true` and `mightBeEmoji=true`. Source inspection found an accidental chained interval `1FA80–1FA8E–1FAC2` introduced while adding Emoji 18 points. The source now restores the valid existing U+1FA80–U+1FAC2 interval, which also includes U+1FA8B–D. The all-assets test and full 181-test gate plus APK signing verification must pass before B03 is complete. Local Gradle/Reno10 remain unavailable.
+B03 completed at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`. It fixed the asset/regex version mismatch for bundled Emoji 18 entries and repaired the malformed chained range found by CI. CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) built and signer-verified the debug APK and passed the full 181-test `:app:testRunTestsUnitTest` task. Audit run [43867544607](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544607) passed. Signed debug test prerelease: [brrrboard-test-20261116-123802-5dd17c7](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-123802-5dd17c7). Main/stable release unchanged. Local Gradle and Reno10 checks remain pending. Next B04 is eligible.
 
 ### B04 — Lifecycle, panel ownership and insets (B03, B00)
 
