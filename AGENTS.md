@@ -9,6 +9,14 @@
 5. This repository is public. Keep signing keys, passwords, tokens, private messages, and keyboard or clipboard contents out of these files. Use a clear omission note when needed and preserve the project decision or outcome.
 6. When the owner provides a screen recording or screenshots, inspect the available visual evidence and add the **observed state**, owner-stated requirements, unresolved ambiguities, and outstanding device tests to `PROJECT_CONTEXT.md` and the appropriate plan/issue log. Quote the owner's accompanying written corrections verbatim in `docs/PROJECT_CONVERSATION.md`. Distinguish visual evidence from verified interactions and from narration that was not transcribed. Never publish private raw media, identifying text, typed content, clipboard contents, or inferred speech to this public repository. The owner explicitly wants new agents to resume from the last feedback without retelling the project.
 
+
+## Active checkpoint — 123 momentary-symbol selection (2026-11-16)
+
+- Source batch removes the owner-specific long-press interception from `app/src/main/java/helium314/keyboard/keyboard/PointerTracker.java`. Tapping 123 still switches to the persistent symbols layout. Holding 123 and sliding onto a symbol now uses KeyboardState's existing momentary alpha/symbol transition; finishing the slide returns to letters. Holding 123 no longer opens the enlarged numpad.
+- Ordinary alternate-character popups remain handled by the existing popup-key system. Apple’s iOS 27 guide documents touch-and-hold a related letter, number, or symbol, then slide to an alternate character; it documents tapping Numbers or Symbols to enter those layouts. It does not specify Android geometry or the 123-to-symbol slide gesture. This change is a source-aligned iOS interaction proposal and requires CI plus Reno10 owner acceptance; it must not be described as phone-verified.
+- All carry-forward files are updated in the same source commit. CI is pending at this checkpoint. The existing 13/180 test baseline is tracked separately from this source batch; no manual tests were run.
+- Next: wait for the automatic compile/sign/test/release workflows, inspect any new failure before starting another source batch, then audit mapped popups/icons and finish the measured Reno10 geometry pass. Keep licensed default swipe decoder, brrPersonal quality, Dictate output, and device validation open.
+
 ## Active checkpoint — contextual Emoji side ranking (2026-11-16)
 
 - Source commit [32d580d](https://github.com/Batmancpu/brrrBoard/commit/32d580dc276cd87e2aef42d707bdcf556b6d530a) changes SuggestionStripView.kt and SuggestionStripLayoutHelper.java to rank decoder-provided Emoji into visible side slots using the local usage/recency order. It builds a display copy and keeps center, mWillAutoCorrect, decoder scores, and InputLogic's original suggestion list unchanged; incognito bypasses ranking.

@@ -164,7 +164,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     // so that further modifier keys should be ignored.
     boolean mIsInSlidingKeyInput;
     // Captured before SYMBOL_ALPHA switches the live layout to Symbols on down.
-    private boolean mLongPressAlpha123;
     // if not a NOT_A_CODE, the key of this code is repeating
     private int mCurrentRepeatingKeyCode = Constants.NOT_A_CODE;
 
@@ -716,17 +715,15 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         Trace.beginSection("PointerTracker#onDown");
         try {
             Key key = onDownKey(x, y, eventTime);
-            mLongPressAlpha123 = key != null && key.getCode() == KeyCode.SYMBOL_ALPHA
-                    && mKeyboard != null && mKeyboard.mId.isAlphabetKeyboard();
             // Key selection by dragging finger is allowed when 1) key selection by dragging finger is
             // enabled by configuration, 2) this pointer starts dragging from modifier key, or 3) this
             // pointer's KeyDetector always allows key selection by dragging finger, such as
             // {@link PopupKeysKeyboard}.
-            // This owner-specific 123 hold is a tap-or-hold control, not a
-            // momentary modifier. Sliding off it must not type a symbol.
-            mIsAllowedDraggingFinger = !mLongPressAlpha123 && (sParams.mKeySelectionByDraggingFinger
+            // Like the other mode keys, 123 may be held and slid to a symbol.
+            // KeyboardState handles the momentary return to letters when sliding ends.
+            mIsAllowedDraggingFinger = sParams.mKeySelectionByDraggingFinger
                     || (key != null && key.isModifier())
-                    || mKeyDetector.alwaysAllowsKeySelectionByDraggingFinger());
+                    || mKeyDetector.alwaysAllowsKeySelectionByDraggingFinger();
             if (key != null && isSwiper(key.getCode()) && !sInGesture) {
                 mKeySwipeAllowed = true;
                 sInKeySwipe = true;
@@ -885,16 +882,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void processDraggingFingerOutFromOldKey(final Key oldKey) {
-        if (mLongPressAlpha123) {
-            mLongPressAlpha123 = false;
-            sTimerProxy.cancelKeyTimersOf(this);
-            setReleasedKeyGraphics(oldKey, true);
-            // The press already changed to Symbols; finish it as a normal
-            // persistent layout switch, but do not select a symbol by sliding.
-            callListenerOnRelease(oldKey, oldKey.getCode(), false);
-            return;
-        }
-        mLongPressAlpha123 = false;
         setReleasedKeyGraphics(oldKey, true);
         callListenerOnRelease(oldKey, oldKey.getCode(), true);
         startKeySelectionByDraggingFinger(oldKey);
@@ -903,15 +890,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
 
     private void dragFingerFromOldKeyToNewKey(final Key key, final int x, final int y,
             final long eventTime, final Key oldKey, final int lastX, final int lastY) {
-        final boolean canceledAlpha123Hold = mLongPressAlpha123;
         // The pointer has been slid in to the new key from the previous key, we must call
         // onRelease() first to notify that the previous key has been released, then call
         // onPress() to notify that the new key is being pressed.
         processDraggingFingerOutFromOldKey(oldKey);
-        if (canceledAlpha123Hold) {
-            cancelTrackingForAction();
-            return;
-        }
         startRepeatKey(key);
         if (mIsAllowedDraggingFinger) {
             processDraggingFingerInToNewKey(key, x, y, eventTime);
@@ -947,12 +929,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     private void dragFingerOutFromOldKey(final Key oldKey, final int x, final int y) {
         // The pointer has been slid out from the previous key, we must call onRelease() to
         // notify that the previous key has been released.
-        final boolean canceledAlpha123Hold = mLongPressAlpha123;
         processDraggingFingerOutFromOldKey(oldKey);
-        if (canceledAlpha123Hold) {
-            cancelTrackingForAction();
-            return;
-        }
         if (mIsAllowedDraggingFinger) {
             onMoveToNewKey(null, x, y);
         } else {
@@ -1095,7 +1072,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onUpEventInternal(final int x, final int y, final long eventTime) {
-        mLongPressAlpha123 = false;
         sTimerProxy.cancelKeyTimersOf(this);
         final boolean isInDraggingFinger = mIsInDraggingFinger;
         final boolean isInSlidingKeyInput = mIsInSlidingKeyInput;
@@ -1194,15 +1170,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             mTouchpadHandler.activateFromSpaceHold(mLastX, mLastY, sListener);
             return;
         }
-        // The custom alphabetic 123 key opens the enlarged numpad. Resolve this
-        // before popup metadata so a layout's generic popup flags cannot steal it.
-        if (mLongPressAlpha123) {
-            mLongPressAlpha123 = false;
-            cancelKeyTracking();
-            sListener.onReleaseKey(KeyCode.SYMBOL_ALPHA, false);
-            sListener.toggleNumpad(false, true);
-            return;
-        }
         if (key.hasNoPanelAutoPopupKey()) {
             cancelKeyTracking();
             final int popupKeyCode = key.getPopupKeys()[0].mCode;
@@ -1255,7 +1222,6 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onCancelEventInternal() {
-        mLongPressAlpha123 = false;
         if (mTouchpadHandler.isTouchpadModeActive()) {
             mTouchpadHandler.disableTouchpadMode();
             mInVerticalSwipe = false;
