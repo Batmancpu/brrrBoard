@@ -106,6 +106,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun isIosGlassTheme(themeName: String?) =
             themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
 
+        private const val PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED = "frosted_neutral_defaults_migrated_v1"
+
         private val boardThemes = listOf(THEME_FROSTED_GLASS)
         private val legacyTintedBoardThemes = setOf(THEME_OG_FROST_TINTED, THEME_IOS_TINTED)
 
@@ -115,14 +117,37 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             if (themeName != null && themeName in boardThemes) themeName else THEME_FROSTED_GLASS
 
         private fun migrateBoardThemePreferences(prefs: SharedPreferences) {
-            if (prefs.contains(Settings.PREF_THEME_ACTION_TINT)) return
+            val migrateLegacyTheme = !prefs.contains(Settings.PREF_THEME_ACTION_TINT)
+            val migrateNeutralDefaults = !prefs.getBoolean(PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED, false)
+            if (!migrateLegacyTheme && !migrateNeutralDefaults) return
+
             val lightTheme = prefs.getString(Settings.PREF_THEME_COLORS, null)
             val darkTheme = prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, null)
+            val legacyColorDefaults = listOf(
+                Triple(Settings.PREF_FROSTED_SATURATION, 250, Defaults.PREF_FROSTED_SATURATION),
+                Triple(Settings.PREF_FROSTED_SPECIAL_VIBRANCY, 398, Defaults.PREF_FROSTED_SPECIAL_VIBRANCY),
+                Triple(Settings.PREF_FROSTED_ALPHABET_VIBRANCY, 500, Defaults.PREF_FROSTED_ALPHABET_VIBRANCY),
+                Triple(Settings.PREF_FROSTED_SATURATION_NIGHT, 250, Defaults.PREF_FROSTED_SATURATION_NIGHT),
+                Triple(Settings.PREF_FROSTED_SPECIAL_VIBRANCY_NIGHT, 0, Defaults.PREF_FROSTED_SPECIAL_VIBRANCY_NIGHT),
+                Triple(Settings.PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT, 72, Defaults.PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT),
+            )
             prefs.edit {
-                putBoolean(
-                    Settings.PREF_THEME_ACTION_TINT,
-                    lightTheme in legacyTintedBoardThemes || darkTheme in legacyTintedBoardThemes
-                )
+                if (migrateLegacyTheme) {
+                    putBoolean(
+                        Settings.PREF_THEME_ACTION_TINT,
+                        lightTheme in legacyTintedBoardThemes || darkTheme in legacyTintedBoardThemes
+                    )
+                }
+                if (migrateNeutralDefaults) {
+                    // Replace only values that still equal the previous shipped defaults.
+                    // Preserve any frosted-glass values the owner actually customized.
+                    legacyColorDefaults.forEach { (key, previousDefault, neutralDefault) ->
+                        if (prefs.contains(key) && prefs.getInt(key, previousDefault) == previousDefault) {
+                            putInt(key, neutralDefault)
+                        }
+                    }
+                    putBoolean(PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED, true)
+                }
             }
         }
 
