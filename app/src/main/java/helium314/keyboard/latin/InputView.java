@@ -168,8 +168,8 @@ public final class InputView extends FrameLayout {
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
         if (mFooter != null && mMainKeyboardView != null) {
             final helium314.keyboard.keyboard.Keyboard keyboard = mMainKeyboardView.getKeyboard();
-            final boolean typingFooter = keyboard != null && (keyboard.mId.isAlphaOrSymbolKeyboard() || keyboard.mId.mElementId ==
-                            helium314.keyboard.keyboard.KeyboardId.ELEMENT_NUMPAD)
+            final boolean typingFooter = keyboard != null && (keyboard.mId.isAlphaOrSymbolKeyboard()
+                    || keyboard.mId.isNumberLayout())
                     && mMainKeyboardView.getVisibility() == VISIBLE;
             // Emoji and Clipboard used to lose the footer entirely. That made their
             // visible keyboard surface shorter than the alphabetic keyboard.

@@ -18,10 +18,15 @@
     <!-- This config_default_keyboard_height value should match with keyboard-heights.xml -->
     <dimen name="config_default_keyboard_height">205.6dp</dimen>
     <fraction name="config_max_keyboard_height">46%p</fraction>
-    <!-- Calibrated for the 6.7-inch Reno10 portrait: with the 36dp suggestion strip,
-         38dp footer and ColorOS navigation inset, the full board is about 37% of
-         screen height, matching the 345/932-point iPhone 16 Plus simulator baseline. -->
+    <!-- Provisional portrait target from the iPhone reference proportions; Reno10
+         display scaling, footer spacing and ColorOS insets still need device acceptance. -->
     <fraction name="config_min_keyboard_height">-58.0%p</fraction>
+
+    <!-- A 48dp footer preserves full-size touch targets. Its 10dp optical bottom
+         inset is balanced against the keyboard's existing bottom key padding. -->
+    <dimen name="config_board_footer_height">48dp</dimen>
+    <dimen name="config_board_footer_icon_optical_bottom_padding">10dp</dimen>
+    <dimen name="config_board_footer_height_compensation">10dp</dimen>
 
     <dimen name="config_popup_keys_keyboard_key_height">52.8dp</dimen>
     <!-- Amount of allowance for selecting keys in a mini popup keyboard by sliding finger. -->

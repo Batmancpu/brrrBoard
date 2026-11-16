@@ -72,7 +72,12 @@ public final class ResourceUtils {
     public static int getKeyboardHeight(final Resources res, final SettingsValues settingsValues) {
         final int defaultKeyboardHeight = getDefaultKeyboardHeight(res, settingsValues.mShowsNumberRow);
         // mKeyboardHeightScale Ranges from [.5,1.5], from xml/prefs_screen_appearance.xml
-        return (int)(defaultKeyboardHeight * settingsValues.mKeyboardHeightScale);
+        final int scaledKeyboardHeight = (int)(defaultKeyboardHeight * settingsValues.mKeyboardHeightScale);
+        // The footer is 10dp taller than its old 38dp height. Give that space back
+        // from the key area so the complete keyboard frame remains the same height.
+        final int footerCompensation = res.getDimensionPixelSize(
+                R.dimen.config_board_footer_height_compensation);
+        return Math.max(1, scaledKeyboardHeight - footerCompensation);
     }
 
     public static int getKeyboardHeightForLocale(final int keyboardHeight, final Locale locale) {
