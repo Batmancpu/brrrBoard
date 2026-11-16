@@ -771,3 +771,7 @@ Owner: “During this phase, you must not: … Implement keyboard features.” O
 ## 2026-11-16 — R4 Clipboard, inline autofill and Dictate integration audit
 
 [IME_PROVIDER_INTEGRATIONS.md](IME_PROVIDER_INTEGRATIONS.md). The mic-to-settings branch and Clipboard safety seams are mapped. R5 will order test repair, editor safety, interaction and late release gates.
+
+## 2026-11-16 — R5 dependency-ordered implementation master plan
+
+[MASTER_IMPLEMENTATION_PLAN.md](MASTER_IMPLEMENTATION_PLAN.md). The plan is ready for a later implementation session. R6 will verify links, source immutability, recovered history and the remote checkpoint chain.

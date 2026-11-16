@@ -1,0 +1,155 @@
+# brrBoard implementation master plan
+
+**Planning baseline:** source [3ee9da9](https://github.com/Batmancpu/brrrBoard/commit/3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21), signed [v1.0.57](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.57), debug CI 13/180. This document plans future work. The current mission authorizes only documentation. Recheck main and owner request on implementation handoff. No application changes or tests were executed here.
+
+[Start and checkpoint ledger](ENGINEERING_HANDOFF.md#start-here) · [Runtime and CI](SOURCE_ARCHITECTURE_AUDIT.md) · [Visuals and device](RENO10_VISUAL_SPEC.md) · [Local typing](LOCAL_TYPING_ENGINE.md) · [Clipboard, autofill and voice](IME_PROVIDER_INTEGRATIONS.md)
+
+## Product and decision baseline
+
+An Android IME derived from FrostKeys, HeliBoard, OpenBoard and AOSP LatinIME, tailored first to the owner's gesture-navigation OPPO Reno10 5G. Optimize editing correctness, typing latency and input accuracy before visual work. Retain automatic neutral OG Frosted Glass light/dark, provide scoped accent control, unify panels and reproduce verified iPhone interaction where Android APIs allow. Keep all typing and personalization locally. Use the existing installed Dictate recognition service for optional voice, under the owner's configured provider. Separate from the other Liquid Glass project. Preserve the current package/update path, available language choices, legitimate historical user settings and provenance.
+
+Decision priority is the latest explicit owner direction, then observed current app and release results, then earlier decisions and design proposals. Record new choices and why superseded rules were retired. A production change may reveal a limitation requiring empirical adjustment. Record evidence and pick the smallest change that satisfies the requirement. Proposals below specify concrete defaults for evaluation. Retain current code where owner testing already establishes the requested behavior.
+
+## Reconciled feature and issue ledger
+
+Paths below use `app/src/main/java/helium314/keyboard/` unless fully qualified. Checked source paths are expanded in R1–R4.
+
+| Requirement | Status and current evidence | Source / future batch |
+| --- | --- | --- |
+| Keep deliverable signed/updatable, existing working install | Implemented and historically verified by owner for v1.0.3 → v1.0.4. v1.0.57 signed CI verifies build only. Legacy debug signer has a distinct package. Older release API 403 is historical; current red job blocks publication by test step. | Obtainium workflow, manifest/app Gradle, release docs; B00, B19 |
+| Debug test gate and CI stability | Failed and unresolved, 13/180 at baseline. Currency/default and URL/autospace fixture drift are source-backed hypotheses; Unicode exact sequence unverified. | Tests/SettingsValues/InputLogic/StringUtils; B01–B03 |
+| English US/UK and Romanized Hinglish, test-catalog compatibility | Implemented in source and artifact history. Destructive catalog trim attempted and reversed after eight extra failures. Latest device acceptance open. | LanguageScreen, method.xml, application variant resources; B00, B15 |
+| Large unused APK dictionary data | Implemented v1.0.53, signed output ~25.6% smaller by historical recorded comparison. Preserve exact bundled US/UK, hi-Latn and two Emoji assets. Any more reduction requires inventory. | app/build.gradle.kts and assets; B15, B19 |
+| Frame, material, foil highlight, actual insets, footer balance and mode parity | Partially implemented v1.0.43/.48; later media shows independent footer/row paths. Physical dp and ColorOS build require measurement. F1/C1–C11 addressed by R2. | InputView, RoundedKeyboardFrameView, LatinIME, KeyboardSwitcher, MainKeyboardView, res values/layout; B04–B07 |
+| Extra empty toolbar, optical three-slot center, trailing accessory, no dots | Existing but undesirable source/recording behavior. Media confirms dots; L554 drawable and separate overflow gestures. v1.0.57 hides unavailable actions, persists supported options. | SuggestionStripView/Helper, ToolbarUtils, Settings, strip layouts; B09, B13 |
+| Search and context-sensitive punctuation; Return/Go/Done/Next/Send, URL, number/symbol modes, 123 drag | Existing layout/action system and new v1.0.56 momentary symbols. Return/Delete vectors updated v1.0.39. No latest acceptance. Old enlarged-numpad-on-hold superseded by 123 drag; numeric editors still require ergonomic numpad. | KeyboardState/Builder/LayoutSet, PointerTracker, InputLogic, layouts; B06, B07 |
+| Original frosted theme, old iOS Clear/Tinted, manual or automatic action tint | Global selectors superseded; automatic OG light/dark and palette-mapped optional action tint shipped. Source can use tint for functional/special keys. Manual swatch control planned. | KeyboardTheme, Defaults/Settings, AppearanceScreen, KeyboardView and Colors roles; B07 |
+| Footer tap Emoji, single ABC, drag arc Clipboard/Toolbar/Settings | Duplicate ABC and redundant Emoji observed; source supports two paths (footer arc and separate ACCESS_POINT panel). Owner reports Clipboard selection from Emoji unreliable; exact hit-to-dispatch failure needs rehearsal. | BoardFooterView, KeyboardState/Switcher, Emoji bottom layout variants; B08, B10 |
+| Emoji categories, free scrolling, search/tones/grapheme support | Existing but buggy within-category page snapping confirmed by source PagerSnapHelper. 7–8 columns, supported glyphs, category sync/row parity and transitions open. | EmojiPalettesView/Adapter/PageKeyboard/Category, assets and glyph generator; B03, B10 |
+| Smart Emoji real context and two or three strip glyphs | Partially implemented. v1.0.54 starters/adaptive Recents, .55 ranks existing Emoji candidates only. Grid has no composing-word matching. Owner's “The smart emoji system has not been applied.” refers to contextual quality. | R3 local data and ranker owner; B11–B13 |
+| Enticing Clipboard history and chips, copy/pin/clear/undo | History and text/rich chips implemented and previously owner-reported as working. Later visual defects directly reviewed. Sensitive history and failed image-to-text fallback are evidenced code risks requiring test reproduction. | ClipboardHistoryManager/Dao, panel/view/adapter layouts, LatinIME rich content; B05, B08, B14 |
+| Proton Pass inline login/autofill and privacy | Owner-reported working. Provider styling/size/accessory placement still open. Framework owns private suggestions. | LatinIME and InlineAutofillUtils, strip; B09, B14 |
+| Dictate-only mic, English, no settings launch, privacy | Partially implemented with explicit provider bind and language/script guard. Failure can open settings. Owner reported Hindi in an older build. Actual Reno10 service and English-only output require confirmation. | InlineDictation, BoardFooterView, LatinIME, SettingsValues; B05, B18 |
+| Indian English, Romanized Hinglish, colloquial next word, typo, punctuation, learned deletion | brrPersonal seed and history reset shipped; language quality unverified. Stronger local ranking planned. No raw brrPersonal backup history. | Suggest/InputLogic/DictionaryFacilitatorImpl/Factory/BrrPersonal, static data; B15, B16 |
+| Default glide without manual import, correction and trace accuracy | Current importer and open native hook identified. Owner reports imported decoder works and misses intended words. Requires feasibility/license decision and measured replacement. | JniUtils, Glide import/settings, PointerTracker, InputLogicHandler, BinaryDictionary; B17 |
+| Icon/style toggles, network toolbar and obsolete proofreading | Global icon/style toggles superseded. v1.0.57 source hides dead choices. AI/GIF/sticker routes remain disabled or unreachable; accidental removal risks persisted ordinal values. Offline grammar proofreader not started. | ToolbarUtils/settings/strip; B00, B19 |
+| Full iOS material and raw Apple assets | Preserve brrBoard frosted material and OS blur fallback; release of iOS 27 verified but editorial images unverified. Earlier Apple Emoji font proposal excluded for rights/size. | R2 and R3; B07, B10 |
+
+### Historical attempts to preserve
+
+- Original audit PR #4, debug tag pipeline PR #5, unmerged experiments #1, #2, #3 and #6, and upstream sync [2f1ffec](https://github.com/Batmancpu/brrrBoard/commit/2f1ffec4369ff7f2e04a17bfb68dce96bfbe5a12) anchor earlier episodes. Audit branch and Jules work are historical, not upgrade targets. The incognito voice and Reno10 branches' shown commits are already ancestors of the audited main. Preserve branches.
+- Maintained records cover early Samsung blur/InputConnection/resize regressions, GIF search failure, CI JDK 21 requirement, old release permissions, subtype cache isolation, malformed Smart Emoji source upload and corrective UTF-8 restore, tint saturation defaults, PHINC source-column fix, and settings validity. Pages retain exact previous data and full chronological notes. [Experiment log](EXPERIMENT_LOG.md) · [Conversation log](PROJECT_CONVERSATION.md) · [Old implementation plan](POST_V1_0_19_RENO10_PLAN.md)
+- This architecture base builds on earlier fixes. The known-issues table remains historical where it lists v1.0.39 and earlier implementation statuses. Current status comes from this ledger and latest checkpoint.
+
+## Batch plan
+
+### B00 — Reconcile current state and collect baseline (no dependencies)
+
+1. Read root AGENTS and current checkpoint. Fetch main, current signed tag, most recent debug and release run and relevant commits. Record SHA, branch and clean status. Diff from 3ee9da9. Reopen only requirements with present evidence or pending owner verification. Check current CI tests and skip resolved failures after full suite evidence. Preserve a list of exact source and signing identity.
+2. Collect device baseline R2 geometry and host app matrix with synthetic inputs. Record actual ColorOS, density, fonts, orientation/gesture mode, brrBoard and Dictate builds and provider without credentials. First pass verifies latest toolbar hidden entries/migration, 123 tap/slide/cancel, plain typing/upgrade, incognito, Clipboard and Proton, microphone tap/hold, trace/accuracy. Existing behavior remains default. This device collection can run alongside CI triage if hardware scheduling requires it.
+3. Save completed/verified vs pending, exact command and output in four continuity documents. Capture public evidence as sanitized observations. Do not publish a raw report, screenshot, trace or log with content.
+
+### B01 — Parser/currency fixture isolation (B00)
+
+Pin US locale and an explicit locale-based blank currency override in KeyboardParserTest. Verify fixture order and defaults; compare actual currency before changing test. Preserve ₹ default, explicit currency codes and alternate labels. Exercise en-US, en-GB and existing rupee custom. If deterministic test still fails, trace `LocaleKeyboardInfos.getCurrencyKey` → TextKeyData → popup assembly, and address only the confirmed parser bug. Target 5 tests green and no additional failures. R1 has exact failing methods.
+
+### B02 — InputLogic URL/autospace contracts (B01)
+
+Reference `InputLogicTest.reset` (clear prefs) and SettingsValues (production defaults enabled). Make each URL detection, autospace and shift-phantom policy explicit before setting text/selection. Bury neither drift nor actual regression in relaxed expected text. If any failure remains, split fixture and production correction into separate sub-batches after comparing XML and seed state. Run seven tests individually and full class, then full suite. Test email/URL, sentence punctuation, deletion and autocorrection undo in external editor. Preserve current user setting defaults and learned-data exclusions.
+
+### B03 — Unicode Emoji classifier and full green gate (B02)
+
+Reproduce failing sequence and isolate whether selector, fast guard, grapheme ICU or Unicode regex is at fault. Use version-matched Emoji data and content tests, no hardcoded suppression. Add edge coverage if existing tests miss the confirmed bug. Re-run :app:testRunTestsUnitTest on JDK 21 and record full case count and teardown status. Inspect CI arrangement if release still blocked by infrastructure with verified green tests. Subsequent batches start from green; document an unrelated flaky barrier with evidence before deciding how to proceed.
+
+### B04 — Lifecycle, panel ownership and insets (B03, B00)
+
+Define a small source-local transition contract in KeyboardSwitcher and LatinIME. Track actual target panel, editing session and transient overlay identity. Cancel old animation/end deliveries, stop outgoing panel listeners/search submode, clear pending popped keyboard and dismiss cleanup, apply new state then report insets. Use source's window callbacks and owner actual geometry rather than additional independent layout controllers. Scope toggle behavior, identity and measurement to this batch. Do not alter labels or native decoder.
+
+Gate: fast alpha → Emoji → Clipboard → alpha plus hide/reopen, rotate, input restart in same/different editor, hardware attach, background, landscape and locked bounds. No stale suggestions, delayed old animation hiding current view or content occlusion. Real nav inset and layout/footer measured from same coordinate space, no duplicated padding. Add read-only geometry logging only if necessary, with device-specific runtime consent where needed and no text.
+
+### B05 — Safety seams for voice and Clipboard (B03, B04)
+
+Sub-batch A fixes InlineDictation’s automatic voice-settings launch when selected service is invalid. Keep only verified Dictate SpeechRecognizer; show mic-local failure and separate explicit configuration. Record service resolution reason without sensitive content. Keep tap, hold and cancel separate and protect focus generation. Sub-batch B gates sensitive history capture, removes obsolete raw dismissal storage, transitions failed rich paste to typed outcome, tests MIME/URI lifecycle and preserves DB compatibility. Do not redesign presentation here. Gate with simulated provider/error paths and sensitive clips including password/incognito; verify no unintended activity, editor commit, logging or misplaced history. Reno10 routing confirmation follows in B18.
+
+### B06 — Shared dimensions and dismiss behavior (B04)
+
+Implement measured one-shell geometry across ordinary input modes/panels, maintaining one-handed/tablet/orientation resources. Work in InputView, keyboard builder/config, main_keyboard_frame, Footers, Resize wrapper and panel measurement. Remove discrepancy between measured wrapper and reported insets before visual tuning. Stabilize strip downward swipe dismissal without stealing chips, Emoji horizontal scroll, alternate gesture or talkback. Use Android hide path. Test +/-1dp steady-state target, actual footer optics, no artificial bottom gap, and no blur flash in frame-by-frame owner test. B06 core shell and gesture sub-batches can be reviewed independently.
+
+### B07 — Key roles, theme and glyph system (B06)
+
+Use role map R2. Sub-batch A audits all visible hit shapes and editor actions in KeyboardLayoutSet/Builder, MainKeyboardView/KeyboardView, generated layout and glyph assets; implement measured keyboard and popup geometry. Preserve 123 slide, context-specific numeric/URL modes and existing settings. Sub-batch B narrows tint effects, adds manual/auto palette preference with migration, reconciles dark/light on saturated backdrops. Keep frame highlight/cache and contrast fallback. Scope own vector assets, consistent filled/outline role policy. Gate on color/theme, 0.75–1.25dp highlight evaluation, correctly localized action colors and visual check on Reno10 with no regressed typing speed. Confirm changes preserve older stored style settings where relevant without resurrecting global selectors.
+
+### B08 — Footer arc, ABC and direct panel actions (B04, B05, B06)
+
+Route outer persistent footer through explicit panel actions. Verify touch event and active editor. Replace Emoji arc shortcut with Toolbar, keep Clipboard/Settings, short tap Emoji and single ABC. Remove duplicate only once all Emoji search, number and alternate layout variants work; test clipboard entry and return across normal and Emoji. Provide RTL, accessibility, current icon, no action on release outside, only one commit/callback on release, all three target states, show/dismiss, translate anchor bounded by real root bounds. Avoid same-mode keyboard hide via old toggles. When history disabled skip the history action or communicate its state; do not paste on an ambiguous menu selection. Record before/after sanitized geometry.
+
+### B09 — Three-slot/accessory ownership and provider stability (B04, B06)
+
+Keep one accessory host/priority policy from R4. Remove center dots only; add accessible Show more and retain hold/upward interaction. Center text with dedicated trailing control, verify all slots/error paths, set empty-state behavior once, and prevent candidate refresh from replacing active provider. Retime postResumeSuggestions and generation-guard inline inflations. Validate Proton with test accounts via platform callbacks. Preserve app completions, punctuation, typed correction and auto-hide rules. Full chip styling follows in B14.
+
+### B10 — Emoji grid mechanics and visual system (B03, B06, B08)
+
+Swap page snapping for continuous virtualized horizontal column/grid while preserving dataset order and toggles. Validate category transitions and a long category stopping at intermediate position, bounds themed/light/dark, 7–8 portrait cells width per row, secondary form factors and search. Keep one ABC, backspace, long-press variants, recents, selected category state, and insertion sequence identity. Choose optional boundary assist after free-scroll benchmark and user test. Restore older category/page preference positions safely if possible, or clamp out-of-bounds positions to nearest category. Gate first/last and mixed glyph tests, TalkBack, performance and no regressions in editor commits.
+
+### B11 — Data provenance and contextual Emoji scorer (B03, B10)
+
+Pin CLDR annotations and Unicode version compatible with assets; author vetted romanized aliases and trigger weights. Add deterministic generation separate from app startup, compact lookup index, dedup/grapheme support, eligibility and stats. Reference data/benchmark in R3. Measure scorer on hold-out positives/negatives. No UI or prediction engine mutation here. Reject low confidence and private contexts, preserve text exactly. Dataset and cache schema changes should be cheap and reversible.
+
+### B12 — Smart grid and recents (B10, B11)
+
+Use ephemeral InputLogic context to populate Smart results, preserve Recents as clearly distinguishable data, keep prior adaptive use as bounded tie-breaker. Snapshot at panel open and update only safely while no gesture is in progress. Preserve internal category IDs and older data cases. Gate no context, return from search, rapid typing/export reset, three-phrase contrasting results, no icon flicker and no private use. Obtain owner-reported relevance against natural use cases with synthetic exemplars.
+
+### B13 — Eligible compact Emoji beside ordinary candidates (B09, B11, B12)
+
+Apply display-only merge after ordinary Suggestions, disambiguate append vs replace through prior InputLogic candidate paths, and validate stable visible/commit mapping. Evaluate two and only then three glyphs if width keeps hit targets, ordinary word options and correction semantics. Check typography/graphemes and regression on long narrow words, weak matches and different sized modes. Cache ranking by epoch. Optional UI rejected if it costs text accuracy or readability.
+
+### B14 — Clipboard redesign and chip refinements (B05, B06, B07, B08, B09)
+
+Sub-batch A improves history header/cards/spacing/soft viewport edges, stable images, pin/clear/undo/empty UX. No broad blur over item text. Sub-batch B applies shared style roles to own compact paste chips and provider-advertised styles; async thumbnails and ordered provider views use correct owner. Avoid recreating Proton content. Use R4 tests for attachments, text, history, rejected MIME, permissions, pinned and expired data plus user visual check in external host. Include layout accessibility and keyboard height stability.
+
+### B15 — Baseline dictionary, static data and learning reset (B03)
+
+Confirm exact packaged assets and license notices. Reproduce brrPersonal generator hash from pinned source where network permitted. Run language benchmark R3, measure cold/hot latency and explicit reset. Preserve existing locales and course-grained settings; distinguish imported static dictionary, explicit personal additions and learned history. Record targets before changing frequencies. Can run as independent research after CI if B04–B14 device tasks are blocked, but source batches remain one at a time.
+
+### B16 — Local dictionary, next-word and correction improvements (B15)
+
+Split into A deterministic seed enhancements and locale/frequency profiles, B measured next-word scoring over existing n-grams, C confidence tweaks only when edits improve holdout. Keep manual undo, case, matching URL/email/credentials, slang spell-valid only, privacy, deletion, existing multilingual compatibility and tap pipeline. Gate fixed-word accuracy, false corrections especially proper names/Hinglish, conversation shorthand and space/cursor behavior with no p95 regression. Bypass advanced scoring when dictionary late/low confidence. Defer n-gram asset if provenance or benchmark lacks improvement.
+
+### B17 — Bundled glide decoder evaluation and integration (B03, B06, B15; recheck after B16)
+
+A: isolate a replay harness using existing touch/geometry and a fake decoder boundary. B: evaluate rights-cleared FlorisBoard classifier versus independent ShapeWriter-style baseline; lock license, dependencies and dataset. C: integrate winner behind capability fallback, preserve old import for upgrades, cancellations and typing. D: confirm ordinary fresh install across supported architectures, Reno10 16 KB considerations where available, external editor and no-network local typing. Remove manual import from standard user path only after both fresh signed and upgraded installs pass. Use R3 acceptance, including “typing”, corpus, repeated-letter and low-confidence collisions. No wholesale redesign of native binary dictionaries for this feature. If no decoder meets quality or rights, retain working import and exact benchmark blocker. Trail tuning is a separate rendering sub-batch after recognition evidence.
+
+### B18 — Dictate integration and English acceptance (B05, B07, B08)
+
+R4 device pass including current version, configured service, disabled Follow keyboard language, English set in Dictate, provider security and transient state. Repair only confirmed service matching/lifecycle or filter issue with reason-coded tests. Verify settings route from explicit control, mic tap/stop/cancel, hold, field switches, app changes, permissions and unambiguous English results. Respect upstream provider capability. If exact language output is still wrong with metadata unavailable, record owner observation and provider-side blocker with fallback design for review. Preserve user API configuration and no brrBoard network permission.
+
+### B19 — Integrated release and owner acceptance (B06–B18, B03 full gate)
+
+Compare signed output and merged manifest against baseline, use current CI paths and verify no secrets, test corpora/raw inputs/artwork/legacy binaries added unintentionally. Reconfirm package/signer/monotonic code, assets, ABIs, 16 KB page validation, build and test results, archive digest, and direct Obtainium URL for later authorized release. Include owner installation and in-place upgrade, final requested-list pass, both light/dark and Oppo real gesture navigation. Track known limitations/no acceptance with an exact next action. Never describe an APK as accepted based on “workflow success.” If a regression arises after integration, revert smallest isolated batch via ordinary forward commit after reviewing data migrations and compatibility.
+
+## State contract across all batches
+
+| Event | Required outcome |
+| --- | --- |
+| Start/restart editor | New identity when target actually changes; settings and geometry loaded for next EditorInfo and display; discard focus-late results. Same-editor restart preserves deliberate composing invariants. |
+| Change panel | Explicit origin and target, one visible panel and shared shell; stop outgoing listeners, close gesture overlays, preserve pending editor text by existing policy. |
+| Swipe or hold is canceled | No typed character, paste, settings launch, glide final or category navigation beyond already recognized gesture semantics. |
+| Hide/finish | Close owned UI, stop microphone and timers, invalidate later results, let Android animate and reset insets. Late callback has no keyboard or text side effect. |
+| Private or non-text field | Keep correct layout/action, eligible operating-system inline autofill, no unwanted clipboard/personalization/voice. Protected history stays outside logging. |
+| Race with wrong provider/clipboard | Current editor/provider/clip generation only; no resurrected candidate/chip, no silent service fallback. |
+
+## Verification and measurement contract
+
+1. **Automated:** JDK 21 Gradle full unit suite after first 3 batches, focused checks per touched path, rerun complete suite for shared state, fixture isolation, release qualification. Record exit status, counts, known test skips and exact build SHA. No permission or publishing step is inferred from a local unit test. Workflows/production config remain as pinned for the architecture phase.
+2. **Performance sample:** warmed and cold, device matrix and fixed text under neutral/complex background, collect repeated trials and p50/p95. Separate pointer-to-render from editor latency, suggestion refresh, glide result, panel transition and host frame. At true 120 Hz frame period ≈8.3 ms, at 60 Hz ≈16.7 ms. Screen video at 30 fps cannot demonstrate input latency or prove jank absence. Record frame timing via Perfetto/Android frame metrics under actual mode. Suggested targets: no regression from baseline, no expensive I/O on touch callback, p95 contextual scorer ≤5 ms and warm glide result ≤50 ms under measurement. Revisit targets transparently with observed device results.
+3. **Device matrix:** Gboard/keyboard switch sanity, brrBoard Settings search, independent Notes, browser Search/URL/email, login native/browser, numeric/decimal/phone, editor supporting image and one that rejects it, restricted/visible password, incl. private/incognito. Test main ↔ symbol ↔ Emoji ↔ Clipboard ↔ Toolbar, search/tones, action labels, paste thumbnail/X, Proton provider show/hide, dictation identity/language, glide accuracy/dismiss, 123 tap/slide, alternating rapid focus, rotate, one-hand/split where relevant, system themes and navigation modes. Gate exact results, app restart, first-session and updated user preferences. Tablet reference optional until available; no fabricated iPad parity.
+4. **Owner sign-off:** each owner-use result records device/model/API/ColorOS/display scaling, authenticated public Git commit or APK verification data, test scenario, expected, observed and unresolved items. Synthetic clips/words and dummy credentials only. Existing accepted behavior can be skipped unless the batch touches corresponding state. Link sanitized test result without exposing owner content.
+5. **Deployment:** latest workflows show app/tools/Gradle pushes on main can auto-publish Obtainium independently of debug CI. Inspect actual triggers before source merges and coordinate planned releases with current authorization. For this planning mission Markdown checkpoints use [skip ci] to avoid unintentionally running debug publication. Future source validation uses normal commands and documented workflow; keep the release signer private and never alter identity to work around a gate. [GitHub workflow skip behavior](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs)
+
+## Session recovery and the next exact action
+
+1. Start future session with `git fetch origin main`, `git status --short --branch`, `git log -12 --oneline origin/main`; read AGENTS, PROJECT_CONTEXT resume and today's chronological conversation entry. Validate source/main/release separately before writing any file. Read target batch prerequisites and touched paths plus nested instructions if present. Review current workflow runs and owner changes.
+2. Maintain in AGENTS.md, PROJECT_CONTEXT.md, docs/POST_V1_0_19_RENO10_PLAN.md and docs/PROJECT_CONVERSATION.md a checkpoint for every coherent research or implementation batch. Include batch ID, upstream/source SHA, in-progress/verified/blocked status, exact paths/functions, diff summary, commands and outputs, test assertions, result artifacts/checksums if applicable, device evidence, discarded hypotheses, compatibility or rollback, and single next action. Keep history append-only where possible. Update only the current pointers that need it. Record validated source changes and later CI/device outcomes separately when timing requires.
+3. If interrupted in mid-batch, leave own isolated changes intact. Preserve exact intended patch or smallest safe partial commit on an authorized recoverable ref if it needs to survive across environments, documenting path/ref, base, scope, checksums, verification gaps and remaining steps. For a multi-writer collision, diff with new main, preserve edits, reconcile and use a fast-forward or an ordinary reviewed merge. Never force-push. Do not push partial application work onto release-triggering main just to save notes. Never commit secrets or a dirty mixed-user diff. Research checkpoints contain only Markdown.
+4. On pickup, compare pending working tree to checkpoint and latest progress. Re-run only missing or invalidated checks. If upstream now solves a requirement, verify and record its evidence, then skip. If newer data reverses prior direction, record both before resuming.
+5. **Readiness at R5:** architecture, dossier, provider design, requirements and batches documented. The active phase remains planning-only. Once a later owner-authorized implementation starts, perform B00, then reproduce B01–B03 against current main. If tests are already green, advance to B04 after verifying exact existing contracts and current Reno10 baseline. Source v1.0.57 is not marked device-accepted.
