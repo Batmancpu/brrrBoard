@@ -9,7 +9,7 @@
 | R0 — Repository, scope and evidence baseline | Recorded below | R1: read runtime and test paths at pinned source SHA |
 | R1 — Source architecture and test triage | Published in this checkpoint | [SOURCE_ARCHITECTURE_AUDIT.md](SOURCE_ARCHITECTURE_AUDIT.md) |
 | R2 — Reno10, iOS references and visual system | Published in this checkpoint | [RENO10_VISUAL_SPEC.md](RENO10_VISUAL_SPEC.md) |
-| R3 — Dictionaries, Smart Emoji and glide | Pending | Evaluate local approaches and redistribution rights |
+| R3 — Dictionaries, Smart Emoji and glide | Published in this checkpoint | [LOCAL_TYPING_ENGINE.md](LOCAL_TYPING_ENGINE.md) |
 | R4 — Clipboard, inline autofill, Dictate and lifecycle | Pending | Trace integration and privacy boundaries |
 | R5 — Ordered implementation and acceptance plan | Pending | Publish batches, dependencies, file map and recovery steps |
 | R6 — Handoff verification | Pending | Confirm docs-only remote history and readiness |

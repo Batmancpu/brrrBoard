@@ -1,5 +1,7 @@
 # brrBoard agent instructions
 
+**R3 — local language engine, Smart Emoji and glide research.** Current Smart is usage-ranked Recents and the default build lacks a working gesture factory. R4 will trace provider integrations and privacy boundaries. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **R2 — Reno10 and iOS visual reference audit.** Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
 **R1 — source architecture and test triage.** R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).

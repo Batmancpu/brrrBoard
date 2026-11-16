@@ -763,3 +763,7 @@ Owner: “During this phase, you must not: … Implement keyboard features.” O
 ## 2026-11-16 — R2 Reno10 and iOS visual reference audit
 
 [RENO10_VISUAL_SPEC.md](RENO10_VISUAL_SPEC.md). Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates.
+
+## 2026-11-16 — R3 local language engine, Smart Emoji and glide research
+
+[LOCAL_TYPING_ENGINE.md](LOCAL_TYPING_ENGINE.md). Current Smart is usage-ranked Recents and the default build lacks a working gesture factory. R4 will trace provider integrations and privacy boundaries.
