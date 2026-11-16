@@ -1642,6 +1642,12 @@ public class LatinIME extends InputMethodService implements
         mInlineDictation.cancel();
     }
 
+    void toggleBoardDictation() {
+        if (mSettings.getCurrent().mShowsVoiceInputKey) {
+            mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
+        }
+    }
+
     @Override
     public void onSwipeDownOnToolbar() {
         requestHideSelf(0);
@@ -1930,9 +1936,7 @@ public class LatinIME extends InputMethodService implements
             }
         }
         if (KeyCode.VOICE_INPUT == event.getKeyCode()) {
-            if (mSettings.getCurrent().mShowsVoiceInputKey) {
-                mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
-            }
+            toggleBoardDictation();
             return;
         }
         if (event.getKeyCode() == KeyCode.AI_TOOLS || event.getKeyCode() == -214

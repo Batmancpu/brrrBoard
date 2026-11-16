@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B05 short-tap follow-up (unverified)
+
+Initial main `57191da` passed full Android debug/unit [43929202118](https://github.com/Batmancpu/brrrBoard/actions/runs/43929202118) and signer/release [43929201775](https://github.com/Batmancpu/brrrBoard/actions/runs/43929201775), v1.0.62. Owner states mic short tap does nothing, long press switches IME, YouTube Dictate voice search works. Source inspection: mic touch listener does call `performClick()` on short release, but then sent synthetic VOICE_INPUT into normal key path; inline service required system secure selection to be Dictate, and used a generic recognizer availability gate. Dictate maintainer [issue #359](https://github.com/DevEmperor/DictateKeyboard/issues/359) gives exact canonical `net.devemperor.dictate/dev.patrickgold.florisboard.dictate.recognition.DictateRecognitionService`, distinguishing inline from separate activity/IME voice. This is a hypothesis about ColorOS, not confirmed root cause. Patch dispatches short tap directly; queries installed Dictate RecognitionService only and uses verified selected/canonical/unique service despite unrelated OEM default; removes redundant global availability gate; shows footer status on failure, retaining Toast. Test wrong-provider/ambiguous refusal. No new recording animation. Local wrapper test attempted with `--offline` but Gradle download network unreachable; no tests skipped. Need full CI and owner trial.
+
 ## 2026-11-16 — B05 voice failure and Clipboard privacy/typed paste (CI pending)
 
 - **Baseline/authorization:** `430c10d` signed v1.0.61, B04 complete. Owner authorized B05 only.

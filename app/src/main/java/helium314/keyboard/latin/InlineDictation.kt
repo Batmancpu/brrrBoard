@@ -51,6 +51,8 @@ internal class InlineDictation(private val ime: LatinIME) {
     fun start(root: View?, locale: Locale) {
         if (recognizer != null) return
         val inputView = root ?: return
+        footer = inputView.findViewById(R.id.board_footer)
+        footer?.clearDictationError()
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
@@ -67,11 +69,6 @@ internal class InlineDictation(private val ime: LatinIME) {
             report(R.string.inline_voice_permission)
             return
         }
-        if (!isAvailable(ime)) {
-            report(R.string.inline_voice_unavailable)
-            return
-        }
-
         // Request English for the selected Android RecognitionService. Dictate currently ignores
         // caller language extras and starts its saved Active language, so its own language setting
         // still has to be English. Other services may provide Android language-detection metadata,
@@ -94,7 +91,6 @@ internal class InlineDictation(private val ime: LatinIME) {
             detectedSpeechLanguage = null
             recognitionStarted = false
             stopRequested = false
-            footer = inputView.findViewById(R.id.board_footer)
             footer?.showDictationActive(true)
             footer?.setDictationCancelAvailable(true)
             listen(session, intent, connection)
@@ -167,12 +163,13 @@ internal class InlineDictation(private val ime: LatinIME) {
                         ?.trim().orEmpty()
                     val rejectedNonEnglish = candidates.isNotEmpty() && text.isEmpty() &&
                         (detectedNonEnglish || candidates.any(::containsHindiScript))
+                    val statusFooter = footer
                     cancel()
                     if (ime.isInputViewShown && ime.currentInputConnection === connection) {
                         if (text.isNotEmpty()) {
                             ime.onTextInput(text)
                         } else if (rejectedNonEnglish) {
-                            report(R.string.inline_voice_hindi_result)
+                            report(R.string.inline_voice_hindi_result, statusFooter)
                         }
                     }
                 }
@@ -225,11 +222,21 @@ internal class InlineDictation(private val ime: LatinIME) {
     }
 
     private fun fail(message: Int) {
+        val statusFooter = footer
         cancel()
-        report(message)
+        report(message, statusFooter)
     }
 
-    private fun report(message: Int) {
+    private fun report(message: Int, statusFooter: BoardFooterView? = footer) {
+        // IME-originated Toasts can be hidden or inconspicuous on some ColorOS versions.
+        // Also show a short, scoped footer hint so a failed tap is never completely silent.
+        val shortHint = when (message) {
+            R.string.inline_voice_select_dictate_service -> R.string.board_voice_dictate_missing
+            R.string.inline_voice_permission -> R.string.board_voice_permission_missing
+            R.string.inline_voice_hindi_result -> R.string.board_voice_english_only
+            else -> R.string.board_voice_failed
+        }
+        statusFooter?.showDictationError(shortHint)
         val duration = if (message == R.string.inline_voice_hindi_result) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
         Toast.makeText(ime, message, duration).show()
     }
@@ -243,10 +250,6 @@ internal class InlineDictation(private val ime: LatinIME) {
             val selected = AndroidSettings.Secure.getString(
                 context.contentResolver, VOICE_RECOGNITION_SERVICE_SETTING
             )
-            val selectedComponent = selected?.let { ComponentName.unflattenFromString(it) }
-            if (selectedComponent?.packageName != DICTATE_PACKAGE_NAME) {
-                return resolveDictateServiceSelection(selected, emptyList())
-            }
             val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(DICTATE_PACKAGE_NAME)
             val services = runCatching {
                 context.packageManager.queryIntentServices(query, 0).mapNotNull { info ->
@@ -275,7 +278,7 @@ internal class InlineDictation(private val ime: LatinIME) {
     }
 }
 
-/** Pure service-resolution policy. No platform activity or fallback recognizer is launched. */
+/** Pure Dictate-only service-resolution policy. No other recognizer is launched. */
 internal data class DictateServiceSelection(
     val component: ComponentName?,
     val failure: Failure? = null,
@@ -286,12 +289,27 @@ internal data class DictateServiceSelection(
 internal fun resolveDictateServiceSelection(
     selected: String?, available: Collection<ComponentName>,
 ): DictateServiceSelection {
-    if (selected.isNullOrBlank()) return DictateServiceSelection(null, DictateServiceSelection.Failure.NO_SELECTION)
-    val component = ComponentName.unflattenFromString(selected)
-        ?: return DictateServiceSelection(null, DictateServiceSelection.Failure.MALFORMED)
-    if (component.packageName != "net.devemperor.dictate")
-        return DictateServiceSelection(null, DictateServiceSelection.Failure.WRONG_PROVIDER)
-    if (component !in available)
-        return DictateServiceSelection(null, DictateServiceSelection.Failure.SERVICE_MISSING)
-    return DictateServiceSelection(component)
+    val selectedComponent = selected?.let { ComponentName.unflattenFromString(it) }
+    val verifiedDictateServices = available.filter { it.packageName == DICTATE_SERVICE_PACKAGE }
+    // ColorOS may direct the general system recognizer to another service even when Dictate
+    // handles voice-search activities. brrBoard's explicit mic contract is Dictate-only, so
+    // choose its discoverable RecognitionService without depending on the OEM secure setting.
+    if (selectedComponent != null && selectedComponent in verifiedDictateServices)
+        return DictateServiceSelection(selectedComponent)
+    val canonical = ComponentName(DICTATE_SERVICE_PACKAGE, DICTATE_RECOGNITION_SERVICE_CLASS)
+    if (canonical in verifiedDictateServices) return DictateServiceSelection(canonical)
+    if (verifiedDictateServices.size == 1) return DictateServiceSelection(verifiedDictateServices.single())
+
+    val failure = when {
+        selected.isNullOrBlank() -> DictateServiceSelection.Failure.NO_SELECTION
+        selectedComponent == null -> DictateServiceSelection.Failure.MALFORMED
+        selectedComponent.packageName != DICTATE_SERVICE_PACKAGE -> DictateServiceSelection.Failure.WRONG_PROVIDER
+        else -> DictateServiceSelection.Failure.SERVICE_MISSING
+    }
+    return DictateServiceSelection(null, failure)
 }
+
+private const val DICTATE_SERVICE_PACKAGE = "net.devemperor.dictate"
+// Confirmed by the Dictate maintainer in DevEmperor/DictateKeyboard issue #359.
+private const val DICTATE_RECOGNITION_SERVICE_CLASS =
+    "dev.patrickgold.florisboard.dictate.recognition.DictateRecognitionService"

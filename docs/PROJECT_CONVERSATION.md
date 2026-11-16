@@ -3,6 +3,10 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-17 — B05 owner feedback blocks mic acceptance
+
+Owner reports: "now that I click on my microphone button, nothing happens. But when I tap and hold it, it opens the other keyboard. So the tap and hold is fine, but tapping does not do anything ... if I go to my YouTube app and click on the mic button, it launches the dictate voice engine ... works perfectly." Requests short-tap fix first and explicitly defers recording-state feedback idea. Green v1.0.62 CI does **not** equal physical acceptance. Corrective B05-only patch to voice routing and visible failure status; no B06 permission or changes. Owner to test new signed APK once full CI passes.
+
 ## 2026-11-16 — B05 explicitly authorized; implementation started
 
 **Owner's instruction (condensed, preserving exact intent):** "Yes, let's proceed with Batch B05." They independently verified `main` `430c10d`, B04 complete and tint fixed, signed v1.0.61, green CI and intact GitHub docs; the accidental chat reset was a misunderstanding, not a request to repeat or undo B04. They instruct the next engineer to implement **only B05 Voice & Clipboard**, preserve existing Dictate/Clipboard/signing/keyboard behavior, test thoroughly, publish a signed Obtainium APK, document every step, give easy phone tests, show roadmap and explicitly ask "Shall we proceed with B06?" then stop. B05 start from fresh clean main and use the existing master plan/R4 spec. This entry contains no raw user media, Clipboard text, provider settings or secrets.

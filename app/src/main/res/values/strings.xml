@@ -498,6 +498,10 @@
     <string name="inline_voice_open_settings_failed">Open Android Settings → Voice input and select Dictate, then tap the microphone again.</string>
     <string name="inline_voice_configure">Configure Dictate voice input</string>
     <string name="inline_voice_configure_summary">Explicitly open Android voice-input settings to select Dictate; tapping the keyboard microphone never opens settings.</string>
+    <string name="board_voice_dictate_missing">Dictate service unavailable</string>
+    <string name="board_voice_permission_missing">Allow brrBoard microphone permission</string>
+    <string name="board_voice_english_only">Dictate must be set to English</string>
+    <string name="board_voice_failed">Dictation unavailable — try again</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype

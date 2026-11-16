@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 — B05 initial CI green; phone mic tap fails; corrective pass pending
+
+First B05 `57191da` green Android build/unit `43929202118` and original-signer production `43929201775`; signed v1.0.62 (SHA-256 `46fc80c73a4009a3f322a2cc92dc3744bf584fc292551fb5b8d414f4aef3b213`). **Not B05 acceptance:** owner says short footer mic tap appears inert while hold switches keyboard. YouTube Dictate voice-search transcribes successfully but likely invokes a separate Android mechanism, not necessarily an inline RecognitionService. Corrective B05-only patch: direct tap to LatinIME, explicit verified installed Dictate service despite mismatched OEM secure default; remove redundant generic recognizer availability gate; display short error in empty center footer for service/permission/session failure while retaining Toast. Query service visibility remains in AndroidManifest. Test configured/canonical/sole valid service and wrong-provider/ambiguous refusal. No fallback to unrelated recognizer, no automatic settings launch, no Clipboard change, no animation (owner deferred). Android CI, new APK and actual Oppo short-tap/stop/English acceptance pending. B06 unstarted. See `AGENTS.md` and experiment log.
+
 ## Active session — 2026-11-16 B05 Dictate/Clipboard safety (pending CI)
 
 - **Authorization/repo:** owner authorizes B05 only. Read updated AGENTS/master/handoff/R4 provider spec and verified clean latest `main` `430c10d990943f43d295367e7fb499bf76efa5f9`; existing signed v1.0.61, original signer/package and past B04 fixes unaffected. B01–B04/B15 complete, B00 partial; B05 in progress, B06–B14/B16–B19 pending.

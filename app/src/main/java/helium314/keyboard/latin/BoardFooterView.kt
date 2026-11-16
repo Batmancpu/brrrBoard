@@ -19,6 +19,7 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import helium314.keyboard.event.HapticEvent
@@ -35,6 +36,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
+    private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
     private var popup: PopupWindow? = null
     private val targets = ArrayList<ImageButton>()
     private var dictationActive = false
@@ -42,6 +44,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var emojiPanelActive = false
     private var micPulse: ObjectAnimator? = null
     private var cancelDictationActionId: Int? = null
+    private val clearVoiceError = Runnable { voiceError.visibility = GONE }
     private var selected = -1
     private var tracking = false
     private var downX = 0f
@@ -76,7 +79,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             feedback(it)
             send(if (emojiPanelActive) KeyCode.ALPHA else KeyCode.EMOJI)
         }
-        microphone.setOnClickListener { feedback(it); send(KeyCode.VOICE_INPUT) }
+        // This footer control is not a virtual keyboard key; dispatch it directly to the
+        // IME instead of sending -233 through key-coordinate/meta-state decoding.
+        microphone.setOnClickListener { feedback(it); ime.toggleBoardDictation() }
         // Input-method switching is a distinct mic hold action. Start it sooner
         // than Android's default 500 ms long-press while preserving tap-to-dictate.
         microphone.setOnTouchListener { view, event ->
@@ -168,12 +173,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         emojiButton.imageTintList = tint
+        voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         if (dictationProcessing) showDictationProcessing()
         else showDictationActive(dictationActive)
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
     }
 
     fun showDictationActive(active: Boolean) {
+        if (active) clearDictationError()
         dictationActive = active
         dictationProcessing = false
         val colors = Settings.getValues().mColors
@@ -210,6 +217,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
+    fun showDictationError(message: Int) {
+        removeCallbacks(clearVoiceError)
+        voiceError.setText(message)
+        voiceError.visibility = VISIBLE
+        voiceError.announceForAccessibility(resources.getString(message))
+        postDelayed(clearVoiceError, 4_000L)
+    }
+
+    fun clearDictationError() {
+        removeCallbacks(clearVoiceError)
+        voiceError.visibility = GONE
+    }
+
     private fun startMicPulse() {
         if (micPulse != null) return
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
@@ -238,6 +258,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun reset() {
+        clearDictationError()
         showDictationActive(false)
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
