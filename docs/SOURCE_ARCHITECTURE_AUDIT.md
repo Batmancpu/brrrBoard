@@ -79,3 +79,8 @@ CI 43857301235 confirms the PHANTOM-resume runtime fix cleared all three enabled
 ## B03 follow-up — catalog version evidence
 
 The first exact scalar fix compiled, and CI [43862270142](https://github.com/Batmancpu/brrrBoard/actions/runs/43862270142) progressed from U+1FA8D to U+1FACC 🫌. Current assets encode multiple Unicode Emoji 18 additions, while `emoRegex` predates them. The bundled scalar set includes U+1F6D9, U+1FA8B–D, U+1FACC, U+1FADD, U+1FAEB and U+1FAF9–FA; the newest thumb signs also have modifier sequences. B03 now updates this same regex coherently for the bundled assigned scalars and tone variants. Full CI is required before proceeding; no local test or device evidence is available.
+
+
+## B03 follow-up — in-range scalar failure
+
+U+1FAA9 🪩 is covered by the regex's existing U+1FA8E–U+1FAC2 base class and by the `StringUtils.java` fast guard U+1F104–U+1FAFF, yet the catalog sweep reported `isEmoji=false`. The test message now reports single-grapheme and fast-guard booleans on failure. Wait for those values before changing classifier logic; regex coverage alone does not explain this result.

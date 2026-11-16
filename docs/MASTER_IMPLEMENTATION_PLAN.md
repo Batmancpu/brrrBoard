@@ -61,7 +61,7 @@ B02 completed at `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. Product defaults en
 
 ### B03 — Unicode Emoji classifier and full green gate (B02)
 
-**In progress — align classifier with bundled Emoji 18 data.** CI on `12179e9` verified the debug APK signer, fixed U+1FA8D 🪍, and reported the next omitted scalar U+1FACC 🫌. The asset catalog contains U+1F6D9, U+1FA8B–D, U+1FACC, U+1FADD, U+1FAEB and U+1FAF9–FA; the two latest thumb signs also appear with skin-tone modifiers. `emoRegex` now gets one coherent update for those exact assigned scalars/variants without hardcoded skips or accepting reserved gaps. B03 is complete only after the full 181-test task, APK build and signer verification pass. Local Gradle and Reno10 testing remain unavailable.
+**In progress — isolate an in-range Emoji failure.** The Unicode 18 asset points are now added to `emoRegex`, and CI verified the debug APK signer. The next catalog failure is U+1FAA9 🪩, already inside the regex's U+1FA8E–U+1FAC2 range and fast guard's U+1F104–U+1FAFF range. The assertion reports grapheme and fast-guard results on the next run; use those to isolate ICU segmentation vs regex matching before any further classifier change. B03 requires the full test task and signer/build gate. Local Gradle and Reno10 checks remain unavailable.
 
 ### B04 — Lifecycle, panel ownership and insets (B03, B00)
 
