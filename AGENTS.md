@@ -13,8 +13,8 @@
 
 - The sparkle Smart Emoji/Recents tab and local ranker already existed. Empty PREF_EMOJI_RECENT_KEYS caused the default tab to fall back to Smileys; see current source in EmojiCategory.java, DynamicGridKeyboard.java, and EmojiPalettesView.java.
 - This implementation seeds offline ranked emoji into unused grid capacity, migrates the old Smileys fallback to Smart once, preserves actual user Recents, excludes transient starter keys from the saved recents list, caps to three rows and keyboard capacity, and skips adaptive ranking in incognito mode.
-- The previous docs-only debug run [43823427430](https://github.com/Batmancpu/brrrBoard/actions/runs/43823427430) built, signed, and uploaded an APK but failed the 180-test gate on the known 13-test baseline. Current source CI and Reno10 acceptance are pending.
-- Do not proceed to contextual three-slot Emoji ranking until this batch's CI is inspected and the four handoff files record its result.
+- Obtainium run [43825284915](https://github.com/Batmancpu/brrrBoard/actions/runs/43825284915) published v1.0.54 after successful release build/signing. Debug run [43825284952](https://github.com/Batmancpu/brrrBoard/actions/runs/43825284952) compiled, verified signer, and uploaded APK artifact 14206735867 (34,844,049 bytes; APK SHA-256 eb1eb2da1b92cb71e06c4cbb36ea1480055297f87cf64552914343ec321ee224), then failed only at the recurring 13/180 test gate: five parser/currency, seven URL/autospace, and one Emoji recognition assertion. Reno10 acceptance remains outstanding.
+- Current next batch: connect local Emoji frequency/recency to only the two side suggestions; preserve the center word, decoder confidence, and privacy rules. Keep all four handoff files in that source commit.
 
 ## Earlier source checkpoints — 2026-11-16 (v1.0.41–v1.0.43)
 
