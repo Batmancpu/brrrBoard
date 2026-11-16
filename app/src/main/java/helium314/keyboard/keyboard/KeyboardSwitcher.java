@@ -1118,6 +1118,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mKeyboardView.setVisibility(View.GONE);
 
                 // Start emoji palettes
+                // Hide typing candidates before revealing their shared strip container,
+                // so stale words cannot flash in place of the Emoji category tabs.
+                mSuggestionStripView.setVisibility(View.GONE);
                 mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                         mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
                 mEmojiPalettesView.setVisibility(View.VISIBLE);
@@ -1127,7 +1130,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mStripContainer.setVisibility(View.VISIBLE);
                 setKeyboardPanelOffsets(true);
 
-                mSuggestionStripView.setVisibility(View.GONE);
                 mClipboardStripScrollView.setVisibility(View.GONE);
                 mClipboardHistoryView.setVisibility(View.GONE);
                 if (mKlipyPalettesView != null) {
