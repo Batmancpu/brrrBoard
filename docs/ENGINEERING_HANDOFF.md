@@ -7,7 +7,7 @@
 | Checkpoint | State | Resume |
 | --- | --- | --- |
 | R0 — Repository, scope and evidence baseline | Recorded below | R1: read runtime and test paths at pinned source SHA |
-| R1 — Source architecture and test triage | Pending | Trace state ownership and diagnose CI |
+| R1 — Source architecture and test triage | Published in this checkpoint | [SOURCE_ARCHITECTURE_AUDIT.md](SOURCE_ARCHITECTURE_AUDIT.md) |
 | R2 — Reno10, iOS references and visual system | Pending | Resolve geometry, panel ownership and comparison measures |
 | R3 — Dictionaries, Smart Emoji and glide | Pending | Evaluate local approaches and redistribution rights |
 | R4 — Clipboard, inline autofill, Dictate and lifecycle | Pending | Trace integration and privacy boundaries |

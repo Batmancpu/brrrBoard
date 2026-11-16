@@ -2,6 +2,8 @@
 
 ## Resume here
 
+**R1 — source architecture and test triage.** R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **R0 — documentation-only architecture mission (16 November 2026).** Follow the [current engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here). Source baseline is 3ee9da9 and signed release v1.0.57. The debug APK built and signed; the test gate still fails 13/180. No owner-device verification for v1.0.57 is recorded. Next action is source and test triage at the pinned baseline. Entries below retain the previous implementation context.
 
 - **Latest source batch:** [8463fc8](https://github.com/Batmancpu/brrrBoard/commit/8463fc80c1f8695c0f0b11075db25d5e0d3434db) allows sliding from 123 to select one symbol, then returns to letters; ordinary 123 tap remains persistent symbols. The former enlarged numpad-on-hold is removed. Source build and signing passed; v1.0.56 is published; debug CI has the unchanged 13/180 test failures. No Reno10 test was run.

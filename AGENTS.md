@@ -1,5 +1,7 @@
 # brrBoard agent instructions
 
+**R1 — source architecture and test triage.** R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **Current research checkpoint.** Start with the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here). The owner authorized documentation-only architecture work in this session. Earlier implementation directions below describe historical sessions.
 
 **Start here in every new chat or agent session.** Read the [current checkpoint](PROJECT_CONTEXT.md#resume-here) and the latest entry in the [conversation record](docs/PROJECT_CONVERSATION.md) before editing, building, or answering a status question. Resume the latest owner request and honor its acceptance criteria and decisions.
