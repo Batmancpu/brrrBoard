@@ -64,3 +64,6 @@ The Actions console omits JUnit comparison values; a B02 workflow update now upl
 JUnit artifact `14221202444` confirmed all three InputLogic failures have a shared PHANTOM-space URL-resume cause: `bla.c` rendered with a space, `example.com.` was not composing, and URL path separators fragmented history. The URL-resume block required NONE space state, preventing its existing `restartSuggestions` path. Candidate runtime edit now accepts PHANTOM and prevents autospace after resume; pending CI.
 
 CI 43857301235 confirms the PHANTOM-resume runtime fix cleared all three enabled URL assertions. Four new remaining assertions were fixture policy drift: sentence autospace, normal-field URL behavior, and no-detection intermediate commits assumed URL detection off but reset clears prefs to the on default. Those four tests now pin it off. Product defaults/assertions unchanged; full CI pending.
+
+
+**B02 final result (2026-11-16):** CI 43858699048 confirms all seven URL/autospace tests pass; only Emoji classifier failure remains among 181 tests. The URL-resume change allows PHANTOM state after a separator and avoids autospace once composing resumes. Explicit fixtures pin disabled URL policy where intended. Product defaults/assertions unchanged. B03 next isolates `isEmojiDetectsAllAvailableEmojis` using JUnit XML; no regex patch until exact code point is known.

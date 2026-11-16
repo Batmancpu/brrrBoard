@@ -1,5 +1,11 @@
 # brrBoard agent instructions
 
+## Active checkpoint — B02 complete; B03 in progress (2026-11-16)
+
+B02 is complete on audit branch `brrrboard-audit-b01-currency-20261116`. Starting checkpoint `2df304cdcd98b7f08bb912f8974fcd93631b24d5`; ending source/checkpoint commit `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. It pins URL/autospace test policies explicitly and fixes InputLogic's URL composition resume when a pending phantom space follows a URL connector. The change allows resume with NONE or PHANTOM space state and skips automatic spacing after composition resumes. Production defaults and test expectations remain unchanged.
+
+CI run [43858699048](https://github.com/Batmancpu/brrrBoard/actions/runs/43858699048), job `133269541469`, built, signer-verified and uploaded the debug APK; all 181 tests completed with one remaining failure: `StringUtilsTest.isEmojiDetectsAllAvailableEmojis`. All seven B02 URL/autospace tests now pass. Test XML artifact `14221548884` was uploaded. `git diff --check 2df304c..HEAD` passed. The first B02 source transfer accidentally included a truncation marker; recovery `33afb1f` restored full files and verified their Git blob hashes. Local Gradle remains unavailable (8.14.4 download network error); the scratch execution environment is currently unavailable. `adb` is absent, so B00 Reno10 checks remain pending. Next: B03, inspect the Emoji test failure's exact code point and isolate ICU grapheme boundary vs regex/version mismatch, then patch and run full CI.
+
 ## Active implementation checkpoint — B00 baseline (2026-11-16)
 
 The owner authorized implementation of the dependency-ordered 20-batch plan and will be unavailable for approximately 4–5 hours. Resume from [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md#resume-here) and [B00 in the implementation plan](docs/MASTER_IMPLEMENTATION_PLAN.md#b00--reconcile-current-state-and-collect-baseline-no-dependencies). Do not treat the historical R6 planning-only status below as current authorization.
