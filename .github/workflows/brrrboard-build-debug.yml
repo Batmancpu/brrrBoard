@@ -69,6 +69,17 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon --stacktrace assembleDebug
 
+      - name: Record generated brrPersonal dictionary fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          DICTIONARY="app/src/main/assets/brrPersonal.tsv"
+          test -s "$DICTIONARY"
+          ENTRY_COUNT="$(grep -c -v '^#' "$DICTIONARY")"
+          test "$ENTRY_COUNT" -gt 0
+          echo "brrPersonal entries: $ENTRY_COUNT"
+          sha256sum "$DICTIONARY"
+
       - name: Verify APK and signing identity
         shell: bash
         run: |

@@ -180,3 +180,14 @@ Remove unsupported AI Tools/GIF/Stickers and internal Close History from all use
 6. Remove only demonstrably unused APK payload; preserve required parser/test data and the app's update identity. Inspect CI, sign and publish the test APK, then maintain a Reno10/iPad acceptance checklist. No source-only result counts as device verification.
 
 The user wants a tailored, fast keyboard, not a generic feature-heavy keyboard. Keep suggestions deterministic and offline; leave private fields/incognito out of learned history; never introduce network AI. Exact iOS dimensions/blur are reference targets to measure, not claims inferable from the supplied stills.
+
+
+## 2026-11-16 — B15 baseline dictionary and reset audit (in progress)
+
+Starting source: `6048c2280acb6859fbf8ca3e34e114321546834c`; branch `brrrboard-audit-b01-currency-20261116`. B15 is independent of B04’s pending Reno10 panel checks and B05–B14. This checkpoint verifies source/provenance and adds a CI fingerprint for the exact generated brrPersonal asset. No locale catalog, dictionary frequencies, suggestion ranking, or reset behavior changed.
+
+The build-time generator `tools/prepare_brrpersonal.py` pins PHINC revision `44b5471df75e508b9d6fcdbcc93df04bb1e84056`; `NOTICE` identifies CC BY 4.0, the source paper, transformations, and that the corpus is not bundled. Generation downloads the pinned CSV only during Gradle build, emits a sorted bounded TSV, and the app loads it locally through the existing native expandable dictionary. The added workflow step checks the asset is nonempty and reports data-row count and SHA-256 after assembleDebug, making output reproducible from CI evidence. Fingerprint is pending the triggered run.
+
+The catalog remains 19 main language dictionaries plus existing Emoji dictionaries; available locale behavior is unchanged. brrPersonal loads for English or Romanized Hindi; explicit Android personal words are separate. Existing reset code clears only TYPE_USER_HISTORY / learned history and leaves brrPersonal and Android’s explicit personal dictionary intact. No data was cleared or rewritten.
+
+Status: PARTIAL pending workflow fingerprint, language-specific cold/warm latency and accuracy benchmark, and Reno10 device behavior. The local runtime and phone are unavailable in this session; no latency/quality numbers are claimed. Next exact action: read the generated TSV fingerprint from the triggered Actions run, then establish the disjoint R3 phrase set and capture cold/warm latency before any frequency or ranking change. If the run fails, diagnose its log before continuing.
