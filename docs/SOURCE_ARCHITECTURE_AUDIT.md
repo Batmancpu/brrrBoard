@@ -104,3 +104,8 @@ The workflow release-scope guard at `dc4b2f6` was verified by run [43869454530](
 ## B04 implementation checkpoint
 
 B04 starts at `a34872eb1529abdeb3879ed796903d277d408119`. The current source change creates a monotonic transition generation and checks both generation and target view before an animation end action mutates alpha/ownership. Lifecycle cancellation is wired to LatinIME start/finish input-view and window-hidden callbacks. Direct Emoji↔Clipboard switches stop the outgoing panel's listeners/search mode before starting the new panel. Unit tests cover guard invalidation; CI pending. Owner Reno10 still must verify rapid panel switches, hide/reopen, rotation, editor restarts, hardware keyboard and geometry/insets. No visual dimension changes in this sub-batch.
+
+
+## B04 result — source gate passed; device gate pending
+
+CI `43871586879` passed the debug build/signature and complete unit task for source checkpoint `2be4e54`; two new tests exercised stale generation rejection and lifecycle invalidation. The audit APK workflow passed and skipped release. Reno10 interaction/inset acceptance remains unverified; B04 is partial. B15 is independent after B03 and is next while awaiting hardware evidence.

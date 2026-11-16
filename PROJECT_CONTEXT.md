@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01–B03 complete; B04 implementation in progress.** Main `7ab4bc5` / v1.0.57 unchanged. B03 finished at `5dd17c7`; full 181-test suite and signed debug build passed. CI release-scope guard `dc4b2f6` passed and skipped docs-only publishing. B04 starts at `a34872e`: protect panel animation end callbacks from stale generations, invalidate them at input/window lifecycle boundaries, and stop outgoing Emoji/Clipboard listeners. Pure transition guard tests are being added. Audit-only automatic publish is disabled pending repo permission review; debug test prerelease path remains operational. No local Gradle/adb or Reno10. Next: CI verify the B04 source gate, then leave device acceptance open.
+**Implementation session — B00 partial; B01–B03 complete; B04 partial (CI green, Reno10 pending); B15 next.** Main `7ab4bc5`/stable v1.0.57 unchanged. B04 source commit `2be4e54` passed full CI and published a signed debug test build. It guards stale panel animations, cancels them at LatinIME lifecycle boundaries and stops outgoing Emoji/Clipboard listeners. Two guard tests pass. Device fast-switch/reopen/editor/rotation/hardware/inset checks are unavailable; keep B04 partial. B15 is independent after B03; next verify dictionary assets, brrPersonal provenance/hash and learning reset against R3 without tuning frequencies until measured.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 

@@ -65,9 +65,9 @@ B03 completed at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`. It fixed the asset/
 
 **CI release discipline:** the release-scope guard `dc4b2f6` passed; docs/workflow-only changes no longer publish prereleases. Audit-only publish has a repo integration 403 and remains owner-permission-blocked; the debug test release path works.
 
-### B04 — Lifecycle, panel ownership and insets (B03, B00) — IN PROGRESS
+### B04 — Lifecycle, panel ownership and insets (B03, B00) — PARTIAL
 
-B04 starts at `a34872eb1529abdeb3879ed796903d277d408119`. Implement a monotonic panel-transition generation/target identity guard; invalidate animation cleanup at input-view start/finish and window hide; stop outgoing Emoji and Clipboard listeners/search state on direct switches. Unit coverage checks stale callback rejection. Full CI pending. The Reno10 gate remains required for rapid alpha→Emoji→Clipboard→alpha, hide/reopen, same/different editor restart, rotation, hardware attach, background, landscape and locked bounds. No dp/inset changes in this sub-batch. Do not close B04 or proceed to B05 until source gate passes and owner device checks are recorded.
+Source checkpoint `2be4e5494d54632517e5aa5fb3ddfdc17793277e` adds generation/target identity checks for panel animation end actions, lifecycle cancellation in LatinIME, and outgoing Emoji/Clipboard listener cleanup. Two new guard tests and the full CI build/signature/test gate passed in run [43871586879](https://github.com/Batmancpu/brrrBoard/actions/runs/43871586879). Audit build [43871586907](https://github.com/Batmancpu/brrrBoard/actions/runs/43871586907) passed and skipped release. **Not complete:** Reno10 acceptance is pending for fast panel toggle, hide/reopen, editor restarts, rotation, hardware keyboard, background, landscape and real inset/footer geometry. Continue with independent B15 while awaiting device checks; B05–B14 retain their dependency gates.
 
 ### B05 — Safety seams for voice and Clipboard (B03, B04)
 
@@ -112,6 +112,8 @@ Sub-batch A improves history header/cards/spacing/soft viewport edges, stable im
 ### B15 — Baseline dictionary, static data and learning reset (B03)
 
 Confirm exact packaged assets and license notices. Reproduce brrPersonal generator hash from pinned source where network permitted. Run language benchmark R3, measure cold/hot latency and explicit reset. Preserve existing locales and coarse-grained settings; distinguish imported static dictionary, explicit personal additions and learned history. Record targets before changing frequencies. Can run as independent research after CI if B04–B14 device tasks are blocked, but source batches remain one at a time.
+
+B15 is eligible while B04 device validation is pending because it depends only on B03. Preserve the exact existing languages/assets; verify package inventory, source hash/license and reset semantics before any tuning. Record baseline/benchmark as partial if the workspace is unavailable.
 
 ### B16 — Local dictionary, next-word and correction improvements (B15)
 
