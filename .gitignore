@@ -32,6 +32,8 @@ tools/*.txt
 /*.code-workspace
 
 /*.py
+__pycache__/
+*.py[cod]
 pr2_body.txt
 VOICE_INPUT_RESEARCH.md
 /app/src/main/assets/brrPersonal.tsv

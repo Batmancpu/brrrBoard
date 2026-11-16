@@ -106,3 +106,12 @@ Use the template above even when the change is abandoned. A failed experiment is
 
 - **Problem:** `gh release create` returned HTTP 403 `Resource not accessible by integration` even though the workflow has `contents: write`.
 - **Result:** GitHub Actions artifact upload works; Release API publication is currently blocked by the connected integration's permissions.
+
+## 2026-11-16 — B15 reproducibility and data-reset regression
+
+- **Starting evidence:** `main` = `cf5c71c624325222a4dbdb53cbfe5b3d86cf45fc`, signed production v1.0.58, prior B15 asset fingerprint `26de07d1825ce75c8121104a97829b6e414aa179fd8cfe322e7e72123c77ff0a`, 5,981 PHINC-derived entries plus 75 reviewed rules. Prior CI 43874232917 passed 183/183 source tests; that result predates the two new B15 tests.
+- **Proposed change, without user-data mutation:** `tools/tests/test_prepare_brrpersonal.py` mocks an authored 1,001-row CSV to test column detection and stable bounded TSV generation entirely offline; `app/src/test/java/helium314/keyboard/latin/personalization/PersonalizationHistoryResetTest.kt` uses a synthetic temporary directory to prove the reset deletes only `UserHistoryDictionary` files, not `brrPersonal_v1`, explicitly added personal words, or unrelated data.
+- **Command:** `python3 -m unittest discover -s tools/tests -p 'test_*.py' -v` → **PASS, 2/2**; no external corpus or user text read. `git diff --check` → **PASS**.
+- **Command:** `./gradlew :app:testRunTestsUnitTest --tests '*PersonalizationHistoryResetTest' --no-daemon` → **BLOCKED BEFORE COMPILATION**, Gradle wrapper cannot download 8.14.4 (`java.net.SocketException: Network is unreachable`). This is neither a passing nor a failing Android assertion. Full CI and test compile are pending if the repository can be dispatched.
+- **Scope decision from owner:** no repeatable dictionary/heap/latency/reset measurements on the phone. Normal typing is owner-reported satisfactory; poor swipe suggestions are tracked for B17. No APK is needed for these test/docs changes; no ranking, dictionary data, signing or package changes.
+- **Next:** commit source checks and continuity records in one main checkpoint, verify remote content, and obtain full CI if available. If CI is blocked, leave B15 only partially verified and hand off the exact obstacle. Do not begin another batch.
