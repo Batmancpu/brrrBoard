@@ -413,6 +413,13 @@
     <string name="page_down" tools:keep="@string/page_down">Page down</string>
     <string name="undo" tools:keep="@string/undo">Undo</string>
     <string name="clipboard_clip_deleted">Item deleted</string>
+    <string name="clipboard_empty_state">No clipboard items yet\nCopied text and images will appear here</string>
+    <string name="clipboard_pin_item">Pin clipboard item</string>
+    <string name="clipboard_unpin_item">Unpin clipboard item</string>
+    <string name="clipboard_item_pinned">Pinned clipboard item</string>
+    <string name="clipboard_image_preview">Copied image</string>
+    <string name="clipboard_image_unavailable">Image preview unavailable</string>
+    <string name="clipboard_dismiss_suggestion">Dismiss clipboard suggestion</string>
     <string name="redo" tools:keep="@string/redo">Redo</string>
     <string name="close_history" tools:keep="@string/close_history">Close clipboard history</string>
     <string name="emoji" tools:keep="@string/emoji">Emoji</string>

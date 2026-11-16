@@ -26,6 +26,7 @@ import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.view.isGone
+import coil.load
 import helium314.keyboard.compat.ClipboardManagerCompat
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardTypeface
@@ -715,13 +716,22 @@ class ClipboardHistoryManager(
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
         val textView = binding.clipboardSuggestionText
-        binding.clipboardSuggestionPreview.isGone = true
+        val isImageChip = rich?.mimeType?.startsWith("image/") == true
+        binding.clipboardSuggestionPreview.isGone = !isImageChip
+        if (isImageChip) {
+            // Recent rich-content paste already requires a supported editor MIME
+            // and a content URI. Coil owns/cancels this view's asynchronous load.
+            binding.clipboardSuggestionPreview.apply {
+                contentDescription = latinIME.getString(R.string.clipboard_image_preview)
+                load(rich!!.uri) { crossfade(false) }
+            }
+        }
         KeyboardTypeface.applyToTextView(textView)
         val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
         textView.text = clip?.content?.take(40) ?: latinIME.getString(
             if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image else R.string.board_paste_file,
         )
-        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(clipIcon, null, null, null)
+        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(if (isImageChip) null else clipIcon, null, null, null)
         textView.setOnClickListener {
             if (latinIME.currentInputConnection !== connection ||
                 (if (clip != null) currentTextSuggestionChanged(clip)
@@ -745,16 +755,18 @@ class ClipboardHistoryManager(
         val closeButton = binding.clipboardSuggestionClose
         val colors = latinIME.mSettings.current.mColors
 
-        // Circular background with accent color matching keyboard special keys
-        val circleBg = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(colors.get(ColorType.SPECIAL_KEY_BACKGROUND))
+        // Dismissing a chip is a neutral utility, not an Enter/Search action.
+        val closeBg = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 11f * latinIME.resources.displayMetrics.density
+            setColor(colors.get(ColorType.FUNCTIONAL_KEY_BACKGROUND))
         }
-        closeButton.background = circleBg
+        closeButton.background = closeBg
+        closeButton.contentDescription = latinIME.getString(R.string.clipboard_dismiss_suggestion)
         val closeIcon = KeyboardIconsSet.instance.getNewDrawable("ic_close", latinIME)
             ?: keyboard.mIconsSet.getIconDrawable(ToolbarKey.CLOSE_HISTORY.name.lowercase())
         closeButton.setImageDrawable(closeIcon)
-        colors.setColor(closeButton, ColorType.KEY_TEXT)
+        colors.setColor(closeButton, ColorType.FUNCTIONAL_KEY_TEXT)
         closeButton.setOnClickListener {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
             if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true

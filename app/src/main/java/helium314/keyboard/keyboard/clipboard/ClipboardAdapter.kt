@@ -16,6 +16,8 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isGone
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
@@ -23,6 +25,7 @@ import coil.load
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.latin.ClipboardHistoryEntry
+import helium314.keyboard.latin.ClipboardImageHistoryClip
 import helium314.keyboard.latin.ClipboardHistoryManager
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.ColorType
@@ -53,6 +56,7 @@ class ClipboardAdapter(
     override fun getItemViewType(position: Int): Int {
         val entry = getItem(position)
         val imageClip = entry?.text?.let { ClipboardHistoryManager.decodeImageHistoryClip(it) }
+            ?.takeIf { it.uri.scheme == "content" }
         return if (imageClip != null) VIEW_TYPE_IMAGE else VIEW_TYPE_TEXT
     }
 
@@ -69,6 +73,11 @@ class ClipboardAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.setContent(getItem(position))
+    }
+
+    override fun onViewRecycled(holder: ViewHolder) {
+        holder.clearImage()
+        super.onViewRecycled(holder)
     }
 
     private fun getItem(position: Int) = clipboardHistoryManager?.getHistoryEntry(position)
@@ -103,6 +112,8 @@ class ClipboardAdapter(
             pinnedIconView = view.findViewById<ImageView>(R.id.clipboard_entry_pinned_icon).apply {
                 visibility = View.GONE
                 setImageResource(pinnedIconResId)
+                // The enclosing card exposes a labelled pin/unpin action instead.
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             imageView = view.findViewById(R.id.clipboard_entry_image)
             configureImagePreviewCorners(usesRoundedCards)
@@ -156,7 +167,9 @@ class ClipboardAdapter(
 
         fun setContent(historyEntry: ClipboardHistoryEntry?) {
             itemView.tag = historyEntry?.id
+            itemView.isEnabled = historyEntry != null
             val imageClip = historyEntry?.text?.let { ClipboardHistoryManager.decodeImageHistoryClip(it) }
+                ?.takeIf { it.uri.scheme == "content" }
 
             // Adjust StaggeredGridLayoutManager parameters so it stays in one column
             val lp = itemView.layoutParams
@@ -166,34 +179,48 @@ class ClipboardAdapter(
 
             if (imageClip != null) {
                 imageView.isGone = false
-                imageView.load(imageClip.uri)
+                imageView.load(imageClip.uri) { crossfade(false) }
+                imageView.contentDescription = itemView.context.getString(R.string.clipboard_image_preview)
                 contentView?.text = imageClip.label
                 contentView?.let { KeyboardTypeface.applyToTextView(it, imageClip.label, itemTypeFace ?: android.graphics.Typeface.DEFAULT) }
 
-                // Enforce perfectly square dimension
+                // Bound thumbnails so a landscape panel or a single image cannot
+                // occupy the entire history viewport.
                 if (parent.width > 0) {
                     val layoutManager = (parent as? RecyclerView)?.layoutManager
                     val spanCount = when (layoutManager) {
                         is StaggeredGridLayoutManager -> layoutManager.spanCount
                         else -> 2
                     }
-                    val itemWidth = (parent.width - parent.paddingLeft - parent.paddingRight) / spanCount
                     if (lp != null) {
                         lp.width = ViewGroup.LayoutParams.MATCH_PARENT
-                        lp.height = itemWidth
+                        lp.height = ClipboardCardGeometry.previewHeightPx(
+                            parent.width,
+                            parent.paddingLeft + parent.paddingRight,
+                            spanCount,
+                            parent.resources.displayMetrics.density,
+                        )
                         itemView.layoutParams = lp
                     }
                 } else {
                     if (lp != null) {
                         lp.width = ViewGroup.LayoutParams.MATCH_PARENT
-                        lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                        lp.height = ClipboardCardGeometry.previewHeightPx(
+                            0, 0, 1, parent.resources.displayMetrics.density,
+                        )
                         itemView.layoutParams = lp
                     }
                 }
             } else {
                 imageView.isGone = true
-                imageView.setImageDrawable(null)
-                val text = historyEntry?.text?.take(1000) // truncate displayed text for performance reasons
+                // Cancels a pending Coil request before a recycled card is reused.
+                clearImage()
+                val text = historyEntry?.text?.let {
+                    // A damaged legacy image marker must never be shown as raw serialized data.
+                    if (ClipboardImageHistoryClip.hasImageHistoryPrefix(it))
+                        itemView.context.getString(R.string.clipboard_image_unavailable)
+                    else it.take(1000) // bound binding work for long copied text
+                }
                 contentView?.text = text
                 contentView?.let { KeyboardTypeface.applyToTextView(it, text, itemTypeFace ?: android.graphics.Typeface.DEFAULT) }
 
@@ -205,22 +232,39 @@ class ClipboardAdapter(
                 }
             }
             pinnedIconView.visibility = if (historyEntry?.isPinned == true) View.VISIBLE else View.GONE
+            val pinAction = if (historyEntry?.isPinned == true) R.string.clipboard_unpin_item else R.string.clipboard_pin_item
+            ViewCompat.replaceAccessibilityAction(
+                itemView,
+                AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,
+                itemView.context.getString(pinAction),
+            ) { _, _ ->
+                val clipId = itemView.tag as? Long ?: return@replaceAccessibilityAction false
+                clipboardHistoryManager?.toggleClipPinned(clipId)
+                true
+            }
+        }
+
+        fun clearImage() {
+            imageView.load(null)
         }
 
         @SuppressLint("ClickableViewAccessibility")
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                keyEventListener.onKeyDown(view.tag as Long)
+                val id = view.tag as? Long ?: return false
+                keyEventListener.onKeyDown(id)
             }
             return false
         }
 
         override fun onClick(view: View) {
-            keyEventListener.onKeyUp(view.tag as Long)
+            val id = view.tag as? Long ?: return
+            keyEventListener.onKeyUp(id)
         }
 
         override fun onLongClick(view: View): Boolean {
-            clipboardHistoryManager?.toggleClipPinned(view.tag as Long)
+            val id = view.tag as? Long ?: return false
+            clipboardHistoryManager?.toggleClipPinned(id)
             return true
         }
     }

@@ -224,29 +224,31 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun setupHeaderButton(button: ImageButton, colors: Colors) {
-        button.imageTintList = ColorStateList.valueOf(colors.get(ColorType.KEY_TEXT))
+        // Clipboard utilities use neutral modifier colors, never the action-key accent.
+        button.imageTintList = ColorStateList.valueOf(colors.get(ColorType.FUNCTIONAL_KEY_TEXT))
         button.background = createHeaderButtonBackground(colors)
         button.scaleType = ImageView.ScaleType.CENTER
         button.setPadding(0, 0, 0, 0)
     }
 
     private fun createHeaderButtonBackground(colors: Colors): RippleDrawable {
-        val circle = GradientDrawable().apply {
-            this.shape = GradientDrawable.OVAL
-            setColor(android.graphics.Color.WHITE)
-            colors.setColor(this, ColorType.SPECIAL_KEY_BACKGROUND)
+        val buttonShape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 13.dpToPx(resources).toFloat()
+            colors.setColor(this, ColorType.FUNCTIONAL_KEY_BACKGROUND)
         }
         val rippleColor = ColorStateList.valueOf(
             ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x33)
         )
-        val inset = 3.dpToPx(resources)
-        val content = InsetDrawable(circle, inset, inset, inset, inset)
+        val inset = 2.dpToPx(resources)
+        val content = InsetDrawable(buttonShape, inset, inset, inset, inset)
         
-        val maskCircle = GradientDrawable().apply {
-            this.shape = GradientDrawable.OVAL
-            setColor(android.graphics.Color.BLACK)
+        val maskShape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 13.dpToPx(resources).toFloat()
+            setColor(Color.BLACK)
         }
-        val mask = InsetDrawable(maskCircle, inset, inset, inset, inset)
+        val mask = InsetDrawable(maskShape, inset, inset, inset, inset)
 
         return RippleDrawable(
             rippleColor,
@@ -304,8 +306,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
         placeholderView.apply {
             KeyboardTypeface.applyToTextView(this)
-            setTextColor(params.mTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, params.mLabelSize.toFloat() * 2)
+            setTextColor(settings.current.mColors.get(ColorType.KEY_TEXT))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
         }
         clipboardRecyclerView.apply {
             adapter = clipboardAdapter
@@ -332,6 +334,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         hideUndoBar()
         removeCallbacks(hideUndoBarRunnable)
         undoBar?.removeCallbacks(hideUndoBarRunnable)
+        lastDismissedEntry = null
+        lastDismissedPosition = -1
         if (!this::clipboardAdapter.isInitialized) return
         clipboardRecyclerView.adapter = null
         clipboardHistoryManager.setHistoryChangeListener(null)
@@ -352,6 +356,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
         removeCallbacks(hideUndoBarRunnable)
         bar.removeCallbacks(hideUndoBarRunnable)
+        bar.animate().cancel()
 
         text?.text = context.getString(R.string.clipboard_clip_deleted)
         button?.setOnClickListener {
@@ -370,16 +375,18 @@ class ClipboardHistoryView @JvmOverloads constructor(
             hideUndoBar()
         }
 
-        if (bar.visibility != View.VISIBLE) {
-            bar.alpha = 0f
-            bar.visibility = View.VISIBLE
-            bar.animate().alpha(1f).setDuration(180).start()
-        }
+        if (bar.visibility != View.VISIBLE) bar.alpha = 0f
+        bar.visibility = View.VISIBLE
+        bar.animate().alpha(1f).setDuration(180).start()
         bar.postDelayed(hideUndoBarRunnable, 10000)
     }
 
     private fun hideUndoBar() {
         val bar = undoBar ?: return
+        bar.removeCallbacks(hideUndoBarRunnable)
+        bar.animate().cancel()
+        lastDismissedEntry = null
+        lastDismissedPosition = -1
         if (bar.visibility == View.VISIBLE) {
             bar.animate().alpha(0f).setDuration(180).withEndAction {
                 bar.visibility = View.GONE
@@ -408,7 +415,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             keyboardActionListener.onTextInput(clipContent.text)
         }
         keyboardActionListener.onReleaseKey(KeyCode.NOT_SPECIFIED, false)
-        if (outcome != helium314.keyboard.latin.ClipboardHistoryPasteOutcome.REJECTED &&
+        if (outcome != null && outcome != helium314.keyboard.latin.ClipboardHistoryPasteOutcome.REJECTED &&
             Settings.getValues().mAlphaAfterClipHistoryEntry)
             keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
     }

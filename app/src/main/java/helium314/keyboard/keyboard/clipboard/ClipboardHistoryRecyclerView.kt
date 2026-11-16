@@ -29,12 +29,14 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
     private val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
         override fun onMove(recyclerView: RecyclerView, viewHolder: ViewHolder, target: ViewHolder) = false
         override fun getSwipeDirs(recyclerView: RecyclerView, viewHolder: ViewHolder): Int {
-            if (historyManager?.canRemove(viewHolder.absoluteAdapterPosition) == false)
+            val position = viewHolder.absoluteAdapterPosition
+            if (position == RecyclerView.NO_POSITION || historyManager?.canRemove(position) != true)
                 return 0 // block swipe for pinned items
             return super.getSwipeDirs(recyclerView, viewHolder)
         }
         override fun onSwiped(viewHolder: ViewHolder, dir: Int) {
             val position = viewHolder.absoluteAdapterPosition
+            if (position == RecyclerView.NO_POSITION) return
             val entry = historyManager?.getHistoryEntry(position)
             if (entry != null) {
                 historyManager?.removeEntry(position)

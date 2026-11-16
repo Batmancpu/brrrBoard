@@ -45,6 +45,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
+      - name: Run complete Android unit test gate before publishing
+        run: ./gradlew --no-daemon --stacktrace testRunTests
       - name: Sign and verify APK
         shell: bash
         env:
