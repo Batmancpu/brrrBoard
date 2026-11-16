@@ -165,3 +165,31 @@ The first Smart Emoji workflows failed Java compilation because `EmojiCategory.j
 - Debug run [43822092903](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092903) built/signed/uploaded its APK (46,063,050 bytes; SHA-256 `d7cb84cd406b1d07c5c95b9f708e83c51a956966c4a112928588a11aa40eac5b`); 180 tests completed with the unchanged 13 failures. No manual tests were run.
 - Source audit: Smart tab sparkle icon/accessibility label are already wired; the remaining source gap is the ranker connection to Smart category contents and contextual strip candidates. Reno10 visual acceptance has not happened.
 - Next action: begin the Smart Emoji ranking integration after this four-file checkpoint is committed.
+
+## 2026-11-16 — owner keyboard audit and active implementation queue
+
+The user authorized implementation in small batches and requires every source/asset/configuration/release batch to update this file, `PROJECT_CONTEXT.md`, `docs/POST_V1_0_19_RENO10_PLAN.md`, and `docs/PROJECT_CONVERSATION.md` in the same commit. Review automatic workflows after each source batch, record the result in all four files, and do not begin the next source batch until that checkpoint is committed.
+
+### Verified project state
+
+- Smart Emoji first-use population shipped in v1.0.54; locally ranked side Emoji suggestions shipped in v1.0.55; 123 slide-to-symbol source change shipped in v1.0.56.
+- Main user-facing languages are already limited to English US, English UK, and Romanized Hinglish. Internal parser/subtype assets remain for compatibility and tests. Do not delete the internal catalog.
+- Global key/icon-style and theme-preset selectors have already been removed; automatic light/dark frosted appearance and optional action-key tint are present.
+- The public APK already includes the finite Hinglish dictionary and English/Hinglish Emoji dictionaries. Do not re-fetch or duplicate those assets. Do not bundle the supplied 116 MB Apple emoji font; the art is not covered by the upstream MIT code license and its payload is excessive.
+- The user’s attached reference consists of two still frames. They show a three-candidate strip with a highlighted center correction, a separate utility control, and Emoji/microphone controls on opposite lower corners. They do not show the Emoji panel, scrolling direction, clipping/blur edge, or long-press sequence; do not infer those details from the stills.
+- The 123 behavior change has CI/release evidence but no Reno10 acceptance. Current known automatic test baseline is 13 failures out of 180 in Parser/currency, InputLogic URL/autospace, and StringUtils Emoji recognition.
+
+### Active source batch
+
+Hide unavailable AI Tools, GIF, Stickers, and internal Close History choices from the user-facing toolbar. Migrate stale toolbar preferences to supported choices, preserve unrelated working toolbar controls, and keep enum serialization intact. Automatic CI is pending until the commit is pushed. No Reno10 result is available.
+
+### Ordered remaining work
+
+1. Finish the toolbar cleanup and inspect its CI result.
+2. Map all visible keys, icons, alternate-symbol popups, touch targets, suggestion slots, and accessory controls; reconcile phone/tablet layouts, Emoji/ABC transitions, fixed frame height, footer baseline, top glass highlight, and wallpaper tint using the supplied stills plus real Reno10/iPad measurements.
+3. Audit and correct microphone routing so tap invokes the user-selected Android Dictate recognition service and does not open an unrelated keyboard UI; verify the recognition service's active language and private-field behavior.
+4. Verify the bundled brrPersonal dictionary, Smart Emoji matching, swipe decoder quality, ABI compatibility, and latency. The user confirms the supplied GlideLib works on their phone, but the archive has no redistribution license. Replace the manual installer only after a redistributable decoder is selected, bundled by default, and shown to work with the already bundled dictionary.
+5. Trim only unused installable payloads after checking references, licenses, source/test needs, and exact release contents. Preserve package/signing/update identity.
+6. Run CI/release checks, publish a signed APK for owner acceptance, and mark Reno10/iPad visual and interaction items complete only after the owner tests them.
+
+Do not claim exact iOS parity, device validation, swipe-engine replacement, or Dictate success without corresponding source and device evidence.

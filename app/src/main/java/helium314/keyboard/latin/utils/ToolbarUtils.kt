@@ -147,6 +147,11 @@ enum class ToolbarKey {
     PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END, AI_TOOLS, GIFS, STICKERS, RESIZE
 }
 
+private val unavailableToolbarUiKeys = setOf(CLOSE_HISTORY, AI_TOOLS, GIFS, STICKERS)
+
+/** Whether this action is a supported user-facing toolbar choice. */
+fun ToolbarKey.isAvailableInToolbarUi() = this !in unavailableToolbarUiKeys
+
 enum class ToolbarMode {
     EXPANDABLE, TOOLBAR_KEYS, SUGGESTION_STRIP, HIDDEN,
 }
@@ -155,12 +160,12 @@ val toolbarKeyStrings = entries.associateWithTo(EnumMap(ToolbarKey::class.java))
 
 val defaultToolbarPref by lazy {
     val default = listOf(SETTINGS, CLIPBOARD, UNDO, REDO, SELECT_WORD, COPY, PASTE, SELECT_ALL, ONE_HANDED, SPLIT, INCOGNITO, EMOJI)
-    val others = entries.filterNot { it in default || it == CLOSE_HISTORY }
+    val others = entries.filter { it.isAvailableInToolbarUi() && it !in default }
     default.joinToString(Separators.ENTRY) { it.name + Separators.KV + true } + Separators.ENTRY +
             others.joinToString(Separators.ENTRY) { it.name + Separators.KV + false }
 }
 
-val defaultPinnedToolbarPref = entries.filterNot { it == CLOSE_HISTORY }.joinToString(Separators.ENTRY) {
+val defaultPinnedToolbarPref = entries.filter { it.isAvailableInToolbarUi() }.joinToString(Separators.ENTRY) {
     it.name + Separators.KV + false
 }
 
@@ -170,12 +175,18 @@ val defaultPersistentToolbarKey = VOICE.name
 fun upgradeToolbarPrefs(prefs: SharedPreferences) {
     upgradeToolbarPref(prefs, Settings.PREF_TOOLBAR_KEYS, defaultToolbarPref)
     upgradeToolbarPref(prefs, Settings.PREF_PINNED_TOOLBAR_KEYS, defaultPinnedToolbarPref)
+
+    val storedPersistentKey = prefs.getString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, null)
+    val persistentKey = runCatching { ToolbarKey.valueOf(storedPersistentKey ?: "") }.getOrNull()
+    if (storedPersistentKey != null && (persistentKey == null || !persistentKey.isAvailableInToolbarUi())) {
+        prefs.edit { putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, defaultPersistentToolbarKey) }
+    }
 }
 
 private fun upgradeToolbarPref(prefs: SharedPreferences, pref: String, default: String) {
     if (!prefs.contains(pref)) return
     val list = prefs.getString(pref, default)!!.split(Separators.ENTRY).toMutableList()
-    val splitDefault = defaultToolbarPref.split(Separators.ENTRY)
+    val splitDefault = default.split(Separators.ENTRY)
     splitDefault.forEach { entry ->
         val keyWithSeparator = entry.substringBefore(Separators.KV) + Separators.KV
         if (list.none { it.startsWith(keyWithSeparator) }) {
@@ -186,12 +197,8 @@ private fun upgradeToolbarPref(prefs: SharedPreferences, pref: String, default: 
     }
     // likely not needed, but better prepare for possibility of key removal
     list.removeAll {
-        try {
-            ToolbarKey.valueOf(it.substringBefore(Separators.KV))
-            false
-        } catch (_: IllegalArgumentException) {
-            true
-        }
+        val key = runCatching { ToolbarKey.valueOf(it.substringBefore(Separators.KV)) }.getOrNull()
+        key == null || !key.isAvailableInToolbarUi()
     }
     prefs.edit { putString(pref, list.joinToString(Separators.ENTRY)) }
 }
@@ -204,21 +211,23 @@ fun getPinnedToolbarKeys(prefs: SharedPreferences, excludedKey: ToolbarKey? = nu
         .take(MAX_PINNED_TOOLBAR_KEYS)
 
 fun getToolbarKeyFromDragData(localState: Any?, clipData: ClipData?): ToolbarKey? {
-    (localState as? ToolbarDragState)?.let { return it.key }
+    (localState as? ToolbarDragState)?.key?.takeIf { it.isAvailableInToolbarUi() }?.let { return it }
     val keyName = clipData?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.text?.toString()
     return runCatching { ToolbarKey.valueOf(keyName ?: "") }.getOrNull()
+        ?.takeIf { it.isAvailableInToolbarUi() }
 }
 
 fun getPersistentToolbarKey(prefs: SharedPreferences): ToolbarKey {
     val stored = prefs.getString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, Defaults.PREF_PERSISTENT_TOOLBAR_KEY)
     val key = runCatching { ToolbarKey.valueOf(stored ?: "") }.getOrNull()
-    if (key != null && key != CLOSE_HISTORY) return key
+    if (key != null && key.isAvailableInToolbarUi()) return key
 
     prefs.edit { putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, defaultPersistentToolbarKey) }
     return VOICE
 }
 
 fun addPinnedKey(prefs: SharedPreferences, key: ToolbarKey): Boolean {
+    if (!key.isAvailableInToolbarUi()) return false
     val persistentKey = getPersistentToolbarKey(prefs)
     if (key == persistentKey) return false
 

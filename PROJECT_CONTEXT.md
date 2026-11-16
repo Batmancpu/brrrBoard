@@ -134,3 +134,33 @@ The first authorized implementation batch changed `app/src/main/res/xml/method.x
 Static XML parsing found exactly three manifest subtypes, and `git diff --check` passed. `./gradlew :app:assembleDebug` failed before Gradle configuration because Gradle 8.14.4 is absent locally and the workspace could not reach `services.gradle.org`; this is an environment limitation, not a source compile result. No tests were run. The commit is being submitted through GitHub Actions to obtain the remote build result.
 
 - **Tint source audit:** Previous defaults magnified wallpaper-derived chroma on frosted surfaces and letter keys (250% saturation, 500% alphabet vibrancy; dark special-key vibrancy was 0%). This batch changes all saturation/vibrancy defaults to 100% and migrates persisted values only when they match those legacy defaults. Custom settings are preserved. Action-key tint still maps `system_accent1_500` to the nearest Apple palette color. Release build/signing passed in v1.0.51; debug APK compiled and signed but the automatic gate stayed at 13/180. Reno10 visuals remain unverified.
+
+## 2026-11-16 — current owner audit and implementation plan
+
+The user authorized implementation in small batches after auditing saved repository context. Each batch must update `AGENTS.md`, this file, `docs/POST_V1_0_19_RENO10_PLAN.md`, and `docs/PROJECT_CONVERSATION.md` in the same source commit. Wait for that batch's workflow result and record it before beginning the next code batch.
+
+### Already implemented and bounded by evidence
+
+- v1.0.54 fixes the Smart Emoji first-use empty grid; v1.0.55 adds local frequency/recency ranking for decoder-supplied Emoji in the left/right suggestion slots; v1.0.56 enables one-shot symbol selection by sliding from 123.
+- These are shipped, but Smart Emoji quality and 123 behavior still need owner acceptance on Reno10.
+- User-facing languages are already English US, English UK, Romanized Hinglish. All global key/icon style and theme-preset selectors are gone.
+- Existing theme behavior is automatic light/dark frosted glass with optional action-key tint mapped toward an Apple-inspired palette. Reno10 color appearance remains unverified.
+- A finite Hinglish dictionary and Emoji data already ship in the APK; the personal-learning store remains local. The uploaded Apple Emoji font is intentionally excluded for license and APK-size reasons.
+- The supplied GlideLib ZIP is known by the user to work locally, but it has no redistribution license. A manual external-library installation route still exists; default bundled swipe typing is not complete.
+- Dictate code routes through Android RecognitionService selection, but the device's selected service, Active language, and observed result are not verified. The user reports being sent to an unrelated offline keyboard/dictation surface.
+- Latest release is v1.0.56. Debug CI remains at the known 13/180 failures: 5 Parser/currency, 7 InputLogic URL/autospace, 1 StringUtils Emoji-recognition. There is no Reno10 or iPad acceptance result.
+
+### Active batch
+
+Remove unsupported AI Tools/GIF/Stickers and internal Close History from all user-facing toolbar customization, drag/drop, runtime rows, and menus. Preserve enum values for serialized compatibility and leave working Settings, Clipboard, editing, and layout controls. Migrate stale values on SettingsActivity start. The two supplied stills support the three-slot/center-highlight and separate-accessory reference only; they are not a full Emoji or gesture video.
+
+### Work order
+
+1. Complete toolbar no-op cleanup and inspect remote CI.
+2. Build a source-to-screen map for the visible keyboard: each icon/action, alternate popup, ABC/Emoji/mic behavior, suggestion strip and utility accessory. Use actual Reno10/iPad measurements for keyboard frame, inset, row proportions, footer balance, emoji panel, and top-edge glass line. Fix measured defects together; preserve stable outer height across text, symbols, numeric, Emoji, Clipboard, and toolbar panels.
+3. Finish the visual system: three practical automatic states (dark, light, and tint enabled), neutral keycaps, wallpaper-derived Material 3 accent mapped to a restrained Apple-like action-key color, no whole-keyboard tint, and consistently drawn original icons. Remove only settings that map to dead features or duplicate removed styles.
+4. Fix microphone routing and language selection based on the exact installed RecognitionService. Keep the keyboard visible during inline dictation if that is the chosen service behavior; do not invoke a separate keyboard UI. Validate English/Hinglish output and privacy flags on-device.
+5. Finish local brrPersonal and swipe typing as one quality batch: audit dictionary source/license/coverage, keep common English/Hinglish spellings plus useful North Indian Romanized slang as valid-only when requested, exclude offensive terms from text suggestions while allowing Emoji lookup, use bounded local learning, and benchmark prefix lookup/decoder latency. Select a license-cleared offline decoder; bundle it by default and remove the outside installer only when the in-app replacement is proven on the owner's phone. Do not package the unlicensed GlideLib archive in a public APK.
+6. Remove only demonstrably unused APK payload; preserve required parser/test data and the app's update identity. Inspect CI, sign and publish the test APK, then maintain a Reno10/iPad acceptance checklist. No source-only result counts as device verification.
+
+The user wants a tailored, fast keyboard, not a generic feature-heavy keyboard. Keep suggestions deterministic and offline; leave private fields/incognito out of learned history; never introduce network AI. Exact iOS dimensions/blur are reference targets to measure, not claims inferable from the supplied stills.

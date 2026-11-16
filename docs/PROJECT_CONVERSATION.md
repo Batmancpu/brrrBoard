@@ -732,3 +732,22 @@ Source commit [8463fc8](https://github.com/Batmancpu/brrrBoard/commit/8463fc80c1
 - Debug run [43829494384](https://github.com/Batmancpu/brrrBoard/actions/runs/43829494384) built the APK, verified signer identity, and uploaded artifact [14208306869](https://github.com/Batmancpu/brrrBoard/actions/runs/43829494384/artifacts/14208306869); APK size 46,063,050 bytes, SHA-256 `3599b46374b0a06b83a548e1994e5360ed2d52d3a0a89ee85303b2c16c2db4dc`.
 - The automatic test task ran 180 tests and failed 13: five Parser/currency, seven InputLogic URL/autospace, and one StringUtils Emoji recognition. These are the same known baseline; the new change introduced no extra failure. Debug publication was skipped because the gate failed. No manual tests or Reno10 test were run.
 - The signed Obtainium APK is published for owner testing. The next source batch audits every visible key popup/icon, then uses Reno10 measurements for geometry. Rights-cleared default swipe engine, brrPersonal typing quality, Dictate output, and device acceptance remain open.
+
+### 2026-11-16 — owner confirms full implementation authorization and priorities
+
+The owner provided two still frames from an iOS keyboard comparison and authorized implementation in ordered batches. They require the carried-forward context files to be updated with every batch so another agent can resume without the failed work chat.
+
+Key requirements to retain:
+
+- Tailor brrBoard for the owner's Reno10 and tablet use. Keep visible languages to English US, English UK and Romanized Hinglish; remove dead feature choices and duplicate style/theme options while preserving useful settings.
+- Match the three-slot suggestion strip, confident/highlighted center candidate, separate utility control, proportional key rows/footer, Emoji and microphone corners, stable panel height, horizontal Emoji browsing, and one natural ABC return behavior. Measure before claiming parity; the supplied attachment shows only two still frames, not the full Emoji panel or gesture flow.
+- Keep automatic dark/light appearance, neutral keys, and a single optional restrained wallpaper-derived action tint. Fix stale editor tint on repeated field transitions and add the requested thin top-edge glass highlight.
+- Make the mic use the configured Android Dictate RecognitionService rather than launching an unrelated keyboard/dictation screen. Device provider language and on-device model configuration need Reno10 confirmation.
+- Keep a finite, fast, offline personal Hinglish vocabulary and local learning, with requested slang accepted without text suggestions but available to the Emoji ranker. Make Smart Emoji useful in both its category and contextual suggestions.
+- The user confirms GlideLib works on their own phone, but the supplied library archive is not redistribution-cleared. The public APK must not bundle it without rights. Find a license-cleared offline engine and bundle it by default before removing the outside installer; keep this explicit blocker in handoff.
+- Do not bundle the 116 MB Apple Emoji font because the upstream license excludes the artwork and it would inflate the APK. Existing static Hinglish/Emoji dictionaries already ship.
+- Keep all future source/release changes and workflow outcomes in `AGENTS.md`, `PROJECT_CONTEXT.md`, `docs/POST_V1_0_19_RENO10_PLAN.md`, and this conversation log in the same batch commit. Preserve package/signing/update identity.
+
+The current source batch hides dead AI Tools/GIF/Stickers and internal Close History toolbar choices, migrates old toolbar settings, and preserves working toolbar actions. CI is pending. Earlier shipped work: Smart Emoji first-use grid (v1.0.54), local Emoji side ranking (v1.0.55), and 123 slide-to-symbol behavior (v1.0.56). The v1.0.56 automatic test job had the unchanged 13/180 failures (five Parser/currency, seven InputLogic URL/autospace, one StringUtils Emoji recognition). No Reno10 acceptance has occurred.
+
+Next after CI checkpoint: map visible icons/popups and implement measured geometry/interaction fixes; then Dictate routing, bundled rights-cleared swipe engine + brrPersonal quality, payload audit, and final device acceptance.

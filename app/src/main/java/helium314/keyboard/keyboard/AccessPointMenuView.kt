@@ -38,6 +38,7 @@ import helium314.keyboard.latin.utils.getPersistentToolbarKey
 import helium314.keyboard.latin.utils.getPinnedToolbarKeys
 import helium314.keyboard.latin.utils.getStringResourceOrName
 import helium314.keyboard.latin.utils.getToolbarKeyFromDragData
+import helium314.keyboard.latin.utils.isAvailableInToolbarUi
 import helium314.keyboard.latin.utils.removePinnedKey
 import helium314.keyboard.latin.utils.startDragAndDropCompat
 
@@ -82,7 +83,9 @@ class AccessPointMenuView @JvmOverloads constructor(
         val persistentKey = getPersistentToolbarKey(prefs)
         val pinnedRowEnabled = Settings.getValues().mToolbarMode != ToolbarMode.HIDDEN
         val pinnedKeys = if (pinnedRowEnabled) getPinnedToolbarKeys(prefs, persistentKey).toSet() else emptySet()
-        val enabledKeys = getEnabledToolbarKeys(prefs).filterNot { it == persistentKey || it in pinnedKeys }
+        val enabledKeys = getEnabledToolbarKeys(prefs).filter {
+            it.isAvailableInToolbarUi() && it != persistentKey && it !in pinnedKeys
+        }
 
         val inflater = LayoutInflater.from(context)
         for (key in enabledKeys) {

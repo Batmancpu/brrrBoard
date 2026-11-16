@@ -20,6 +20,7 @@ import helium314.keyboard.latin.utils.MAX_PINNED_TOOLBAR_KEYS
 import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ToolbarMode
+import helium314.keyboard.latin.utils.isAvailableInToolbarUi
 import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.getStringResourceOrName
 import helium314.keyboard.latin.utils.prefs
@@ -98,7 +99,7 @@ fun createToolbarSettings(context: Context) = listOf(
         ListPreference(
             setting,
             ToolbarKey.entries
-                .filterNot { it == ToolbarKey.CLOSE_HISTORY }
+                .filter { it.isAvailableInToolbarUi() }
                 .map { it.name.lowercase().getStringResourceOrName("", ctx) to it.name },
             Defaults.PREF_PERSISTENT_TOOLBAR_KEY
         )

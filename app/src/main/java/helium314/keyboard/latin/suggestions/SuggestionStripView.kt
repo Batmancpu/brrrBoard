@@ -72,6 +72,8 @@ import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.getCodeForToolbarKey
 import helium314.keyboard.latin.utils.getCodeForToolbarKeyLongClick
 import helium314.keyboard.latin.utils.getPinnedToolbarKeys
+import helium314.keyboard.latin.utils.getPersistentToolbarKey
+import helium314.keyboard.latin.utils.isAvailableInToolbarUi
 import helium314.keyboard.latin.utils.getStringResourceOrName
 import helium314.keyboard.latin.utils.getToolbarKeyFromDragData
 import helium314.keyboard.latin.utils.pinToolbarKeyAt
@@ -971,15 +973,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private fun populatePinnedKeys(
         previewSlots: List<Any>? = null,
     ) {
-        val persistentKey = Settings.getValues().mPersistentToolbarKey
+        val persistentKey = getPersistentToolbarKey(context.prefs())
         val slots = previewSlots ?: getPinnedToolbarKeys(context.prefs(), persistentKey)
-        slotsState.value = slots
+        slotsState.value = slots.filter { it !is ToolbarKey || it.isAvailableInToolbarUi() }
     }
 
     private fun updatePersistentToolbarKey() {
         val settingsValues = Settings.getValues()
         val colors = settingsValues.mColors
-        val key = settingsValues.mPersistentToolbarKey
+        val key = getPersistentToolbarKey(context.prefs())
         persistentToolbarKey.tag = key
         persistentToolbarKey.contentDescription = key.name.lowercase().getStringResourceOrName("", context)
         persistentToolbarKey.setImageDrawable(KeyboardIconsSet.instance.getNewDrawable(key.name, context))
@@ -1041,7 +1043,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private fun canDropToolbarKeyInPinnedRow(key: ToolbarKey): Boolean {
         val toolbarMode = Settings.getValues().mToolbarMode
         val pinnedRowEnabled = toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.TOOLBAR_KEYS
-        return pinnedRowEnabled && key != ToolbarKey.CLOSE_HISTORY && key != Settings.getValues().mPersistentToolbarKey
+        return pinnedRowEnabled && key != ToolbarKey.CLOSE_HISTORY && key != getPersistentToolbarKey(context.prefs())
     }
 
     private fun getSortedSlotBounds(): List<PinnedSlotBounds> {
@@ -1085,7 +1087,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         ) {
             return
         }
-        val current = getPinnedToolbarKeys(context.prefs(), Settings.getValues().mPersistentToolbarKey).toMutableList()
+        val current = getPinnedToolbarKeys(context.prefs(), getPersistentToolbarKey(context.prefs())).toMutableList()
         val previewSlots = if (source == ToolbarDragSource.PINNED_ROW) {
             current.remove(key)
             current.toMutableList<Any>().apply {

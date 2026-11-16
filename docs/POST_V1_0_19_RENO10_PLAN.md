@@ -378,3 +378,68 @@ The working source diff now touches `RoundedKeyboardFrameView.kt`, `InputView.ja
 - Obtainium run [43822092860](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092860) succeeded and published [v1.0.53](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.53): 37,949,189 bytes, SHA-256 `38817186ea3db60c2937f7afa28ab89e49dff0e6163e351c71d21b8df5be62c6`. This is 13,079,670 bytes (~25.6%) smaller than v1.0.52. The release workflow preserved its exact-byte checks for the shipped Hinglish and Emoji dictionaries.
 - Debug run [43822092903](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092903) built and signer-verified a 46,063,050-byte APK (SHA-256 `d7cb84cd406b1d07c5c95b9f708e83c51a956966c4a112928588a11aa40eac5b`) and uploaded artifact [14204702723](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092903/artifacts/14204702723). Its test step completed 180 tests with the same 13 failures: 5 parser/currency, 7 URL/autospace, 1 Emoji-recognition. No manual tests were run.
 - **Smart Emoji source audit:** the Smart tab icon/accessibility label already exists in `EmojiCategory.getCategoryTabIcon()` and `getAccessibilityDescription()`; `KeyboardSwitcher.setEmojiKeyboard()` reveals the tab strip and `EmojiPalettesView.addTab()` renders that icon. The optional separate persistent Emoji row is off by default. Existing local frequency/recency ranking feeds only that optional fast row; next connect the ranker to the Smart Emoji category and contextual Emoji slots without changing decoder text scores. Reno10 discoverability/content remains unverified.
+
+## 2026-11-16 — owner-requested audit and implementation sequence
+
+This is the current ordered plan. Every implementation batch is committed together with updates to `AGENTS.md`, `PROJECT_CONTEXT.md`, this file, and `docs/PROJECT_CONVERSATION.md`. CI results get a documentation checkpoint before the next source batch.
+
+### Completed source/release work
+
+- **v1.0.54 Smart Emoji visibility:** populate a useful local first-use grid instead of leaving Smart empty until recents exist; preserve real recents and incognito behavior.
+- **v1.0.55 contextual Emoji:** rank decoder-supplied Emoji by local frequency/recency into side candidate slots; leave text/center candidate and decoder scores unchanged.
+- **v1.0.56 123 slide:** tap 123 remains a persistent Symbols switch; slide from it selects one symbol and returns to letters through the existing momentary keyboard state.
+- **Language/style cleanup:** visible language choices already are English US, English UK, and Romanized Hinglish. Global key/icon style and theme-preset choice screens are already removed.
+- **APK trim:** 16 unsupported installable main dictionaries were excluded while source assets, test catalog, main English/Hinglish, and both Emoji dictionaries were retained. Release v1.0.53 was about 25.6% smaller than v1.0.52.
+- **Tint baseline:** wallpaper-derived saturation/vibrancy defaults were returned to 100%; optional action-key tint uses a nearest Apple-inspired palette color. Device appearance still needs owner acceptance.
+
+### Batch 1 — remove dead toolbar choices (active)
+
+- Hide AI Tools, GIFs, Stickers, and internal Close History from toolbar-key preferences, persistent-key preferences, custom key-code chooser, access menu, pinned row, and drag/drop.
+- Preserve enum names to read older serialized preferences; migrate stale saved selections to supported entries when Settings opens.
+- Keep working Settings, Clipboard, editing, Emoji, Voice, layout, and accessibility controls.
+- Inspect CI and document its result before Batch 2.
+
+### Batch 2 — map and correct layout/interaction
+
+- Trace touch behavior from key view and pointer tracking through KeyboardActionListener/InputLogic for letters, 123, alternate popups, Emoji, mic, toolbar, and swipe dismissal.
+- Use the supplied stills for the three candidate slots, highlighted center correction, separate right utility action, and Emoji/mic bottom-corner placement. Do not treat stills as evidence for unseen Emoji panel transitions or edge blur.
+- Measure actual Reno10 and iPad logical dimensions, density, IME/window insets, and user-configured keyboard scale. Correct the outer frame, rows, bottom baseline, and panel transitions from those measurements rather than guessing dp values.
+- Make text, symbols, numeric, Emoji, Clipboard, and toolbar panels share the intended outer frame. Remove empty spacer/inset space the owner does not use, while preserving balanced footer breathing room and usable hit targets.
+- Keep Emoji pages horizontally swipeable, show one appropriate ABC return control, and verify tap-to-enter/return behavior. Test Smart tab discoverability and maintain a stable frame while panel content changes.
+- Check alternate-key long press/slide timing, popup direction/clipping, slide-off behavior, and 123 tap-versus-slide. Change only behavior traced to the actual Android pointer/state path.
+- Render the thin top-edge glass highlight, rounded frame, key spacing, three prediction slots and independent utility accessory; compare dark/light captures on device.
+
+### Batch 3 — finish color/icon behavior
+
+- Re-trace editor transitions (URL → text → URL, light ↔ dark, tint on/off) through LatinIME, KeyboardSwitcher, KeyboardTheme, and drawable state. Clear recycled per-key filters and stale accent state.
+- Keep glass and alphabet keycaps neutral. Keep only automatic dark and light frosted appearance plus one optional tint switch; remove obsolete preset/style choices, not unrelated useful preferences.
+- Derive an action-key accent from system/Material You wallpaper colors and map it to the closest restrained Apple-like palette color with contrast checks. Apply to selected action/highlight keys only, never the whole keyboard.
+- Inventory every visible icon across letters, symbols, Emoji, footer, suggestions, toolbar and popups. Match stroke/weight/alignment using original project vector assets; do not copy proprietary SF Symbols.
+- Recheck accessibility labels, hit areas, and dynamic-light/dark icon contrast.
+
+### Batch 4 — Dictate service routing
+
+- Follow mic tap/hold from BoardFooterView and key handling through InlineDictation, input method manager and Android RecognitionService selection.
+- Ensure tap uses the selected Dictate recognition provider and does not launch or switch to an unrelated keyboard/dictation UI; keep the keyboard shown if inline service API supports it.
+- Respect the selected service's actual active language; verify the user's English configuration, Hinglish limits, start/stop/error flows, and private/incognito flags.
+- Separate source-confirmable behavior from Reno10-only provider/model configuration and record the exact owner setup needed.
+
+### Batch 5 — brrPersonal + bundled offline swipe
+
+- Inspect the current 6K PHINC-derived Hinglish data and curated entries, data format, ranking path, JNI/native ABI and the external gesture-library installer.
+- Curate a finite, license-cleared North Indian Romanized Hinglish vocabulary from reviewed corpora plus manually checked current usage. Keep common English/Hinglish forms and spelling aliases; flag swear/slang entries valid-only so they are not text completions or autocorrections, while permitting an independent emoji mapping.
+- Rank suggestions deterministically using decoder confidence/frequency, user-accepted local counts, recent context and keyboard path/distance; cap output at three. Do not override a high-confidence decoder candidate without measured evidence. Update local counters off the per-keystroke hot path, bound storage, and disable learning in password/incognito/no-personalized-learning fields.
+- Improve swipe accuracy with the same dictionary and candidate ranking; measure top-1/top-3 accuracy, latency, memory and APK size on Reno10 for ordinary typing and code-mixed phrases.
+- The user reports GlideLib works on their phone, but the supplied archive has no redistribution license and contains proprietary Google code. Do not put it into a public APK. Select a license-cleared compatible offline decoder, bundle it in the APK by default, and only then remove the outside-library install flow. If no viable cleared engine exists, report that blocker and keep the working manual route until the user chooses a licensed source.
+- Keep the existing static Hinglish and Emoji dictionaries bundled; do not fetch or duplicate them. Do not bundle the 116 MB Apple Emoji font because of the asset license and size.
+
+### Batch 6 — lean release and acceptance
+
+- Audit installable files by runtime reference, license, fallback behavior, test needs, and measured APK impact. Delete only proven-dead package payload, never useful parser/test fixtures or user dictionaries.
+- Preserve application ID, signing identity, release/update mechanism, and exact-byte artifact checks.
+- Review release/debug workflows and the known 13/180 baseline; report new versus pre-existing failures separately.
+- Publish a signed APK/artifact only after the corresponding gates. Ask the owner to verify on Reno10: layout at configured heights, Insets, Emoji/ABC and sideways paging, Smart Emoji relevance, 123/popup behavior, dictation provider/language, swipe quality/latency, tint transitions, and update installation. Keep iPad layout as a separate tablet acceptance profile.
+
+### Acceptance boundary
+
+The source has no access to the owner's phone, actual ColorOS build, Dictate provider/model state, or in-chat video beyond two still frames. No source review or CI run can close those device-specific checks. Do not describe a feature as accepted until the owner reports it tested.
