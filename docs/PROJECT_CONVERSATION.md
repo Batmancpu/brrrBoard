@@ -648,3 +648,18 @@ The active Emoji code batch turns the page list horizontal with snap paging and 
 **Change and expectation.** `KeyboardTheme.kt` exposes the existing palette mapper as a static method; `EmojiPalettesView.java` routes the selected category highlight through it. This changes only the selected Emoji tab highlight. The keyboard glass and letter/action key colors are unchanged in this batch. The four handoff files are updated in the same source checkpoint. CI and Reno10 visual acceptance are pending.
 
 **Next action.** Wait for the signed/debug workflows, then continue the alternate-symbol popup/icon audit, local Emoji ranking, and rights-cleared swipe-engine assessment.
+
+
+## 2026-11-16 — v1.0.52 Apple-palette result and payload audit
+
+**Owner direction carried forward.**
+
+> “So give me an extremely detailed plan on how you'll do in brief points, what you'll change, in how many batches. And then start doing it”
+
+The required order is implementation in small batches, with a concrete plan and all progress retained in the GitHub handoff for the next agent. Preserve the iOS-inspired layout target, three owner-facing languages, neutral Apple palette, contextual Emoji, bundled offline Personal data, a rights-cleared swipe engine, selected Dictate service, and Reno10-specific acceptance boundary. No plan-only pause is requested.
+
+**v1.0.52 result.** Obtainium run [43820853475](https://github.com/Batmancpu/brrrBoard/actions/runs/43820853475) published [v1.0.52](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.52) from [34c4179](https://github.com/Batmancpu/brrrBoard/commit/34c4179dc1a867616f474f26d5b5d0df3adc910c), APK 51,028,859 bytes, SHA-256 `c1b8063b9d74abf86fd423d2eb967a74b87b5b266635372cd6408de0d7f570ab`. The selected Emoji category highlight now uses the nearest Apple-palette mapper. Debug run [43820853163](https://github.com/Batmancpu/brrrBoard/actions/runs/43820853163) built, signer-verified and uploaded an APK, then failed the automatic gate at 13/180 (5 parser/currency, 7 URL/autospace, 1 Emoji-recognition). No manual tests were run.
+
+**Next source batch — trim installable dictionary assets.** Repository assets contain 21 dictionaries. Keep the three owner-facing main dictionaries (`main_en-US.dict`, `main_en-GB.dict`, `main_hi-Latn.dict`) and both current Emoji dictionaries. Exclude the other 16 main dictionaries, 30,876,181 raw bytes, from installable build variants through Gradle's asset-ignore list. Leave all source files in place and retain the complete catalog in the `runTests` build type; this trims APK payload without deleting test fixtures or dictionary files from history. The existing selected-language UI and internal subtype catalog remain unchanged. CI will establish actual compressed APK savings and ensure asset lookup still works.
+
+**Next after this batch.** Continue the audit of alternate-symbol popups and visible icons/layout proportions; wire local Emoji usage/recency and brrPersonal shortcuts into the three-slot suggestion strip; then validate a default swipe decoder with clear redistribution rights. Keep device-only acceptance open for Reno10 geometry, palette rendering, Dictate component/language and swipe accuracy.

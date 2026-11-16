@@ -130,9 +130,29 @@ android {
         }
 
         androidComponents.onVariants { variant: ApplicationVariant ->
+            if (variant.buildType != "runTests") {
+                // Ship only the main dictionaries for the three owner-facing keyboard languages.
+                // Keep the complete catalog in runTests for locale and dictionary coverage.
+                variant.androidResources.ignoreAssetsPatterns = listOf(
+                    "main_bg.dict",
+                    "main_bn.dict",
+                    "main_de.dict",
+                    "main_el.dict",
+                    "main_es.dict",
+                    "main_fr.dict",
+                    "main_hu.dict",
+                    "main_it.dict",
+                    "main_nl.dict",
+                    "main_pl.dict",
+                    "main_pt-BR.dict",
+                    "main_pt-PT.dict",
+                    "main_ro.dict",
+                    "main_ru.dict",
+                    "main_sv.dict",
+                    "main_tr.dict"
+                )
+            }
             if (variant.buildType == "debug") {
-                // got a little too big for GitHub after some dependency upgrades, so we remove the largest dictionary
-                variant.androidResources.ignoreAssetsPatterns = listOf("main_ro.dict")
                 variant.proguardFiles = emptyList()
                 //noinspection ProguardAndroidTxtUsage we intentionally use the "normal" file here
                 variant.proguardFiles.add(project.layout.buildDirectory.file(project.buildFile.parent + "/dontoptimize.pro"))
