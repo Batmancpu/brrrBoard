@@ -2,10 +2,9 @@
 
 ## Start here
 
-## Active checkpoint — B03 Emoji regex correction awaiting CI (2026-11-16)
+## Active checkpoint — B03 Unicode 18 catalog alignment (2026-11-16)
 
-Audit branch `brrrboard-audit-b01-currency-20261116`, based at diagnostic checkpoint `6baea15563794c78d1e36ab316cc9d68f055f55e`. CI [43860781305](https://github.com/Batmancpu/brrrBoard/actions/runs/43860781305) isolated the sole failure to U+1FA8D 🪍 in the bundled `ACTIVITIES.txt` catalog; source `StringUtils.emoRegex` omitted that scalar between U+1FA8A and U+1FA8E. Unicode Emoji 18.0 names U+1FA8D “net with handle.” The patch adds only that code point and preserves other exclusions. A source plus continuity-document checkpoint is being committed; full CI is pending. Scratch execution unavailable, so no local Gradle test or Reno10 test. Next: inspect Actions; if build/signer and all 181 unit tests pass, mark B03 complete and proceed B04. Otherwise use the exact failure diagnostic to repair the identified root cause.
-
+Starting from `12179e95be258c1773978918e60ed14296bbe410`, CI run [43862270142](https://github.com/Batmancpu/brrrBoard/actions/runs/43862270142) built and signer-verified the debug APK. The test gate fixed the U+1FA8D 🪍 rejection and progressed to the next catalog entry, U+1FACC 🫌. This confirms the base classifier range is behind the bundled asset catalog. The asset files contain the Unicode 18 Emoji additions U+1F6D9, U+1FA8B–U+1FA8D, U+1FACC, U+1FADD, U+1FAEB and U+1FAF9–U+1FAFA; the last two include tone-modifier sequences. The source update aligns `emoRegex` to those exact assigned scalars and supported modifier sequences, retaining reserved-code-point exclusions. The complete gate remains pending; current failed run has one catalog assertion at U+1FACC after the initial U+1FA8D repair. Do not close B03 until all 181 tests and signed debug build pass. No local Gradle/Reno10 tests are available.
 ## Active checkpoint — B02 complete; B03 in progress (2026-11-16)
 
 B02 is complete on audit branch `brrrboard-audit-b01-currency-20261116`. Starting checkpoint `2df304cdcd98b7f08bb912f8974fcd93631b24d5`; ending source/checkpoint commit `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. It pins URL/autospace test policies explicitly and fixes InputLogic's URL composition resume when a pending phantom space follows a URL connector. The change allows resume with NONE or PHANTOM space state and skips automatic spacing after composition resumes. Production defaults and test expectations remain unchanged.

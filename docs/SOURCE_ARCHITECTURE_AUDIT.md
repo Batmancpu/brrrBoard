@@ -74,3 +74,8 @@ CI 43857301235 confirms the PHANTOM-resume runtime fix cleared all three enabled
 
 
 **B03 checkpoint:** B02 full CI has only `isEmojiDetectsAllAvailableEmojis` remaining. A failure-only audit CI step now logs just that test's JUnit message/code points to avoid hardcoded skipping. No regex change until exact sequence and source/data version evidence are known.
+
+
+## B03 follow-up — catalog version evidence
+
+The first exact scalar fix compiled, and CI [43862270142](https://github.com/Batmancpu/brrrBoard/actions/runs/43862270142) progressed from U+1FA8D to U+1FACC 🫌. Current assets encode multiple Unicode Emoji 18 additions, while `emoRegex` predates them. The bundled scalar set includes U+1F6D9, U+1FA8B–D, U+1FACC, U+1FADD, U+1FAEB and U+1FAF9–FA; the newest thumb signs also have modifier sequences. B03 now updates this same regex coherently for the bundled assigned scalars and tone variants. Full CI is required before proceeding; no local test or device evidence is available.
