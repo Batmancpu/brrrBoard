@@ -9,14 +9,9 @@ package helium314.keyboard.latin.suggestions;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Paint.Align;
-import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
@@ -98,8 +93,6 @@ final class SuggestionStripLayoutHelper {
     private final float mCenterSuggestionWeight;
     private final int mCenterPositionInStrip;
     private final int mTypedWordPositionWhenAutocorrect;
-    private final Drawable mMoreSuggestionsHint;
-    private static final String MORE_SUGGESTIONS_HINT = "…";
 
     private static final CharacterStyle BOLD_SPAN = new StyleSpan(Typeface.BOLD);
     private static final CharacterStyle UNDERLINE_SPAN = new UnderlineSpan();
@@ -142,7 +135,6 @@ final class SuggestionStripLayoutHelper {
         mColorTypedWord = colors.get(ColorType.SUGGESTION_TYPED_WORD);
         mColorAutoCorrect = colors.get(ColorType.SUGGESTION_AUTO_CORRECT);
         mColorSuggested = colors.get(ColorType.SUGGESTED_WORD);
-        final int colorMoreSuggestionsHint = colors.get(ColorType.MORE_SUGGESTIONS_HINT);
 
         mSuggestionsCountInStrip = a.getInt(
                 R.styleable.SuggestionStripView_suggestionsCountInStrip,
@@ -157,9 +149,6 @@ final class SuggestionStripLayoutHelper {
                 R.styleable.SuggestionStripView_minMoreSuggestionsWidth, 1.0f);
         a.recycle();
 
-        mMoreSuggestionsHint = getMoreSuggestionsHint(res,
-                res.getDimension(R.dimen.config_more_suggestions_hint_text_size),
-                colorMoreSuggestionsHint);
         mCenterPositionInStrip = mSuggestionsCountInStrip / 2;
         // Assuming there are at least three suggestions. Also, note that the suggestions are
         // laid out according to script direction, so this is left of the center for LTR scripts
@@ -190,25 +179,6 @@ final class SuggestionStripLayoutHelper {
             return;
         }
         mMaxMoreSuggestionsRow = (remainingHeight - mMoreSuggestionsBottomGap) / mMoreSuggestionsRowHeight;
-    }
-
-    private static Drawable getMoreSuggestionsHint(final Resources res, final float textSize, final int color) {
-        final Paint paint = new Paint();
-        paint.setAntiAlias(true);
-        paint.setTextAlign(Align.CENTER);
-        paint.setTextSize(textSize);
-        paint.setColor(color);
-        paint.setTypeface(KeyboardTypeface.resolve(MORE_SUGGESTIONS_HINT, Typeface.DEFAULT_BOLD));
-        final Rect bounds = new Rect();
-        paint.getTextBounds(MORE_SUGGESTIONS_HINT, 0, MORE_SUGGESTIONS_HINT.length(), bounds);
-        final int width = Math.round(bounds.width() + 0.5f);
-        final int height = Math.round(bounds.height() + 0.5f);
-        final Bitmap buffer = Bitmap.createBitmap(width, (height * 3 / 2), Bitmap.Config.ARGB_8888);
-        final Canvas canvas = new Canvas(buffer);
-        canvas.drawText(MORE_SUGGESTIONS_HINT, width / 2, height, paint);
-        BitmapDrawable bitmapDrawable = new BitmapDrawable(res, buffer);
-        bitmapDrawable.setTargetDensity(canvas);
-        return bitmapDrawable;
     }
 
     private CharSequence getStyledSuggestedWord(final SuggestedWords suggestedWords,
@@ -549,14 +519,11 @@ final class SuggestionStripLayoutHelper {
                     mChipHorizontalMargin, mChipVerticalMargin));
         }
         final CharSequence word = wordView.getText();
-        if (positionInStrip == mCenterPositionInStrip && mMoreSuggestionsAvailable) {
-            // TODO: This "more suggestions hint" should have a nicely designed icon.
-            wordView.setCompoundDrawablesWithIntrinsicBounds(null, null, null, mMoreSuggestionsHint);
-            // HACK: Align with other TextViews that have no compound drawables.
-            wordView.setCompoundDrawablePadding(-mMoreSuggestionsHint.getIntrinsicHeight());
-        } else {
-            wordView.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
-        }
+        // Dots below the center word displaced its optical baseline. The full
+        // strip still supports press-and-hold/upward flick for more suggestions,
+        // and an explicit accessibility action in SuggestionStripView.
+        wordView.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
+        wordView.setCompoundDrawablePadding(0);
         // {@link StyleSpan} in a content description may cause an issue of TTS/TalkBack.
         // Use a simple {@link String} to avoid the issue.
         wordView.setContentDescription(

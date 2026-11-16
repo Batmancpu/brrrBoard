@@ -76,6 +76,7 @@ import helium314.keyboard.latin.personalization.PersonalizationHelper;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
 import helium314.keyboard.latin.suggestions.SuggestionStripView;
+import helium314.keyboard.latin.suggestions.AccessoryPriorityPolicy;
 import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
 import helium314.keyboard.latin.touchinputconsumer.GestureConsumer;
 import helium314.keyboard.latin.utils.ColorUtilKt;
@@ -195,6 +196,9 @@ public class LatinIME extends InputMethodService implements
     private final InlineDictation mInlineDictation = new InlineDictation(this);
     private InsetsOutlineProvider mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
+    private boolean mInlineProviderViewActive;
+    private long mEditorFocusEpoch;
+    private long mInlineRequestEpoch = -1;
 
     private RichInputMethodManager mRichImm;
     final KeyboardSwitcher mKeyboardSwitcher;
@@ -1183,6 +1187,9 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        mEditorFocusEpoch++;
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
         mHandler.onStartInput(editorInfo, restarting);
     }
@@ -1197,6 +1204,8 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
         if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         StatsUtils.onFinishInputView();
@@ -1207,6 +1216,9 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mEditorFocusEpoch++;
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
         mHandler.onFinishInput();
     }
@@ -1797,7 +1809,7 @@ public class LatinIME extends InputMethodService implements
         if (Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
             return null;
         }
-
+        mInlineRequestEpoch = mEditorFocusEpoch;
         return InlineAutofillUtils.createInlineSuggestionRequest(mDisplayContext);
     }
 
@@ -1805,21 +1817,27 @@ public class LatinIME extends InputMethodService implements
     @RequiresApi(api = Build.VERSION_CODES.R)
     public boolean onInlineSuggestionsResponse(InlineSuggestionsResponse response) {
         Log.d(TAG, "onInlineSuggestionsResponse called");
-        if (Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
+        if (Settings.getValues().mSuggestionStripHiddenPerUserSettings
+                || !AccessoryPriorityPolicy.responseBelongsToVisibleEditor(
+                        mInlineRequestEpoch, mEditorFocusEpoch, isInputViewShown())) {
             return false;
         }
 
         final List<InlineSuggestion> inlineSuggestions = response.getInlineSuggestions();
         if (inlineSuggestions.isEmpty()) {
-            removeExternalSuggestions();
+            if (mInlineProviderViewActive) removeExternalSuggestions();
             return false;
         }
 
         final View inlineSuggestionView = InlineAutofillUtils.createView(inlineSuggestions, mDisplayContext);
+        if (inlineSuggestionView == null || mSuggestionStripView == null) {
+            mInlineProviderViewActive = false;
+            return false;
+        }
 
         // Without this function the inline autofill suggestions will not be visible
         mHandler.cancelResumeSuggestions();
-
+        mInlineProviderViewActive = true;
         mSuggestionStripView.setExternalSuggestionView(inlineSuggestionView, true);
 
         return true;
@@ -2023,6 +2041,10 @@ public class LatinIME extends InputMethodService implements
         }
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         mInputLogic.setSuggestedWords(suggestedWords);
+        // Dictation-independent credentials come from the Android provider. A
+        // delayed dictionary refresh must not evict an active autofill chip.
+        if (!AccessoryPriorityPolicy.canReplaceVisible(mInlineProviderViewActive,
+                AccessoryPriorityPolicy.Incoming.WORDS)) return;
         // TODO: Modify this when we support suggestions with hard keyboard
         if (!hasSuggestionStripView()) {
             return;
@@ -2105,6 +2127,8 @@ public class LatinIME extends InputMethodService implements
      * returns whether a clipboard suggestion has been set.
      */
     public boolean tryShowClipboardSuggestion() {
+        if (!AccessoryPriorityPolicy.canReplaceVisible(mInlineProviderViewActive,
+                AccessoryPriorityPolicy.Incoming.CLIPBOARD)) return false;
         final View clipboardView = mClipboardHistoryManager.getClipboardSuggestionView(getCurrentInputEditorInfo(),
                 mSuggestionStripView);
         if (clipboardView != null && hasSuggestionStripView()) {
@@ -2124,6 +2148,7 @@ public class LatinIME extends InputMethodService implements
     // and there is a selection of text or it's the start of a line.
     @Override
     public void setNeutralSuggestionStrip() {
+        if (mInlineProviderViewActive) return;
         final SettingsValues currentSettings = mSettings.getCurrent();
         if (tryShowClipboardSuggestion()) {
             // clipboard suggestion has been set
@@ -2152,6 +2177,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void removeExternalSuggestions() {
+        mInlineProviderViewActive = false;
         setNeutralSuggestionStrip();
         mHandler.postResumeSuggestions(false);
     }

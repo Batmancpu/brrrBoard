@@ -1348,6 +1348,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 updatePersistentEmojiRow();
                 mMainKeyboardFrame.setVisibility(View.VISIBLE);
                 mKeyboardView.setVisibility(View.GONE);
+                // A footer arc action can enter Toolbar directly from Emoji or
+                // Clipboard. Release outgoing listeners/touches before hiding them.
+                mEmojiPalettesView.stopEmojiPalettes();
+                mClipboardHistoryView.stopClipboardHistory();
                 mEmojiPalettesView.setVisibility(View.GONE);
                 mClipboardHistoryView.setVisibility(View.GONE);
                 if (mAiWritingToolsView != null) {

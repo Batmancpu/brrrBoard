@@ -64,12 +64,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
     private val shortcuts = listOf(
-        Shortcut(R.string.emoji, R.drawable.ic_board_emoji, KeyCode.EMOJI),
-        Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, KeyCode.CLIPBOARD),
-        Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_lxx, KeyCode.SETTINGS),
+        Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
+        Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, FooterShortcutPolicy.Action.CLIPBOARD),
+        Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_lxx, FooterShortcutPolicy.Action.SETTINGS),
     )
 
-    private data class Shortcut(val label: Int, val icon: Int, val code: Int)
+    private data class Shortcut(val label: Int, val icon: Int, val action: FooterShortcutPolicy.Action)
 
     @SuppressLint("ClickableViewAccessibility")
     fun bind(owner: LatinIME) {
@@ -124,7 +124,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // sliding through the arc. Expose each shortcut directly for touch exploration.
         shortcuts.forEach { shortcut ->
             ViewCompat.addAccessibilityAction(emojiButton, resources.getString(shortcut.label)) { _, _ ->
-                send(shortcut.code)
+                performShortcut(shortcut.action)
                 true
             }
         }
@@ -149,12 +149,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 MotionEvent.ACTION_UP -> {
                     val hadPopup = popup != null
                     if (hadPopup) updateSelection(event.rawX, event.rawY)
-                    val code = shortcuts.getOrNull(selected)?.code
+                    val actionToPerform = shortcuts.getOrNull(selected)?.action
                     val tap = tracking && !hadPopup
-                    reset()
-                    if (code != null) send(code) else if (tap) view.performClick()
+                    dismissShortcutArc()
+                    if (actionToPerform != null) performShortcut(actionToPerform) else if (tap) view.performClick()
                 }
-                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> reset()
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> dismissShortcutArc()
             }
             true
         }
@@ -263,6 +263,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
         cancelMicHold()
+        dismissShortcutArc()
+    }
+
+    private fun dismissShortcutArc() {
         tracking = false
         emojiButton.isPressed = false
         removeCallbacks(openShortcuts)
@@ -292,6 +296,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     private fun send(code: Int) = ime.onCodeInput(code, -1, -1, false)
 
+    private fun performShortcut(action: FooterShortcutPolicy.Action) {
+        val switcher = helium314.keyboard.keyboard.KeyboardSwitcher.getInstance()
+        if (!FooterShortcutPolicy.isAllowed(action, Settings.getValues().mClipboardHistoryEnabled)) {
+            // Never let a menu item named Clipboard unexpectedly paste text when
+            // history is disabled; explicit clipboard paste keys still work.
+            return
+        }
+        when (action) {
+            FooterShortcutPolicy.Action.TOOLBAR -> switcher.setAccessPointKeyboard()
+            FooterShortcutPolicy.Action.CLIPBOARD -> switcher.setClipboardKeyboard()
+            FooterShortcutPolicy.Action.SETTINGS -> send(KeyCode.SETTINGS)
+        }
+    }
+
     private fun showShortcutArc() {
         if (windowToken == null) return
         val colors = Settings.getValues().mColors
@@ -299,7 +317,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.MORE_SUGGESTIONS_BACKGROUND), 242)
         val active = colors.get(ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
         // Three 48dp targets form a compact arc above the lower-left button.
-        val offsets = listOf(56 to 0, 0 to 38, 112 to 38)
+        val rtl = ViewCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL
         shortcuts.forEachIndexed { index, shortcut ->
             val button = ImageButton(context).apply {
                 contentDescription = resources.getString(shortcut.label)
@@ -312,7 +330,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 }
             }
             targets.add(button)
-            val (x, y) = offsets[index]
+            val (x, y) = FooterShortcutPolicy.targetOffset(index, rtl)
             panel.addView(button, LayoutParams(dp(48), dp(48)).apply {
                 leftMargin = dp(x)
                 topMargin = dp(y)
@@ -321,9 +339,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val popupWidth = dp(160)
         val popupHeight = dp(86)
         emojiButton.getLocationInWindow(screenLocation)
+        val anchorX = screenLocation[0]
+        rootView.getLocationInWindow(screenLocation)
+        val rootX = screenLocation[0]
         val rootWidth = rootView.width
-        val left = (screenLocation[0] + emojiButton.width / 2 - popupWidth / 2)
-            .coerceIn(dp(4), (rootWidth - popupWidth - dp(4)).coerceAtLeast(dp(4)))
+        val left = FooterShortcutPolicy.clampedPopupLeft(anchorX + emojiButton.width / 2,
+            rootX, rootWidth, popupWidth, dp(4))
         popup = PopupWindow(panel, popupWidth, popupHeight, false).apply {
             isTouchable = false
             isOutsideTouchable = false
@@ -331,7 +352,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             elevation = dp(8).toFloat()
             showAsDropDown(
                 emojiButton,
-                left - screenLocation[0],
+                left - anchorX,
                 -emojiButton.height - popupHeight,
                 Gravity.LEFT,
             )

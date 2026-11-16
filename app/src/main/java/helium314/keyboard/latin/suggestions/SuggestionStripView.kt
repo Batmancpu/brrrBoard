@@ -143,6 +143,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import java.util.Locale
+import androidx.core.view.ViewCompat
 
 @SuppressLint("InflateParams")
 class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int) :
@@ -168,6 +169,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val inflater = LayoutInflater.from(context)
         inflater.inflate(R.layout.suggestions_strip, this)
         moreSuggestionsContainer = inflater.inflate(R.layout.more_suggestions, null)
+        ViewCompat.addAccessibilityAction(this, resources.getString(R.string.board_show_more_suggestions)) { _, _ ->
+            showMoreSuggestions()
+        }
 
         val colors = Settings.getValues().mColors
         colors.setBackground(this, ColorType.STRIP_BACKGROUND)
