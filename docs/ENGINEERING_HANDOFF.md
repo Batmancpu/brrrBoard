@@ -2,7 +2,7 @@
 
 ## Start here
 
-**Current task is research and planning only.** The owner authorizes documentation-only commits to main. Earlier implementation authorization in the historical records applies to those sessions. A later engineer should verify the current request, main tip, installed version and this checkpoint before editing the app.
+**Architecture research is complete.** This mission authorized only documentation commits. A later engineer should verify the owner request, main tip, installed version and this checkpoint. The [implementation master plan](MASTER_IMPLEMENTATION_PLAN.md) gives the next exact action.
 
 | Checkpoint | State | Resume |
 | --- | --- | --- |
@@ -12,7 +12,7 @@
 | R3 — Dictionaries, Smart Emoji and glide | Published in this checkpoint | [LOCAL_TYPING_ENGINE.md](LOCAL_TYPING_ENGINE.md) |
 | R4 — Clipboard, inline autofill, Dictate and lifecycle | Published in this checkpoint | [IME_PROVIDER_INTEGRATIONS.md](IME_PROVIDER_INTEGRATIONS.md) |
 | R5 — Ordered implementation and acceptance plan | Published in this checkpoint | [MASTER_IMPLEMENTATION_PLAN.md](MASTER_IMPLEMENTATION_PLAN.md) |
-| R6 — Handoff verification | Pending | Confirm docs-only remote history and readiness |
+| R6 — Final handoff verification | Complete | [Verification and readiness](#r6--verification-and-readiness) |
 
 ## R0 — Repository baseline on 16 November 2026
 
@@ -33,3 +33,19 @@
 - [Known issues](KNOWN_ISSUES.md) and [experiment log](EXPERIMENT_LOG.md) retain failures, reversals and acceptance gaps.
 - [README](../README.md), [layout documentation](../layouts.md), [dictionary provenance](../assets/dictionaries/README.md), and [Obtainium delivery](OBTAINIUM.md) describe distribution and extension points.
 - No root context.md or separate research master plan was present in the tracked tree at R0. The linked history remains the record of previous attempts.
+
+## R6 — Verification and readiness
+
+| Checkpoint | Durable commit on main |
+| --- | --- |
+| R0 repository and CI baseline | [3a1122b6](https://github.com/Batmancpu/brrrBoard/commit/3a1122b655f01d10f61aae012ee83e332931bdeb) |
+| R1 runtime paths and test triage | [3c14a5df](https://github.com/Batmancpu/brrrBoard/commit/3c14a5df5681c8636cf2bc0dd4c2b3e2f25a7f15), with conversation record restored by [894c6f5d](https://github.com/Batmancpu/brrrBoard/commit/894c6f5d66feb45e2a3dc411e099f89979bf90fd) |
+| R2 media and Reno10 geometry | [3300da01](https://github.com/Batmancpu/brrrBoard/commit/3300da01f1dfef60ef34aa02e3fe84ad3aa3caa7) |
+| R3 dictionaries, contextual Emoji and glide | [9d594a41](https://github.com/Batmancpu/brrrBoard/commit/9d594a41d460014fcc39d8ae6ef23d7c3fb3b48b) |
+| R4 Clipboard, Android inline autofill and Dictate | [586a1830](https://github.com/Batmancpu/brrrBoard/commit/586a18306551a14bb99d7ed768accb4af6851f61) |
+| R5 implementation sequence with 20 batches | [b8f7c8a0](https://github.com/Batmancpu/brrrBoard/commit/b8f7c8a004055615a2c6383adf33a506d7c52a3b) |
+
+- The R1 transfer temporarily wrote an empty PROJECT_CONVERSATION.md blob. The full file was restored in the immediate forward commit using the intact checkout and verified against its predecessor. Each following remote tree was checked against local blob hashes before moving main. All original nonblank lines in AGENTS.md, PROJECT_CONTEXT.md, POST_V1_0_19_RENO10_PLAN.md and PROJECT_CONVERSATION.md remain present in their original order. No forced ref update or rewritten history was used.
+- Git diff against 3ee9da9 contains Markdown additions and modifications only. The application, assets, Gradle config, tools, workflows and tag history were outside the changes. Relative links and batch identifiers were validated. GitHub's latest release and workflow lookups remained v1.0.57 and the original source jobs after R5. The architecture phase intentionally did not run tests, build packages or trigger releases.
+- **Ready for a later authorized implementation session.** Read the [master plan](MASTER_IMPLEMENTATION_PLAN.md#session-recovery-and-the-next-exact-action), revalidate main, and start with B00 and the B01–B03 test repairs. The reported 13/180 baseline, actual Reno10 geometry, latest Android/ColorOS and Dictate versions, English-only device results, final visual acceptance and default glide qualification all remain open. The source claim and device claim for each item are separately tracked in the [feature ledger](MASTER_IMPLEMENTATION_PLAN.md#reconciled-feature-and-issue-ledger).
+- Input coverage includes the whole supplied brief through its F6 cutoff, consulted project history and five directly reviewed media files. Exact unseen text after F6 and several other stills' iOS provenance remain unverified. The inherited brief is preserved as requirements with explicit provenance.

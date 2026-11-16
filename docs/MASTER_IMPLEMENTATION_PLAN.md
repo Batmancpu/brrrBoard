@@ -109,7 +109,7 @@ Sub-batch A improves history header/cards/spacing/soft viewport edges, stable im
 
 ### B15 — Baseline dictionary, static data and learning reset (B03)
 
-Confirm exact packaged assets and license notices. Reproduce brrPersonal generator hash from pinned source where network permitted. Run language benchmark R3, measure cold/hot latency and explicit reset. Preserve existing locales and course-grained settings; distinguish imported static dictionary, explicit personal additions and learned history. Record targets before changing frequencies. Can run as independent research after CI if B04–B14 device tasks are blocked, but source batches remain one at a time.
+Confirm exact packaged assets and license notices. Reproduce brrPersonal generator hash from pinned source where network permitted. Run language benchmark R3, measure cold/hot latency and explicit reset. Preserve existing locales and coarse-grained settings; distinguish imported static dictionary, explicit personal additions and learned history. Record targets before changing frequencies. Can run as independent research after CI if B04–B14 device tasks are blocked, but source batches remain one at a time.
 
 ### B16 — Local dictionary, next-word and correction improvements (B15)
 

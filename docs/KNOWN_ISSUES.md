@@ -1,5 +1,7 @@
 # brrBoard Known Issues & Audit Notes
 
+**Current evidence (16 November 2026).** See the [reconciled feature and issue ledger](MASTER_IMPLEMENTATION_PLAN.md#reconciled-feature-and-issue-ledger) for the v1.0.57 baseline and implementation priorities. Retained rows below record the v1.0.39 checkpoint.
+
 This is the current engineering watchlist. Items are not fixed until CI, source evidence, or Reno10 use establishes the relevant behavior.
 
 | Area | Status | Finding |

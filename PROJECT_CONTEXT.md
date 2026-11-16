@@ -2,6 +2,8 @@
 
 ## Resume here
 
+**R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **R5 — dependency-ordered implementation master plan.** The plan is ready for a later implementation session. R6 will verify links, source immutability, recovered history and the remote checkpoint chain. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
 **R4 — Clipboard, inline autofill and Dictate integration audit.** The mic-to-settings branch and Clipboard safety seams are mapped. R5 will order test repair, editor safety, interaction and late release gates. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
