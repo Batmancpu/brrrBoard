@@ -1,1737 +1,1 @@
-/*
- * Copyright (C) 2013 The Android Open Source Project
- * modified
- * SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
- */
-
-package helium314.keyboard.keyboard.emoji;
-
-import android.annotation.SuppressLint;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.res.Resources;
-import android.content.res.TypedArray;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.os.SystemClock;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.AttributeSet;
-import android.view.KeyEvent;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
-import android.widget.HorizontalScrollView;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.ImageButton;
-import android.graphics.drawable.RippleDrawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.InsetDrawable;
-import android.content.res.ColorStateList;
-import androidx.core.graphics.ColorUtils;
-
-
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.PagerSnapHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import helium314.keyboard.event.HapticEvent;
-import helium314.keyboard.keyboard.Key;
-import helium314.keyboard.keyboard.Keyboard;
-import helium314.keyboard.keyboard.KeyboardActionListener;
-import helium314.keyboard.keyboard.KeyboardId;
-import helium314.keyboard.keyboard.KeyboardLayoutSet;
-import helium314.keyboard.keyboard.KeyboardSwitcher;
-import helium314.keyboard.keyboard.KeyboardView;
-import helium314.keyboard.keyboard.MainKeyboardView;
-import helium314.keyboard.keyboard.PointerTracker;
-import helium314.keyboard.keyboard.internal.KeyDrawParams;
-import helium314.keyboard.keyboard.internal.KeyVisualAttributes;
-import helium314.keyboard.keyboard.internal.KeyboardBuilder;
-import helium314.keyboard.keyboard.internal.KeyboardParams;
-import helium314.keyboard.keyboard.internal.keyboard_parser.EmojiParserKt;
-import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
-import helium314.keyboard.latin.AudioAndHapticFeedbackManager;
-import helium314.keyboard.latin.LatinIME;
-import helium314.keyboard.latin.dictionary.Dictionary;
-import helium314.keyboard.latin.dictionary.DictionaryFactory;
-import helium314.keyboard.latin.R;
-import helium314.keyboard.latin.RichInputMethodManager;
-import helium314.keyboard.latin.RichInputMethodSubtype;
-import helium314.keyboard.latin.Suggest;
-import helium314.keyboard.latin.SuggestedWords;
-import helium314.keyboard.latin.SingleDictionaryFacilitator;
-import helium314.keyboard.latin.common.ColorType;
-import helium314.keyboard.latin.common.Colors;
-import helium314.keyboard.latin.common.Constants;
-import helium314.keyboard.latin.common.InputPointers;
-import helium314.keyboard.latin.common.StringUtilsKt;
-import helium314.keyboard.latin.settings.Settings;
-import helium314.keyboard.latin.settings.SettingsValues;
-import helium314.keyboard.latin.utils.DictionaryInfoUtils;
-import helium314.keyboard.latin.utils.KtxKt;
-import helium314.keyboard.latin.utils.Log;
-import helium314.keyboard.latin.utils.ResourceUtils;
-import helium314.keyboard.latin.utils.ToolbarMode;
-
-
-import java.util.List;
-import java.util.ArrayList;
-
-import static helium314.keyboard.latin.common.Constants.NOT_A_COORDINATE;
-
-/**
- * View class to implement Emoji palettes.
- * The Emoji keyboard consists of group of views layout/emoji_palettes_view.
- * <ol>
- * <li> Emoji category tabs.
- * <li> Delete button.
- * <li> Emoji keyboard pages that can be scrolled by swiping horizontally or by selecting a tab.
- * <li> Back to main keyboard button and enter button.
- * </ol>
- * Because of the above reasons, this class doesn't extend {@link KeyboardView}.
- */
-public final class EmojiPalettesView extends LinearLayout
-        implements View.OnClickListener, EmojiViewCallback {
-    private static volatile SingleDictionaryFacilitator sDictionaryFacilitator;
-    private static volatile SingleDictionaryFacilitator sSearchDictionaryFacilitator;
-
-    private boolean initialized = false;
-    private final Colors mColors;
-    private final EmojiLayoutParams mEmojiLayoutParams;
-    private LinearLayout mTabStrip;
-    private EmojiCategoryPageIndicatorView mEmojiCategoryPageIndicatorView;
-    private KeyboardActionListener mKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
-    private KeyboardActionListener mMainKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
-    private final EmojiCategory mEmojiCategory;
-    private RecyclerView mPager;
-    private MainKeyboardView mBottomRowKeyboard;
-    private View mSearchBarContainer;
-    private ImageButton mSearchBackButton;
-    private EditText mSearchEditText;
-    private ImageButton mSearchClearButton;
-    private HorizontalScrollView mSearchResultsScrollView;
-    private EmojiPageKeyboardView mSearchResultsView;
-    private View mSearchKeyboardPlaceholder;
-    private DynamicGridKeyboard mSearchResultsKeyboard;
-    private KeyboardParams mSearchKeyboardParams;
-    private int mSearchResultsKeyboardWidth;
-    private int mSearchBaseResultsColumnCount = 1;
-    private float mSearchKeyWidth;
-    private float mSearchKeyHeight;
-    private boolean mSearchMode = false;
-    private boolean mUpdatingSearchText = false;
-    private String mSearchQuery = "";
-    private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
-
-    public EmojiPalettesView(final Context context, final AttributeSet attrs) {
-        this(context, attrs, R.attr.emojiPalettesViewStyle);
-    }
-
-    public EmojiPalettesView(final Context context, final AttributeSet attrs, final int defStyle) {
-        super(context, attrs, defStyle);
-        mColors = Settings.getValues().mColors;
-        final KeyboardLayoutSet.Builder builder = new KeyboardLayoutSet.Builder(context, null);
-        final Resources res = context.getResources();
-        mEmojiLayoutParams = new EmojiLayoutParams(res);
-        builder.setSubtype(RichInputMethodSubtype.Companion.getEmojiSubtype());
-        builder.setKeyboardGeometry(ResourceUtils.getKeyboardWidth(context, Settings.getValues()),
-                mEmojiLayoutParams.getEmojiKeyboardHeight());
-        final KeyboardLayoutSet layoutSet = builder.build();
-        final TypedArray emojiPalettesViewAttr = context.obtainStyledAttributes(attrs,
-                R.styleable.EmojiPalettesView, defStyle, R.style.EmojiPalettesView);
-        mEmojiCategory = new EmojiCategory(context, layoutSet, emojiPalettesViewAttr);
-        emojiPalettesViewAttr.recycle();
-    }
-
-    @Override
-    protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
-        final Resources res = getContext().getResources();
-        final helium314.keyboard.latin.settings.SettingsValues settings = Settings.getValues();
-        final int abcHeight = ResourceUtils.getKeyboardHeight(res, settings);
-        final boolean persistentEmojiEnabled = helium314.keyboard.latin.utils.KtxKt.prefs(getContext()).getBoolean(Settings.PREF_PERSISTENT_EMOJI_ROW, helium314.keyboard.latin.settings.Defaults.PREF_PERSISTENT_EMOJI_ROW);
-        final int emojiRowHeight = persistentEmojiEnabled ? (int) (41 * res.getDisplayMetrics().density) : 0;
-        // The normal alphabetic keyboard has a suggestion strip above its keys.
-        // If the emoji category strip is hidden, reclaim that exact height inside
-        // the emoji panel instead. Both modes now retain the shared bottom footer.
-        final View strip = getRootView().findViewById(R.id.strip_container);
-        final boolean normalStripExpected = settings.mToolbarMode != ToolbarMode.HIDDEN;
-        final int missingStripHeight = normalStripExpected &&
-                (strip == null || strip.getVisibility() != View.VISIBLE)
-                ? res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height) : 0;
-        final int requestedHeight = abcHeight + emojiRowHeight + missingStripHeight
-                + getPaddingTop() + getPaddingBottom() + 1;
-        final int availableHeight = switch (MeasureSpec.getMode(heightMeasureSpec)) {
-            case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec);
-            default -> Integer.MAX_VALUE;
-        };
-        final int finalHeight = Math.min(requestedHeight, availableHeight);
-        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY));
-        final int width = ResourceUtils.getKeyboardWidth(getContext(), settings) + getPaddingLeft() + getPaddingRight();
-        if (mEmojiCategoryPageIndicatorView != null) {
-            mEmojiCategoryPageIndicatorView.mWidth = width;
-        }
-        setMeasuredDimension(width, finalHeight);
-    }
-
-    private void addTab(final LinearLayout host, final int categoryId) {
-        final TabImageView iconView = new TabImageView(getContext());
-        mColors.setBackground(iconView, ColorType.STRIP_BACKGROUND);
-        mColors.setColor(iconView, ColorType.EMOJI_CATEGORY);
-        iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        final int iconPadding = (int) (6 * getContext().getResources().getDisplayMetrics().density);
-        iconView.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
-        iconView.setImageResource(mEmojiCategory.getCategoryTabIcon(categoryId));
-        iconView.setContentDescription(mEmojiCategory.getAccessibilityDescription(categoryId));
-        iconView.setTag((long) categoryId); // use long for simple difference to int used for key codes
-        host.addView(iconView);
-        iconView.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
-        iconView.setOnClickListener(this);
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    public void initialize() { // needs to be delayed for access to EmojiTabStrip, which is not a child of this view
-        if (initialized) return;
-        mEmojiCategory.initialize();
-        final View tabStripView = KeyboardSwitcher.getInstance().getEmojiTabStrip();
-        mTabStrip = (LinearLayout) tabStripView.findViewById(R.id.emoji_tab_strip);
-        if (Settings.getValues().mSecondaryStripVisible) {
-            for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
-                addTab(mTabStrip, properties.mCategoryId);
-            }
-        }
-
-        mPager = findViewById(R.id.emoji_pager);
-        mPager.setHasFixedSize(true);
-        mPager.setItemAnimator(null);
-        final LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
-        mPager.setLayoutManager(layoutManager);
-        final EmojiPalettesAdapter adapter = new EmojiPalettesAdapter(mEmojiCategory, this);
-        mPager.setAdapter(adapter);
-        final PagerSnapHelper snapHelper = new PagerSnapHelper();
-        snapHelper.attachToRecyclerView(mPager);
-
-        mPager.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                final View snapped = snapHelper.findSnapView(layoutManager);
-                if (snapped != null) {
-                    final int position = layoutManager.getPosition(snapped);
-                    final int categoryId = adapter.getCategoryIdForPosition(position);
-                    if (categoryId != -1 && categoryId != mEmojiCategory.getCurrentCategoryId()) {
-                        setCurrentCategoryId(categoryId, true);
-                    }
-                    final int pagePosition = adapter.getPagePositionForAdapterPosition(position);
-                    if (pagePosition >= 0 && pagePosition != mEmojiCategory.getCurrentCategoryPageId()) {
-                        mEmojiCategory.setCurrentCategoryPageId(pagePosition);
-                    }
-                }
-            }
-        });
-
-        mEmojiLayoutParams.setEmojiListProperties(mPager);
-        mEmojiCategoryPageIndicatorView = findViewById(R.id.emoji_category_page_id_view);
-        mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
-        mEmojiLayoutParams.setCategoryPageIdViewProperties(mEmojiCategoryPageIndicatorView);
-        mBottomRowKeyboard = findViewById(R.id.bottom_row_keyboard);
-        setupInlineSearchViews();
-        final int savedPosition = adapter.getAdapterPositionForCategoryPage(
-                mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
-        if (savedPosition >= 0) {
-            layoutManager.scrollToPositionWithOffset(savedPosition, 0);
-        }
-        setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
-        initialized = true;
-    }
-
-    private void setupInlineSearchViews() {
-        mSearchBarContainer = findViewById(R.id.emoji_search_bar_container);
-        mSearchBackButton = findViewById(R.id.emoji_search_back_button);
-        mSearchEditText = findViewById(R.id.emoji_search_edit_text);
-        mSearchClearButton = findViewById(R.id.emoji_search_clear_button);
-        mSearchResultsScrollView = findViewById(R.id.emoji_search_results_scroll);
-        mSearchResultsView = findViewById(R.id.emoji_search_results_view);
-        mSearchKeyboardPlaceholder = findViewById(R.id.emoji_search_keyboard_placeholder);
-
-        setupSearchResultKeyboard();
-        setupSearchResultsPaging();
-        setupSearchField();
-        setupSearchClickListeners();
-        applySearchTheme();
-    }
-
-    private void setupSearchResultKeyboard() {
-        setupSearchResultKeyboard(ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues()));
-    }
-
-    private void setupSearchResultKeyboard(final int keyboardWidth) {
-        if (mSearchResultsView == null) {
-            return;
-        }
-        mSearchResultsKeyboardWidth = keyboardWidth;
-        final int baseWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
-        final KeyboardLayoutSet layoutSet = new KeyboardLayoutSet.Builder(getContext(), null)
-                .setSubtype(RichInputMethodSubtype.Companion.getEmojiSubtype())
-                .setKeyboardGeometry(baseWidth, mEmojiLayoutParams.getEmojiKeyboardHeight())
-                .build();
-        mSearchResultsKeyboard = DynamicGridKeyboard.ofPagedRowCount(KtxKt.prefs(getContext()),
-                layoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS), 2,
-                KeyboardId.ELEMENT_EMOJI_CATEGORY16, keyboardWidth, baseWidth);
-        if (keyboardWidth == baseWidth) {
-            mSearchBaseResultsColumnCount = Math.max(1, mSearchResultsKeyboard.getOccupiedColumnCount());
-        }
-        final KeyboardBuilder builder = new KeyboardBuilder(getContext(), new KeyboardParams());
-        builder.load(mSearchResultsKeyboard.mId);
-        mSearchKeyboardParams = builder.mParams;
-        final kotlin.Pair<Float, Float> keyDimensions =
-                EmojiParserKt.getEmojiKeyDimensions(mSearchKeyboardParams, getContext());
-        mSearchKeyWidth = keyDimensions.getFirst();
-        mSearchKeyHeight = keyDimensions.getSecond();
-
-        mSearchResultsView.setKeyboard(mSearchResultsKeyboard);
-        mSearchResultsView.setEmojiViewCallback(this);
-        mSearchResultsView.setVisibility(mSearchMode ? View.VISIBLE : View.GONE);
-        mColors.setBackground(mSearchResultsView, ColorType.MAIN_BACKGROUND);
-        mSearchResultsView.setPadding(0, 10, 0, 10);
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private void setupSearchResultsPaging() {
-        if (mSearchResultsScrollView == null) {
-            return;
-        }
-        mSearchResultsScrollView.setSmoothScrollingEnabled(true);
-        mSearchResultsScrollView.setOnTouchListener((view, event) -> {
-            if (event.getActionMasked() == MotionEvent.ACTION_UP
-                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                view.postDelayed(this::snapSearchResultsToNearestPage, 120);
-            }
-            return false;
-        });
-    }
-
-    private void snapSearchResultsToNearestPage() {
-        if (mSearchResultsScrollView == null) {
-            return;
-        }
-        final int pageWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
-        if (pageWidth <= 0) {
-            return;
-        }
-        final int maxScrollX = Math.max(0, mSearchResultsKeyboardWidth - pageWidth);
-        final int currentScrollX = mSearchResultsScrollView.getScrollX();
-        final int targetPage = Math.round(currentScrollX / (float) pageWidth);
-        final int targetScrollX = Math.max(0, Math.min(maxScrollX, targetPage * pageWidth));
-        mSearchResultsScrollView.smoothScrollTo(targetScrollX, 0);
-    }
-
-    private int getSearchResultsKeyboardWidth(final int resultCount) {
-        final int baseWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
-        final int columnsPerScreen = Math.max(1, mSearchBaseResultsColumnCount);
-        final int maxResultsPerScreen = Math.max(1, columnsPerScreen * 2);
-        final int pages = Math.max(1, (resultCount + maxResultsPerScreen - 1) / maxResultsPerScreen);
-        return baseWidth * pages;
-    }
-
-    private void setupSearchField() {
-        mSearchEditText.setShowSoftInputOnFocus(false);
-        mSearchEditText.setSingleLine(true);
-        mSearchEditText.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(final CharSequence s, final int start, final int count, final int after) {}
-
-            @Override
-            public void onTextChanged(final CharSequence s, final int start, final int before, final int count) {}
-
-            @Override
-            public void afterTextChanged(final Editable s) {
-                if (mUpdatingSearchText) {
-                    return;
-                }
-                mSearchQuery = s == null ? "" : s.toString();
-                updateSearchQueryUi();
-                searchEmoji(mSearchQuery);
-            }
-        });
-        mSearchEditText.setOnFocusChangeListener((v, hasFocus) -> {
-            mSearchEditText.setCursorVisible(mSearchMode && hasFocus);
-        });
-    }
-
-    private void setupSearchClickListeners() {
-        if (mSearchBackButton != null) {
-            mSearchBackButton.setOnClickListener(v -> {
-                performTapFeedback(v);
-                exitSearchMode(false);
-            });
-        }
-        if (mSearchClearButton != null) {
-            mSearchClearButton.setOnClickListener(v -> {
-                performTapFeedback(v);
-                setSearchText("", 0);
-                focusSearchField(false);
-            });
-        }
-        if (mSearchEditText != null) {
-            mSearchEditText.setOnClickListener(v -> focusSearchField(false));
-        }
-    }
-
-    private void applySearchTheme() {
-        if (mSearchBarContainer != null) {
-            mColors.setBackground(mSearchBarContainer, ColorType.STRIP_BACKGROUND);
-        }
-        if (mSearchBackButton != null) {
-            mColors.setColor(mSearchBackButton, ColorType.FUNCTIONAL_KEY_TEXT);
-            mSearchBackButton.setBackground(createBackButtonBackground(mColors));
-            mSearchBackButton.setPadding(0, 0, 0, 0);
-            mSearchBackButton.setScaleType(ImageView.ScaleType.CENTER);
-        }
-        if (mSearchEditText != null) {
-            final int toolBarColor = mColors.get(ColorType.TOOL_BAR_KEY);
-            mSearchEditText.setTextColor(toolBarColor);
-            mSearchEditText.setHintTextColor((toolBarColor & 0x00FFFFFF) | 0x80000000);
-        }
-        final ImageView searchIcon = findViewById(R.id.emoji_search_icon);
-        if (searchIcon != null) {
-            mColors.setColor(searchIcon, ColorType.TOOL_BAR_KEY);
-        }
-        if (mSearchClearButton != null) {
-            mColors.setColor(mSearchClearButton, ColorType.TOOL_BAR_KEY);
-        }
-    }
-
-    /**
-     * Called from {@link EmojiPageKeyboardView} through {@link android.view.View.OnClickListener}
-     * interface to handle non-canceled touch-up events from View-based elements such as the space
-     * bar.
-     */
-    @Override
-    public void onClick(View v) {
-        final Object tag = v.getTag();
-        if (tag instanceof Long) {
-            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS);
-            final int categoryId = ((Long) tag).intValue();
-            if (categoryId != mEmojiCategory.getCurrentCategoryId()) {
-                setCurrentCategoryId(categoryId, false);
-                updateEmojiCategoryPageIdView();
-            }
-        }
-    }
-
-    /**
-     * Called from {@link EmojiPageKeyboardView} through {@link EmojiViewCallback}
-     * interface to handle touch events from non-View-based elements such as Emoji buttons.
-     */
-    @Override
-    public void onPressKey(final Key key) {
-        final int code = key.getCode();
-        mKeyboardActionListener.onPressKey(code, 0, true, HapticEvent.KEY_PRESS);
-    }
-
-    /**
-     * Called from {@link EmojiPageKeyboardView} through {@link EmojiViewCallback}
-     * interface to handle touch events from non-View-based elements such as Emoji buttons.
-     * This may be called without any prior call to {@link EmojiViewCallback#onPressKey(Key)}.
-     */
-    @Override
-    public void onReleaseKey(final Key key) {
-        addRecentKey(key);
-        final int code = key.getCode();
-        if (code == KeyCode.MULTIPLE_CODE_POINTS) {
-            mKeyboardActionListener.onTextInput(key.getOutputText());
-        } else {
-            mKeyboardActionListener.onCodeInput(code, NOT_A_COORDINATE, NOT_A_COORDINATE, false);
-        }
-        mKeyboardActionListener.onReleaseKey(code, false);
-        if (Settings.getValues().mAlphaAfterEmojiInEmojiView)
-            mKeyboardActionListener.onCodeInput(KeyCode.ALPHA, NOT_A_COORDINATE, NOT_A_COORDINATE, false);
-    }
-
-    @Override
-    public String getDescription(String emoji) {
-        final SingleDictionaryFacilitator facilitator = sDictionaryFacilitator;
-        if (facilitator == null) {
-            return null;
-        }
-
-        var wordProperty = facilitator.getWordProperty(EmojiParserKt.getEmojiNeutralVersion(emoji));
-        if (wordProperty == null || ! wordProperty.mHasShortcuts) {
-            return null;
-        }
-
-        return wordProperty.mShortcutTargets.get(0).mWord;
-    }
-
-    public void setHardwareAcceleratedDrawingEnabled(final boolean enabled) {
-        if (!enabled) return;
-        // TODO: Should use LAYER_TYPE_SOFTWARE when hardware acceleration is off?
-        setLayerType(LAYER_TYPE_HARDWARE, null);
-    }
-
-    public void startEmojiPalettes(final KeyVisualAttributes keyVisualAttr,
-               final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
-        initialize();
-        getRecentsKeyboard().flushPendingRecentKeys();
-        updateAdaptiveEmojiOrder();
-        mMainKeyboardActionListener = keyboardActionListener;
-        mKeyboardActionListener = keyboardActionListener;
-        if (mSearchMode) {
-            exitSearchMode(false, false);
-        }
-        setSearchText("", 0);
-
-        // Reset scroll position to the top every time the emoji panel is opened
-        if (mPager != null) {
-            mPager.scrollToPosition(0);
-        }
-        // Also reset the selected category back to the first one (Recents)
-        setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
-
-        setupBottomRowKeyboard(editorInfo, keyboardActionListener);
-        final KeyDrawParams params = new KeyDrawParams();
-        params.updateParams(mEmojiLayoutParams.getBottomRowKeyboardHeight(), keyVisualAttr);
-        setupSidePadding();
-        initDictionaryFacilitator();
-    }
-
-    public boolean isSearchMode() {
-        return mSearchMode;
-    }
-
-    public void enterSearchMode() {
-        initialize();
-
-        if (mSearchMode) {
-            focusSearchField(true);
-            return;
-        }
-        mSearchMode = true;
-        mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
-
-        mPager.setVisibility(View.GONE);
-        mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
-        if (mBottomRowKeyboard != null) {
-            mBottomRowKeyboard.setVisibility(View.GONE);
-        }
-        final View tabStripView = KeyboardSwitcher.getInstance().getEmojiTabStrip();
-        if (tabStripView != null) {
-            tabStripView.setVisibility(View.GONE);
-        }
-        mSearchBarContainer.setAlpha(0f);
-        mSearchBarContainer.setVisibility(View.VISIBLE);
-        mSearchBarContainer.animate().alpha(1f).setDuration(350).start();
-        if (mSearchResultsScrollView != null) {
-            mSearchResultsScrollView.setAlpha(0f);
-            mSearchResultsScrollView.setVisibility(View.VISIBLE);
-            mSearchResultsScrollView.animate().alpha(1f).setDuration(350).start();
-        }
-        mSearchResultsView.setVisibility(View.VISIBLE);
-
-        KeyboardSwitcher.getInstance().notifyEnteringSearchMode();
-        swapKeyboardToEmojiSearch(true, false);
-        updateSearchKeyboard();
-        focusSearchField(true);
-        updateSearchQueryUi();
-        searchEmoji(mSearchQuery);
-        requestLayout();
-    }
-
-    public void exitSearchMode(final boolean clearQuery) {
-        exitSearchMode(clearQuery, true);
-    }
-
-    public void exitSearchMode(final boolean clearQuery, final boolean restoreViews) {
-
-        if (!mSearchMode && !clearQuery) {
-            return;
-        }
-        if (clearQuery) {
-            setSearchText("", 0);
-        }
-        mSearchMode = false;
-        if (mSearchEditText != null) {
-            mSearchEditText.setCursorVisible(false);
-
-            mSearchEditText.clearFocus();
-        }
-        if (mSearchBarContainer != null) {
-            mSearchBarContainer.setVisibility(View.GONE);
-        }
-        if (mSearchResultsScrollView != null) {
-            mSearchResultsScrollView.setVisibility(View.GONE);
-        }
-        if (mSearchResultsView != null) {
-            mSearchResultsView.setVisibility(View.GONE);
-        }
-        if (mPager != null) {
-            mPager.setAlpha(0f);
-            mPager.setVisibility(View.VISIBLE);
-            mPager.animate().alpha(1f).setDuration(350).start();
-        }
-        if (mEmojiCategoryPageIndicatorView != null) {
-            mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
-        }
-        if (mBottomRowKeyboard != null) {
-            mBottomRowKeyboard.setAlpha(0f);
-            mBottomRowKeyboard.setVisibility(View.VISIBLE);
-            mBottomRowKeyboard.animate().alpha(1f).setDuration(350).start();
-        }
-        swapKeyboardToEmojiSearch(false, restoreViews);
-        if (restoreViews) {
-            restoreEmojiCategoryStrip();
-        }
-        final MainKeyboardView mainKeyboardView = KeyboardSwitcher.getInstance().getMainKeyboardView();
-        if (mainKeyboardView != null) {
-            mainKeyboardView.setKeyboardActionListener(mMainKeyboardActionListener);
-        }
-        PointerTracker.switchTo(mBottomRowKeyboard != null ? mBottomRowKeyboard : mainKeyboardView);
-        KeyboardSwitcher.getInstance().logTypingListenerInvariant(
-                "EmojiSearch.exit", true /* logWhenOk */);
-        requestLayout();
-        if (restoreViews) {
-            post(this::restoreEmojiCategoryStrip);
-        }
-    }
-
-    public boolean handleBackPress() {
-        if (mSearchMode) {
-            exitSearchMode(false);
-            return true;
-        }
-        return false;
-    }
-
-    private void restoreEmojiCategoryStrip() {
-        final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
-        final View stripContainer = switcher.getStripContainer();
-        final View tabStripView = switcher.getEmojiTabStrip();
-        if (Settings.getValues().mSecondaryStripVisible) {
-            if (stripContainer != null) {
-                stripContainer.setAlpha(0f);
-                stripContainer.setVisibility(View.VISIBLE);
-                stripContainer.animate().alpha(1f).setDuration(350).start();
-            }
-            if (tabStripView != null) {
-                tabStripView.setAlpha(0f);
-                tabStripView.setVisibility(View.VISIBLE);
-                tabStripView.animate().alpha(1f).setDuration(350).start();
-            }
-        }
-    }
-
-
-
-    private void swapKeyboardToEmojiSearch(final boolean enter, final boolean hideKeyboard) {
-        final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
-        final MainKeyboardView keyboardView = switcher.getMainKeyboardView();
-        final View wrapperView = switcher.getWrapperView();
-        if (keyboardView == null || !(wrapperView instanceof ViewGroup) || mSearchKeyboardPlaceholder == null) {
-            return;
-        }
-        final ViewGroup wrapper = (ViewGroup) wrapperView;
-        final ViewParent currentParent = keyboardView.getParent();
-        if (enter) {
-            keyboardView.setAlpha(0f);
-            if (currentParent != this) {
-                if (currentParent instanceof ViewGroup) {
-                    ((ViewGroup) currentParent).removeView(keyboardView);
-                }
-                final int index = indexOfChild(mSearchKeyboardPlaceholder);
-                addView(keyboardView, index >= 0 ? index : getChildCount());
-            }
-            keyboardView.setLayoutParams(new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            keyboardView.setVisibility(View.VISIBLE);
-            switcher.getStripContainer().setVisibility(View.GONE);
-        } else if (currentParent == this) {
-            removeView(keyboardView);
-            wrapper.addView(keyboardView, 0);
-            if (hideKeyboard) {
-                keyboardView.setVisibility(View.GONE);
-                switcher.getStripContainer().setVisibility(View.GONE);
-            }
-        }
-    }
-
-    private void updateSearchKeyboard() {
-        final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
-        final MainKeyboardView keyboardView = switcher.getMainKeyboardView();
-        if (keyboardView == null) {
-            return;
-        }
-
-        keyboardView.setKeyboardActionListener(mSearchKeyboardActionListener);
-        PointerTracker.switchTo(keyboardView);
-        switch (mCurrentSearchKeyboardElementId) {
-            case KeyboardId.ELEMENT_ALPHABET:
-                switcher.setAlphabetKeyboard();
-                break;
-            case KeyboardId.ELEMENT_ALPHABET_MANUAL_SHIFTED:
-                switcher.setAlphabetManualShiftedKeyboard();
-                break;
-            case KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCKED:
-                switcher.setAlphabetShiftLockedKeyboard();
-                break;
-            case KeyboardId.ELEMENT_SYMBOLS:
-                switcher.setSymbolsKeyboard();
-                break;
-            case KeyboardId.ELEMENT_SYMBOLS_SHIFTED:
-                switcher.setSymbolsShiftedKeyboard();
-                break;
-            case KeyboardId.ELEMENT_NUMPAD:
-                switcher.setNumpadKeyboard();
-                break;
-            default:
-                mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
-                switcher.setAlphabetKeyboard();
-                break;
-        }
-        keyboardView.setKeyboardActionListener(mSearchKeyboardActionListener);
-        PointerTracker.switchTo(keyboardView);
-    }
-
-    private void performTapFeedback(final View view) {
-        AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
-                KeyCode.NOT_SPECIFIED, view, HapticEvent.KEY_PRESS);
-    }
-
-    private void focusSearchField(final boolean moveCursorToEnd) {
-        if (mSearchEditText == null) {
-            return;
-        }
-
-        mSearchEditText.requestFocus();
-        mSearchEditText.setCursorVisible(mSearchMode);
-        if (moveCursorToEnd) {
-            mSearchEditText.setSelection(mSearchEditText.getText().length());
-        }
-    }
-
-    private void updateSearchQueryUi() {
-        if (mSearchClearButton != null) {
-            mSearchClearButton.setVisibility(mSearchQuery.isEmpty() ? View.GONE : View.VISIBLE);
-        }
-        if (mSearchEditText != null) {
-            mSearchEditText.setCursorVisible(mSearchMode && mSearchEditText.hasFocus());
-        }
-    }
-
-    private void setSearchText(final String text, final int selection) {
-        mSearchQuery = text == null ? "" : text;
-        if (mSearchEditText != null) {
-            final int safeSelection = Math.max(0, Math.min(selection, mSearchQuery.length()));
-            if (!mSearchQuery.contentEquals(mSearchEditText.getText())) {
-                mUpdatingSearchText = true;
-                try {
-                    mSearchEditText.getText().replace(0, mSearchEditText.getText().length(), mSearchQuery);
-                } finally {
-                    mUpdatingSearchText = false;
-                }
-            }
-            mSearchEditText.setSelection(safeSelection);
-        }
-        updateSearchQueryUi();
-        searchEmoji(mSearchQuery);
-    }
-
-    private void searchEmoji(final String text) {
-        if (mSearchResultsKeyboard == null || mSearchResultsView == null) {
-            return;
-        }
-        initSearchDictionaryFacilitator();
-        final ArrayList<String> emojis = new ArrayList<>();
-        final SingleDictionaryFacilitator facilitator = sSearchDictionaryFacilitator;
-        if (facilitator != null) {
-            final List<String> tokens = StringUtilsKt.splitOnWhitespace(text == null ? "" : text);
-            for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
-                if (suggestion.isEmoji()) {
-                    emojis.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
-                }
-            }
-        }
-
-        final int keyboardWidth = getSearchResultsKeyboardWidth(emojis.size());
-        if (keyboardWidth != mSearchResultsKeyboardWidth) {
-            setupSearchResultKeyboard(keyboardWidth);
-        }
-        mSearchResultsKeyboard.removeAllKeys();
-        for (final String emoji : emojis) {
-            final String popupSpec = EmojiParserKt.getEmojiPopupSpec(emoji);
-            final Key.KeyParams keyParams = new Key.KeyParams(
-                    emoji,
-                    EmojiParserKt.getCode(emoji),
-                    popupSpec != null ? EmojiParserKt.EMOJI_HINT_LABEL : null,
-                    popupSpec,
-                    Key.LABEL_FLAGS_FONT_NORMAL,
-                    mSearchKeyboardParams);
-            keyParams.mAbsoluteWidth = mSearchKeyWidth;
-            keyParams.mAbsoluteHeight = mSearchKeyHeight;
-            mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
-        }
-        if (mSearchResultsScrollView != null) {
-            mSearchResultsScrollView.scrollTo(0, 0);
-        }
-        mSearchResultsView.invalidate();
-        mSearchResultsView.requestLayout();
-    }
-
-    private static synchronized void initSearchDictionaryFacilitator(final Context context) {
-        final var locale = RichInputMethodManager.getInstance().getCurrentSubtype().getLocale();
-        final SingleDictionaryFacilitator facilitator = sSearchDictionaryFacilitator;
-        if (facilitator != null && facilitator.isForLocale(locale)) {
-            return;
-        }
-        if (sSearchDictionaryFacilitator != null) {
-            sSearchDictionaryFacilitator.closeDictionaries();
-            sSearchDictionaryFacilitator = null;
-        }
-        try {
-            final var dictFile = DictionaryInfoUtils.getCachedDictForLocaleAndType(
-                    locale, Dictionary.TYPE_EMOJI, context);
-            final var dictionary = dictFile != null ? DictionaryFactory.getDictionary(dictFile, locale) : null;
-            if (dictionary != null) {
-                sSearchDictionaryFacilitator = new SingleDictionaryFacilitator(dictionary);
-            }
-        } catch (Exception e) {
-            Log.e("EmojiPalettesView", "Failed to load emoji search dictionary", e);
-        }
-    }
-
-    private void initSearchDictionaryFacilitator() {
-        initSearchDictionaryFacilitator(getContext());
-    }
-
-    private int searchSelectionStart() {
-        return mSearchEditText == null ? 0 : Math.max(0, Math.min(mSearchEditText.getSelectionStart(), mSearchEditText.length()));
-    }
-
-    private int searchSelectionEnd() {
-        return mSearchEditText == null ? 0 : Math.max(0, Math.min(mSearchEditText.getSelectionEnd(), mSearchEditText.length()));
-    }
-
-    private int searchSelectionMin() {
-        return Math.min(searchSelectionStart(), searchSelectionEnd());
-    }
-
-    private int searchSelectionMax() {
-        return Math.max(searchSelectionStart(), searchSelectionEnd());
-    }
-
-    private void syncSearchQueryFromField() {
-        if (mSearchEditText == null) {
-            return;
-        }
-        mSearchQuery = mSearchEditText.getText().toString();
-        updateSearchQueryUi();
-        searchEmoji(mSearchQuery);
-    }
-
-    private void insertSearchText(final String text) {
-        if (text == null || text.isEmpty() || mSearchEditText == null) {
-            return;
-        }
-        final Editable editable = mSearchEditText.getText();
-        final int start = searchSelectionMin();
-        final int end = searchSelectionMax();
-        editable.replace(start, end, text);
-        mSearchEditText.setSelection(start + text.length());
-        syncSearchQueryFromField();
-    }
-
-    private void deleteSearchTextBeforeCursor() {
-        if (mSearchEditText == null) {
-            return;
-        }
-        final Editable editable = mSearchEditText.getText();
-        final int start = searchSelectionMin();
-        final int end = searchSelectionMax();
-        if (start != end) {
-            editable.delete(start, end);
-            mSearchEditText.setSelection(start);
-            syncSearchQueryFromField();
-            return;
-        }
-        if (start <= 0) {
-            return;
-        }
-        final int deleteFrom = editable.toString().offsetByCodePoints(start, -1);
-        editable.delete(deleteFrom, start);
-        mSearchEditText.setSelection(deleteFrom);
-        syncSearchQueryFromField();
-    }
-
-    private void moveSearchCursorByCodePoints(final int delta) {
-        if (delta == 0 || mSearchEditText == null) {
-            return;
-        }
-        final String text = mSearchEditText.getText().toString();
-        if (text.isEmpty()) {
-            return;
-        }
-        final int start = searchSelectionMin();
-        final int end = searchSelectionMax();
-        final int newPosition;
-        if (start != end) {
-            newPosition = delta < 0 ? start : end;
-        } else {
-            try {
-                newPosition = text.offsetByCodePoints(start, delta);
-            } catch (IndexOutOfBoundsException e) {
-                mSearchEditText.setSelection(delta < 0 ? 0 : text.length());
-                updateSearchQueryUi();
-                return;
-            }
-        }
-        mSearchEditText.setSelection(Math.max(0, Math.min(newPosition, text.length())));
-        updateSearchQueryUi();
-    }
-
-    private static boolean isSearchWordCodePoint(final int codePoint) {
-        return Character.isLetterOrDigit(codePoint) || codePoint == '_' || codePoint == '-';
-    }
-
-    private int findSearchWordBoundary(final int position, final boolean forward) {
-        final String text = mSearchEditText.getText().toString();
-        int index = Math.max(0, Math.min(position, text.length()));
-        if (forward) {
-            while (index < text.length() && !isSearchWordCodePoint(text.codePointAt(index))) {
-                index = text.offsetByCodePoints(index, 1);
-            }
-            while (index < text.length() && isSearchWordCodePoint(text.codePointAt(index))) {
-                index = text.offsetByCodePoints(index, 1);
-            }
-            return index;
-        }
-        while (index > 0 && !isSearchWordCodePoint(text.codePointBefore(index))) {
-            index = text.offsetByCodePoints(index, -1);
-        }
-        while (index > 0 && isSearchWordCodePoint(text.codePointBefore(index))) {
-            index = text.offsetByCodePoints(index, -1);
-        }
-        return index;
-    }
-
-    private void moveSearchCursorByWord(final boolean forward) {
-        if (mSearchEditText == null) {
-            return;
-        }
-        final int start = searchSelectionMin();
-        final int end = searchSelectionMax();
-        final int anchor = start == end ? start : (forward ? end : start);
-        mSearchEditText.setSelection(findSearchWordBoundary(anchor, forward));
-        updateSearchQueryUi();
-    }
-
-    private void selectSearchWord() {
-        if (mSearchEditText == null || mSearchEditText.length() == 0) {
-            return;
-        }
-        int cursor = searchSelectionEnd();
-        final String text = mSearchEditText.getText().toString();
-        if (cursor == text.length() && cursor > 0 && isSearchWordCodePoint(text.codePointBefore(cursor))) {
-            cursor = text.offsetByCodePoints(cursor, -1);
-        }
-        while (cursor < text.length() && !isSearchWordCodePoint(text.codePointAt(cursor))) {
-            cursor = text.offsetByCodePoints(cursor, 1);
-        }
-        if (cursor >= text.length()) {
-            return;
-        }
-        final int start = findSearchWordBoundary(cursor, false);
-        final int end = findSearchWordBoundary(cursor, true);
-        if (start < end) {
-            mSearchEditText.setSelection(start, end);
-        }
-    }
-
-    private void copySearchText(final boolean selectionOnly) {
-        if (mSearchEditText == null) {
-            return;
-        }
-        final int start = selectionOnly ? searchSelectionMin() : 0;
-        final int end = selectionOnly ? searchSelectionMax() : mSearchEditText.length();
-        if (start == end) {
-            if (selectionOnly && mSearchEditText.length() > 0) {
-                copyTextToClipboard(mSearchEditText.getText().toString());
-            }
-            return;
-        }
-        copyTextToClipboard(mSearchEditText.getText().subSequence(start, end));
-    }
-
-    private void cutSearchSelection() {
-        if (mSearchEditText == null) {
-            return;
-        }
-        final int start = searchSelectionMin();
-        final int end = searchSelectionMax();
-        if (start == end) {
-            return;
-        }
-        copyTextToClipboard(mSearchEditText.getText().subSequence(start, end));
-        mSearchEditText.getText().delete(start, end);
-        mSearchEditText.setSelection(start);
-        syncSearchQueryFromField();
-    }
-
-    private void copyTextToClipboard(final CharSequence text) {
-        if (text == null || text.length() == 0) {
-            return;
-        }
-        final ClipboardManager clipboard =
-                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-        if (clipboard != null) {
-            clipboard.setPrimaryClip(ClipData.newPlainText("emoji_search", text));
-        }
-    }
-
-    private void pasteIntoSearchField() {
-        final ClipboardManager clipboard =
-                (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-        if (clipboard == null || !clipboard.hasPrimaryClip() || clipboard.getPrimaryClip() == null
-                || clipboard.getPrimaryClip().getItemCount() == 0) {
-            return;
-        }
-        final CharSequence text = clipboard.getPrimaryClip().getItemAt(0).coerceToText(getContext());
-        if (text != null) {
-            insertSearchText(text.toString());
-        }
-    }
-
-    private void dispatchSearchShortcut(final int keyCode, final int metaState) {
-        if (mSearchEditText == null) {
-            return;
-        }
-        final long now = SystemClock.uptimeMillis();
-        mSearchEditText.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState));
-        mSearchEditText.dispatchKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState));
-        syncSearchQueryFromField();
-    }
-
-    private void handleSearchCodeInput(final int primaryCode, final int x, final int y, final boolean isKeyRepeat) {
-        switch (primaryCode) {
-            case KeyCode.DELETE:
-                deleteSearchTextBeforeCursor();
-                return;
-            case Constants.CODE_ENTER:
-                syncSearchQueryFromField();
-                focusSearchField(false);
-                return;
-            case KeyCode.ARROW_LEFT:
-                moveSearchCursorByCodePoints(-1);
-                return;
-            case KeyCode.ARROW_RIGHT:
-                moveSearchCursorByCodePoints(1);
-                return;
-            case KeyCode.WORD_LEFT:
-                moveSearchCursorByWord(false);
-                return;
-            case KeyCode.WORD_RIGHT:
-                moveSearchCursorByWord(true);
-                return;
-            case KeyCode.MOVE_START_OF_LINE:
-            case KeyCode.MOVE_START_OF_PAGE:
-            case KeyCode.PAGE_UP:
-                if (mSearchEditText != null) {
-                    mSearchEditText.setSelection(0);
-                    updateSearchQueryUi();
-                }
-                return;
-            case KeyCode.MOVE_END_OF_LINE:
-            case KeyCode.MOVE_END_OF_PAGE:
-            case KeyCode.PAGE_DOWN:
-                if (mSearchEditText != null) {
-                    mSearchEditText.setSelection(mSearchEditText.length());
-                    updateSearchQueryUi();
-                }
-                return;
-            case KeyCode.CLIPBOARD_SELECT_ALL:
-                if (mSearchEditText != null) {
-                    mSearchEditText.selectAll();
-                }
-                return;
-            case KeyCode.CLIPBOARD_SELECT_WORD:
-                selectSearchWord();
-                return;
-            case KeyCode.CLIPBOARD_COPY:
-                copySearchText(true);
-                return;
-            case KeyCode.CLIPBOARD_COPY_ALL:
-                copySearchText(false);
-                return;
-            case KeyCode.CLIPBOARD_CUT:
-                cutSearchSelection();
-                return;
-            case KeyCode.CLIPBOARD_PASTE:
-                pasteIntoSearchField();
-                return;
-            case KeyCode.UNDO:
-                dispatchSearchShortcut(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON);
-                return;
-            case KeyCode.REDO:
-                dispatchSearchShortcut(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
-                return;
-            case KeyCode.SHIFT:
-                mCurrentSearchKeyboardElementId = switch (mCurrentSearchKeyboardElementId) {
-                    case KeyboardId.ELEMENT_ALPHABET -> KeyboardId.ELEMENT_ALPHABET_MANUAL_SHIFTED;
-                    case KeyboardId.ELEMENT_ALPHABET_MANUAL_SHIFTED -> KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCKED;
-                    case KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCKED -> KeyboardId.ELEMENT_ALPHABET;
-                    case KeyboardId.ELEMENT_SYMBOLS -> KeyboardId.ELEMENT_SYMBOLS_SHIFTED;
-                    case KeyboardId.ELEMENT_SYMBOLS_SHIFTED -> KeyboardId.ELEMENT_SYMBOLS;
-                    default -> KeyboardId.ELEMENT_ALPHABET;
-                };
-                updateSearchKeyboard();
-                return;
-            case KeyCode.SYMBOL:
-            case KeyCode.SYMBOL_ALPHA:
-                mCurrentSearchKeyboardElementId =
-                        (mCurrentSearchKeyboardElementId == KeyboardId.ELEMENT_SYMBOLS
-                                || mCurrentSearchKeyboardElementId == KeyboardId.ELEMENT_SYMBOLS_SHIFTED)
-                                ? KeyboardId.ELEMENT_ALPHABET : KeyboardId.ELEMENT_SYMBOLS;
-                updateSearchKeyboard();
-                return;
-            case KeyCode.ALPHA:
-                mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
-                updateSearchKeyboard();
-                return;
-            case KeyCode.NUMPAD:
-                mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_NUMPAD;
-                updateSearchKeyboard();
-                return;
-            case KeyCode.EMOJI:
-                exitSearchMode(false);
-                return;
-            default:
-                break;
-        }
-
-        if (primaryCode >= Constants.CODE_SPACE) {
-            insertSearchText(new String(Character.toChars(primaryCode)));
-            if (mCurrentSearchKeyboardElementId == KeyboardId.ELEMENT_ALPHABET_MANUAL_SHIFTED) {
-                mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
-                updateSearchKeyboard();
-            }
-            return;
-        }
-
-        mMainKeyboardActionListener.onCodeInput(primaryCode, x, y, isKeyRepeat);
-    }
-
-    private LatinIME getLatinIME() {
-        Context context = getContext();
-        while (context instanceof ContextWrapper) {
-            if (context instanceof LatinIME) {
-                return (LatinIME) context;
-            }
-            context = ((ContextWrapper) context).getBaseContext();
-        }
-        return null;
-    }
-
-    private final KeyboardActionListener mSearchKeyboardActionListener = new KeyboardActionListener.Adapter() {
-        @Override
-        public void onPressKey(final int primaryCode, final int repeatCount, final boolean isSinglePointer,
-                final HapticEvent hapticEvent) {
-            mMainKeyboardActionListener.onPressKey(primaryCode, repeatCount, isSinglePointer, hapticEvent);
-        }
-
-        @Override
-        public void onLongPressKey(final int primaryCode) {
-            mMainKeyboardActionListener.onLongPressKey(primaryCode);
-        }
-
-        @Override
-        public void onReleaseKey(final int primaryCode, final boolean withSliding) {
-            mMainKeyboardActionListener.onReleaseKey(primaryCode, withSliding);
-        }
-
-        @Override
-        public boolean onKeyDown(final int keyCode, final KeyEvent keyEvent) {
-            return mSearchEditText != null && mSearchEditText.dispatchKeyEvent(keyEvent);
-        }
-
-        @Override
-        public boolean onKeyUp(final int keyCode, final KeyEvent keyEvent) {
-            return mSearchEditText != null && mSearchEditText.dispatchKeyEvent(keyEvent);
-        }
-
-        @Override
-        public void onCodeInput(final int primaryCode, final int x, final int y, final boolean isKeyRepeat) {
-            handleSearchCodeInput(primaryCode, x, y, isKeyRepeat);
-        }
-
-        @Override
-        public void onTextInput(final String text) {
-            insertSearchText(text);
-        }
-
-        @Override
-        public void onStartBatchInput() {
-            focusSearchField(false);
-        }
-
-        @Override
-        public void onEndBatchInput(final InputPointers batchPointers) {
-            if (batchPointers == null) {
-                return;
-            }
-            final LatinIME latinIME = getLatinIME();
-            final MainKeyboardView keyboardView = KeyboardSwitcher.getInstance().getMainKeyboardView();
-            final Keyboard keyboard = keyboardView == null ? null : keyboardView.getKeyboard();
-            if (latinIME == null || keyboard == null) {
-                return;
-            }
-            latinIME.getKlipySearchGestureSuggestion(batchPointers, keyboard, new Suggest.OnGetSuggestedWordsCallback() {
-                @Override
-                public void onGetSuggestedWords(final SuggestedWords suggestedWords) {
-                    if (suggestedWords == null || suggestedWords.isEmpty()) {
-                        return;
-                    }
-                    final String word = suggestedWords.getWord(0);
-                    if (word != null && !word.isBlank()) {
-                        post(() -> insertSearchText(word));
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void onCancelBatchInput() {
-            updateSearchQueryUi();
-        }
-
-        @Override
-        public boolean onHorizontalSpaceSwipe(final int steps) {
-            moveSearchCursorByCodePoints(steps);
-            return true;
-        }
-
-        @Override
-        public void onMoveDeletePointer(final int steps) {
-            if (mSearchEditText == null) {
-                return;
-            }
-            final int cursorEnd = searchSelectionEnd();
-            final int cursorStart = searchSelectionStart();
-            final int newStart = Math.max(0, Math.min(cursorStart + steps, mSearchEditText.length()));
-            if (newStart <= cursorEnd) {
-                mSearchEditText.setSelection(newStart, cursorEnd);
-            }
-        }
-
-        @Override
-        public void onUpWithDeletePointerActive() {
-            if (mSearchEditText == null) {
-                return;
-            }
-            final int start = searchSelectionMin();
-            final int end = searchSelectionMax();
-            if (start < end) {
-                mSearchEditText.getText().delete(start, end);
-                mSearchEditText.setSelection(start);
-                syncSearchQueryFromField();
-            }
-        }
-
-        @Override
-        public boolean toggleNumpad(final boolean withSliding, final boolean forceReturnToAlpha) {
-            mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_NUMPAD;
-            updateSearchKeyboard();
-            return true;
-        }
-    };
-
-    void addRecentKey(final Key key) {
-        if (Settings.getValues().mIncognitoModeEnabled) {
-            // We do not want to log recent keys while being in incognito
-            return;
-        }
-        final String emojiStr = key.getOutputText() != null ? key.getOutputText() : (key.getCode() > 0 ? new String(Character.toChars(key.getCode())) : null);
-        if (emojiStr != null) {
-            AdaptiveEmojiEngine.recordEmojiUsage(getContext(), emojiStr);
-        }
-        // Defer visible recents reordering until the panel is closed to avoid RecyclerView
-        // rebinds/layout shifts while the user is tapping emojis.
-        if (getVisibility() == VISIBLE) {
-            getRecentsKeyboard().addPendingKey(key);
-            return;
-        }
-        getRecentsKeyboard().addKeyFirst(key);
-        if (initialized && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            final int pos = ((EmojiPalettesAdapter) mPager.getAdapter()).getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-            if (pos != -1) {
-                mPager.getAdapter().notifyItemChanged(pos);
-            }
-        }
-    }
-
-    public void addRecentEmoji(final String emoji) {
-        if (Settings.getValues().mIncognitoModeEnabled) {
-            return;
-        }
-        final Key emojiKey = mEmojiCategory.findEmojiKey(emoji);
-        if (emojiKey != null) {
-            // addRecentKey updates the adaptive count and recent list exactly once.
-            addRecentKey(emojiKey);
-        }
-    }
-
-    public static class AdaptiveEmojiEngine {
-        private static final String PREF_ADAPTIVE_METADATA = "pref_adaptive_emoji_metadata";
-        private static final String PREF_FAST_ROW_CACHE = "pref_adaptive_emoji_fast_row_cache";
-        private static final String PREF_FAST_ROW_LAST_REFRESH = "pref_adaptive_emoji_fast_row_last_refresh";
-        private static final long FAST_ROW_REFRESH_INTERVAL_MILLIS = 12L * 60L * 60L * 1000L;
-        private static final int MAX_FAST_ROW_EMOJI_COUNT = 48;
-        private static final double RECENCY_DECAY_SECONDS = 7.0 * 24.0 * 60.0 * 60.0;
-
-        public static void recordEmojiUsage(@NonNull final Context context, @NonNull final String emoji) {
-            new Thread(() -> {
-                synchronized (AdaptiveEmojiEngine.class) {
-                    try {
-                        final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
-                        final String jsonStr = prefs.getString(PREF_ADAPTIVE_METADATA, "{}");
-                        org.json.JSONObject root;
-                        try {
-                            root = new org.json.JSONObject(jsonStr);
-                        } catch (Exception e) {
-                            root = new org.json.JSONObject();
-                        }
-
-                        final long now = System.currentTimeMillis();
-                        org.json.JSONObject record = root.optJSONObject(emoji);
-                        if (record == null) {
-                            record = new org.json.JSONObject();
-                            try {
-                                record.put("lastUsed", now);
-                                record.put("freq", 1);
-                                record.put("burst", 1);
-                                root.put(emoji, record);
-                            } catch (Exception ignored) {}
-                        } else {
-                            long lastUsed = record.optLong("lastUsed", now);
-                            int freq = record.optInt("freq", 0);
-                            int burst = record.optInt("burst", 0);
-
-                            if (now - lastUsed < 300_000L) { // 5 minutes window for burst
-                                burst++;
-                            } else {
-                                burst = 1; // reset burst if outside window
-                            }
-                            freq++;
-                            try {
-                                record.put("lastUsed", now);
-                                record.put("freq", freq);
-                                record.put("burst", burst);
-                                root.put(emoji, record);
-                            } catch (Exception ignored) {}
-                        }
-
-                        prefs.edit()
-                                .putString(PREF_ADAPTIVE_METADATA, root.toString())
-                                .remove(PREF_FAST_ROW_CACHE)
-                                .remove(PREF_FAST_ROW_LAST_REFRESH)
-                                .apply();
-                    } catch (Exception e) {
-                        Log.e("AdaptiveEmojiEngine", "Failed to record emoji usage asynchronously", e);
-                    }
-                }
-            }).start();
-        }
-
-        public static boolean shouldRefreshFastRow(@NonNull final Context context) {
-            final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
-            final long now = System.currentTimeMillis();
-            return shouldRefreshFastRow(prefs, readCachedFastRow(prefs), now);
-        }
-
-        public static java.util.List<String> getFastRowEmojis(@NonNull final Context context) {
-            return getFastRowEmojis(context, 10);
-        }
-
-        public static java.util.List<String> getFastRowEmojis(@NonNull final Context context, final int maxCount) {
-            synchronized (AdaptiveEmojiEngine.class) {
-                final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
-                final long now = System.currentTimeMillis();
-                java.util.List<String> ranked = readCachedFastRow(prefs);
-                if (shouldRefreshFastRow(prefs, ranked, now)) {
-                    ranked = getRankedEmojis(context);
-                    final java.util.ArrayList<Object> cacheObjects = new java.util.ArrayList<>();
-                    cacheObjects.addAll(ranked);
-                    prefs.edit()
-                            .putString(PREF_FAST_ROW_CACHE, helium314.keyboard.latin.utils.JsonUtils.listToJsonStr(cacheObjects))
-                            .putLong(PREF_FAST_ROW_LAST_REFRESH, now)
-                            .apply();
-                }
-                final int resultCount = Math.max(0, Math.min(maxCount, ranked.size()));
-                return new java.util.ArrayList<>(ranked.subList(0, resultCount));
-            }
-        }
-
-        private static boolean shouldRefreshFastRow(final android.content.SharedPreferences prefs,
-                final java.util.List<String> cached, final long now) {
-            final long lastRefresh = prefs.getLong(PREF_FAST_ROW_LAST_REFRESH, 0L);
-            return cached.isEmpty()
-                    || lastRefresh <= 0L
-                    || now < lastRefresh
-                    || now - lastRefresh >= FAST_ROW_REFRESH_INTERVAL_MILLIS;
-        }
-
-        private static java.util.List<String> readCachedFastRow(final android.content.SharedPreferences prefs) {
-            final String jsonStr = prefs.getString(PREF_FAST_ROW_CACHE, "");
-            final java.util.List<Object> cachedObjects = helium314.keyboard.latin.utils.JsonUtils.jsonStrToList(jsonStr);
-            final java.util.ArrayList<String> cached = new java.util.ArrayList<>();
-            for (final Object o : cachedObjects) {
-                if (o instanceof String) {
-                    cached.add((String) o);
-                }
-            }
-            return cached;
-        }
-
-        private static java.util.List<String> getRankedEmojis(@NonNull final Context context) {
-            final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
-            final String jsonStr = prefs.getString(PREF_ADAPTIVE_METADATA, "{}");
-            org.json.JSONObject root;
-            try {
-                root = new org.json.JSONObject(jsonStr);
-            } catch (Exception e) {
-                root = new org.json.JSONObject();
-            }
-
-            final long now = System.currentTimeMillis();
-            final java.util.ArrayList<EmojiScore> list = new java.util.ArrayList<>();
-            final java.util.Iterator<String> keys = root.keys();
-            while (keys.hasNext()) {
-                final String emoji = keys.next();
-                final org.json.JSONObject record = root.optJSONObject(emoji);
-                if (record != null) {
-                    final long lastUsed = record.optLong("lastUsed", now);
-                    final int freq = record.optInt("freq", 1);
-                    final int burst = record.optInt("burst", 1);
-
-                    // 1. Frequency grows sublinearly so one emoji cannot dominate forever.
-                    double freqScore = Math.log1p(freq) * 30.0;
-
-                    // 2. Exponential Recency decay factor. The fast row should feel stable across days.
-                    long deltaSec = (now - lastUsed) / 1000L;
-                    if (deltaSec < 0) deltaSec = 0;
-                    double decay = Math.exp(-deltaSec / RECENCY_DECAY_SECONDS);
-                    double recencyScore = decay * 100.0;
-
-                    // 3. Burst factor (active 15-minute window for burst boosts)
-                    double burstBoost = (now - lastUsed < 900_000L) ? Math.min(burst, 5) * 20.0 : 0.0;
-
-                    // Total Score
-                    double score = recencyScore + burstBoost + freqScore;
-                    list.add(new EmojiScore(emoji, score));
-                }
-            }
-
-            // Fallback / Baseline integration
-            final String strRecent = prefs.getString(Settings.PREF_EMOJI_RECENT_KEYS, helium314.keyboard.latin.settings.Defaults.PREF_EMOJI_RECENT_KEYS);
-            final java.util.List<Object> recentKeys = helium314.keyboard.latin.utils.JsonUtils.jsonStrToList(strRecent);
-            for (final Object o : recentKeys) {
-                String emoji = null;
-                if (o instanceof Integer) {
-                    emoji = new String(Character.toChars((Integer) o));
-                } else if (o instanceof String) {
-                    emoji = (String) o;
-                }
-                if (emoji != null) {
-                    boolean found = false;
-                    for (final EmojiScore es : list) {
-                        if (es.emoji.equals(emoji)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        list.add(new EmojiScore(emoji, 10.0)); // baseline score for existing recents
-                    }
-                }
-            }
-
-            final String[] defaultEmojis = { "ğŸ˜‚", "ğŸ™", "ğŸ˜", "ğŸ‘", "ğŸ˜­", "ğŸ¥º", "ğŸ¤£", "â¤ï¸", "âœ¨", "ğŸ”¥" };
-            for (final String defEmoji : defaultEmojis) {
-                boolean found = false;
-                for (final EmojiScore es : list) {
-                    if (es.emoji.equals(defEmoji)) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    list.add(new EmojiScore(defEmoji, 5.0));
-                }
-            }
-
-            java.util.Collections.sort(list, (a, b) -> Double.compare(b.score, a.score));
-
-            final java.util.ArrayList<String> result = new java.util.ArrayList<>();
-            for (final EmojiScore es : list) {
-                result.add(es.emoji);
-                if (result.size() >= MAX_FAST_ROW_EMOJI_COUNT) {
-                    break;
-                }
-            }
-            return result;
-        }
-
-        private static class EmojiScore {
-            final String emoji;
-            final double score;
-            EmojiScore(String emoji, double score) {
-                this.emoji = emoji;
-                this.score = score;
-            }
-        }
-    }
-
-    private void setupBottomRowKeyboard(final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
-        MainKeyboardView keyboardView = findViewById(R.id.bottom_row_keyboard);
-        keyboardView.setKeyboardActionListener(keyboardActionListener);
-        PointerTracker.switchTo(keyboardView);
-        final KeyboardLayoutSet kls = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(getContext(), editorInfo);
-        final Keyboard keyboard = kls.getKeyboard(KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW);
-        keyboardView.setKeyboard(keyboard);
-    }
-
-    private void setupSidePadding() {
-        final SettingsValues sv = Settings.getValues();
-        final int keyboardWidth = ResourceUtils.getKeyboardWidth(getContext(), sv);
-        final TypedArray keyboardAttr = getContext().obtainStyledAttributes(
-                null, R.styleable.Keyboard, R.attr.keyboardStyle, R.style.Keyboard);
-        final float leftPadding = keyboardAttr.getFraction(R.styleable.Keyboard_keyboardLeftPadding,
-                keyboardWidth, keyboardWidth, 0f) * sv.mSidePaddingScale;
-        final float rightPadding =  keyboardAttr.getFraction(R.styleable.Keyboard_keyboardRightPadding,
-                keyboardWidth, keyboardWidth, 0f) * sv.mSidePaddingScale;
-        keyboardAttr.recycle();
-        mPager.setPadding(
-                (int) leftPadding,
-                mPager.getPaddingTop(),
-                (int) rightPadding,
-                mPager.getPaddingBottom()
-        );
-        mEmojiCategoryPageIndicatorView.setPadding(
-                (int) leftPadding,
-                mEmojiCategoryPageIndicatorView.getPaddingTop(),
-                (int) rightPadding,
-                mEmojiCategoryPageIndicatorView.getPaddingBottom()
-        );
-        // setting width does not do anything, so we have some workaround in EmojiCategoryPageIndicatorView
-    }
-
-    public void stopEmojiPalettes() {
-        if (!initialized) return;
-
-        if (mSearchMode) {
-            exitSearchMode(false, false);
-        }
-        getRecentsKeyboard().flushPendingRecentKeys();
-    }
-
-    private DynamicGridKeyboard getRecentsKeyboard() {
-        return mEmojiCategory.getKeyboard(EmojiCategory.ID_RECENTS, 0);
-    }
-
-    private void updateAdaptiveEmojiOrder() {
-        if (Settings.getValues().mIncognitoModeEnabled) {
-            return;
-        }
-        final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
-        final int maxRankedCount = Math.min(48, Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
-        recentsKeyboard.prioritizeKeys(
-                AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
-                maxRankedCount);
-        if (initialized && mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            final int position = ((EmojiPalettesAdapter) mPager.getAdapter())
-                    .getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-            if (position != -1) {
-                mPager.getAdapter().notifyItemChanged(position);
-            }
-        }
-    }
-
-    public void setKeyboardActionListener(final KeyboardActionListener listener) {
-        mKeyboardActionListener = listener;
-    }
-
-    private void updateEmojiCategoryPageIdView() {
-    }
-
-    private void setCurrentCategoryId(final int categoryId, final boolean fromScroll) {
-        final int oldCategoryId = mEmojiCategory.getCurrentCategoryId();
-        if (fromScroll || oldCategoryId != categoryId) {
-            if (oldCategoryId == EmojiCategory.ID_RECENTS && !fromScroll) {
-                getRecentsKeyboard().flushPendingRecentKeys();
-                if (mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                    final int pos = ((EmojiPalettesAdapter) mPager.getAdapter()).getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-                    if (pos != -1) {
-                        mPager.getAdapter().notifyItemChanged(pos);
-                    }
-                }
-            }
-
-            mEmojiCategory.setCurrentCategoryId(categoryId);
-
-            if (!fromScroll && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                final EmojiPalettesAdapter adapter = (EmojiPalettesAdapter) mPager.getAdapter();
-                final int firstPagePos = adapter.getAdapterPositionForCategoryPage(categoryId, 0);
-                if (firstPagePos != -1 && mPager.getLayoutManager() instanceof LinearLayoutManager) {
-                    mEmojiCategory.setCurrentCategoryPageId(0);
-                    ((LinearLayoutManager) mPager.getLayoutManager()).scrollToPositionWithOffset(firstPagePos, 0);
-                }
-            }
-
-            if (Settings.getValues().mSecondaryStripVisible) {
-                final View old = mTabStrip.findViewWithTag((long) oldCategoryId);
-                final View current = mTabStrip.findViewWithTag((long) categoryId);
-
-                if (old instanceof TabImageView) {
-                    ((TabImageView) old).setSelectedCategory(false, 0);
-                    Settings.getValues().mColors.setColor((ImageView) old, ColorType.EMOJI_CATEGORY);
-                }
-                if (current instanceof TabImageView) {
-                    android.util.TypedValue typedValue = new android.util.TypedValue();
-                    getContext().getTheme().resolveAttribute(android.R.attr.colorAccent, typedValue, true);
-                    int accentColor = typedValue.data;
-                    ((TabImageView) current).setSelectedCategory(true, accentColor);
-
-                    // Set contrasting color for the icon so it's visible on the accent circle
-                    double y = (299 * android.graphics.Color.red(accentColor) + 587 * android.graphics.Color.green(accentColor) + 114 * android.graphics.Color.blue(accentColor)) / 1000.0;
-                    int contrastColor = y >= 128 ? android.graphics.Color.BLACK : android.graphics.Color.WHITE;
-                    ((TabImageView) current).setColorFilter(contrastColor, android.graphics.PorterDuff.Mode.SRC_IN);
-                }
-            }
-        }
-    }
-
-    private boolean isAnimationsDisabled() {
-        return android.provider.Settings.Global.getFloat(getContext().getContentResolver(),
-                                                         android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1.0f) == 0.0f;
-    }
-
-    public void clearKeyboardCache() {
-        if (!initialized) {
-            return;
-        }
-
-        mEmojiCategory.clearKeyboardCache();
-        setupSearchResultKeyboard();
-        searchEmoji(mSearchQuery);
-        if (mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
-        }
-        closeDictionaryFacilitator();
-    }
-
-    private void initDictionaryFacilitator() {
-        if (Settings.getValues().mShowEmojiDescriptions) {
-            final var locale = RichInputMethodManager.getInstance().getCurrentSubtype().getLocale();
-            final SingleDictionaryFacilitator facilitator = sDictionaryFacilitator;
-            if (facilitator == null || ! facilitator.isForLocale(locale)) {
-                closeDictionaryFacilitator();
-                // Load asynchronously in a background thread to prevent blocking the UI thread on emoji keyboard start
-                new Thread(() -> {
-                    try {
-                        var dictFile = DictionaryInfoUtils.getCachedDictForLocaleAndType(locale, Dictionary.TYPE_EMOJI, getContext());
-                        var dictionary = dictFile != null ? DictionaryFactory.getDictionary(dictFile, locale) : null;
-                        if (dictionary != null) {
-                            synchronized (EmojiPalettesView.class) {
-                                var currentLocale = RichInputMethodManager.getInstance().getCurrentSubtype().getLocale();
-                                if (locale.equals(currentLocale)) {
-                                    if (sDictionaryFacilitator != null) {
-                                        sDictionaryFacilitator.closeDictionaries();
-                                    }
-                                    sDictionaryFacilitator = new SingleDictionaryFacilitator(dictionary);
-                                } else {
-                                    dictionary.close();
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        Log.e("EmojiPalettesView", "Failed to load emoji dictionary asynchronously", e);
-                    }
-                }).start();
-            }
-        } else {
-            closeDictionaryFacilitator();
-        }
-    }
-
-    public static synchronized void closeDictionaryFacilitator() {
-        if (sDictionaryFacilitator != null) {
-            sDictionaryFacilitator.closeDictionaries();
-            sDictionaryFacilitator = null;
-        }
-        if (sSearchDictionaryFacilitator != null) {
-            sSearchDictionaryFacilitator.closeDictionaries();
-            sSearchDictionaryFacilitator = null;
-        }
-    }
-
-    private RippleDrawable createBackButtonBackground(final Colors colors) {
-        final GradientDrawable circle = new GradientDrawable();
-        circle.setShape(GradientDrawable.OVAL);
-        circle.setColor(android.graphics.Color.WHITE);
-        colors.setColor(circle, ColorType.SPECIAL_KEY_BACKGROUND);
-
-        final ColorStateList rippleColor = ColorStateList.valueOf(
-            ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x33)
-        );
-
-        final float density = getContext().getResources().getDisplayMetrics().density;
-        final int horizontalInset = (int) (3 * density);
-        final int verticalInset = (int) (3 * density);
-
-        final InsetDrawable content = new InsetDrawable(
-            circle, horizontalInset, verticalInset, horizontalInset, verticalInset
-        );
-
-        return new RippleDrawable(
-            rippleColor, content, content.getConstantState() != null ? content.getConstantState().newDrawable().mutate() : null
-        );
-    }
-
-    private static class TabImageView extends ImageView {
-        private final Paint mCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private boolean mIsSelectedCategory = false;
-
-        public TabImageView(Context context) {
-            super(context);
-            // Start faded by default
-            setAlpha(0.45f);
-        }
-
-        public void setSelectedCategory(boolean selected, int accentColor) {
-            mIsSelectedCategory = selected;
-            mCirclePaint.setColor(accentColor);
-            if (selected) {
-                setAlpha(1.0f);
-            } else {
-                setAlpha(0.45f);
-                // restore normal unselected tint via clearColorFilter
-                clearColorFilter();
-            }
-            invalidate();
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            if (mIsSelectedCategory) {
-                float radius = Math.min(getWidth(), getHeight()) * 0.48f;
-                canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, radius, mCirclePaint);
-            }
-            super.onDraw(canvas);
-        }
-    }
-}
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíÛµÙ:-jZ.¶›­–)Ş³Rò ¢¢6÷—&–v‡B„2’#2F†RæG&ö–B÷Vâ6÷W&6R&ö¦V7@¢¢ÖöF–f–V@¢¢5E‚ÔÆ–6Vç6RÔ–FVçF–f–W#¢6†RÓ"ãäBuÂÓ2ãÖöæÇ¢¢ğ §6¶vR†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&BæVÖö¦“° ¦–×÷'BæG&ö–Bæææ÷FF–öâå7W&W74Æ–çC°¦–×÷'BæG&ö–Bæ6öçFVçBä6Æ—FF°¦–×÷'BæG&ö–Bæ6öçFVçBä6Æ—&ö&DÖævW#°¦–×÷'BæG&ö–Bæ6öçFVçBä6öçFW‡C°¦–×÷'BæG&ö–Bæ6öçFVçBä6öçFW‡Ew&W#°¦–×÷'BæG&ö–Bæ6öçFVçBç&W2å&W6÷W&6W3°¦–×÷'BæG&ö–Bæ6öçFVçBç&W2åG—VD'&“°¦–×÷'BæG&ö–Bæw&†–72ä6çf3°¦–×÷'BæG&ö–Bæw&†–72å–çC°¦–×÷'BæG&ö–Bæ÷2å7—7FVÔ6Æö6³°¦–×÷'BæG&ö–BçFW‡BäVF—F&ÆS°¦–×÷'BæG&ö–BçFW‡BåFW‡EvF6†W#°¦–×÷'BæG&ö–BçWF–ÂäGG&–'WFU6WC°¦–×÷'BæG&ö–Bçf–Wrä¶W”WfVçC°¦–×÷'BæG&ö–Bçf–WräÆ–÷WD–æfÆFW#°¦–×÷'BæG&ö–Bçf–WräÖ÷F–öäWfVçC°¦–×÷'BæG&ö–Bçf–Wråf–Ws°¦–×÷'BæG&ö–Bçf–Wråf–Wtw&÷W°¦–×÷'BæG&ö–Bçf–Wråf–Wu&VçC°¦–×÷'BæG&ö–Bçf–Wræ–çWFÖWF†öBäVF—F÷$–æfó°¦–×÷'BæG&ö–Bçv–FvWBäVF—EFW‡C°¦–×÷'BæG&ö–Bçv–FvWBä†÷&—¦öçFÅ67&öÆÅf–Ws°¦–×÷'BæG&ö–Bçv–FvWBä–ÖvUf–Ws°¦–×÷'BæG&ö–Bçv–FvWBäÆ–æV$Æ–÷WC°¦–×÷'BæG&ö–Bçv–FvWBä–ÖvT'WGFöã°¦–×÷'BæG&ö–Bæw&†–72æG&v&ÆRå&—ÆTG&v&ÆS°¦–×÷'BæG&ö–Bæw&†–72æG&v&ÆRäw&F–VçDG&v&ÆS°¦–×÷'BæG&ö–Bæw&†–72æG&v&ÆRä–ç6WDG&v&ÆS°¦–×÷'BæG&ö–Bæ6öçFVçBç&W2ä6öÆ÷%7FFTÆ—7C°¦–×÷'BæG&ö–G‚æ6÷&Ræw&†–72ä6öÆ÷%WF–Ç3°  ¦–×÷'BæG&ö–G‚æææ÷FF–öâäæöäçVÆÃ°¦–×÷'BæG&ö–G‚ç&V7–6ÆW'f–Wrçv–FvWBåvW%6æ†VÇW#°¦–×÷'BæG&ö–G‚ç&V7–6ÆW'f–Wrçv–FvWBäÆ–æV$Æ–÷WDÖævW#°¦–×÷'BæG&ö–G‚ç&V7–6ÆW'f–Wrçv–FvWBå&V7–6ÆW%f–Ws° ¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæWfVçBä†F–4WfVçC°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W“°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&D7F–öäÆ—7FVæW#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&D–C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&DÆ–÷WE6WC°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&E7v—F6†W#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bä¶W–&ö&Ef–Ws°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&BäÖ–ä¶W–&ö&Ef–Ws°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Båö–çFW%G&6¶W#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂä¶W”G&u&×3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂä¶W•f—7VÄGG&–'WFW3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂä¶W–&ö&D'V–ÆFW#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂä¶W–&ö&E&×3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂæ¶W–&ö&E÷'6W"äVÖö¦•'6W$·C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&Bæ¶W–&ö&Bæ–çFW&æÂæ¶W–&ö&E÷'6W"æfÆ÷&—2ä¶W”6öFS°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âäVF–ôæD†F–4fVVF&6´ÖævW#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âäÆF–ä”ÔS°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæF–7F–öæ'’äF–7F–öæ'“°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæF–7F–öæ'’äF–7F–öæ'”f7F÷'“°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå&–6„–çWDÖWF†öDÖævW#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå&–6„–çWDÖWF†öE7V'G—S°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå7VvvW7C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå7VvvW7FVEv÷&G3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âå6–ævÆTF–7F–öæ'”f6–Æ—FF÷#°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâä6öÆ÷%G—S°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâä6öÆ÷'3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâä6öç7FçG3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâä–çWEö–çFW'3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâå7G&–æuWF–Ç4·C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âç6WGF–æw2å6WGF–æw3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âç6WGF–æw2å6WGF–æw5fÇVW3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2äF–7F–öæ'”–æfõWF–Ç3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2ä·G„·C°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2äÆös°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2å&W6÷W&6UWF–Ç3°¦–×÷'B†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2åFööÆ&$ÖöFS°  ¦–×÷'B¦fçWF–ÂäÆ—7C°¦–×÷'B¦fçWF–Âä'&”Æ—7C° ¦–×÷'B7FF–2†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âæ6öÖÖöâä6öç7FçG2ääõEôô4ôõ$D”äDS° ¢ò¢ ¢¢f–Wr6Æ72Fò–×ÆVÖVçBVÖö¦’ÆWGFW2à¢¢F†RVÖö¦’¶W–&ö&B6öç6—7G2öbw&÷Wöbf–Ww2Æ–÷WBöVÖö¦•÷ÆWGFW5÷f–Wrà¢¢ÆöÃà¢¢ÆÆ“âVÖö¦’6FVv÷'’F'2à¢¢ÆÆ“âFVÆWFR'WGFöâà¢¢ÆÆ“âVÖö¦’¶W–&ö&BvW2F†B6â&R67&öÆÆVB'’7v—–ær†÷&—¦öçFÆÇ’÷"'’6VÆV7F–ærF"à¢¢ÆÆ“â&6²FòÖ–â¶W–&ö&B'WGFöâæBVçFW"'WGFöâà¢¢ÂööÃà¢¢&V6W6RöbF†R&÷fR&V6öç2ÂF†—26Æ72FöW6âwBW‡FVæB´Æ–æ²¶W–&ö&Ef–WwÒà¢¢ğ§V&Æ–2f–æÂ6Æ72VÖö¦•ÆWGFW5f–WrW‡FVæG2Æ–æV$Æ–÷W@¢–×ÆVÖVçG2f–Wräöä6Æ–6´Æ—7FVæW"ÂVÖö¦•f–Wt6ÆÆ&6²°¢&—fFR7FF–2föÆF–ÆR6–ævÆTF–7F–öæ'”f6–Æ—FF÷"4F–7F–öæ'”f6–Æ—FF÷#°¢&—fFR7FF–2föÆF–ÆR6–ævÆTF–7F–öæ'”f6–Æ—FF÷"56V&6„F–7F–öæ'”f6–Æ—FF÷#° ¢&—fFR&ööÆVâ–æ—F–Æ—¦VBÒfÇ6S°¢&—fFRf–æÂ6öÆ÷'2Ô6öÆ÷'3°¢&—fFRf–æÂVÖö¦”Æ–÷WE&×2ÔVÖö¦”Æ–÷WE&×3°¢&—fFRÆ–æV$Æ–÷WBÕF%7G&—°¢&—fFRVÖö¦”6FVv÷'•vT–æF–6F÷%f–WrÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–Ws°¢&—fFR¶W–&ö&D7F–öäÆ—7FVæW"Ô¶W–&ö&D7F–öäÆ—7FVæW"Ò¶W–&ö&D7F–öäÆ—7FVæW"äTÕE•ôÄ•5DTäU#°¢&—fFR¶W–&ö&D7F–öäÆ—7FVæW"ÔÖ–ä¶W–&ö&D7F–öäÆ—7FVæW"Ò¶W–&ö&D7F–öäÆ—7FVæW"äTÕE•ôÄ•5DTäU#°¢&—fFRf–æÂVÖö¦”6FVv÷'’ÔVÖö¦”6FVv÷'“°¢&—fFR&V7–6ÆW%f–WrÕvW#°¢&—fFRÖ–ä¶W–&ö&Ef–WrÔ&÷GFöÕ&÷t¶W–&ö&C°¢&—fFRf–WrÕ6V&6„&$6öçF–æW#°¢&—fFR–ÖvT'WGFöâÕ6V&6„&6´'WGFöã°¢&—fFRVF—EFW‡BÕ6V&6„VF—EFW‡C°¢&—fFR–ÖvT'WGFöâÕ6V&6„6ÆV$'WGFöã°¢&—fFR†÷&—¦öçFÅ67&öÆÅf–WrÕ6V&6…&W7VÇG567&öÆÅf–Ws°¢&—fFRVÖö¦•vT¶W–&ö&Ef–WrÕ6V&6…&W7VÇG5f–Ws°¢&—fFRf–WrÕ6V&6„¶W–&ö&EÆ6V†öÆFW#°¢&—fFRG–æÖ–4w&–D¶W–&ö&BÕ6V&6…&W7VÇG4¶W–&ö&C°¢&—fFR¶W–&ö&E&×2Õ6V&6„¶W–&ö&E&×3°¢&—fFR–çBÕ6V&6…&W7VÇG4¶W–&ö&Ev–GFƒ°¢&—fFR–çBÕ6V&6„&6U&W7VÇG46öÇVÖä6÷VçBÒ°¢&—fFRfÆöBÕ6V&6„¶W•v–GFƒ°¢&—fFRfÆöBÕ6V&6„¶W”†V–v‡C°¢&—fFR&ööÆVâÕ6V&6„ÖöFRÒfÇ6S°¢&—fFR&ööÆVâÕWFF–æu6V&6…FW‡BÒfÇ6S°¢&—fFR7G&–ærÕ6V&6…VW'’Ò"#°¢&—fFR–çBÔ7W'&VçE6V&6„¶W–&ö&DVÆVÖVçD–BÒ¶W–&ö&D–BäTÄTÔTåEôÅ„$UC° ¢V&Æ–2VÖö¦•ÆWGFW5f–Wr†f–æÂ6öçFW‡B6öçFW‡BÂf–æÂGG&–'WFU6WBGG'2’°¢F†—2†6öçFW‡BÂGG'2Â"æGG"æVÖö¦•ÆWGFW5f–Wu7G–ÆR“°¢Ğ ¢V&Æ–2VÖö¦•ÆWGFW5f–Wr†f–æÂ6öçFW‡B6öçFW‡BÂf–æÂGG&–'WFU6WBGG'2Âf–æÂ–çBFVe7G–ÆR’°¢7WW"†6öçFW‡BÂGG'2ÂFVe7G–ÆR“°¢Ô6öÆ÷'2Ò6WGF–æw2ævWEfÇVW2‚’æÔ6öÆ÷'3°¢f–æÂ¶W–&ö&DÆ–÷WE6WBä'V–ÆFW"'V–ÆFW"ÒæWr¶W–&ö&DÆ–÷WE6WBä'V–ÆFW"†6öçFW‡BÂçVÆÂ“°¢f–æÂ&W6÷W&6W2&W2Ò6öçFW‡BævWE&W6÷W&6W2‚“°¢ÔVÖö¦”Æ–÷WE&×2ÒæWrVÖö¦”Æ–÷WE&×2‡&W2“°¢'V–ÆFW"ç6WE7V'G—R…&–6„–çWDÖWF†öE7V'G—Rä6ö×æ–öâævWDVÖö¦•7V'G—R‚’“°¢'V–ÆFW"ç6WD¶W–&ö&DvVöÖWG'’…&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†6öçFW‡BÂ6WGF–æw2ævWEfÇVW2‚’’À¢ÔVÖö¦”Æ–÷WE&×2ævWDVÖö¦”¶W–&ö&D†V–v‡B‚’“°¢f–æÂ¶W–&ö&DÆ–÷WE6WBÆ–÷WE6WBÒ'V–ÆFW"æ'V–ÆB‚“°¢f–æÂG—VD'&’VÖö¦•ÆWGFW5f–WtGG"Ò6öçFW‡Bæö'F–å7G–ÆVDGG&–'WFW2†GG'2À¢"ç7G–ÆV&ÆRäVÖö¦•ÆWGFW5f–WrÂFVe7G–ÆRÂ"ç7G–ÆRäVÖö¦•ÆWGFW5f–Wr“°¢ÔVÖö¦”6FVv÷'’ÒæWrVÖö¦”6FVv÷'’†6öçFW‡BÂÆ–÷WE6WBÂVÖö¦•ÆWGFW5f–WtGG"“°¢VÖö¦•ÆWGFW5f–WtGG"ç&V7–6ÆR‚“°¢Ğ ¢÷fW'&–FP¢&÷FV7FVBfö–BöäÖV7W&R†f–æÂ–çBv–GF„ÖV7W&U7V2Âf–æÂ–çB†V–v‡DÖV7W&U7V2’°¢f–æÂ&W6÷W&6W2&W2ÒvWD6öçFW‡B‚’ævWE&W6÷W&6W2‚“°¢f–æÂ†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âç6WGF–æw2å6WGF–æw5fÇVW26WGF–æw2Ò6WGF–æw2ævWEfÇVW2‚“°¢f–æÂ–çB&4†V–v‡BÒ&W6÷W&6UWF–Ç2ævWD¶W–&ö&D†V–v‡B‡&W2Â6WGF–æw2“°¢f–æÂ&ööÆVâW'6—7FVçDVÖö¦”Væ&ÆVBÒ†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âçWF–Ç2ä·G„·Bç&Vg2†vWD6öçFW‡B‚’’ævWD&ööÆVâ…6WGF–æw2å$TeõU%4•5DTåEôTÔô¤•õ$õrÂ†VÆ—VÓ3Bæ¶W–&ö&BæÆF–âç6WGF–æw2äFVfVÇG2å$TeõU%4•5DTåEôTÔô¤•õ$õr“°¢f–æÂ–çBVÖö¦•&÷t†V–v‡BÒW'6—7FVçDVÖö¦”Væ&ÆVBò†–çB’ƒC¢&W2ævWDF—7Æ”ÖWG&–72‚’æFVç6—G’’¢°¢òòF†Ræ÷&ÖÂÇ†&WF–2¶W–&ö&B†27VvvW7F–öâ7G&—&÷fR—G2¶W—2à¢òò–bF†RVÖö¦’6FVv÷'’7G&——2†–FFVâÂ&V6Æ–ÒF†BW†7B†V–v‡B–ç6–FP¢òòF†RVÖö¦’æVÂ–ç7FVBâ&÷F‚ÖöFW2æ÷r&WF–âF†R6†&VB&÷GFöÒfö÷FW"à¢f–æÂf–Wr7G&—ÒvWE&ö÷Ef–Wr‚’æf–æEf–Wt'”–B…"æ–Bç7G&—ö6öçF–æW"“°¢f–æÂ&ööÆVâæ÷&ÖÅ7G&—W‡V7FVBÒ6WGF–æw2æÕFööÆ&$ÖöFRÒFööÆ&$ÖöFRä„”DDTã°¢f–æÂ–çBÖ—76–æu7G&—†V–v‡BÒæ÷&ÖÅ7G&—W‡V7FVBb`¢‡7G&—ÓÒçVÆÂÇÂ7G&—ævWEf—6–&–Æ—G’‚’Òf–Wråd•4”$ÄR¢ò&W2ævWDF–ÖVç6–öå—†VÅ6—¦R…"æF–ÖVâæ6öæf–u÷7VvvW7F–öç5÷7G&—ö†V–v‡B’¢°¢f–æÂ–çB&WVW7FVD†V–v‡BÒ&4†V–v‡B²VÖö¦•&÷t†V–v‡B²Ö—76–æu7G&—†V–v‡@¢²vWEFF–æuF÷‚’²vWEFF–æt&÷GFöÒ‚’²°¢f–æÂ–çBf–Æ&ÆT†V–v‡BÒ7v—F6‚„ÖV7W&U7V2ævWDÖöFR††V–v‡DÖV7W&U7V2’’°¢66RÖV7W&U7V2äEôÔõ5BÂÖV7W&U7V2äU„5DÅ’ÓâÖV7W&U7V2ævWE6—¦R††V–v‡DÖV7W&U7V2“°¢FVfVÇBÓâ–çFVvW"äÔ…õdÅTS°¢Ó°¢f–æÂ–çBf–æÄ†V–v‡BÒÖF‚æÖ–â‡&WVW7FVD†V–v‡BÂf–Æ&ÆT†V–v‡B“°¢7WW"æöäÖV7W&R‡v–GF„ÖV7W&U7V2ÂÖV7W&U7V2æÖ¶TÖV7W&U7V2†f–æÄ†V–v‡BÂÖV7W&U7V2äU„5DÅ’’“°¢f–æÂ–çBv–GF‚Ò&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†vWD6öçFW‡B‚’Â6WGF–æw2’²vWEFF–ætÆVgB‚’²vWEFF–æu&–v‡B‚“°¢–b†ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–WrÒçVÆÂ’°¢ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–WræÕv–GF‚Òv–GFƒ°¢Ğ¢6WDÖV7W&VDF–ÖVç6–öâ‡v–GF‚Âf–æÄ†V–v‡B“°¢Ğ ¢&—fFRfö–BFEF"†f–æÂÆ–æV$Æ–÷WB†÷7BÂf–æÂ–çB6FVv÷'”–B’°¢f–æÂF$–ÖvUf–Wr–6öåf–WrÒæWrF$–ÖvUf–Wr†vWD6öçFW‡B‚’“°¢Ô6öÆ÷'2ç6WD&6¶w&÷VæB†–6öåf–WrÂ6öÆ÷%G—Rå5E$•ô$4´u$õTäB“°¢Ô6öÆ÷'2ç6WD6öÆ÷"†–6öåf–WrÂ6öÆ÷%G—RäTÔô¤•ô4DTtõ%’“°¢–6öåf–Wrç6WE66ÆUG—R„–ÖvUf–Wrå66ÆUG—Räd•Eô4TåDU"“°¢f–æÂ–çB–6öåFF–ærÒ†–çB’ƒb¢vWD6öçFW‡B‚’ævWE&W6÷W&6W2‚’ævWDF—7Æ”ÖWG&–72‚’æFVç6—G’“°¢–6öåf–Wrç6WEFF–ær†–6öåFF–ærÂ–6öåFF–ærÂ–6öåFF–ærÂ–6öåFF–ær“°¢–6öåf–Wrç6WD–ÖvU&W6÷W&6R†ÔVÖö¦”6FVv÷'’ævWD6FVv÷'•F$–6öâ†6FVv÷'”–B’“°¢–6öåf–Wrç6WD6öçFVçDFW67&—F–öâ†ÔVÖö¦”6FVv÷'’ævWD66W76–&–Æ—G”FW67&—F–öâ†6FVv÷'”–B’“°¢–6öåf–Wrç6WEFr‚†Æöær’6FVv÷'”–B“²òòW6RÆöærf÷"6–×ÆRF–ffW&Væ6RFò–çBW6VBf÷"¶W’6öFW0¢†÷7BæFEf–Wr†–6öåf–Wr“°¢–6öåf–Wrç6WDÆ–÷WE&×2†æWrÆ–æV$Æ–÷WBäÆ–÷WE&×2ƒÂf–Wtw&÷WäÆ–÷WE&×2äÔD4…õ$TåBÂb’“°¢–6öåf–Wrç6WDöä6Æ–6´Æ—7FVæW"‡F†—2“°¢Ğ ¢7W&W74Æ–çB‚$6Æ–6¶&ÆUf–Wt66W76–&–Æ—G’"¢V&Æ–2fö–B–æ—F–Æ—¦R‚’²òòæVVG2Fò&RFVÆ–VBf÷"66W72FòVÖö¦•F%7G&—Âv†–6‚—2æ÷B6†–ÆBöbF†—2f–Wp¢–b†–æ—F–Æ—¦VB’&WGW&ã°¢ÔVÖö¦”6FVv÷'’æ–æ—F–Æ—¦R‚“°¢f–æÂf–WrF%7G&—f–WrÒ¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚’ævWDVÖö¦•F%7G&—‚“°¢ÕF%7G&—Ò„Æ–æV$Æ–÷WB’F%7G&—f–Wræf–æEf–Wt'”–B…"æ–BæVÖö¦•÷F%÷7G&—“°¢òòVÖö¦’æf–vF–öâ—2'BöbF†RVÖö¦’æVÂ—G6VÆbÂæ÷BF†R÷F–öæÀ¢òò&VF–7F–öâ÷FööÆ&"7G&—âÇv—27&VFRF†RF'26ò6Ö'BVÖö¦’&VÖ–ç0¢òò&V6†&ÆRWfVâv†VâF†R÷væW"†–FW2F†RG—–ær7VvvW7F–öâ7G&—à¢f÷"†f–æÂVÖö¦”6FVv÷'’ä6FVv÷'•&÷W'F–W2&÷W'F–W2¢ÔVÖö¦”6FVv÷'’ævWE6†÷vä6FVv÷&–W2‚’’°¢FEF"†ÕF%7G&—Â&÷W'F–W2æÔ6FVv÷'”–B“°¢Ğ ¢ÕvW"Òf–æEf–Wt'”–B…"æ–BæVÖö¦•÷vW"“°¢ÕvW"ç6WD†4f—†VE6—¦R‡G'VR“°¢ÕvW"ç6WD—FVÔæ–ÖF÷"†çVÆÂ“°¢f–æÂÆ–æV$Æ–÷WDÖævW"Æ–÷WDÖævW"ÒæWrÆ–æV$Æ–÷WDÖævW"†vWD6öçFW‡B‚’ÂÆ–æV$Æ–÷WDÖævW"ä„õ$•¤ôåDÂÂfÇ6R“°¢ÕvW"ç6WDÆ–÷WDÖævW"†Æ–÷WDÖævW"“°¢f–æÂVÖö¦•ÆWGFW4FFW"FFW"ÒæWrVÖö¦•ÆWGFW4FFW"†ÔVÖö¦”6FVv÷'’ÂF†—2“°¢ÕvW"ç6WDFFW"†FFW"“°¢f–æÂvW%6æ†VÇW"6æ†VÇW"ÒæWrvW%6æ†VÇW"‚“°¢6æ†VÇW"æGF6…Fõ&V7–6ÆW%f–Wr†ÕvW"“° ¢ÕvW"æFDöå67&öÆÄÆ—7FVæW"†æWr&V7–6ÆW%f–Wräöå67&öÆÄÆ—7FVæW"‚’°¢÷fW'&–FP¢V&Æ–2fö–Böå67&öÆÆVB„æöäçVÆÂ&V7–6ÆW%f–Wr&V7–6ÆW%f–WrÂ–çBG‚Â–çBG’’°¢f–æÂf–Wr6æVBÒ6æ†VÇW"æf–æE6æf–Wr†Æ–÷WDÖævW"“°¢–b‡6æVBÒçVÆÂ’°¢f–æÂ–çB÷6—F–öâÒÆ–÷WDÖævW"ævWE÷6—F–öâ‡6æVB“°¢f–æÂ–çB6FVv÷'”–BÒFFW"ævWD6FVv÷'”–Df÷%÷6—F–öâ‡÷6—F–öâ“°¢–b†6FVv÷'”–BÒÓbb6FVv÷'”–BÒÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'”–B‚’’°¢6WD7W'&VçD6FVv÷'”–B†6FVv÷'”–BÂG'VR“°¢Ğ¢f–æÂ–çBvU÷6—F–öâÒFFW"ævWEvU÷6—F–öäf÷$FFW%÷6—F–öâ‡÷6—F–öâ“°¢–b‡vU÷6—F–öâãÒbbvU÷6—F–öâÒÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'•vT–B‚’’°¢ÔVÖö¦”6FVv÷'’ç6WD7W'&VçD6FVv÷'•vT–B‡vU÷6—F–öâ“°¢Ğ¢Ğ¢Ğ¢Ò“° ¢ÔVÖö¦”Æ–÷WE&×2ç6WDVÖö¦”Æ—7E&÷W'F–W2†ÕvW"“°¢ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–WrÒf–æEf–Wt'”–B…"æ–BæVÖö¦•ö6FVv÷'•÷vUö–E÷f–Wr“°¢ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢ÔVÖö¦”Æ–÷WE&×2ç6WD6FVv÷'•vT–Ef–Wu&÷W'F–W2†ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–Wr“°¢Ô&÷GFöÕ&÷t¶W–&ö&BÒf–æEf–Wt'”–B…"æ–Bæ&÷GFöÕ÷&÷uö¶W–&ö&B“°¢6WGW–æÆ–æU6V&6…f–Ww2‚“°¢f–æÂ–çB6fVE÷6—F–öâÒFFW"ævWDFFW%÷6—F–öäf÷$6FVv÷'•vR€¢ÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'”–B‚’ÂÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'•vT–B‚’“°¢–b‡6fVE÷6—F–öâãÒ’°¢Æ–÷WDÖævW"ç67&öÆÅFõ÷6—F–öåv—F„öfg6WB‡6fVE÷6—F–öâÂ“°¢Ğ¢6WD7W'&VçD6FVv÷'”–B†ÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'”–B‚’ÂG'VR“°¢–æ—F–Æ—¦VBÒG'VS°¢Ğ ¢&—fFRfö–B6WGW–æÆ–æU6V&6…f–Ww2‚’°¢Õ6V&6„&$6öçF–æW"Òf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…ö&%ö6öçF–æW"“°¢Õ6V&6„&6´'WGFöâÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…ö&6µö'WGFöâ“°¢Õ6V&6„VF—EFW‡BÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…öVF—E÷FW‡B“°¢Õ6V&6„6ÆV$'WGFöâÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…ö6ÆV%ö'WGFöâ“°¢Õ6V&6…&W7VÇG567&öÆÅf–WrÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…÷&W7VÇG5÷67&öÆÂ“°¢Õ6V&6…&W7VÇG5f–WrÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…÷&W7VÇG5÷f–Wr“°¢Õ6V&6„¶W–&ö&EÆ6V†öÆFW"Òf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…ö¶W–&ö&E÷Æ6V†öÆFW"“° ¢6WGW6V&6…&W7VÇD¶W–&ö&B‚“°¢6WGW6V&6…&W7VÇG5v–ær‚“°¢6WGW6V&6„f–VÆB‚“°¢6WGW6V&6„6Æ–6´Æ—7FVæW'2‚“°¢Ç•6V&6…F†VÖR‚“°¢Ğ ¢&—fFRfö–B6WGW6V&6…&W7VÇD¶W–&ö&B‚’°¢6WGW6V&6…&W7VÇD¶W–&ö&B…&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†vWD6öçFW‡B‚’Â6WGF–æw2ævWEfÇVW2‚’’“°¢Ğ ¢&—fFRfö–B6WGW6V&6…&W7VÇD¶W–&ö&B†f–æÂ–çB¶W–&ö&Ev–GF‚’°¢–b†Õ6V&6…&W7VÇG5f–WrÓÒçVÆÂ’°¢&WGW&ã°¢Ğ¢Õ6V&6…&W7VÇG4¶W–&ö&Ev–GF‚Ò¶W–&ö&Ev–GFƒ°¢f–æÂ–çB&6Uv–GF‚Ò&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†vWD6öçFW‡B‚’Â6WGF–æw2ævWEfÇVW2‚’“°¢f–æÂ¶W–&ö&DÆ–÷WE6WBÆ–÷WE6WBÒæWr¶W–&ö&DÆ–÷WE6WBä'V–ÆFW"†vWD6öçFW‡B‚’ÂçVÆÂ¢ç6WE7V'G—R…&–6„–çWDÖWF†öE7V'G—Rä6ö×æ–öâævWDVÖö¦•7V'G—R‚’¢ç6WD¶W–&ö&DvVöÖWG'’†&6Uv–GF‚ÂÔVÖö¦”Æ–÷WE&×2ævWDVÖö¦”¶W–&ö&D†V–v‡B‚’¢æ'V–ÆB‚“°¢Õ6V&6…&W7VÇG4¶W–&ö&BÒG–æÖ–4w&–D¶W–&ö&BæöevVE&÷t6÷VçB„·G„·Bç&Vg2†vWD6öçFW‡B‚’’À¢Æ–÷WE6WBævWD¶W–&ö&B„¶W–&ö&D–BäTÄTÔTåEôTÔô¤•õ$T4TåE2’Â"À¢¶W–&ö&D–BäTÄTÔTåEôTÔô¤•ô4DTtõ%“bÂ¶W–&ö&Ev–GF‚Â&6Uv–GF‚“°¢–b†¶W–&ö&Ev–GF‚ÓÒ&6Uv–GF‚’°¢Õ6V&6„&6U&W7VÇG46öÇVÖä6÷VçBÒÖF‚æÖ‚ƒÂÕ6V&6…&W7VÇG4¶W–&ö&BævWDö67W–VD6öÇVÖä6÷VçB‚’“°¢Ğ¢f–æÂ¶W–&ö&D'V–ÆFW"'V–ÆFW"ÒæWr¶W–&ö&D'V–ÆFW"†vWD6öçFW‡B‚’ÂæWr¶W–&ö&E&×2‚’“°¢'V–ÆFW"æÆöB†Õ6V&6…&W7VÇG4¶W–&ö&BæÔ–B“°¢Õ6V&6„¶W–&ö&E&×2Ò'V–ÆFW"æÕ&×3°¢f–æÂ¶÷FÆ–âå—#ÄfÆöBÂfÆöCâ¶W”F–ÖVç6–öç2Ğ¢VÖö¦•'6W$·BævWDVÖö¦”¶W”F–ÖVç6–öç2†Õ6V&6„¶W–&ö&E&×2ÂvWD6öçFW‡B‚’“°¢Õ6V&6„¶W•v–GF‚Ò¶W”F–ÖVç6–öç2ævWDf—'7B‚“°¢Õ6V&6„¶W”†V–v‡BÒ¶W”F–ÖVç6–öç2ævWE6V6öæB‚“° ¢Õ6V&6…&W7VÇG5f–Wrç6WD¶W–&ö&B†Õ6V&6…&W7VÇG4¶W–&ö&B“°¢Õ6V&6…&W7VÇG5f–Wrç6WDVÖö¦•f–Wt6ÆÆ&6²‡F†—2“°¢Õ6V&6…&W7VÇG5f–Wrç6WEf—6–&–Æ—G’†Õ6V&6„ÖöFRòf–Wråd•4”$ÄR¢f–WrätôäR“°¢Ô6öÆ÷'2ç6WD&6¶w&÷VæB†Õ6V&6…&W7VÇG5f–WrÂ6öÆ÷%G—RäÔ”åô$4´u$õTäB“°¢Õ6V&6…&W7VÇG5f–Wrç6WEFF–ærƒÂÂÂ“°¢Ğ ¢7W&W74Æ–çB‚$6Æ–6¶&ÆUf–Wt66W76–&–Æ—G’"¢&—fFRfö–B6WGW6V&6…&W7VÇG5v–ær‚’°¢–b†Õ6V&6…&W7VÇG567&öÆÅf–WrÓÒçVÆÂ’°¢&WGW&ã°¢Ğ¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6WE6Öö÷F…67&öÆÆ–ætVæ&ÆVB‡G'VR“°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6WDöåF÷V6„Æ—7FVæW"‚‡f–WrÂWfVçB’Óâ°¢–b†WfVçBævWD7F–öäÖ6¶VB‚’ÓÒÖ÷F–öäWfVçBä5D”ôåõU ¢ÇÂWfVçBævWD7F–öäÖ6¶VB‚’ÓÒÖ÷F–öäWfVçBä5D”ôåô4ä4TÂ’°¢f–Wrç÷7DFVÆ–VB‡F†—3£§6æ6V&6…&W7VÇG5FôæV&W7EvRÂ#“°¢Ğ¢&WGW&âfÇ6S°¢Ò“°¢Ğ ¢&—fFRfö–B6æ6V&6…&W7VÇG5FôæV&W7EvR‚’°¢–b†Õ6V&6…&W7VÇG567&öÆÅf–WrÓÒçVÆÂ’°¢&WGW&ã°¢Ğ¢f–æÂ–çBvUv–GF‚Ò&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†vWD6öçFW‡B‚’Â6WGF–æw2ævWEfÇVW2‚’“°¢–b‡vUv–GF‚ÃÒ’°¢&WGW&ã°¢Ğ¢f–æÂ–çBÖ…67&öÆÅ‚ÒÖF‚æÖ‚ƒÂÕ6V&6…&W7VÇG4¶W–&ö&Ev–GF‚ÒvUv–GF‚“°¢f–æÂ–çB7W'&VçE67&öÆÅ‚ÒÕ6V&6…&W7VÇG567&öÆÅf–WrævWE67&öÆÅ‚‚“°¢f–æÂ–çBF&vWEvRÒÖF‚ç&÷VæB†7W'&VçE67&öÆÅ‚ò†fÆöB’vUv–GF‚“°¢f–æÂ–çBF&vWE67&öÆÅ‚ÒÖF‚æÖ‚ƒÂÖF‚æÖ–â†Ö…67&öÆÅ‚ÂF&vWEvR¢vUv–GF‚’“°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6Öö÷F…67&öÆÅFò‡F&vWE67&öÆÅ‚Â“°¢Ğ ¢&—fFR–çBvWE6V&6…&W7VÇG4¶W–&ö&Ev–GF‚†f–æÂ–çB&W7VÇD6÷VçB’°¢f–æÂ–çB&6Uv–GF‚Ò&W6÷W&6UWF–Ç2ævWD¶W–&ö&Ev–GF‚†vWD6öçFW‡B‚’Â6WGF–æw2ævWEfÇVW2‚’“°¢f–æÂ–çB6öÇVÖç5W%67&VVâÒÖF‚æÖ‚ƒÂÕ6V&6„&6U&W7VÇG46öÇVÖä6÷VçB“°¢f–æÂ–çBÖ…&W7VÇG5W%67&VVâÒÖF‚æÖ‚ƒÂ6öÇVÖç5W%67&VVâ¢"“°¢f–æÂ–çBvW2ÒÖF‚æÖ‚ƒÂ‡&W7VÇD6÷VçB²Ö…&W7VÇG5W%67&VVâÒ’òÖ…&W7VÇG5W%67&VVâ“°¢&WGW&â&6Uv–GF‚¢vW3°¢Ğ ¢&—fFRfö–B6WGW6V&6„f–VÆB‚’°¢Õ6V&6„VF—EFW‡Bç6WE6†÷u6ögD–çWDöäfö7W2†fÇ6R“°¢Õ6V&6„VF—EFW‡Bç6WE6–ævÆTÆ–æR‡G'VR“°¢Õ6V&6„VF—EFW‡BæFEFW‡D6†ævVDÆ—7FVæW"†æWrFW‡EvF6†W"‚’°¢÷fW'&–FP¢V&Æ–2fö–B&Vf÷&UFW‡D6†ævVB†f–æÂ6†%6WVVæ6R2Âf–æÂ–çB7F'BÂf–æÂ–çB6÷VçBÂf–æÂ–çBgFW"’·Ğ ¢÷fW'&–FP¢V&Æ–2fö–BöåFW‡D6†ævVB†f–æÂ6†%6WVVæ6R2Âf–æÂ–çB7F'BÂf–æÂ–çB&Vf÷&RÂf–æÂ–çB6÷VçB’·Ğ ¢÷fW'&–FP¢V&Æ–2fö–BgFW%FW‡D6†ævVB†f–æÂVF—F&ÆR2’°¢–b†ÕWFF–æu6V&6…FW‡B’°¢&WGW&ã°¢Ğ¢Õ6V&6…VW'’Ò2ÓÒçVÆÂò""¢2çFõ7G&–ær‚“°¢WFFU6V&6…VW'•V’‚“°¢6V&6„VÖö¦’†Õ6V&6…VW'’“°¢Ğ¢Ò“°¢Õ6V&6„VF—EFW‡Bç6WDöäfö7W46†ævTÆ—7FVæW"‚‡bÂ†4fö7W2’Óâ°¢Õ6V&6„VF—EFW‡Bç6WD7W'6÷%f—6–&ÆR†Õ6V&6„ÖöFRbb†4fö7W2“°¢Ò“°¢Ğ ¢&—fFRfö–B6WGW6V&6„6Æ–6´Æ—7FVæW'2‚’°¢–b†Õ6V&6„&6´'WGFöâÒçVÆÂ’°¢Õ6V&6„&6´'WGFöâç6WDöä6Æ–6´Æ—7FVæW"‡bÓâ°¢W&f÷&ÕFfVVF&6²‡b“°¢W†—E6V&6„ÖöFR†fÇ6R“°¢Ò“°¢Ğ¢–b†Õ6V&6„6ÆV$'WGFöâÒçVÆÂ’°¢Õ6V&6„6ÆV$'WGFöâç6WDöä6Æ–6´Æ—7FVæW"‡bÓâ°¢W&f÷&ÕFfVVF&6²‡b“°¢6WE6V&6…FW‡B‚""Â“°¢fö7W56V&6„f–VÆB†fÇ6R“°¢Ò“°¢Ğ¢–b†Õ6V&6„VF—EFW‡BÒçVÆÂ’°¢Õ6V&6„VF—EFW‡Bç6WDöä6Æ–6´Æ—7FVæW"‡bÓâfö7W56V&6„f–VÆB†fÇ6R’“°¢Ğ¢Ğ ¢&—fFRfö–BÇ•6V&6…F†VÖR‚’°¢–b†Õ6V&6„&$6öçF–æW"ÒçVÆÂ’°¢Ô6öÆ÷'2ç6WD&6¶w&÷VæB†Õ6V&6„&$6öçF–æW"Â6öÆ÷%G—Rå5E$•ô$4´u$õTäB“°¢Ğ¢–b†Õ6V&6„&6´'WGFöâÒçVÆÂ’°¢Ô6öÆ÷'2ç6WD6öÆ÷"†Õ6V&6„&6´'WGFöâÂ6öÆ÷%G—RäeTä5D”ôäÅô´U•õDU…B“°¢Õ6V&6„&6´'WGFöâç6WD&6¶w&÷VæB†7&VFT&6´'WGFöä&6¶w&÷VæB†Ô6öÆ÷'2’“°¢Õ6V&6„&6´'WGFöâç6WEFF–ærƒÂÂÂ“°¢Õ6V&6„&6´'WGFöâç6WE66ÆUG—R„–ÖvUf–Wrå66ÆUG—Rä4TåDU"“°¢Ğ¢–b†Õ6V&6„VF—EFW‡BÒçVÆÂ’°¢f–æÂ–çBFööÄ&$6öÆ÷"ÒÔ6öÆ÷'2ævWB„6öÆ÷%G—RåDôôÅô$%ô´U’“°¢Õ6V&6„VF—EFW‡Bç6WEFW‡D6öÆ÷"‡FööÄ&$6öÆ÷"“°¢Õ6V&6„VF—EFW‡Bç6WD†–çEFW‡D6öÆ÷"‚‡FööÄ&$6öÆ÷"bƒdddddb’Âƒƒ“°¢Ğ¢f–æÂ–ÖvUf–Wr6V&6„–6öâÒf–æEf–Wt'”–B…"æ–BæVÖö¦•÷6V&6…ö–6öâ“°¢–b‡6V&6„–6öâÒçVÆÂ’°¢Ô6öÆ÷'2ç6WD6öÆ÷"‡6V&6„–6öâÂ6öÆ÷%G—RåDôôÅô$%ô´U’“°¢Ğ¢–b†Õ6V&6„6ÆV$'WGFöâÒçVÆÂ’°¢Ô6öÆ÷'2ç6WD6öÆ÷"†Õ6V&6„6ÆV$'WGFöâÂ6öÆ÷%G—RåDôôÅô$%ô´U’“°¢Ğ¢Ğ ¢ò¢ ¢¢6ÆÆVBg&öÒ´Æ–æ²VÖö¦•vT¶W–&ö&Ef–WwÒF‡&÷Vv‚´Æ–æ²æG&ö–Bçf–Wråf–Wräöä6Æ–6´Æ—7FVæW'Ğ¢¢–çFW&f6RFò†æFÆRæöâÖ6æ6VÆVBF÷V6‚×WWfVçG2g&öÒf–WrÖ&6VBVÆVÖVçG27V6‚2F†R76P¢¢&"à¢¢ğ¢÷fW'&–FP¢V&Æ–2fö–Böä6Æ–6²…f–Wrb’°¢f–æÂö&¦V7BFrÒbævWEFr‚“°¢–b‡Fr–ç7Fæ6VöbÆöær’°¢VF–ôæD†F–4fVVF&6´ÖævW"ævWD–ç7Fæ6R‚’çW&f÷&Ô†F–4æDVF–ôfVVF&6²„¶W”6öFRääõEõ5T4”d”TBÂF†—2Â†F–4WfVçBä´U•õ$U52“°¢f–æÂ–çB6FVv÷'”–BÒ‚„Æöær’Fr’æ–çEfÇVR‚“°¢–b†6FVv÷'”–BÒÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'”–B‚’’°¢6WD7W'&VçD6FVv÷'”–B†6FVv÷'”–BÂfÇ6R“°¢WFFTVÖö¦”6FVv÷'•vT–Ef–Wr‚“°¢Ğ¢Ğ¢Ğ ¢ò¢ ¢¢6ÆÆVBg&öÒ´Æ–æ²VÖö¦•vT¶W–&ö&Ef–WwÒF‡&÷Vv‚´Æ–æ²VÖö¦•f–Wt6ÆÆ&6·Ğ¢¢–çFW&f6RFò†æFÆRF÷V6‚WfVçG2g&öÒæöâÕf–WrÖ&6VBVÆVÖVçG27V6‚2VÖö¦’'WGFöç2à¢¢ğ¢÷fW'&–FP¢V&Æ–2fö–Böå&W74¶W’†f–æÂ¶W’¶W’’°¢f–æÂ–çB6öFRÒ¶W’ævWD6öFR‚“°¢Ô¶W–&ö&D7F–öäÆ—7FVæW"æöå&W74¶W’†6öFRÂÂG'VRÂ†F–4WfVçBä´U•õ$U52“°¢Ğ ¢ò¢ ¢¢6ÆÆVBg&öÒ´Æ–æ²VÖö¦•vT¶W–&ö&Ef–WwÒF‡&÷Vv‚´Æ–æ²VÖö¦•f–Wt6ÆÆ&6·Ğ¢¢–çFW&f6RFò†æFÆRF÷V6‚WfVçG2g&öÒæöâÕf–WrÖ&6VBVÆVÖVçG27V6‚2VÖö¦’'WGFöç2à¢¢F†—2Ö’&R6ÆÆVBv—F†÷WBç’&–÷"6ÆÂFò´Æ–æ²VÖö¦•f–Wt6ÆÆ&6²6öå&W74¶W’„¶W’—Òà¢¢ğ¢÷fW'&–FP¢V&Æ–2fö–Böå&VÆV6T¶W’†f–æÂ¶W’¶W’’°¢FE&V6VçD¶W’†¶W’“°¢f–æÂ–çB6öFRÒ¶W’ævWD6öFR‚“°¢–b†6öFRÓÒ¶W”6öFRäÕTÅD•ÄUô4ôDUõô”åE2’°¢Ô¶W–&ö&D7F–öäÆ—7FVæW"æöåFW‡D–çWB†¶W’ævWD÷WGWEFW‡B‚’“°¢ÒVÇ6R°¢Ô¶W–&ö&D7F–öäÆ—7FVæW"æöä6öFT–çWB†6öFRÂäõEôô4ôõ$D”äDRÂäõEôô4ôõ$D”äDRÂfÇ6R“°¢Ğ¢Ô¶W–&ö&D7F–öäÆ—7FVæW"æöå&VÆV6T¶W’†6öFRÂfÇ6R“°¢–b…6WGF–æw2ævWEfÇVW2‚’æÔÇ†gFW$VÖö¦”–äVÖö¦•f–Wr¢Ô¶W–&ö&D7F–öäÆ—7FVæW"æöä6öFT–çWB„¶W”6öFRäÅ„ÂäõEôô4ôõ$D”äDRÂäõEôô4ôõ$D”äDRÂfÇ6R“°¢Ğ ¢÷fW'&–FP¢V&Æ–27G&–ærvWDFW67&—F–öâ…7G&–ærVÖö¦’’°¢f–æÂ6–ævÆTF–7F–öæ'”f6–Æ—FF÷"f6–Æ—FF÷"Ò4F–7F–öæ'”f6–Æ—FF÷#°¢–b†f6–Æ—FF÷"ÓÒçVÆÂ’°¢&WGW&âçVÆÃ°¢Ğ ¢f"v÷&E&÷W'G’Òf6–Æ—FF÷"ævWEv÷&E&÷W'G’„VÖö¦•'6W$·BævWDVÖö¦”æWWG&ÅfW'6–öâ†VÖö¦’’“°¢–b‡v÷&E&÷W'G’ÓÒçVÆÂÇÂv÷&E&÷W'G’æÔ†56†÷'F7WG2’°¢&WGW&âçVÆÃ°¢Ğ ¢&WGW&âv÷&E&÷W'G’æÕ6†÷'F7WEF&vWG2ævWBƒ’æÕv÷&C°¢Ğ ¢V&Æ–2fö–B6WD†&Gv&T66VÆW&FVDG&v–ætVæ&ÆVB†f–æÂ&ööÆVâVæ&ÆVB’°¢–b‚Væ&ÆVB’&WGW&ã°¢òòDôDó¢6†÷VÆBW6RÄ”U%õE•Uõ4ôeEt$Rv†Vâ†&Gv&R66VÆW&F–öâ—2öfcğ¢6WDÆ–W%G—R„Ä”U%õE•Uô„$Et$RÂçVÆÂ“°¢Ğ ¢V&Æ–2fö–B7F'DVÖö¦•ÆWGFW2†f–æÂ¶W•f—7VÄGG&–'WFW2¶W•f—7VÄGG"À¢f–æÂVF—F÷$–æfòVF—F÷$–æfòÂf–æÂ¶W–&ö&D7F–öäÆ—7FVæW"¶W–&ö&D7F–öäÆ—7FVæW"’°¢–æ—F–Æ—¦R‚“°¢vWE&V6VçG4¶W–&ö&B‚’æfÇW6…VæF–æu&V6VçD¶W—2‚“°¢WFFTFF—fTVÖö¦”÷&FW"‚“°¢ÔÖ–ä¶W–&ö&D7F–öäÆ—7FVæW"Ò¶W–&ö&D7F–öäÆ—7FVæW#°¢Ô¶W–&ö&D7F–öäÆ—7FVæW"Ò¶W–&ö&D7F–öäÆ—7FVæW#°¢–b†Õ6V&6„ÖöFR’°¢W†—E6V&6„ÖöFR†fÇ6RÂfÇ6R“°¢Ğ¢6WE6V&6…FW‡B‚""Â“° ¢òò&W6WB67&öÆÂ÷6—F–öâFòF†RF÷WfW'’F–ÖRF†RVÖö¦’æVÂ—2÷VæV@¢–b†ÕvW"ÒçVÆÂ’°¢ÕvW"ç67&öÆÅFõ÷6—F–öâƒ“°¢Ğ¢òòÇ6ò&W6WBF†R6VÆV7FVB6FVv÷'’&6²FòF†Rf—'7BöæR…&V6VçG2¢6WD7W'&VçD6FVv÷'”–B†ÔVÖö¦”6FVv÷'’ævWD7W'&VçD6FVv÷'”–B‚’ÂG'VR“° ¢6WGW&÷GFöÕ&÷t¶W–&ö&B†VF—F÷$–æfòÂ¶W–&ö&D7F–öäÆ—7FVæW"“°¢f–æÂ¶W”G&u&×2&×2ÒæWr¶W”G&u&×2‚“°¢&×2çWFFU&×2†ÔVÖö¦”Æ–÷WE&×2ævWD&÷GFöÕ&÷t¶W–&ö&D†V–v‡B‚’Â¶W•f—7VÄGG"“°¢6WGW6–FUFF–ær‚“°¢–æ—DF–7F–öæ'”f6–Æ—FF÷"‚“°¢Ğ ¢V&Æ–2&ööÆVâ—56V&6„ÖöFR‚’°¢&WGW&âÕ6V&6„ÖöFS°¢Ğ ¢V&Æ–2fö–BVçFW%6V&6„ÖöFR‚’°¢–æ—F–Æ—¦R‚“° ¢–b†Õ6V&6„ÖöFR’°¢fö7W56V&6„f–VÆB‡G'VR“°¢&WGW&ã°¢Ğ¢Õ6V&6„ÖöFRÒG'VS°¢Ô7W'&VçE6V&6„¶W–&ö&DVÆVÖVçD–BÒ¶W–&ö&D–BäTÄTÔTåEôÅ„$UC° ¢ÕvW"ç6WEf—6–&–Æ—G’…f–WrätôäR“°¢ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢–b†Ô&÷GFöÕ&÷t¶W–&ö&BÒçVÆÂ’°¢Ô&÷GFöÕ&÷t¶W–&ö&Bç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢f–æÂf–WrF%7G&—f–WrÒ¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚’ævWDVÖö¦•F%7G&—‚“°¢–b‡F%7G&—f–WrÒçVÆÂ’°¢F%7G&—f–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢Õ6V&6„&$6öçF–æW"ç6WDÇ†ƒb“°¢Õ6V&6„&$6öçF–æW"ç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢Õ6V&6„&$6öçF–æW"ææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢–b†Õ6V&6…&W7VÇG567&öÆÅf–WrÒçVÆÂ’°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6WDÇ†ƒb“°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢Ğ¢Õ6V&6…&W7VÇG5f–Wrç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“° ¢¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚’ææ÷F–g”VçFW&–æu6V&6„ÖöFR‚“°¢7v¶W–&ö&EFôVÖö¦•6V&6‚‡G'VRÂfÇ6R“°¢WFFU6V&6„¶W–&ö&B‚“°¢fö7W56V&6„f–VÆB‡G'VR“°¢WFFU6V&6…VW'•V’‚“°¢6V&6„VÖö¦’†Õ6V&6…VW'’“°¢&WVW7DÆ–÷WB‚“°¢Ğ ¢V&Æ–2fö–BW†—E6V&6„ÖöFR†f–æÂ&ööÆVâ6ÆV%VW'’’°¢W†—E6V&6„ÖöFR†6ÆV%VW'’ÂG'VR“°¢Ğ ¢V&Æ–2fö–BW†—E6V&6„ÖöFR†f–æÂ&ööÆVâ6ÆV%VW'’Âf–æÂ&ööÆVâ&W7F÷&Uf–Ww2’° ¢–b‚Õ6V&6„ÖöFRbb6ÆV%VW'’’°¢&WGW&ã°¢Ğ¢–b†6ÆV%VW'’’°¢6WE6V&6…FW‡B‚""Â“°¢Ğ¢Õ6V&6„ÖöFRÒfÇ6S°¢–b†Õ6V&6„VF—EFW‡BÒçVÆÂ’°¢Õ6V&6„VF—EFW‡Bç6WD7W'6÷%f—6–&ÆR†fÇ6R“° ¢Õ6V&6„VF—EFW‡Bæ6ÆV$fö7W2‚“°¢Ğ¢–b†Õ6V&6„&$6öçF–æW"ÒçVÆÂ’°¢Õ6V&6„&$6öçF–æW"ç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢–b†Õ6V&6…&W7VÇG567&öÆÅf–WrÒçVÆÂ’°¢Õ6V&6…&W7VÇG567&öÆÅf–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢–b†Õ6V&6…&W7VÇG5f–WrÒçVÆÂ’°¢Õ6V&6…&W7VÇG5f–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢–b†ÕvW"ÒçVÆÂ’°¢ÕvW"ç6WDÇ†ƒb“°¢ÕvW"ç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢ÕvW"ææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢Ğ¢–b†ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–WrÒçVÆÂ’°¢ÔVÖö¦”6FVv÷'•vT–æF–6F÷%f–Wrç6WEf—6–&–Æ—G’…f–WrätôäR“°¢Ğ¢–b†Ô&÷GFöÕ&÷t¶W–&ö&BÒçVÆÂ’°¢Ô&÷GFöÕ&÷t¶W–&ö&Bç6WDÇ†ƒb“°¢Ô&÷GFöÕ&÷t¶W–&ö&Bç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢Ô&÷GFöÕ&÷t¶W–&ö&Bææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢Ğ¢7v¶W–&ö&EFôVÖö¦•6V&6‚†fÇ6RÂ&W7F÷&Uf–Ww2“°¢–b‡&W7F÷&Uf–Ww2’°¢&W7F÷&TVÖö¦”6FVv÷'•7G&—‚“°¢Ğ¢f–æÂÖ–ä¶W–&ö&Ef–WrÖ–ä¶W–&ö&Ef–WrÒ¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚’ævWDÖ–ä¶W–&ö&Ef–Wr‚“°¢–b†Ö–ä¶W–&ö&Ef–WrÒçVÆÂ’°¢Ö–ä¶W–&ö&Ef–Wrç6WD¶W–&ö&D7F–öäÆ—7FVæW"†ÔÖ–ä¶W–&ö&D7F–öäÆ—7FVæW"“°¢Ğ¢ö–çFW%G&6¶W"ç7v—F6…Fò†Ô&÷GFöÕ&÷t¶W–&ö&BÒçVÆÂòÔ&÷GFöÕ&÷t¶W–&ö&B¢Ö–ä¶W–&ö&Ef–Wr“°¢¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚’æÆöuG—–ætÆ—7FVæW$–çf&–çB€¢$VÖö¦•6V&6‚æW†—B"ÂG'VRò¢Æöuv†Väö²¢ò“°¢&WVW7DÆ–÷WB‚“°¢–b‡&W7F÷&Uf–Ww2’°¢÷7B‡F†—3£§&W7F÷&TVÖö¦”6FVv÷'•7G&—“°¢Ğ¢Ğ ¢V&Æ–2&ööÆVâ†æFÆT&6µ&W72‚’°¢–b†Õ6V&6„ÖöFR’°¢W†—E6V&6„ÖöFR†fÇ6R“°¢&WGW&âG'VS°¢Ğ¢&WGW&âfÇ6S°¢Ğ ¢&—fFRfö–B&W7F÷&TVÖö¦”6FVv÷'•7G&—‚’°¢f–æÂ¶W–&ö&E7v—F6†W"7v—F6†W"Ò¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚“°¢f–æÂf–Wr7G&—6öçF–æW"Ò7v—F6†W"ævWE7G&—6öçF–æW"‚“°¢f–æÂf–WrF%7G&—f–WrÒ7v—F6†W"ævWDVÖö¦•F%7G&—‚“°¢–b‡7G&—6öçF–æW"ÒçVÆÂ’°¢7G&—6öçF–æW"ç6WDÇ†ƒb“°¢7G&—6öçF–æW"ç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢7G&—6öçF–æW"ææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢Ğ¢–b‡F%7G&—f–WrÒçVÆÂ’°¢F%7G&—f–Wrç6WDÇ†ƒb“°¢F%7G&—f–Wrç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢F%7G&—f–Wrææ–ÖFR‚’æÇ†ƒb’ç6WDGW&F–öâƒ3S’ç7F'B‚“°¢Ğ¢Ğ   ¢&—fFRfö–B7v¶W–&ö&EFôVÖö¦•6V&6‚†f–æÂ&ööÆVâVçFW"Âf–æÂ&ööÆVâ†–FT¶W–&ö&B’°¢f–æÂ¶W–&ö&E7v—F6†W"7v—F6†W"Ò¶W–&ö&E7v—F6†W"ævWD–ç7Fæ6R‚“°¢f–æÂÖ–ä¶W–&ö&Ef–Wr¶W–&ö&Ef–WrÒ7v—F6†W"ævWDÖ–ä¶W–&ö&Ef–Wr‚“°¢f–æÂf–Wrw&W%f–WrÒ7v—F6†W"ævWEw&W%f–Wr‚“°¢–b†¶W–&ö&Ef–WrÓÒçVÆÂÇÂ‡w&W%f–Wr–ç7Fæ6Vöbf–Wtw&÷W’ÇÂÕ6V&6„¶W–&ö&EÆ6V†öÆFW"ÓÒçVÆÂ’°¢&WGW&ã°¢Ğ¢f–æÂf–Wtw&÷Ww&W"Ò…f–Wtw&÷W’w&W%f–Ws°¢f–æÂf–Wu&VçB7W'&VçE&VçBÒ¶W–&ö&Ef–WrævWE&VçB‚“°¢–b†VçFW"’°¢¶W–&ö&Ef–Wrç6WDÇ†ƒb“°¢–b†7W'&VçE&VçBÒF†—2’°¢–b†7W'&VçE&VçB–ç7Fæ6Vöbf–Wtw&÷W’°¢‚…f–Wtw&÷W’7W'&VçE&VçB’ç&VÖ÷fUf–Wr†¶W–&ö&Ef–Wr“°¢Ğ¢f–æÂ–çB–æFW‚Ò–æFW„öd6†–ÆB†Õ6V&6„¶W–&ö&EÆ6V†öÆFW"“°¢FEf–Wr†¶W–&ö&Ef–WrÂ–æFW‚ãÒò–æFW‚¢vWD6†–ÆD6÷VçB‚’“°¢Ğ¢¶W–&ö&Ef–Wrç6WDÆ–÷WE&×2†æWrÆ–æV$Æ–÷WBäÆ–÷WE&×2€¢f–Wtw&÷WäÆ–÷WE&×2äÔD4…õ$TåBÂf–Wtw&÷WäÆ–÷WE&×2åu$ô4ôåDTåB’“°¢¶W–&ö&Ef–Wrç6WEf—6–&–Æ—G’…f–Wråd•4”$ÄR“°¢7v—F6†W"ævWE7G&—6öçF–æW"‚’ç6WEf—6–&–Æ—G’…f–Wrätşz×kh‘éì¶»§q«^t€€€€€€€€€€€€€‘¥ÍÁ…Ñ¡M•…É¡M¡½ÉÑÕĞ¡-•åÙ•¹Ğ¹-e=}h°-•åÙ•¹Ğ¹5Q}QI1}=8ğ-•åÙ•¹Ğ¹5Q}M!%Q}=8¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€…Í”-•å½‘”¹M!%Pè(€€€€€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ôÍİ¥Ñ €¡µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%¤ì(€€€€€€€€€€€€€€€€€€€…Í”-•å‰½…É‘%¹159Q}1A!	P€´ø-•å‰½…É‘%¹159Q}1A!	Q}59U1}M!%Qì(€€€€€€€€€€€€€€€€€€€…Í”-•å‰½…É‘%¹159Q}1A!	Q}59U1}M!%Q€´ø-•å‰½…É‘%¹159Q}1A!	Q}M!%Q}1=-ì(€€€€€€€€€€€€€€€€€€€…Í”-•å‰½…É‘%¹159Q}1A!	Q}M!%Q}1=-€´ø-•å‰½…É‘%¹159Q}1A!	Pì(€€€€€€€€€€€€€€€€€€€…Í”-•å‰½…É‘%¹159Q}Me5	=1L€´ø-•å‰½…É‘%¹159Q}Me5	=1M}M!%Qì(€€€€€€€€€€€€€€€€€€€…Í”-•å‰½…É‘%¹159Q}Me5	=1M}M!%Q€´ø-•å‰½…É‘%¹159Q}Me5	=1Lì(€€€€€€€€€€€€€€€€€€€‘•™…Õ±Ğ€´ø-•å‰½…É‘%¹159Q}1A!	Pì(€€€€€€€€€€€€€€€ôì(€€€€€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€…Í”-•å½‘”¹Me5	=0è(€€€€€€€€€€€…Í”-•å½‘”¹Me5	=1}1A!è(€€€€€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ô(€€€€€€€€€€€€€€€€€€€€€€€€¡µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ôô-•å‰½…É‘%¹159Q}Me5	=1L(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ñğµÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ôô-•å‰½…É‘%¹159Q}Me5	=1M}M!%Q¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ü-•å‰½…É‘%¹159Q}1A!	P€è-•å‰½…É‘%¹159Q}Me5	=1Lì(€€€€€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€…Í”-•å½‘”¹1A!è(€€€€€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ô-•å‰½…É‘%¹159Q}1A!	Pì(€€€€€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€…Í”-•å½‘”¹9U5Aè(€€€€€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ô-•å‰½…É‘%¹159Q}9U5Aì(€€€€€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€…Í”-•å½‘”¹5=)$è(€€€€€€€€€€€€€€€•á¥ÑM•…É¡5½‘”¡™…±Í”¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€‘•™…Õ±Ğè(€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€ô((€€€€€€€¥˜€¡ÁÉ¥µ…Éå½‘”€øô½¹ÍÑ…¹ÑÌ¹=}MA¤ì(€€€€€€€€€€€¥¹Í•ÉÑM•…É¡Q•áĞ¡¹•ÜMÑÉ¥¹œ¡¡…É…Ñ•È¹Ñ½¡…ÉÌ¡ÁÉ¥µ…Éå½‘”¤¤¤ì(€€€€€€€€€€€¥˜€¡µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ôô-•å‰½…É‘%¹159Q}1A!	Q}59U1}M!%Q¤ì(€€€€€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ô-•å‰½…É‘%¹159Q}1A!	Pì(€€€€€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€µ5…¥¹-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¹½¹½‘•%¹ÁÕĞ¡ÁÉ¥µ…Éå½‘”°à°ä°¥Í-•åI•Á•…Ğ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”1…Ñ¥¹%5•Ñ1…Ñ¥¹%5 ¤ì(€€€€€€€½¹Ñ•áĞ½¹Ñ•áĞ€ô•Ñ½¹Ñ•áĞ ¤ì(€€€€€€€İ¡¥±”€¡½¹Ñ•áĞ¥¹ÍÑ…¹•½˜½¹Ñ•áÑ]É…ÁÁ•È¤ì(€€€€€€€€€€€¥˜€¡½¹Ñ•áĞ¥¹ÍÑ…¹•½˜1…Ñ¥¹%5¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸€¡1…Ñ¥¹%5¤½¹Ñ•áĞì(€€€€€€€€€€€ô(€€€€€€€€€€€½¹Ñ•áĞ€ô€ ¡½¹Ñ•áÑ]É…ÁÁ•È¤½¹Ñ•áĞ¤¹•Ñ	…Í•½¹Ñ•áĞ ¤ì(€€€€€€€ô(€€€€€€€É•ÑÕÉ¸¹Õ±°ì(€€€ô((€€€ÁÉ¥Ù…Ñ”™¥¹…°-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•ÈµM•…É¡-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È€ô¹•Ü-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¹‘…ÁÑ•È ¤ì(€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹AÉ•ÍÍ-•ä¡™¥¹…°¥¹ĞÁÉ¥µ…Éå½‘”°™¥¹…°¥¹ĞÉ•Á•…Ñ½Õ¹Ğ°™¥¹…°‰½½±•…¸¥ÍM¥¹±•A½¥¹Ñ•È°(€€€€€€€€€€€€€€€™¥¹…°!…ÁÑ¥Ù•¹Ğ¡…ÁÑ¥Ù•¹Ğ¤ì(€€€€€€€€€€€µ5…¥¹-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¹½¹AÉ•ÍÍ-•ä¡ÁÉ¥µ…Éå½‘”°É•Á•…Ñ½Õ¹Ğ°¥ÍM¥¹±•A½¥¹Ñ•È°¡…ÁÑ¥Ù•¹Ğ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹1½¹AÉ•ÍÍ-•ä¡™¥¹…°¥¹ĞÁÉ¥µ…Éå½‘”¤ì(€€€€€€€€€€€µ5…¥¹-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¹½¹1½¹AÉ•ÍÍ-•ä¡ÁÉ¥µ…Éå½‘”¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹I•±•…Í•-•ä¡™¥¹…°¥¹ĞÁÉ¥µ…Éå½‘”°™¥¹…°‰½½±•…¸İ¥Ñ¡M±¥‘¥¹œ¤ì(€€€€€€€€€€€µ5…¥¹-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¹½¹I•±•…Í•-•ä¡ÁÉ¥µ…Éå½‘”°İ¥Ñ¡M±¥‘¥¹œ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸½¹-•å½İ¸¡™¥¹…°¥¹Ğ­•å½‘”°™¥¹…°-•åÙ•¹Ğ­•åÙ•¹Ğ¤ì(€€€€€€€€€€€É•ÑÕÉ¸µM•…É¡‘¥ÑQ•áĞ€„ô¹Õ±°€˜˜µM•…É¡‘¥ÑQ•áĞ¹‘¥ÍÁ…Ñ¡-•åÙ•¹Ğ¡­•åÙ•¹Ğ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸½¹-•åUÀ¡™¥¹…°¥¹Ğ­•å½‘”°™¥¹…°-•åÙ•¹Ğ­•åÙ•¹Ğ¤ì(€€€€€€€€€€€É•ÑÕÉ¸µM•…É¡‘¥ÑQ•áĞ€„ô¹Õ±°€˜˜µM•…É¡‘¥ÑQ•áĞ¹‘¥ÍÁ…Ñ¡-•åÙ•¹Ğ¡­•åÙ•¹Ğ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹½‘•%¹ÁÕĞ¡™¥¹…°¥¹ĞÁÉ¥µ…Éå½‘”°™¥¹…°¥¹Ğà°™¥¹…°¥¹Ğä°™¥¹…°‰½½±•…¸¥Í-•åI•Á•…Ğ¤ì(€€€€€€€€€€€¡…¹‘±•M•…É¡½‘•%¹ÁÕĞ¡ÁÉ¥µ…Éå½‘”°à°ä°¥Í-•åI•Á•…Ğ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹Q•áÑ%¹ÁÕĞ¡™¥¹…°MÑÉ¥¹œÑ•áĞ¤ì(€€€€€€€€€€€¥¹Í•ÉÑM•…É¡Q•áĞ¡Ñ•áĞ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹MÑ…ÉÑ	…Ñ¡%¹ÁÕĞ ¤ì(€€€€€€€€€€€™½ÕÍM•…É¡¥•±¡™…±Í”¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹¹‘	…Ñ¡%¹ÁÕĞ¡™¥¹…°%¹ÁÕÑA½¥¹Ñ•ÉÌ‰…Ñ¡A½¥¹Ñ•ÉÌ¤ì(€€€€€€€€€€€¥˜€¡‰…Ñ¡A½¥¹Ñ•ÉÌ€ôô¹Õ±°¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€ô(€€€€€€€€€€€™¥¹…°1…Ñ¥¹%5±…Ñ¥¹%5€ô•Ñ1…Ñ¥¹%5 ¤ì(€€€€€€€€€€€™¥¹…°5…¥¹-•å‰½…É‘Y¥•Ü­•å‰½…É‘Y¥•Ü€ô-•å‰½…É‘Mİ¥Ñ¡•È¹•Ñ%¹ÍÑ…¹” ¤¹•Ñ5…¥¹-•å‰½…É‘Y¥•Ü ¤ì(€€€€€€€€€€€™¥¹…°-•å‰½…É­•å‰½…É€ô­•å‰½…É‘Y¥•Ü€ôô¹Õ±°€ü¹Õ±°€è­•å‰½…É‘Y¥•Ü¹•Ñ-•å‰½…É ¤ì(€€€€€€€€€€€¥˜€¡±…Ñ¥¹%5€ôô¹Õ±°ñğ­•å‰½…É€ôô¹Õ±°¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€ô(€€€€€€€€€€€±…Ñ¥¹%5¹•Ñ-±¥ÁåM•…É¡•ÍÑÕÉ•MÕ•ÍÑ¥½¸¡‰…Ñ¡A½¥¹Ñ•ÉÌ°­•å‰½…É°¹•ÜMÕ•ÍĞ¹=¹•ÑMÕ•ÍÑ•‘]½É‘Í…±±‰…¬ ¤ì(€€€€€€€€€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€€€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹•ÑMÕ•ÍÑ•‘]½É‘Ì¡™¥¹…°MÕ•ÍÑ•‘]½É‘ÌÍÕ•ÍÑ•‘]½É‘Ì¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡ÍÕ•ÍÑ•‘]½É‘Ì€ôô¹Õ±°ñğÍÕ•ÍÑ•‘]½É‘Ì¹¥ÍµÁÑä ¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€™¥¹…°MÑÉ¥¹œİ½É€ôÍÕ•ÍÑ•‘]½É‘Ì¹•Ñ]½É À¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡İ½É€„ô¹Õ±°€˜˜€…İ½É¹¥Í	±…¹¬ ¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€Á½ÍĞ  ¤€´ø¥¹Í•ÉÑM•…É¡Q•áĞ¡İ½É¤¤ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹…¹•±	…Ñ¡%¹ÁÕĞ ¤ì(€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡EÕ•ÉåU¤ ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸½¹!½É¥é½¹Ñ…±MÁ…•Mİ¥Á”¡™¥¹…°¥¹ĞÍÑ•ÁÌ¤ì(€€€€€€€€€€€µ½Ù•M•…É¡ÕÉÍ½É	å½‘•A½¥¹ÑÌ¡ÍÑ•ÁÌ¤ì(€€€€€€€€€€€É•ÑÕÉ¸ÑÉÕ”ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹5½Ù••±•Ñ•A½¥¹Ñ•È¡™¥¹…°¥¹ĞÍÑ•ÁÌ¤ì(€€€€€€€€€€€¥˜€¡µM•…É¡‘¥ÑQ•áĞ€ôô¹Õ±°¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€ô(€€€€€€€€€€€™¥¹…°¥¹ĞÕÉÍ½É¹€ôÍ•…É¡M•±•Ñ¥½¹¹ ¤ì(€€€€€€€€€€€™¥¹…°¥¹ĞÕÉÍ½ÉMÑ…ÉĞ€ôÍ•…É¡M•±•Ñ¥½¹MÑ…ÉĞ ¤ì(€€€€€€€€€€€™¥¹…°¥¹Ğ¹•İMÑ…ÉĞ€ô5…Ñ ¹µ…à À°5…Ñ ¹µ¥¸¡ÕÉÍ½ÉMÑ…ÉĞ€¬ÍÑ•ÁÌ°µM•…É¡‘¥ÑQ•áĞ¹±•¹Ñ  ¤¤¤ì(€€€€€€€€€€€¥˜€¡¹•İMÑ…ÉĞ€ğôÕÉÍ½É¹¤ì(€€€€€€€€€€€€€€€µM•…É¡‘¥ÑQ•áĞ¹Í•ÑM•±•Ñ¥½¸¡¹•İMÑ…ÉĞ°ÕÉÍ½É¹¤ì(€€€€€€€€€€€ô(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥ŒÙ½¥½¹UÁ]¥Ñ¡•±•Ñ•A½¥¹Ñ•ÉÑ¥Ù” ¤ì(€€€€€€€€€€€¥˜€¡µM•…É¡‘¥ÑQ•áĞ€ôô¹Õ±°¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€€€€€ô(€€€€€€€€€€€™¥¹…°¥¹ĞÍÑ…ÉĞ€ôÍ•…É¡M•±•Ñ¥½¹5¥¸ ¤ì(€€€€€€€€€€€™¥¹…°¥¹Ğ•¹€ôÍ•…É¡M•±•Ñ¥½¹5…à ¤ì(€€€€€€€€€€€¥˜€¡ÍÑ…ÉĞ€ğ•¹¤ì(€€€€€€€€€€€€€€€µM•…É¡‘¥ÑQ•áĞ¹•ÑQ•áĞ ¤¹‘•±•Ñ”¡ÍÑ…ÉĞ°•¹¤ì(€€€€€€€€€€€€€€€µM•…É¡‘¥ÑQ•áĞ¹Í•ÑM•±•Ñ¥½¸¡ÍÑ…ÉĞ¤ì(€€€€€€€€€€€€€€€Íå¹M•…É¡EÕ•ÉåÉ½µ¥•± ¤ì(€€€€€€€€€€€ô(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÕ‰±¥Œ‰½½±•…¸Ñ½±•9ÕµÁ…¡™¥¹…°‰½½±•…¸İ¥Ñ¡M±¥‘¥¹œ°™¥¹…°‰½½±•…¸™½É•I•ÑÕÉ¹Q½±Á¡„¤ì(€€€€€€€€€€€µÕÉÉ•¹ÑM•…É¡-•å‰½…É‘±•µ•¹Ñ%€ô-•å‰½…É‘%¹159Q}9U5Aì(€€€€€€€€€€€ÕÁ‘…Ñ•M•…É¡-•å‰½…É ¤ì(€€€€€€€€€€€É•ÑÕÉ¸ÑÉÕ”ì(€€€€€€€ô(€€€ôì((€€€Ù½¥…‘‘I••¹Ñ-•ä¡™¥¹…°-•ä­•ä¤ì(€€€€€€€¥˜€¡M•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤¹µ%¹½¹¥Ñ½5½‘•¹…‰±•¤ì(€€€€€€€€€€€€¼¼]”‘¼¹½Ğİ…¹ĞÑ¼±½œÉ••¹Ğ­•åÌİ¡¥±”‰•¥¹œ¥¸¥¹½¹¥Ñ¼(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€™¥¹…°MÑÉ¥¹œ•µ½©¥MÑÈ€ô­•ä¹•Ñ=ÕÑÁÕÑQ•áĞ ¤€„ô¹Õ±°€ü­•ä¹•Ñ=ÕÑÁÕÑQ•áĞ ¤€è€¡­•ä¹•Ñ½‘” ¤€ø€À€ü¹•ÜMÑÉ¥¹œ¡¡…É…Ñ•È¹Ñ½¡…ÉÌ¡­•ä¹•Ñ½‘” ¤¤¤€è¹Õ±°¤ì(€€€€€€€¥˜€¡•µ½©¥MÑÈ€„ô¹Õ±°¤ì(€€€€€€€€€€€‘…ÁÑ¥Ù•µ½©¥¹¥¹”¹É•½É‘µ½©¥UÍ…”¡•Ñ½¹Ñ•áĞ ¤°•µ½©¥MÑÈ¤ì(€€€€€€€ô(€€€€€€€€¼¼•™•ÈÙ¥Í¥‰±”É••¹ÑÌÉ•½É‘•É¥¹œÕ¹Ñ¥°Ñ¡”Á…¹•°¥Ì±½Í•Ñ¼…Ù½¥I•å±•ÉY¥•Ü(€€€€€€€€¼¼É•‰¥¹‘Ì½±…å½ÕĞÍ¡¥™ÑÌİ¡¥±”Ñ¡”ÕÍ•È¥ÌÑ…ÁÁ¥¹œ•µ½©¥Ì¸(€€€€€€€¥˜€¡•ÑY¥Í¥‰¥±¥Ñä ¤€ôôY%M%	1¤ì(€€€€€€€€€€€•ÑI••¹ÑÍ-•å‰½…É ¤¹…‘‘A•¹‘¥¹-•ä¡­•ä¤ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€•ÑI••¹ÑÍ-•å‰½…É ¤¹…‘‘-•å¥ÉÍĞ¡­•ä¤ì(€€€€€€€¥˜€¡¥¹¥Ñ¥…±¥é•€˜˜µA…•È¹•Ñ‘…ÁÑ•È ¤¥¹ÍÑ…¹•½˜µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤ì(€€€€€€€€€€€™¥¹…°¥¹ĞÁ½Ì€ô€ ¡µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤µA…•È¹•Ñ‘…ÁÑ•È ¤¤¹•Ñ¥ÉÍÑA…•A½Í¥Ñ¥½¹=™…Ñ•½Éä¡µ½©¥…Ñ•½Éä¹%}I9QL¤ì(€€€€€€€€€€€¥˜€¡Á½Ì€„ô€´Ä¤ì(€€€€€€€€€€€€€€€µA…•È¹•Ñ‘…ÁÑ•È ¤¹¹½Ñ¥™å%Ñ•µ¡…¹•¡Á½Ì¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÕ‰±¥ŒÙ½¥…‘‘I••¹Ñµ½©¤¡™¥¹…°MÑÉ¥¹œ•µ½©¤¤ì(€€€€€€€¥˜€¡M•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤¹µ%¹½¹¥Ñ½5½‘•¹…‰±•¤ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€™¥¹…°-•ä•µ½©¥-•ä€ôµµ½©¥…Ñ•½Éä¹™¥¹‘µ½©¥-•ä¡•µ½©¤¤ì(€€€€€€€¥˜€¡•µ½©¥-•ä€„ô¹Õ±°¤ì(€€€€€€€€€€€€¼¼…‘‘I••¹Ñ-•äÕÁ‘…Ñ•ÌÑ¡”…‘…ÁÑ¥Ù”½Õ¹Ğ…¹É••¹Ğ±¥ÍĞ•á…Ñ±ä½¹”¸(€€€€€€€€€€€…‘‘I••¹Ñ-•ä¡•µ½©¥-•ä¤ì(€€€€€€€ô(€€€ô((€€€ÁÕ‰±¥ŒÍÑ…Ñ¥Œ±…ÍÌ‘…ÁÑ¥Ù•µ½©¥¹¥¹”ì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹œAI}AQ%Y}5QQ€ô€‰ÁÉ•™}…‘…ÁÑ¥Ù•}•µ½©¥}µ•Ñ…‘…Ñ„ˆì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹œAI}MQ}I=]}!€ô€‰ÁÉ•™}…‘…ÁÑ¥Ù•}•µ½©¥}™…ÍÑ}É½İ}…¡”ˆì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°MÑÉ¥¹œAI}MQ}I=]}1MQ}IIM €ô€‰ÁÉ•™}…‘…ÁÑ¥Ù•}•µ½©¥}™…ÍÑ}É½İ}±…ÍÑ}É•™É•Í ˆì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°±½¹œMQ}I=]}IIM!}%9QIY1}5%11%L€ô€ÄÉ0€¨€ØÁ0€¨€ØÁ0€¨€ÄÀÀÁ0ì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°¥¹Ğ5a}MQ}I=]}5=)%}=U9P€ô€Ğàì(€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ™¥¹…°‘½Õ‰±”I9e}e}M=9L€ô€Ü¸À€¨€ÈĞ¸À€¨€ØÀ¸À€¨€ØÀ¸Àì((€€€€€€€ÁÕ‰±¥ŒÍÑ…Ñ¥ŒÙ½¥É•½É‘µ½©¥UÍ…”¡9½¹9Õ±°™¥¹…°½¹Ñ•áĞ½¹Ñ•áĞ°9½¹9Õ±°™¥¹…°MÑÉ¥¹œ•µ½©¤¤ì(€€€€€€€€€€€¹•ÜQ¡É•…  ¤€´øì(€€€€€€€€€€€€€€€Íå¹¡É½¹¥é•€¡‘…ÁÑ¥Ù•µ½©¥¹¥¹”¹±…ÍÌ¤ì(€€€€€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€€€€€™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹-Ñá-Ğ¹ÁÉ•™Ì¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€€€€€€€€€€€€€™¥¹…°MÑÉ¥¹œ©Í½¹MÑÈ€ôÁÉ•™Ì¹•ÑMÑÉ¥¹œ¡AI}AQ%Y}5QQ°€‰íôˆ¤ì(€€€€€€€€€€€€€€€€€€€€€€€½Éœ¹©Í½¸¹)M=9=‰©•ĞÉ½½Ğì(€€€€€€€€€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€€€€€€€€€É½½Ğ€ô¹•Ü½Éœ¹©Í½¸¹)M=9=‰©•Ğ¡©Í½¹MÑÈ¤ì(€€€€€€€€€€€€€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸”¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€É½½Ğ€ô¹•Ü½Éœ¹©Í½¸¹)M=9=‰©•Ğ ¤ì(€€€€€€€€€€€€€€€€€€€€€€€ô((€€€€€€€€€€€€€€€€€€€€€€€™¥¹…°±½¹œ¹½Ü€ôMåÍÑ•´¹ÕÉÉ•¹ÑQ¥µ•5¥±±¥Ì ¤ì(€€€€€€€€€€€€€€€€€€€€€€€½Éœ¹©Í½¸¹)M=9=‰©•ĞÉ•½É€ôÉ½½Ğ¹½ÁÑ)M=9=‰©•Ğ¡•µ½©¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡É•½É€ôô¹Õ±°¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É€ô¹•Ü½Éœ¹©Í½¸¹)M=9=‰©•Ğ ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰±…ÍÑUÍ•ˆ°¹½Ü¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰™É•Äˆ°€Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰‰ÕÉÍĞˆ°€Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É½½Ğ¹ÁÕĞ¡•µ½©¤°É•½É¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸¥¹½É•¤íô(€€€€€€€€€€€€€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€±½¹œ±…ÍÑUÍ•€ôÉ•½É¹½ÁÑ1½¹œ ‰±…ÍÑUÍ•ˆ°¹½Ü¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€¥¹Ğ™É•Ä€ôÉ•½É¹½ÁÑ%¹Ğ ‰™É•Äˆ°€À¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€¥¹Ğ‰ÕÉÍĞ€ôÉ•½É¹½ÁÑ%¹Ğ ‰‰ÕÉÍĞˆ°€À¤ì((€€€€€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡¹½Ü€´±…ÍÑUÍ•€ğ€ÌÀÁ|ÀÀÁ0¤ì€¼¼€Ôµ¥¹ÕÑ•Ìİ¥¹‘½Ü™½È‰ÕÉÍĞ(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰ÕÉÍĞ¬¬ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰ÕÉÍĞ€ô€Äì€¼¼É•Í•Ğ‰ÕÉÍĞ¥˜½ÕÑÍ¥‘”İ¥¹‘½Ü(€€€€€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€€€€€€€€€™É•Ä¬¬ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰±…ÍÑUÍ•ˆ°¹½Ü¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰™É•Äˆ°™É•Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É•½É¹ÁÕĞ ‰‰ÕÉÍĞˆ°‰ÕÉÍĞ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€É½½Ğ¹ÁÕĞ¡•µ½©¤°É•½É¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸¥¹½É•¤íô(€€€€€€€€€€€€€€€€€€€€€€€ô((€€€€€€€€€€€€€€€€€€€€€€€ÁÉ•™Ì¹•‘¥Ğ ¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹ÁÕÑMÑÉ¥¹œ¡AI}AQ%Y}5QQ°É½½Ğ¹Ñ½MÑÉ¥¹œ ¤¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹É•µ½Ù”¡AI}MQ}I=]}!¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹É•µ½Ù”¡AI}MQ}I=]}1MQ}IIM ¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹…ÁÁ±ä ¤ì(€€€€€€€€€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸”¤ì(€€€€€€€€€€€€€€€€€€€€€€€1½œ¹” ‰‘…ÁÑ¥Ù•µ½©¥¹¥¹”ˆ°€‰…¥±•Ñ¼É•½É•µ½©¤ÕÍ…”…Íå¹¡É½¹½ÕÍ±äˆ°”¤ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô¤¹ÍÑ…ÉĞ ¤ì(€€€€€€€ô((€€€€€€€ÁÕ‰±¥ŒÍÑ…Ñ¥Œ‰½½±•…¸Í¡½Õ±‘I•™É•Í¡…ÍÑI½Ü¡9½¹9Õ±°™¥¹…°½¹Ñ•áĞ½¹Ñ•áĞ¤ì(€€€€€€€€€€€™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹-Ñá-Ğ¹ÁÉ•™Ì¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€™¥¹…°±½¹œ¹½Ü€ôMåÍÑ•´¹ÕÉÉ•¹ÑQ¥µ•5¥±±¥Ì ¤ì(€€€€€€€€€€€É•ÑÕÉ¸Í¡½Õ±‘I•™É•Í¡…ÍÑI½Ü¡ÁÉ•™Ì°É•…‘…¡•‘…ÍÑI½Ü¡ÁÉ•™Ì¤°¹½Ü¤ì(€€€€€€€ô((€€€€€€€ÁÕ‰±¥ŒÍÑ…Ñ¥Œ©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œø•Ñ…ÍÑI½İµ½©¥Ì¡9½¹9Õ±°™¥¹…°½¹Ñ•áĞ½¹Ñ•áĞ¤ì(€€€€€€€€€€€É•ÑÕÉ¸•Ñ…ÍÑI½İµ½©¥Ì¡½¹Ñ•áĞ°€ÄÀ¤ì(€€€€€€€ô((€€€€€€€ÁÕ‰±¥ŒÍÑ…Ñ¥Œ©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œø•Ñ…ÍÑI½İµ½©¥Ì¡9½¹9Õ±°™¥¹…°½¹Ñ•áĞ½¹Ñ•áĞ°™¥¹…°¥¹Ğµ…á½Õ¹Ğ¤ì(€€€€€€€€€€€Íå¹¡É½¹¥é•€¡‘…ÁÑ¥Ù•µ½©¥¹¥¹”¹±…ÍÌ¤ì(€€€€€€€€€€€€€€€™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹-Ñá-Ğ¹ÁÉ•™Ì¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€€€€€™¥¹…°±½¹œ¹½Ü€ôMåÍÑ•´¹ÕÉÉ•¹ÑQ¥µ•5¥±±¥Ì ¤ì(€€€€€€€€€€€€€€€©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œøÉ…¹­•€ôÉ•…‘…¡•‘…ÍÑI½Ü¡ÁÉ•™Ì¤ì(€€€€€€€€€€€€€€€¥˜€¡Í¡½Õ±‘I•™É•Í¡…ÍÑI½Ü¡ÁÉ•™Ì°É…¹­•°¹½Ü¤¤ì(€€€€€€€€€€€€€€€€€€€É…¹­•€ô•ÑI…¹­•‘µ½©¥Ì¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞñ=‰©•Ğø…¡•=‰©•ÑÌ€ô¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞğø ¤ì(€€€€€€€€€€€€€€€€€€€…¡•=‰©•ÑÌ¹…‘‘±°¡É…¹­•¤ì(€€€€€€€€€€€€€€€€€€€ÁÉ•™Ì¹•‘¥Ğ ¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹ÁÕÑMÑÉ¥¹œ¡AI}MQ}I=]}!°¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹)Í½¹UÑ¥±Ì¹±¥ÍÑQ½)Í½¹MÑÈ¡…¡•=‰©•ÑÌ¤¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹ÁÕÑ1½¹œ¡AI}MQ}I=]}1MQ}IIM °¹½Ü¤(€€€€€€€€€€€€€€€€€€€€€€€€€€€€¹…ÁÁ±ä ¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€™¥¹…°¥¹ĞÉ•ÍÕ±Ñ½Õ¹Ğ€ô5…Ñ ¹µ…à À°5…Ñ ¹µ¥¸¡µ…á½Õ¹Ğ°É…¹­•¹Í¥é” ¤¤¤ì(€€€€€€€€€€€€€€€É•ÑÕÉ¸¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞğø¡É…¹­•¹ÍÕ‰1¥ÍĞ À°É•ÍÕ±Ñ½Õ¹Ğ¤¤ì(€€€€€€€€€€€ô(€€€€€€€ô((€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ‰½½±•…¸Í¡½Õ±‘I•™É•Í¡…ÍÑI½Ü¡™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì°(€€€€€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œø…¡•°™¥¹…°±½¹œ¹½Ü¤ì(€€€€€€€€€€€™¥¹…°±½¹œ±…ÍÑI•™É•Í €ôÁÉ•™Ì¹•Ñ1½¹œ¡AI}MQ}I=]}1MQ}IIM °€Á0¤ì(€€€€€€€€€€€É•ÑÕÉ¸…¡•¹¥ÍµÁÑä ¤(€€€€€€€€€€€€€€€€€€€ñğ±…ÍÑI•™É•Í €ğô€Á0(€€€€€€€€€€€€€€€€€€€ñğ¹½Ü€ğ±…ÍÑI•™É•Í (€€€€€€€€€€€€€€€€€€€ñğ¹½Ü€´±…ÍÑI•™É•Í €øôMQ}I=]}IIM!}%9QIY1}5%11%Lì(€€€€€€€ô((€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œøÉ•…‘…¡•‘…ÍÑI½Ü¡™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì¤ì(€€€€€€€€€€€™¥¹…°MÑÉ¥¹œ©Í½¹MÑÈ€ôÁÉ•™Ì¹•ÑMÑÉ¥¹œ¡AI}MQ}I=]}!°€ˆˆ¤ì(€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹1¥ÍĞñ=‰©•Ğø…¡•‘=‰©•ÑÌ€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹)Í½¹UÑ¥±Ì¹©Í½¹MÑÉQ½1¥ÍĞ¡©Í½¹MÑÈ¤ì(€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞñMÑÉ¥¹œø…¡•€ô¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞğø ¤ì(€€€€€€€€€€€™½È€¡™¥¹…°=‰©•Ğ¼€è…¡•‘=‰©•ÑÌ¤ì(€€€€€€€€€€€€€€€¥˜€¡¼¥¹ÍÑ…¹•½˜MÑÉ¥¹œ¤ì(€€€€€€€€€€€€€€€€€€€…¡•¹…‘ ¡MÑÉ¥¹œ¤¼¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€€€€€É•ÑÕÉ¸…¡•ì(€€€€€€€ô((€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ©…Ù„¹ÕÑ¥°¹1¥ÍĞñMÑÉ¥¹œø•ÑI…¹­•‘µ½©¥Ì¡9½¹9Õ±°™¥¹…°½¹Ñ•áĞ½¹Ñ•áĞ¤ì(€€€€€€€€€€€™¥¹…°…¹‘É½¥¹½¹Ñ•¹Ğ¹M¡…É•‘AÉ•™•É•¹•ÌÁÉ•™Ì€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹-Ñá-Ğ¹ÁÉ•™Ì¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€™¥¹…°MÑÉ¥¹œ©Í½¹MÑÈ€ôÁÉ•™Ì¹•ÑMÑÉ¥¹œ¡AI}AQ%Y}5QQ°€‰íôˆ¤ì(€€€€€€€€€€€½Éœ¹©Í½¸¹)M=9=‰©•ĞÉ½½Ğì(€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€É½½Ğ€ô¹•Ü½Éœ¹©Í½¸¹)M=9=‰©•Ğ¡©Í½¹MÑÈ¤ì(€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸”¤ì(€€€€€€€€€€€€€€€É½½Ğ€ô¹•Ü½Éœ¹©Í½¸¹)M=9=‰©•Ğ ¤ì(€€€€€€€€€€€ô((€€€€€€€€€€€™¥¹…°±½¹œ¹½Ü€ôMåÍÑ•´¹ÕÉÉ•¹ÑQ¥µ•5¥±±¥Ì ¤ì(€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞñµ½©¥M½É”ø±¥ÍĞ€ô¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞğø ¤ì(€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹%Ñ•É…Ñ½ÈñMÑÉ¥¹œø­•åÌ€ôÉ½½Ğ¹­•åÌ ¤ì(€€€€€€€€€€€İ¡¥±”€¡­•åÌ¹¡…Í9•áĞ ¤¤ì(€€€€€€€€€€€€€€€™¥¹…°MÑÉ¥¹œ•µ½©¤€ô­•åÌ¹¹•áĞ ¤ì(€€€€€€€€€€€€€€€™¥¹…°½Éœ¹©Í½¸¹)M=9=‰©•ĞÉ•½É€ôÉ½½Ğ¹½ÁÑ)M=9=‰©•Ğ¡•µ½©¤¤ì(€€€€€€€€€€€€€€€¥˜€¡É•½É€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€€€€€™¥¹…°±½¹œ±…ÍÑUÍ•€ôÉ•½É¹½ÁÑ1½¹œ ‰±…ÍÑUÍ•ˆ°¹½Ü¤ì(€€€€€€€€€€€€€€€€€€€™¥¹…°¥¹Ğ™É•Ä€ôÉ•½É¹½ÁÑ%¹Ğ ‰™É•Äˆ°€Ä¤ì(€€€€€€€€€€€€€€€€€€€™¥¹…°¥¹Ğ‰ÕÉÍĞ€ôÉ•½É¹½ÁÑ%¹Ğ ‰‰ÕÉÍĞˆ°€Ä¤ì((€€€€€€€€€€€€€€€€€€€€¼¼€Ä¸É•ÅÕ•¹äÉ½İÌÍÕ‰±¥¹•…É±äÍ¼½¹”•µ½©¤…¹¹½Ğ‘½µ¥¹…Ñ”™½É•Ù•È¸(€€€€€€€€€€€€€€€€€€€‘½Õ‰±”™É•ÅM½É”€ô5…Ñ ¹±½œÅÀ¡™É•Ä¤€¨€ÌÀ¸Àì((€€€€€€€€€€€€€€€€€€€€¼¼€È¸áÁ½¹•¹Ñ¥…°I••¹ä‘•…ä™…Ñ½È¸Q¡”™…ÍĞÉ½ÜÍ¡½Õ±™••°ÍÑ…‰±”…É½ÍÌ‘…åÌ¸(€€€€€€€€€€€€€€€€€€€±½¹œ‘•±Ñ…M•Œ€ô€¡¹½Ü€´±…ÍÑUÍ•¤€¼€ÄÀÀÁ0ì(€€€€€€€€€€€€€€€€€€€¥˜€¡‘•±Ñ…M•Œ€ğ€À¤‘•±Ñ…M•Œ€ô€Àì(€€€€€€€€€€€€€€€€€€€‘½Õ‰±”‘•…ä€ô5…Ñ ¹•áÀ µ‘•±Ñ…M•Œ€¼I9e}e}M=9L¤ì(€€€€€€€€€€€€€€€€€€€‘½Õ‰±”É••¹åM½É”€ô‘•…ä€¨€ÄÀÀ¸Àì((€€€€€€€€€€€€€€€€€€€€¼¼€Ì¸	ÕÉÍĞ™…Ñ½È€¡…Ñ¥Ù”€ÄÔµµ¥¹ÕÑ”İ¥¹‘½Ü™½È‰ÕÉÍĞ‰½½ÍÑÌ¤(€€€€€€€€€€€€€€€€€€€‘½Õ‰±”‰ÕÉÍÑ	½½ÍĞ€ô€¡¹½Ü€´±…ÍÑUÍ•€ğ€äÀÁ|ÀÀÁ0¤€ü5…Ñ ¹µ¥¸¡‰ÕÉÍĞ°€Ô¤€¨€ÈÀ¸À€è€À¸Àì((€€€€€€€€€€€€€€€€€€€€¼¼Q½Ñ…°M½É”(€€€€€€€€€€€€€€€€€€€‘½Õ‰±”Í½É”€ôÉ••¹åM½É”€¬‰ÕÉÍÑ	½½ÍĞ€¬™É•ÅM½É”ì(€€€€€€€€€€€€€€€€€€€±¥ÍĞ¹…‘¡¹•Üµ½©¥M½É”¡•µ½©¤°Í½É”¤¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô((€€€€€€€€€€€€¼¼…±±‰…¬€¼	…Í•±¥¹”¥¹Ñ•É…Ñ¥½¸(€€€€€€€€€€€™¥¹…°MÑÉ¥¹œÍÑÉI••¹Ğ€ôÁÉ•™Ì¹•ÑMÑÉ¥¹œ¡M•ÑÑ¥¹Ì¹AI}5=)%}I9Q}-eL°¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹Í•ÑÑ¥¹Ì¹•™…Õ±ÑÌ¹AI}5=)%}I9Q}-eL¤ì(€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹1¥ÍĞñ=‰©•ĞøÉ••¹Ñ-•åÌ€ô¡•±¥Õ´ÌÄĞ¹­•å‰½…É¹±…Ñ¥¸¹ÕÑ¥±Ì¹)Í½¹UÑ¥±Ì¹©Í½¹MÑÉQ½1¥ÍĞ¡ÍÑÉI••¹Ğ¤ì(€€€€€€€€€€€™½È€¡™¥¹…°=‰©•Ğ¼€èÉ••¹Ñ-•åÌ¤ì(€€€€€€€€€€€€€€€MÑÉ¥¹œ•µ½©¤€ô¹Õ±°ì(€€€€€€€€€€€€€€€¥˜€¡¼¥¹ÍÑ…¹•½˜%¹Ñ••È¤ì(€€€€€€€€€€€€€€€€€€€•µ½©¤€ô¹•ÜMÑÉ¥¹œ¡¡…É…Ñ•È¹Ñ½¡…ÉÌ ¡%¹Ñ••È¤¼¤¤ì(€€€€€€€€€€€€€€€ô•±Í”¥˜€¡¼¥¹ÍÑ…¹•½˜MÑÉ¥¹œ¤ì(€€€€€€€€€€€€€€€€€€€•µ½©¤€ô€¡MÑÉ¥¹œ¤¼ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€¥˜€¡•µ½©¤€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€€€€€‰½½±•…¸™½Õ¹€ô™…±Í”ì(€€€€€€€€€€€€€€€€€€€™½È€¡™¥¹…°µ½©¥M½É”•Ì€è±¥ÍĞ¤ì(€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡•Ì¹•µ½©¤¹•ÅÕ…±Ì¡•µ½©¤¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€™½Õ¹€ôÑÉÕ”ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€¥˜€ …™½Õ¹¤ì(€€€€€€€€€€€€€€€€€€€€€€€±¥ÍĞ¹…‘¡¹•Üµ½©¥M½É”¡•µ½©¤°€ÄÀ¸À¤¤ì€¼¼‰…Í•±¥¹”Í½É”™½È•á¥ÍÑ¥¹œÉ••¹ÑÌ(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô((€€€€€€€€€€€™¥¹…°MÑÉ¥¹mt‘•™…Õ±Ñµ½©¥Ì€ôì€‹Â~bˆ°€‹Â~f<ˆ°€‹Â~b4ˆ°€‹Â~F4ˆ°€‹Â~b´ˆ°€‹Â~–èˆ°€‹Â~’Œˆ°€‹Šv“¾â<ˆ°€‹Šr ˆ°€‹Â~R”ˆôì(€€€€€€€€€€€™½È€¡™¥¹…°MÑÉ¥¹œ‘•™µ½©¤€è‘•™…Õ±Ñµ½©¥Ì¤ì(€€€€€€€€€€€€€€€‰½½±•…¸™½Õ¹€ô™…±Í”ì(€€€€€€€€€€€€€€€™½È€¡™¥¹…°µ½©¥M½É”•Ì€è±¥ÍĞ¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡•Ì¹•µ½©¤¹•ÅÕ…±Ì¡‘•™µ½©¤¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€™½Õ¹€ôÑÉÕ”ì(€€€€€€€€€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€¥˜€ …™½Õ¹¤ì(€€€€€€€€€€€€€€€€€€€±¥ÍĞ¹…‘¡¹•Üµ½©¥M½É”¡‘•™µ½©¤°€Ô¸À¤¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô((€€€€€€€€€€€©…Ù„¹ÕÑ¥°¹½±±•Ñ¥½¹Ì¹Í½ÉĞ¡±¥ÍĞ°€¡„°ˆ¤€´ø½Õ‰±”¹½µÁ…É”¡ˆ¹Í½É”°„¹Í½É”¤¤ì((€€€€€€€€€€€™¥¹…°©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞñMÑÉ¥¹œøÉ•ÍÕ±Ğ€ô¹•Ü©…Ù„¹ÕÑ¥°¹ÉÉ…å1¥ÍĞğø ¤ì(€€€€€€€€€€€™½È€¡™¥¹…°µ½©¥M½É”•Ì€è±¥ÍĞ¤ì(€€€€€€€€€€€€€€€É•ÍÕ±Ğ¹…‘¡•Ì¹•µ½©¤¤ì(€€€€€€€€€€€€€€€¥˜€¡É•ÍÕ±Ğ¹Í¥é” ¤€øô5a}MQ}I=]}5=)%}=U9P¤ì(€€€€€€€€€€€€€€€€€€€‰É•…¬ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô(€€€€€€€€€€€É•ÑÕÉ¸É•ÍÕ±Ğì(€€€€€€€ô((€€€€€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ±…ÍÌµ½©¥M½É”ì(€€€€€€€€€€€™¥¹…°MÑÉ¥¹œ•µ½©¤ì(€€€€€€€€€€€™¥¹…°‘½Õ‰±”Í½É”ì(€€€€€€€€€€€µ½©¥M½É”¡MÑÉ¥¹œ•µ½©¤°‘½Õ‰±”Í½É”¤ì(€€€€€€€€€€€€€€€Ñ¡¥Ì¹•µ½©¤€ô•µ½©¤ì(€€€€€€€€€€€€€€€Ñ¡¥Ì¹Í½É”€ôÍ½É”ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Í•ÑÕÁ	½ÑÑ½µI½İ-•å‰½…É¡™¥¹…°‘¥Ñ½É%¹™¼•‘¥Ñ½É%¹™¼°™¥¹…°-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È­•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¤ì(€€€€€€€5…¥¹-•å‰½…É‘Y¥•Ü­•å‰½…É‘Y¥•Ü€ô™¥¹‘Y¥•İ	å%¡H¹¥¹‰½ÑÑ½µ}É½İ}­•å‰½…É¤ì(€€€€€€€­•å‰½…É‘Y¥•Ü¹Í•Ñ-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¡­•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¤ì(€€€€€€€A½¥¹Ñ•ÉQÉ…­•È¹Íİ¥Ñ¡Q¼¡­•å‰½…É‘Y¥•Ü¤ì(€€€€€€€™¥¹…°-•å‰½…É‘1…å½ÕÑM•Ğ­±Ì€ô-•å‰½…É‘1…å½ÕÑM•Ğ¹	Õ¥±‘•È¹‰Õ¥±‘µ½©¥±¥Á	½ÑÑ½µI½Ü¡•Ñ½¹Ñ•áĞ ¤°•‘¥Ñ½É%¹™¼¤ì(€€€€€€€™¥¹…°-•å‰½…É­•å‰½…É€ô­±Ì¹•Ñ-•å‰½…É¡-•å‰½…É‘%¹159Q}5=)%}	=QQ=5}I=\¤ì(€€€€€€€­•å‰½…É‘Y¥•Ü¹Í•Ñ-•å‰½…É¡­•å‰½…É¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Í•ÑÕÁM¥‘•A…‘‘¥¹œ ¤ì(€€€€€€€™¥¹…°M•ÑÑ¥¹ÍY…±Õ•ÌÍØ€ôM•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤ì(€€€€€€€™¥¹…°¥¹Ğ­•å‰½…É‘]¥‘Ñ €ôI•Í½ÕÉ•UÑ¥±Ì¹•Ñ-•å‰½…É‘]¥‘Ñ ¡•Ñ½¹Ñ•áĞ ¤°ÍØ¤ì(€€€€€€€™¥¹…°QåÁ•‘ÉÉ…ä­•å‰½…É‘ÑÑÈ€ô•Ñ½¹Ñ•áĞ ¤¹½‰Ñ…¥¹MÑå±•‘ÑÑÉ¥‰ÕÑ•Ì (€€€€€€€€€€€€€€€¹Õ±°°H¹ÍÑå±•…‰±”¹-•å‰½…É°H¹…ÑÑÈ¹­•å‰½…É‘MÑå±”°H¹ÍÑå±”¹-•å‰½…É¤ì(€€€€€€€™¥¹…°™±½…Ğ±•™ÑA…‘‘¥¹œ€ô­•å‰½…É‘ÑÑÈ¹•ÑÉ…Ñ¥½¸¡H¹ÍÑå±•…‰±”¹-•å‰½…É‘}­•å‰½…É‘1•™ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€­•å‰½…É‘]¥‘Ñ °­•å‰½…É‘]¥‘Ñ °€Á˜¤€¨ÍØ¹µM¥‘•A…‘‘¥¹M…±”ì(€€€€€€€™¥¹…°™±½…ĞÉ¥¡ÑA…‘‘¥¹œ€ô€­•å‰½…É‘ÑÑÈ¹•ÑÉ…Ñ¥½¸¡H¹ÍÑå±•…‰±”¹-•å‰½…É‘}­•å‰½…É‘I¥¡ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€­•å‰½…É‘]¥‘Ñ °­•å‰½…É‘]¥‘Ñ °€Á˜¤€¨ÍØ¹µM¥‘•A…‘‘¥¹M…±”ì(€€€€€€€­•å‰½…É‘ÑÑÈ¹É•å±” ¤ì(€€€€€€€µA…•È¹Í•ÑA…‘‘¥¹œ (€€€€€€€€€€€€€€€€¡¥¹Ğ¤±•™ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€µA…•È¹•ÑA…‘‘¥¹Q½À ¤°(€€€€€€€€€€€€€€€€¡¥¹Ğ¤É¥¡ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€µA…•È¹•ÑA…‘‘¥¹	½ÑÑ½´ ¤(€€€€€€€€¤ì(€€€€€€€µµ½©¥…Ñ•½ÉåA…•%¹‘¥…Ñ½ÉY¥•Ü¹Í•ÑA…‘‘¥¹œ (€€€€€€€€€€€€€€€€¡¥¹Ğ¤±•™ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€µµ½©¥…Ñ•½ÉåA…•%¹‘¥…Ñ½ÉY¥•Ü¹•ÑA…‘‘¥¹Q½À ¤°(€€€€€€€€€€€€€€€€¡¥¹Ğ¤É¥¡ÑA…‘‘¥¹œ°(€€€€€€€€€€€€€€€µµ½©¥…Ñ•½ÉåA…•%¹‘¥…Ñ½ÉY¥•Ü¹•ÑA…‘‘¥¹	½ÑÑ½´ ¤(€€€€€€€€¤ì(€€€€€€€€¼¼Í•ÑÑ¥¹œİ¥‘Ñ ‘½•Ì¹½Ğ‘¼…¹åÑ¡¥¹œ°Í¼İ”¡…Ù”Í½µ”İ½É­…É½Õ¹¥¸µ½©¥…Ñ•½ÉåA…•%¹‘¥…Ñ½ÉY¥•Ü(€€€ô((€€€ÁÕ‰±¥ŒÙ½¥ÍÑ½Áµ½©¥A…±•ÑÑ•Ì ¤ì(€€€€€€€¥˜€ …¥¹¥Ñ¥…±¥é•¤É•ÑÕÉ¸ì((€€€€€€€¥˜€¡µM•…É¡5½‘”¤ì(€€€€€€€€€€€•á¥ÑM•…É¡5½‘”¡™…±Í”°™…±Í”¤ì(€€€€€€€ô(€€€€€€€•ÑI••¹ÑÍ-•å‰½…É ¤¹™±ÕÍ¡A•¹‘¥¹I••¹Ñ-•åÌ ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”å¹…µ¥É¥‘-•å‰½…É•ÑI••¹ÑÍ-•å‰½…É ¤ì(€€€€€€€É•ÑÕÉ¸µµ½©¥…Ñ•½Éä¹•Ñ-•å‰½…É¡µ½©¥…Ñ•½Éä¹%}I9QL°€À¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥ÕÁ‘…Ñ•‘…ÁÑ¥Ù•µ½©¥=É‘•È ¤ì(€€€€€€€¥˜€¡M•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤¹µ%¹½¹¥Ñ½5½‘•¹…‰±•¤ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô(€€€€€€€™¥¹…°å¹…µ¥É¥‘-•å‰½…ÉÉ••¹ÑÍ-•å‰½…É€ô•ÑI••¹ÑÍ-•å‰½…É ¤ì(€€€€€€€™¥¹…°¥¹Ğµ…áI…¹­•‘½Õ¹Ğ€ô5…Ñ ¹µ¥¸ Ğà°5…Ñ ¹µ…à Ä°É••¹ÑÍ-•å‰½…É¹•Ñ=ÕÁ¥•‘½±Õµ¹½Õ¹Ğ ¤€¨€Ì¤¤ì(€€€€€€€É••¹ÑÍ-•å‰½…É¹ÁÉ¥½É¥Ñ¥é•-•åÌ (€€€€€€€€€€€€€€€‘…ÁÑ¥Ù•µ½©¥¹¥¹”¹•Ñ…ÍÑI½İµ½©¥Ì¡•Ñ½¹Ñ•áĞ ¤°µ…áI…¹­•‘½Õ¹Ğ¤°(€€€€€€€€€€€€€€€µ…áI…¹­•‘½Õ¹Ğ¤ì(€€€€€€€¥˜€¡¥¹¥Ñ¥…±¥é•€˜˜µA…•È€„ô¹Õ±°€˜˜µA…•È¹•Ñ‘…ÁÑ•È ¤¥¹ÍÑ…¹•½˜µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤ì(€€€€€€€€€€€™¥¹…°¥¹ĞÁ½Í¥Ñ¥½¸€ô€ ¡µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤µA…•È¹•Ñ‘…ÁÑ•È ¤¤(€€€€€€€€€€€€€€€€€€€€¹•Ñ¥ÉÍÑA…•A½Í¥Ñ¥½¹=™…Ñ•½Éä¡µ½©¥…Ñ•½Éä¹%}I9QL¤ì(€€€€€€€€€€€¥˜€¡Á½Í¥Ñ¥½¸€„ô€´Ä¤ì(€€€€€€€€€€€€€€€µA…•È¹•Ñ‘…ÁÑ•È ¤¹¹½Ñ¥™å%Ñ•µ¡…¹•¡Á½Í¥Ñ¥½¸¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÕ‰±¥ŒÙ½¥Í•Ñ-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È¡™¥¹…°-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È±¥ÍÑ•¹•È¤ì(€€€€€€€µ-•å‰½…É‘Ñ¥½¹1¥ÍÑ•¹•È€ô±¥ÍÑ•¹•Èì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥ÕÁ‘…Ñ•µ½©¥…Ñ•½ÉåA…•%‘Y¥•Ü ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥Í•ÑÕÉÉ•¹Ñ…Ñ•½Éå%¡™¥¹…°¥¹Ğ…Ñ•½Éå%°™¥¹…°‰½½±•…¸™É½µMÉ½±°¤ì(€€€€€€€™¥¹…°¥¹Ğ½±‘…Ñ•½Éå%€ôµµ½©¥…Ñ•½Éä¹•ÑÕÉÉ•¹Ñ…Ñ•½Éå% ¤ì(€€€€€€€¥˜€¡™É½µMÉ½±°ñğ½±‘…Ñ•½Éå%€„ô…Ñ•½Éå%¤ì(€€€€€€€€€€€¥˜€¡½±‘…Ñ•½Éå%€ôôµ½©¥…Ñ•½Éä¹%}I9QL€˜˜€…™É½µMÉ½±°¤ì(€€€€€€€€€€€€€€€•ÑI••¹ÑÍ-•å‰½…É ¤¹™±ÕÍ¡A•¹‘¥¹I••¹Ñ-•åÌ ¤ì(€€€€€€€€€€€€€€€¥˜€¡µA…•È¹•Ñ‘…ÁÑ•È ¤¥¹ÍÑ…¹•½˜µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤ì(€€€€€€€€€€€€€€€€€€€™¥¹…°¥¹ĞÁ½Ì€ô€ ¡µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤µA…•È¹•Ñ‘…ÁÑ•È ¤¤¹•Ñ¥ÉÍÑA…•A½Í¥Ñ¥½¹=™…Ñ•½Éä¡µ½©¥…Ñ•½Éä¹%}I9QL¤ì(€€€€€€€€€€€€€€€€€€€¥˜€¡Á½Ì€„ô€´Ä¤ì(€€€€€€€€€€€€€€€€€€€€€€€µA…•È¹•Ñ‘…ÁÑ•È ¤¹¹½Ñ¥™å%Ñ•µ¡…¹•¡Á½Ì¤ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô((€€€€€€€€€€€µµ½©¥…Ñ•½Éä¹Í•ÑÕÉÉ•¹Ñ…Ñ•½Éå%¡…Ñ•½Éå%¤ì((€€€€€€€€€€€¥˜€ …™É½µMÉ½±°€˜˜µA…•È¹•Ñ‘…ÁÑ•È ¤¥¹ÍÑ…¹•½˜µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤ì(€€€€€€€€€€€€€€€™¥¹…°µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È…‘…ÁÑ•È€ô€¡µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤µA…•È¹•Ñ‘…ÁÑ•È ¤ì(€€€€€€€€€€€€€€€™¥¹…°¥¹Ğ™¥ÉÍÑA…•A½Ì€ô…‘…ÁÑ•È¹•Ñ‘…ÁÑ•ÉA½Í¥Ñ¥½¹½É…Ñ•½ÉåA…”¡…Ñ•½Éå%°€À¤ì(€€€€€€€€€€€€€€€¥˜€¡™¥ÉÍÑA…•A½Ì€„ô€´Ä€˜˜µA…•È¹•Ñ1…å½ÕÑ5…¹…•È ¤¥¹ÍÑ…¹•½˜1¥¹•…É1…å½ÕÑ5…¹…•È¤ì(€€€€€€€€€€€€€€€€€€€µµ½©¥…Ñ•½Éä¹Í•ÑÕÉÉ•¹Ñ…Ñ•½ÉåA…•% À¤ì(€€€€€€€€€€€€€€€€€€€€ ¡1¥¹•…É1…å½ÕÑ5…¹…•È¤µA…•È¹•Ñ1…å½ÕÑ5…¹…•È ¤¤¹ÍÉ½±±Q½A½Í¥Ñ¥½¹]¥Ñ¡=™™Í•Ğ¡™¥ÉÍÑA…•A½Ì°€À¤ì(€€€€€€€€€€€€€€€ô(€€€€€€€€€€€ô((€€€€€€€€€€€™¥¹…°Y¥•Ü½±€ôµQ…‰MÑÉ¥À¹™¥¹‘Y¥•İ]¥Ñ¡Q…œ ¡±½¹œ¤½±‘…Ñ•½Éå%¤ì(€€€€€€€€€€€™¥¹…°Y¥•ÜÕÉÉ•¹Ğ€ôµQ…‰MÑÉ¥À¹™¥¹‘Y¥•İ]¥Ñ¡Q…œ ¡±½¹œ¤…Ñ•½Éå%¤ì((€€€€€€€€€€€¥˜€¡½±¥¹ÍÑ…¹•½˜Q…‰%µ…•Y¥•Ü¤ì(€€€€€€€€€€€€€€€€ ¡Q…‰%µ…•Y¥•Ü¤½±¤¹Í•ÑM•±•Ñ•‘…Ñ•½Éä¡™…±Í”°€À¤ì(€€€€€€€€€€€€€€€M•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤¹µ½±½ÉÌ¹Í•Ñ½±½È ¡%µ…•Y¥•Ü¤½±°½±½ÉQåÁ”¹5=)%}Q=Id¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€¥˜€¡ÕÉÉ•¹Ğ¥¹ÍÑ…¹•½˜Q…‰%µ…•Y¥•Ü¤ì(€€€€€€€€€€€€€€€…¹‘É½¥¹ÕÑ¥°¹QåÁ•‘Y…±Õ”ÑåÁ•‘Y…±Õ”€ô¹•Ü…¹‘É½¥¹ÕÑ¥°¹QåÁ•‘Y…±Õ” ¤ì(€€€€€€€€€€€€€€€•Ñ½¹Ñ•áĞ ¤¹•ÑQ¡•µ” ¤¹É•Í½±Ù•ÑÑÉ¥‰ÕÑ”¡…¹‘É½¥¹H¹…ÑÑÈ¹½±½É•¹Ğ°ÑåÁ•‘Y…±Õ”°ÑÉÕ”¤ì(€€€€€€€€€€€€€€€¥¹Ğ…•¹Ñ½±½È€ôÑåÁ•‘Y…±Õ”¹‘…Ñ„ì(€€€€€€€€€€€€€€€€ ¡Q…‰%µ…•Y¥•Ü¤ÕÉÉ•¹Ğ¤¹Í•ÑM•±•Ñ•‘…Ñ•½Éä¡ÑÉÕ”°…•¹Ñ½±½È¤ì((€€€€€€€€€€€€€€€€¼¼M•Ğ½¹ÑÉ…ÍÑ¥¹œ½±½È™½ÈÑ¡”¥½¸Í¼¥ĞÌÙ¥Í¥‰±”½¸Ñ¡”…•¹Ğ¥É±”(€€€€€€€€€€€€€€€‘½Õ‰±”ä€ô€ Èää€¨…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹É•¡…•¹Ñ½±½È¤€¬€ÔàÜ€¨…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹É••¸¡…•¹Ñ½±½È¤€¬€ÄÄĞ€¨…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹‰±Õ”¡…•¹Ñ½±½È¤¤€¼€ÄÀÀÀ¸Àì(€€€€€€€€€€€€€€€¥¹Ğ½¹ÑÉ…ÍÑ½±½È€ôä€øô€ÄÈà€ü…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹	1,€è…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹]!%Qì(€€€€€€€€€€€€€€€€ ¡Q…‰%µ…•Y¥•Ü¤ÕÉÉ•¹Ğ¤¹Í•Ñ½±½É¥±Ñ•È¡½¹ÑÉ…ÍÑ½±½È°…¹‘É½¥¹É…Á¡¥Ì¹A½ÉÑ•ÉÕ™˜¹5½‘”¹MI}%8¤ì(€€€€€€€€€€€ô(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”‰½½±•…¸¥Í¹¥µ…Ñ¥½¹Í¥Í…‰±• ¤ì(€€€€€€€É•ÑÕÉ¸…¹‘É½¥¹ÁÉ½Ù¥‘•È¹M•ÑÑ¥¹Ì¹±½‰…°¹•Ñ±½…Ğ¡•Ñ½¹Ñ•áĞ ¤¹•Ñ½¹Ñ•¹ÑI•Í½±Ù•È ¤°(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€…¹‘É½¥¹ÁÉ½Ù¥‘•È¹M•ÑÑ¥¹Ì¹±½‰…°¹9%5Q=I}UIQ%=9}M1°€Ä¸Á˜¤€ôô€À¸Á˜ì(€€€ô((€€€ÁÕ‰±¥ŒÙ½¥±•…É-•å‰½…É‘…¡” ¤ì(€€€€€€€¥˜€ …¥¹¥Ñ¥…±¥é•¤ì(€€€€€€€€€€€É•ÑÕÉ¸ì(€€€€€€€ô((€€€€€€€µµ½©¥…Ñ•½Éä¹±•…É-•å‰½…É‘…¡” ¤ì(€€€€€€€Í•ÑÕÁM•…É¡I•ÍÕ±Ñ-•å‰½…É ¤ì(€€€€€€€Í•…É¡µ½©¤¡µM•…É¡EÕ•Éä¤ì(€€€€€€€¥˜€¡µA…•È¹•Ñ‘…ÁÑ•È ¤¥¹ÍÑ…¹•½˜µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤ì(€€€€€€€€€€€€ ¡µ½©¥A…±•ÑÑ•Í‘…ÁÑ•È¤µA…•È¹•Ñ‘…ÁÑ•È ¤¤¹ÕÁ‘…Ñ•%Ñ•µÌ ¤ì(€€€€€€€ô(€€€€€€€±½Í•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È ¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”Ù½¥¥¹¥Ñ¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È ¤ì(€€€€€€€¥˜€¡M•ÑÑ¥¹Ì¹•ÑY…±Õ•Ì ¤¹µM¡½İµ½©¥•ÍÉ¥ÁÑ¥½¹Ì¤ì(€€€€€€€€€€€™¥¹…°Ù…È±½…±”€ôI¥¡%¹ÁÕÑ5•Ñ¡½‘5…¹…•È¹•Ñ%¹ÍÑ…¹” ¤¹•ÑÕÉÉ•¹ÑMÕ‰ÑåÁ” ¤¹•Ñ1½…±” ¤ì(€€€€€€€€€€€™¥¹…°M¥¹±•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È™…¥±¥Ñ…Ñ½È€ôÍ¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½Èì(€€€€€€€€€€€¥˜€¡™…¥±¥Ñ…Ñ½È€ôô¹Õ±°ñğ€„™…¥±¥Ñ…Ñ½È¹¥Í½É1½…±”¡±½…±”¤¤ì(€€€€€€€€€€€€€€€±½Í•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È ¤ì(€€€€€€€€€€€€€€€€¼¼1½……Íå¹¡É½¹½ÕÍ±ä¥¸„‰…­É½Õ¹Ñ¡É•…Ñ¼ÁÉ•Ù•¹Ğ‰±½­¥¹œÑ¡”U$Ñ¡É•…½¸•µ½©¤­•å‰½…ÉÍÑ…ÉĞ(€€€€€€€€€€€€€€€¹•ÜQ¡É•…  ¤€´øì(€€€€€€€€€€€€€€€€€€€ÑÉäì(€€€€€€€€€€€€€€€€€€€€€€€Ù…È‘¥Ñ¥±”€ô¥Ñ¥½¹…Éå%¹™½UÑ¥±Ì¹•Ñ…¡•‘¥Ñ½É1½…±•¹‘QåÁ”¡±½…±”°¥Ñ¥½¹…Éä¹QeA}5=)$°•Ñ½¹Ñ•áĞ ¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€Ù…È‘¥Ñ¥½¹…Éä€ô‘¥Ñ¥±”€„ô¹Õ±°€ü¥Ñ¥½¹…Éå…Ñ½Éä¹•Ñ¥Ñ¥½¹…Éä¡‘¥Ñ¥±”°±½…±”¤€è¹Õ±°ì(€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡‘¥Ñ¥½¹…Éä€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€Íå¹¡É½¹¥é•€¡µ½©¥A…±•ÑÑ•ÍY¥•Ü¹±…ÍÌ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€Ù…ÈÕÉÉ•¹Ñ1½…±”€ôI¥¡%¹ÁÕÑ5•Ñ¡½‘5…¹…•È¹•Ñ%¹ÍÑ…¹” ¤¹•ÑÕÉÉ•¹ÑMÕ‰ÑåÁ” ¤¹•Ñ1½…±” ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡±½…±”¹•ÅÕ…±Ì¡ÕÉÉ•¹Ñ1½…±”¤¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€¥˜€¡Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€„ô¹Õ±°¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È¹±½Í•¥Ñ¥½¹…É¥•Ì ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€ô¹•ÜM¥¹±•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È¡‘¥Ñ¥½¹…Éä¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‘¥Ñ¥½¹…Éä¹±½Í” ¤ì(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€€€€€ô…Ñ €¡á•ÁÑ¥½¸”¤ì(€€€€€€€€€€€€€€€€€€€€€€€1½œ¹” ‰µ½©¥A…±•ÑÑ•ÍY¥•Üˆ°€‰…¥±•Ñ¼±½…•µ½©¤‘¥Ñ¥½¹…Éä…Íå¹¡É½¹½ÕÍ±äˆ°”¤ì(€€€€€€€€€€€€€€€€€€€ô(€€€€€€€€€€€€€€€ô¤¹ÍÑ…ÉĞ ¤ì(€€€€€€€€€€€ô(€€€€€€€ô•±Í”ì(€€€€€€€€€€€±½Í•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È ¤ì(€€€€€€€ô(€€€ô((€€€ÁÕ‰±¥ŒÍÑ…Ñ¥ŒÍå¹¡É½¹¥é•Ù½¥±½Í•¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È ¤ì(€€€€€€€¥˜€¡Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€„ô¹Õ±°¤ì(€€€€€€€€€€€Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È¹±½Í•¥Ñ¥½¹…É¥•Ì ¤ì(€€€€€€€€€€€Í¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€ô¹Õ±°ì(€€€€€€€ô(€€€€€€€¥˜€¡ÍM•…É¡¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€„ô¹Õ±°¤ì(€€€€€€€€€€€ÍM•…É¡¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È¹±½Í•¥Ñ¥½¹…É¥•Ì ¤ì(€€€€€€€€€€€ÍM•…É¡¥Ñ¥½¹…Éå…¥±¥Ñ…Ñ½È€ô¹Õ±°ì(€€€€€€€ô(€€€ô((€€€ÁÉ¥Ù…Ñ”I¥ÁÁ±•É…İ…‰±”É•…Ñ•	…­	ÕÑÑ½¹	…­É½Õ¹¡™¥¹…°½±½ÉÌ½±½ÉÌ¤ì(€€€€€€€™¥¹…°É…‘¥•¹ÑÉ…İ…‰±”¥É±”€ô¹•ÜÉ…‘¥•¹ÑÉ…İ…‰±” ¤ì(€€€€€€€¥É±”¹Í•ÑM¡…Á”¡É…‘¥•¹ÑÉ…İ…‰±”¹=Y0¤ì(€€€€€€€¥É±”¹Í•Ñ½±½È¡…¹‘É½¥¹É…Á¡¥Ì¹½±½È¹]!%Q¤ì(€€€€€€€½±½ÉÌ¹Í•Ñ½±½È¡¥É±”°½±½ÉQåÁ”¹MA%1}-e}	-I=U9¤ì((€€€€€€€™¥¹…°½±½ÉMÑ…Ñ•1¥ÍĞÉ¥ÁÁ±•½±½È€ô½±½ÉMÑ…Ñ•1¥ÍĞ¹Ù…±Õ•=˜ (€€€€€€€€€€€½±½ÉUÑ¥±Ì¹Í•Ñ±Á¡…½µÁ½¹•¹Ğ¡½±½ÉÌ¹•Ğ¡½±½ÉQåÁ”¹U9Q%=91}-e}QaP¤°€ÁàÌÌ¤(€€€€€€€€¤ì((€€€€€€€™¥¹…°™±½…Ğ‘•¹Í¥Ñä€ô•Ñ½¹Ñ•áĞ ¤¹•ÑI•Í½ÕÉ•Ì ¤¹•Ñ¥ÍÁ±…å5•ÑÉ¥Ì ¤¹‘•¹Í¥Ñäì(€€€€€€€™¥¹…°¥¹Ğ¡½É¥é½¹Ñ…±%¹Í•Ğ€ô€¡¥¹Ğ¤€ Ì€¨‘•¹Í¥Ñä¤ì(€€€€€€€™¥¹…°¥¹ĞÙ•ÉÑ¥…±%¹Í•Ğ€ô€¡¥¹Ğ¤€ Ì€¨‘•¹Í¥Ñä¤ì((€€€€€€€™¥¹…°%¹Í•ÑÉ…İ…‰±”½¹Ñ•¹Ğ€ô¹•Ü%¹Í•ÑÉ…İ…‰±” (€€€€€€€€€€€¥É±”°¡½É¥é½¹Ñ…±%¹Í•Ğ°Ù•ÉÑ¥…±%¹Í•Ğ°¡½É¥é½¹Ñ…±%¹Í•Ğ°Ù•ÉÑ¥…±%¹Í•Ğ(€€€€€€€€¤ì((€€€€€€€É•ÑÕÉ¸¹•ÜI¥ÁÁ±•É…İ…‰±” (€€€€€€€€€€€É¥ÁÁ±•½±½È°½¹Ñ•¹Ğ°½¹Ñ•¹Ğ¹•Ñ½¹ÍÑ…¹ÑMÑ…Ñ” ¤€„ô¹Õ±°€ü½¹Ñ•¹Ğ¹•Ñ½¹ÍÑ…¹ÑMÑ…Ñ” ¤¹¹•İÉ…İ…‰±” ¤¹µÕÑ…Ñ” ¤€è¹Õ±°(€€€€€€€€¤ì(€€€ô((€€€ÁÉ¥Ù…Ñ”ÍÑ…Ñ¥Œ±…ÍÌQ…‰%µ…•Y¥•Ü•áÑ•¹‘Ì%µ…•Y¥•Üì(€€€€€€€ÁÉ¥Ù…Ñ”™¥¹…°A…¥¹Ğµ¥É±•A…¥¹Ğ€ô¹•ÜA…¥¹Ğ¡A…¥¹Ğ¹9Q%}1%M}1¤ì(€€€€€€€ÁÉ¥Ù…Ñ”‰½½±•…¸µ%ÍM•±•Ñ•‘…Ñ•½Éä€ô™…±Í”ì((€€€€€€€ÁÕ‰±¥ŒQ…‰%µ…•Y¥•Ü¡½¹Ñ•áĞ½¹Ñ•áĞ¤ì(€€€€€€€€€€€ÍÕÁ•È¡½¹Ñ•áĞ¤ì(€€€€€€€€€€€€¼¼MÑ…ÉĞ™…‘•‰ä‘•™…Õ±Ğ(€€€€€€€€€€€Í•Ñ±Á¡„ À¸ĞÕ˜¤ì(€€€€€€€ô((€€€€€€€ÁÕ‰±¥ŒÙ½¥Í•ÑM•±•Ñ•‘…Ñ•½Éä¡‰½½±•…¸Í•±•Ñ•°¥¹Ğ…•¹Ñ½±½È¤ì(€€€€€€€€€€€µ%ÍM•±•Ñ•‘…Ñ•½Éä€ôÍ•±•Ñ•ì(€€€€€€€€€€€µ¥É±•A…¥¹Ğ¹Í•Ñ½±½È¡…•¹Ñ½±½È¤ì(€€€€€€€€€€€¥˜€¡Í•±•Ñ•¤ì(€€€€€€€€€€€€€€€Í•Ñ±Á¡„ Ä¸Á˜¤ì(€€€€€€€€€€€ô•±Í”ì(€€€€€€€€€€€€€€€Í•Ñ±Á¡„ À¸ĞÕ˜¤ì(€€€€€€€€€€€€€€€€¼¼É•ÍÑ½É”¹½Éµ…°Õ¹Í•±•Ñ•Ñ¥¹ĞÙ¥„±•…É½±½É¥±Ñ•È(€€€€€€€€€€€€€€€±•…É½±½É¥±Ñ•È ¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€¥¹Ù…±¥‘…Ñ” ¤ì(€€€€€€€ô((€€€€€€€=Ù•ÉÉ¥‘”(€€€€€€€ÁÉ½Ñ•Ñ•Ù½¥½¹É…Ü¡…¹Ù…Ì…¹Ù…Ì¤ì(€€€€€€€€€€€¥˜€¡µ%ÍM•±•Ñ•‘…Ñ•½Éä¤ì(€€€€€€€€€€€€€€€™±½…ĞÉ…‘¥ÕÌ€ô5…Ñ ¹µ¥¸¡•Ñ]¥‘Ñ  ¤°•Ñ!•¥¡Ğ ¤¤€¨€À¸Ğá˜ì(€€€€€€€€€€€€€€€…¹Ù…Ì¹‘É…İ¥É±”¡•Ñ]¥‘Ñ  ¤€¼€É˜°•Ñ!•¥¡Ğ ¤€¼€É˜°É…‘¥ÕÌ°µ¥É±•A…¥¹Ğ¤ì(€€€€€€€€€€€ô(€€€€€€€€€€€ÍÕÁ•È¹½¹É…Ü¡…¹Ù…Ì¤ì(€€€€€€€ô(€€€ô)ô(

@@ -22,7 +22,13 @@ internal class EmojiLayoutParams(res: Resources) {
 
     init {
         val sv = Settings.getValues()
-        val defaultKeyboardHeight = ResourceUtils.getSecondaryKeyboardHeight(res, sv)
+        val secondaryKeyboardHeight = ResourceUtils.getSecondaryKeyboardHeight(res, sv)
+        // The Emoji category row stays visible even when the typing suggestion strip
+        // is globally hidden. Reserve its height inside the Emoji panel so the panel's
+        // outer bottom edge remains aligned with the regular keyboard.
+        val hiddenToolbarCategoryHeight = if (sv.mSecondaryStripVisible) 0 else
+            res.getDimension(R.dimen.config_suggestions_strip_height).toInt()
+        val defaultKeyboardHeight = (secondaryKeyboardHeight - hiddenToolbarCategoryHeight).coerceAtLeast(1)
 
         val keyVerticalGap = if (sv.mNarrowKeyGaps) {
             res.getFraction(R.fraction.config_key_vertical_gap_holo_narrow,
