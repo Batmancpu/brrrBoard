@@ -3,6 +3,10 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-17 verified group-one checkpoint (no new owner testing)
+
+Under owner's explicit overnight authorization, B06+B07 source c8d7875 passed debug/unit full CI 43937911536 and production original-signer CI 43937911364 and published signed v1.0.65. Independent panels now share measured body-height contract; OG frosted tint only action key, neutral modifiers and safe rounded radius. No on-phone owner tests occurred overnight; remaining visual and Dictate acceptance are open. Next authorized group B08+B09 is staged locally, B10 explicitly prohibited. Owner can install only latest final APK in morning and validate all changes together.
+
 ## 2026-11-17 — Overnight user directive and new B18 visual requirement
 
 Owner: "The permission has been given already." Owner observed microphone red briefly and centered `Allow brrBoard microphone permission`, with no transcription or system prompt. Dictate works from YouTube but has online processing latency. Owner explicitly authorizes focused B05 diagnosis then B06–B09 without between-batch permission, **never B10**, two conditional signed APK checkpoints, no phone checks while sleeping, and preservation of all GitHub context. Owner requests centered `Listening…` and `Transcribing…` footer states, with subtle multicoloured moving glow for transcription, stable layout/light-dark/reduced-motion, real callback states, no stale status, to be built in B18. Full specification saved in `IME_PROVIDER_INTEGRATIONS.md`. Video analysis supports post-start provider `ERROR_INSUFFICIENT_PERMISSIONS` mislabel; patch distinguishes provider rejection from local denied permission without pretending provider issue solved.
