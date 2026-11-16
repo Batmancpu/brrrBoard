@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.RecognitionListener
+import android.speech.RecognitionService
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.provider.Settings as AndroidSettings
@@ -52,7 +53,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
-        if (!isDictateRecognitionServiceSelected(ime)) {
+        val dictateService = selectedDictateRecognitionService(ime)
+        if (dictateService == null) {
             report(R.string.inline_voice_select_dictate_service)
             if (!openVoiceInputSettings(ime)) {
                 report(R.string.inline_voice_open_settings_failed)
@@ -84,7 +86,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         try {
             // Use Android's selected RecognitionService (Dictate on the owner's device). This
             // keeps Dictate's configured provider in control without opening its voice-input IME.
-            val session = SpeechRecognizer.createSpeechRecognizer(ime)
+            // Bind to Dictate explicitly so Android/OEM resolution cannot fall back to another recognizer.
+            val session = SpeechRecognizer.createSpeechRecognizer(ime, dictateService)
             recognizer = session
             detectedSpeechLanguage = null
             recognitionStarted = false
@@ -234,13 +237,20 @@ internal class InlineDictation(private val ime: LatinIME) {
         fun isAvailable(context: Context): Boolean =
             runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
 
-        private fun isDictateRecognitionServiceSelected(context: Context): Boolean {
+        private fun selectedDictateRecognitionService(context: Context): ComponentName? {
             val service = AndroidSettings.Secure.getString(
                 context.contentResolver, VOICE_RECOGNITION_SERVICE_SETTING
-            ) ?: return false
-            val component = ComponentName.unflattenFromString(service) ?: return false
-            return component.packageName == DICTATE_PACKAGE_NAME &&
-                component.className == DICTATE_RECOGNITION_SERVICE_CLASS
+            ) ?: return null
+            val component = ComponentName.unflattenFromString(service) ?: return null
+            if (component.packageName != DICTATE_PACKAGE_NAME) return null
+            val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(component.packageName)
+            val isAvailable = runCatching {
+                context.packageManager.queryIntentServices(query, 0).any { resolveInfo ->
+                    val info = resolveInfo.serviceInfo ?: return@any false
+                    info.packageName == component.packageName && info.name == component.className
+                }
+            }.getOrDefault(false)
+            return component.takeIf { isAvailable }
         }
 
         // This rejects Hindi-script output because the owner requested English only. Dictate's
@@ -266,7 +276,5 @@ internal class InlineDictation(private val ime: LatinIME) {
 
         private const val VOICE_RECOGNITION_SERVICE_SETTING = "voice_recognition_service"
         private const val DICTATE_PACKAGE_NAME = "net.devemperor.dictate"
-        private const val DICTATE_RECOGNITION_SERVICE_CLASS =
-            "dev.patrickgold.florisboard.dictate.recognition.DictateRecognitionService"
     }
 }
