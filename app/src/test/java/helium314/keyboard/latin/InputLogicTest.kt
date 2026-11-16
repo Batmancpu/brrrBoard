@@ -208,6 +208,7 @@ class InputLogicTest {
         reset()
         // This first case covers the disabled policy; product default is enabled.
         latinIME.prefs().edit { putBoolean(Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION, false) }
+        latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, false) }
         setText("hello")
         input('.')
         input('a')
@@ -223,6 +224,7 @@ class InputLogicTest {
         reset()
         // This first case covers the disabled policy; product default is enabled.
         latinIME.prefs().edit { putBoolean(Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION, false) }
+        latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, false) }
         setText("hello there")
         setCursorPosition(5) // after hello
         input('.')
@@ -240,6 +242,7 @@ class InputLogicTest {
 
     @Test fun noAutospaceInUrlField() {
         reset()
+        latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, false) }
         latinIME.prefs().edit { putBoolean(Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION, true) }
         chainInput("example.net")
         assertEquals("example. net", text)
@@ -427,6 +430,7 @@ class InputLogicTest {
 
     @Test fun `intermediate commits in text field without protocol`() {
         reset()
+        latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, false) }
         chainInput("bla.")
         assertEquals("bla", lastAddedWord)
         chainInput("com/")

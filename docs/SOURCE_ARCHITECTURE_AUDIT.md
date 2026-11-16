@@ -62,3 +62,5 @@ B01 source commit [e4a4a01](https://github.com/Batmancpu/brrrBoard/commit/e4a4a0
 The Actions console omits JUnit comparison values; a B02 workflow update now uploads only failed unit-test XML for seven days. Use it to inspect expected/actual editor state before product changes.
 
 JUnit artifact `14221202444` confirmed all three InputLogic failures have a shared PHANTOM-space URL-resume cause: `bla.c` rendered with a space, `example.com.` was not composing, and URL path separators fragmented history. The URL-resume block required NONE space state, preventing its existing `restartSuggestions` path. Candidate runtime edit now accepts PHANTOM and prevents autospace after resume; pending CI.
+
+CI 43857301235 confirms the PHANTOM-resume runtime fix cleared all three enabled URL assertions. Four new remaining assertions were fixture policy drift: sentence autospace, normal-field URL behavior, and no-detection intermediate commits assumed URL detection off but reset clears prefs to the on default. Those four tests now pin it off. Product defaults/assertions unchanged; full CI pending.
