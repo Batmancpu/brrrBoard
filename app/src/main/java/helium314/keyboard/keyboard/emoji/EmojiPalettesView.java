@@ -164,19 +164,23 @@ public final class EmojiPalettesView extends LinearLayout
         // If the emoji category strip is hidden, reclaim that exact height inside
         // the emoji panel instead. Both modes now retain the shared bottom footer.
         final View strip = getRootView().findViewById(R.id.strip_container);
-        final boolean normalStripExpected = settings.mToolbarMode != ToolbarMode.HIDDEN;
-        final int missingStripHeight = normalStripExpected &&
-                (strip == null || strip.getVisibility() != View.VISIBLE)
-                ? res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height) : 0;
-        final int requestedHeight = abcHeight + emojiRowHeight + missingStripHeight
-                + getPaddingTop() + getPaddingBottom() + 1;
+        final int accessoryHeight = settings.mToolbarMode == ToolbarMode.HIDDEN ? 0
+                : res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height);
         final int availableHeight = switch (MeasureSpec.getMode(heightMeasureSpec)) {
             case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec);
             default -> Integer.MAX_VALUE;
         };
-        final int finalHeight = Math.min(requestedHeight, availableHeight);
+        final int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
+                abcHeight, emojiRowHeight, accessoryHeight,
+                strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY));
-        final int width = ResourceUtils.getKeyboardWidth(getContext(), settings) + getPaddingLeft() + getPaddingRight();
+        final int requestedWidth = ResourceUtils.getKeyboardWidth(getContext(), settings)
+                + getPaddingLeft() + getPaddingRight();
+        final int availableWidth = switch (MeasureSpec.getMode(widthMeasureSpec)) {
+            case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(widthMeasureSpec);
+            default -> Integer.MAX_VALUE;
+        };
+        final int width = Math.min(requestedWidth, availableWidth);
         if (mEmojiCategoryPageIndicatorView != null) {
             mEmojiCategoryPageIndicatorView.mWidth = width;
         }

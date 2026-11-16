@@ -101,7 +101,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
         // stays visible. Count only the strip that the normal layout would have.
         val toolbarHeight = if (settings.mToolbarMode == ToolbarMode.HIDDEN) 0
             else resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
-        val finalHeight = abcHeight + emojiRowHeight + toolbarHeight + paddingTop + paddingBottom - (6 * resources.displayMetrics.density).toInt() + 1
+        val strip = rootView.findViewById<View>(R.id.strip_container)
+        val availableHeight = when (MeasureSpec.getMode(heightMeasureSpec)) {
+            MeasureSpec.EXACTLY, MeasureSpec.AT_MOST -> MeasureSpec.getSize(heightMeasureSpec)
+            else -> Int.MAX_VALUE
+        }
+        val finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
+            abcHeight, emojiRowHeight, toolbarHeight,
+            strip != null && strip.visibility == View.VISIBLE, availableHeight,
+        )
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY))
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), finalHeight)
     }

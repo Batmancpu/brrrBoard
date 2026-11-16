@@ -500,7 +500,7 @@ public class KeyboardView extends View {
                     canvas.drawRoundRect(0f, 0f, bgWidth, bgHeight, spaceRadius, spaceRadius, mBackgroundPaint);
                 } else {
                     final float density = getResources().getDisplayMetrics().density;
-                    final float cornerRadius = 8f * density;
+                    final float cornerRadius = FrostAccentRoles.keyCornerRadius(bgWidth, bgHeight, density);
                     canvas.drawRoundRect(0f, 0f, bgWidth, bgHeight, cornerRadius, cornerRadius, mBackgroundPaint);
                 }
                 canvas.translate(-bgX, -bgY);
@@ -1081,14 +1081,8 @@ public class KeyboardView extends View {
     }
 
     private boolean isOgFrostTintedControlKey(@NonNull final Key key) {
-        if (mColors.getOgFrostKeyAccent() == 0 || isPopupKeysView() || key.isSpacer()) return false;
-        final int code = key.getCode();
-        return key.isShift() || key.hasActionKeyBackground()
-                || code == KeyCode.DELETE
-                || code == KeyCode.SYMBOL_ALPHA
-                || code == KeyCode.SYMBOL
-                || code == KeyCode.ALPHA
-                || code == KeyCode.NUMPAD;
+        return FrostAccentRoles.tintControl(mColors.getOgFrostKeyAccent() != 0,
+                isPopupKeysView(), key.isSpacer(), key.hasActionKeyBackground());
     }
 
     private boolean isIosHighlightedSearchKey(Key key, Keyboard keyboard) {

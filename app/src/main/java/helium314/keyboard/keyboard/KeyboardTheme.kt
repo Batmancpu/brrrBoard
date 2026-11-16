@@ -364,10 +364,9 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
 
                         val keyAlpha = (10 + (keyTransparency / 255f * 245)).toInt().coerceIn(0, 255)
                         val keyBackground = boostAlphabetSaturation(ColorUtils.setAlphaComponent(keyBgBase, keyAlpha))
-                        val functionalBase = if (ogTinted) appleActionAccent else if (isNight)
+                        val neutralFunctionalBase = if (isNight)
                             ContextCompat.getColor(context, android.R.color.system_neutral1_700)
                         else ContextCompat.getColor(context, android.R.color.system_neutral1_100)
-                        val functionalKey = ColorUtils.setAlphaComponent(functionalBase, actionAlpha)
 
                         val neutralSpecialBase = if (isNight) {
                             val baseColor = ContextCompat.getColor(context, android.R.color.system_neutral1_800)
@@ -380,9 +379,16 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             val finalBlendRatio = (colorBlendVal * 0.6f * specialVibrancyVal).coerceIn(0f, 1f)
                             ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         }
-                        val specialBgBase = if (ogTinted) appleActionAccent else neutralSpecialBase
-                        val specialKeyBackground = boostSpecialSaturation(ColorUtils.setAlphaComponent(specialBgBase, keyAlpha))
-                        val enterKeyBackground = specialKeyBackground
+                        // Shift, Delete, 123, globe and other modifiers remain neutral.
+                        // Only an editor action (Search/Return/Go/Send) gets wallpaper accent.
+                        val scopedRoles = FrostAccentRoles.palette(ogTinted,
+                            neutralFunctionalBase, neutralSpecialBase, appleActionAccent)
+                        val functionalKey = ColorUtils.setAlphaComponent(scopedRoles.functional, actionAlpha)
+                        val specialKeyBackground = boostSpecialSaturation(
+                            ColorUtils.setAlphaComponent(scopedRoles.special, keyAlpha))
+                        val enterKeyBackground = if (ogTinted)
+                            ColorUtils.setAlphaComponent(scopedRoles.action, actionAlpha)
+                        else specialKeyBackground
                         val ogFrostKeyAccent = if (ogTinted) appleActionAccent else 0
 
                         val keyText = if (isNight) ContextCompat.getColor(context, android.R.color.system_neutral1_50)
