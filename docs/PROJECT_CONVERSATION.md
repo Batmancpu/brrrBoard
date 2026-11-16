@@ -530,3 +530,20 @@ The Smart Emoji source batch reuses the existing Recents category and local use/
 The latest source retains the Dictate inline RecognitionService route and the English-result guard shipped in v1.0.38: English locale request, API 34+ language detection request, confident non-English tag rejection, Devanagari rejection, and a Dictate language-settings message. The maintainer response to [Dictate issue #359](https://github.com/DevEmperor/DictateKeyboard/issues/359) confirms this route keeps the keyboard visible and that Dictate's RecognitionService ignores the caller's language Intent. The owner must set Dictate → Languages → Active language = English and disable Follow keyboard language; Latin-script Hindi cannot be reliably classified without service metadata. The owner's Hindi report remains unresolved until Reno10 confirmation.
 
 The full source audit found that the repository's Gemini-backed `AiWritingToolsView` contains a Proofread UI but is unreachable through the current AI_TOOLS input route; Android's current SpellCheckerService is word-level. The cloud proofreader was not activated under the offline typing requirements. GlideLib's archived upstream identifies its native library as proprietary Google code, has no LICENSE file, and labels the ARM64 build untested; it remains excluded from public APKs. The complete audit and source/device acceptance split are in [the active plan](POST_V1_0_19_RENO10_PLAN.md). All context, known issues, roadmap marker, README, and AGENTS instructions have been updated. Physical Reno10 acceptance remains the owner's.
+
+
+## 2026-11-16 — owner supplied previous-chat context and authorized implementation
+
+**Owner request**
+
+> The typing library that I told you, I have tested on my phone. It works. It gives bad suggestions but that is my dictionary probably. That is not the typing library.
+>
+> Now look at this chart, look at all the other things and please fix this shit, this mess that we have created one by one.
+>
+> I still see layout buttons are not how they are in my iPad. And I still see the ugly color intent. And please add all this to the GitHub's carry forwarded context.
+>
+> And then start doing it.
+
+**New requirements and corrections.** Use the two attached iOS keyboard screenshots as references without publishing them. Limit keyboard layouts to English US/UK and Romanized Hinglish; remove Key Style/Icon Style selectors while preserving unrelated preferences; use two automatic OG Frosted Glass appearances plus optional action-key tint. Fix proportional layout, bottom/toolbar spacing, stable height, horizontal Emoji pages, visible Smart Emoji entry, Emoji-to-letters behavior, and the thin white top-edge highlight. Bundle the static personal and Emoji dictionary files recovered from the saved FrostKeys backup, but never bundle its learned UserHistoryDictionary. Remove the external gesture-library picker and aim for a bundled offline recognizer; the owner reports GlideLib works on-device, while its redistribution rights remain unresolved. Trace the reported offline mic behavior against the Android RecognitionService actually selected, preserve inline Dictate and English/privacy guards, and do not claim Reno10 acceptance from CI.
+
+**Assistant plan and first checkpoint.** Work is authorized in reviewable batches: (0) update handoff, (1) language/style cleanup and failing-test triage, (2) geometry/tint/top-edge appearance, (3) Emoji/suggestion behavior, (4) static dictionaries and licensed bundled swipe support, (5) Dictate/provider diagnosis, privacy, build and device checklist. Every batch must update PROJECT_CONTEXT.md and this conversation record before the next. Raw screenshots, typed content, and learned history stay out of the public repo. See the active plan for exact source paths and acceptance criteria.

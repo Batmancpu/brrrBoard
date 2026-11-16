@@ -6,6 +6,56 @@
 
 Make brrBoard a reliable, light, offline-first keyboard for the owner's OPPO Reno10 5G. Its visual language and common interactions should closely follow the iPhone keyboard shown in the owner's two current reference frames and current iOS 27 documentation. “Smart” means accurate, quick, predictable, and unobtrusive. It does not mean adding an AI service or feature clutter.
 
+## Owner continuation and execution plan — 2026-11-16
+
+The owner supplied a previous-chat transcript and two keyboard reference screenshots, then authorized implementation. This current request supersedes older plan-only instructions and the older preference to keep manual gesture-library import. The target remains the owner's Android phone and ColorOS; screenshots are visual evidence only and do not prove interactions. Do not publish raw screenshots, message text, clipboard content, or learned typing history.
+
+### Batch 0 — Carry the current intent forward
+
+- Keep this plan, PROJECT_CONTEXT.md, docs/PROJECT_CONVERSATION.md, and AGENTS.md synchronized at each small batch. Record exact files, reasons, outcomes, build/CI results, and the next action before starting another batch.
+- Correct the earlier “252-word draft unrecoverable” summary: a saved backup contains compiled static dictionaries, even though the editable original list is not present.
+
+### Batch 1 — Verify behavior and remove product clutter
+
+- Restrict keyboard input layouts in app/src/main/res/xml/method.xml and LanguageScreen.kt to English US, English UK, and Romanized Hinglish. Keep app UI translations unless they are specifically keyboard choices.
+- In AppearanceScreen.kt, remove the global Key Style and Icon Style selectors and pin one iOS-inspired default. Preserve unrelated settings. Retain only automatic OG Frosted Glass light/dark plus the optional action-key tint; do not add separate theme presets.
+- Triage the existing 13 failing automatic tests (parser/currency, URL/autospace, Emoji recognition) as a separate known issue before release; do not report the current red debug gate as green.
+
+### Batch 2 — Keyboard layout, insets, and liquid-glass treatment
+
+- Trace main_keyboard_frame.xml, InputView, LatinIME.onComputeInsets(), BoardFooterView, KeyboardWrapperView, and RoundedKeyboardFrameView.kt. Keep the host-content boundary correct while removing the unwanted bottom gap.
+- Use responsive Reno10 dp/inset measurements and the supplied screenshots to tune row/key proportions, footer spacing, mic and Emoji balance, toolbar height, and globe/menu behavior. Keep useful hit targets and editor-specific action keys.
+- Hold the same outer keyboard height and bottom edge across letters, Symbols, numpad, Emoji, Clipboard, and toolbar states.
+- Add a subtle, thin white top-edge highlight to the rounded Frosted Glass frame. Keep the glass and letter keys neutral; repair stale action-key tint and map the wallpaper accent only to selected action keys.
+
+### Batch 3 — Emoji and suggestions
+
+- Replace the current vertical Emoji RecyclerView flow in EmojiPalettesView.java and emoji_palettes_view.xml with horizontal, page-snapped category navigation.
+- Make Smart Emoji visibly accessible. Keep its local usage/recency ranking and connect it to the current word, CLDR terms, and the local brrPersonal Emoji mappings.
+- Make the Emoji/ABC control follow the iOS return-to-letters behavior after the Emoji panel opens. Preserve the user's hold menu for Emoji, Clipboard, and Settings.
+- Keep three stable suggestion slots, existing mWillAutoCorrect center emphasis, and up to three relevant Emoji choices. Require explicit taps; never expose valid-only slang as unsolicited text completion.
+
+### Batch 4 — Bundle the user's compact offline data and make swipe typing default
+
+- The saved FrostKeys backup contains dicts/hi-Latn/main_user.dict, dicts/en-IN/emoji_user.dict, and dicts/hi-Latn/emoji_user.dict. Confirm headers/loader behavior, then bundle the static files with the existing brrPersonal seed through the asset loader. Keep UserHistoryDictionary.hi-Latn.dict on-device only.
+- Keep the existing native spatial decoder and measure quality before changing ranking weights. Use a finite, license-reviewed vocabulary; separate suggestion-eligible terms from valid-only slang/profanity and Emoji mappings. No internet access in typing.
+- Remove GestureTypingScreen's external ZIP/file picker. The owner reports the supplied GlideLib works on their phone, but its public archive has no license and identifies proprietary Google code. Do not ship that binary publicly without redistribution rights; integrate a redistributable offline recognizer that is available by default and record any unresolved compatibility limit.
+- The separate 116 MB AppleColorEmoji font is not in the backup and is excluded by its upstream artwork-license terms. Keep native/system Emoji rendering unless a redistributable bundled font becomes available.
+
+### Batch 5 — Dictation, privacy, and final acceptance
+
+- InlineDictation.kt currently calls SpeechRecognizer.createSpeechRecognizer(), which uses the system RecognitionService. The owner reports that their phone still invokes an offline recognizer. Verify the actual Android voice-recognition service selection separately from the active keyboard/IME; make setup and failure states identify the right provider without opening the separate Dictate voice IME.
+- Preserve English request/filtering, password/incognito/no-personalized-learning guards, and brrBoard's no-INTERNET rule. Dictate's private Active language can still override caller locale extras; device acceptance remains open.
+- Build/sign with the existing package and certificate workflow, report automatic tests accurately, then hand the owner a Reno10 checklist for the states unavailable to CI.
+
+### Acceptance checklist
+
+- Only English US/UK and Hinglish appear as keyboard layouts; other Preferences remain intact except obsolete global style/theme selectors.
+- Emoji scrolls horizontally; the Smart Emoji entry is visible; Emoji can return to letters; three-slot text/Emoji predictions remain stable.
+- Keyboard outer height, bottom alignment, toolbar, footer, and host-content boundary match across all panel types; the top highlight is visible without tinting the whole surface.
+- Static user dictionaries ship by default, personal learned history stays local, swipe typing needs no outside install, and normal typing remains offline.
+- Mic uses the configured Dictate RecognitionService inline; owner verifies English output and the final visual/gesture behavior on Reno10.
+
 Preserve package/signing/update identity, the existing Frosted Glass renderer, and the working owner-confirmed interactions. Use Android's EditorInfo and system window semantics where the host app or OS owns behavior. Do not claim hardware acceptance from source or CI results.
 
 ## Verified starting point and recovery limits
@@ -139,7 +189,7 @@ The iPhone 16 Plus is the closest published 6.7-inch comparison found. These rat
 - [x] Batch 5b-source: added a confirmation-protected clear-history action in Text Correction settings. Signed v1.0.35 clears only local UserHistoryDictionary word/word-pair learning and preserves brrPersonal, Android's dictionary and Emoji history.
 - [ ] Batch 5b-validation: confirm learned-word removal and subsequent relearning on Reno10; verify sensitive-field and no-personalized-learning exclusions remain honored. Do not treat the reset button's build as device acceptance.
 - [x] Batch 5c source: integrated the existing local recency/use ranker into the Recents grid, up to three responsive rows, refreshed after use, preserved incognito, fixed double-counting, and recorded accepted Emoji strip selections once. Signed v1.0.33; Reno10 acceptance and contextual text-strip behavior remain open.
-- [x] Batch 5d source/license decision: upstream identifies GlideLib as proprietary Google code extracted from OpenGApps; the archived source has no LICENSE and says its ARM64 build is untested. Do not bundle in a public APK. Keep the existing manual importer for owner-controlled testing. [ ] Reno10 import/gesture acceptance and owner-supplied redistributable rights.
+- [x] Batch 5d source/license decision: upstream identifies GlideLib as proprietary Google code extracted from OpenGApps; the archived source has no LICENSE and says its ARM64 build is untested. Do not bundle in a public APK. The older manual-import direction is superseded by the 2026-11-16 owner correction: remove the importer and implement a redistributable offline engine by default. Reno10 gesture acceptance remains open.
 - [x] Batch 6 source/release audit: v1.0.39 signed APK/source identity and current request-by-request source status are recorded in the full audit below. [ ] Owner Reno10 install/update and runtime acceptance remain open.
 
 
