@@ -41,6 +41,7 @@ import androidx.core.view.isVisible
 import androidx.core.graphics.ColorUtils
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
@@ -555,10 +556,23 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
+        val hasMultipleEmojiCandidates = suggestions.size() > 1
+            && (0 until suggestions.size()).count { suggestions.getInfo(it).isEmoji() } > 1
+        val suggestionsForStrip = if (
+            !Settings.getValues().mIncognitoModeEnabled
+                && !suggestions.isEmpty
+                && !suggestions.isPunctuationSuggestions
+                && hasMultipleEmojiCandidates
+        ) {
+            val rankedEmojis = EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(context, 48)
+            layoutHelper.prioritizeEmojiSideSuggestions(suggestions, rankedEmojis)
+        } else {
+            suggestions
+        }
         isExternalSuggestionVisible = false
         clear()
         setRtl(isRtlLanguage)
-        suggestedWords = suggestions
+        suggestedWords = suggestionsForStrip
         updateSuggestionContainersVisibility(true)
         startIndexOfMoreSuggestions =
             if (!shouldShowSuggestionContent(suggestedWords)) {

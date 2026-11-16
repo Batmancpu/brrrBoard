@@ -52,6 +52,10 @@ import helium314.keyboard.latin.utils.ResourceUtils;
 import helium314.keyboard.latin.utils.ViewLayoutUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
 final class SuggestionStripLayoutHelper {
     private static final int DEFAULT_SUGGESTIONS_COUNT_IN_STRIP = 3;
@@ -333,6 +337,93 @@ final class SuggestionStripLayoutHelper {
         stripView.addView(dividerView);
         final LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)dividerView.getLayoutParams();
         params.gravity = Gravity.CENTER;
+    }
+
+    /**
+     * Ranks decoder-provided Emoji candidates into the visible side slots using local
+     * usage/recency order. The center slot and its confidence decision are never changed.
+     */
+    public SuggestedWords prioritizeEmojiSideSuggestions(final SuggestedWords original,
+            final List<String> rankedEmojiOutputs) {
+        if (original == null || original.isEmpty() || original.isPunctuationSuggestions()
+                || rankedEmojiOutputs == null || rankedEmojiOutputs.isEmpty()) {
+            return original;
+        }
+
+        final HashMap<String, Integer> rankByEmoji = new HashMap<>();
+        for (int i = 0; i < rankedEmojiOutputs.size(); i++) {
+            final String emoji = rankedEmojiOutputs.get(i);
+            if (emoji != null && !rankByEmoji.containsKey(emoji)) {
+                rankByEmoji.put(emoji, i);
+            }
+        }
+        if (rankByEmoji.isEmpty()) {
+            return original;
+        }
+
+        final ArrayList<Integer> sideSlotIndices = new ArrayList<>(2);
+        for (int position = 0; position < mSuggestionsCountInStrip; position++) {
+            if (position == mCenterPositionInStrip) {
+                continue;
+            }
+            for (int i = 0; i < original.size(); i++) {
+                if (getPositionInSuggestionStrip(i, original) == position) {
+                    sideSlotIndices.add(i);
+                    break;
+                }
+            }
+        }
+        if (sideSlotIndices.isEmpty()) {
+            return original;
+        }
+
+        final ArrayList<SuggestedWordInfo> infos = new ArrayList<>(original.size());
+        for (int i = 0; i < original.size(); i++) {
+            infos.add(original.getInfo(i));
+        }
+        final HashSet<Integer> lockedSlots = new HashSet<>();
+        final HashSet<String> alreadyPlacedEmojis = new HashSet<>();
+        boolean changed = false;
+        for (final int targetIndex : sideSlotIndices) {
+            if (infos.get(targetIndex).isKindOf(SuggestedWordInfo.KIND_TYPED)) {
+                lockedSlots.add(targetIndex);
+                continue;
+            }
+            int bestIndex = -1;
+            int bestRank = Integer.MAX_VALUE;
+            for (int i = 0; i < infos.size(); i++) {
+                if (lockedSlots.contains(i)
+                        || getPositionInSuggestionStrip(i, original) == mCenterPositionInStrip) {
+                    continue;
+                }
+                final SuggestedWordInfo candidate = infos.get(i);
+                if (!candidate.isEmoji()
+                        || candidate.isKindOf(SuggestedWordInfo.KIND_TYPED)
+                        || alreadyPlacedEmojis.contains(candidate.getWord())) {
+                    continue;
+                }
+                final Integer rank = rankByEmoji.get(candidate.getWord());
+                if (rank != null && rank < bestRank) {
+                    bestIndex = i;
+                    bestRank = rank;
+                }
+            }
+            if (bestIndex >= 0) {
+                final String chosenEmoji = infos.get(bestIndex).getWord();
+                if (bestIndex != targetIndex) {
+                    Collections.swap(infos, targetIndex, bestIndex);
+                    changed = true;
+                }
+                alreadyPlacedEmojis.add(chosenEmoji);
+                lockedSlots.add(targetIndex);
+            }
+        }
+        if (!changed) {
+            return original;
+        }
+        return new SuggestedWords(infos, original.mRawSuggestions, original.mTypedWordInfo,
+                original.mTypedWordValid, original.mWillAutoCorrect,
+                original.mIsObsoleteSuggestions, original.mInputStyle, original.mSequenceNumber);
     }
 
     /**

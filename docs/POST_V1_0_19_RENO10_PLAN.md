@@ -6,6 +6,10 @@
 
 The sparkle Smart Emoji tab and local frequency/recency ranker were already present in source; the owner's “I don't see Smart Emoji” report exposed an empty first-use Recents grid, which caused the category to fall back to Smileys. Source commit [8caeb5d](https://github.com/Batmancpu/brrrBoard/commit/8caeb5d963b76a606f636ad9c0e08236bacf9648) now seeds ranked Emoji keys into free Recents capacity on opening, migrates the old Smileys fallback to Smart once, and preserves actual recent Emoji history by keeping starter keys transient and excluding them from saved recents. Ranking is capped at the lesser of grid capacity and three rows, and the ranker is not read in incognito mode. Obtainium run [43825284915](https://github.com/Batmancpu/brrrBoard/actions/runs/43825284915) published v1.0.54. Debug run [43825284952](https://github.com/Batmancpu/brrrBoard/actions/runs/43825284952) compiled, signed, and uploaded the APK; its automatic test gate reports the known 13/180 failures. No owner-device test has been performed.
 
+## Current implementation checkpoint — contextual Emoji side suggestions
+
+This batch uses the existing local usage/recency ordering only when the strip has multiple decoder-provided Emoji candidates and the keyboard is not incognito. SuggestionStripView passes a display copy to SuggestionStripLayoutHelper; the helper moves the best ranked available Emoji into the two visible side slots. It preserves the middle suggestion, the decoder-owned mWillAutoCorrect confidence state, candidate scores, and the original InputLogic suggestion model. It does not invent Emoji or perform semantic mapping beyond Emoji already returned by the decoder/dictionary. CI and Reno10 acceptance are pending.
+
 ## Product target
 
 Make brrBoard a reliable, light, offline-first keyboard for the owner's OPPO Reno10 5G. Its visual language and common interactions should closely follow the iPhone keyboard shown in the owner's two current reference frames and current iOS 27 documentation. “Smart” means accurate, quick, predictable, and unobtrusive. It does not mean adding an AI service or feature clutter.
