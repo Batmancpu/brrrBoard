@@ -80,6 +80,7 @@ object SettingsWithoutKey {
     const val GITHUB_WIKI = "github_wiki"
     const val MANGOLOADS = "mangoloads"
     const val INLINE_VOICE = "inline_voice"
+    const val VOICE_SERVICE = "voice_service"
     const val SAVE_LOG = "save_log"
     const val BACKUP_RESTORE = "backup_restore"
     const val DEBUG_SETTINGS = "screen_debug"

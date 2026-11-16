@@ -22,6 +22,7 @@ import android.widget.Toast
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.settings.Settings
 import java.util.Locale
+import helium314.keyboard.latin.utils.Log
 
 // The default service may use a network provider, so allow longer final-result processing.
 private const val SPEECH_SERVICE_START_TIMEOUT_MS = 8_000L
@@ -53,12 +54,13 @@ internal class InlineDictation(private val ime: LatinIME) {
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
-        val dictateService = selectedDictateRecognitionService(ime)
+        val serviceSelection = selectedDictateRecognitionService(ime)
+        val dictateService = serviceSelection.component
         if (dictateService == null) {
+            // Tap never opens system/OEM settings. Configuration is a distinct,
+            // deliberate action in brrBoard Settings > About.
+            Log.w("InlineDictation", "Dictate service unavailable: ${serviceSelection.failure}")
             report(R.string.inline_voice_select_dictate_service)
-            if (!openVoiceInputSettings(ime)) {
-                report(R.string.inline_voice_open_settings_failed)
-            }
             return
         }
         if (ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -237,20 +239,21 @@ internal class InlineDictation(private val ime: LatinIME) {
         fun isAvailable(context: Context): Boolean =
             runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
 
-        private fun selectedDictateRecognitionService(context: Context): ComponentName? {
-            val service = AndroidSettings.Secure.getString(
+        private fun selectedDictateRecognitionService(context: Context): DictateServiceSelection {
+            val selected = AndroidSettings.Secure.getString(
                 context.contentResolver, VOICE_RECOGNITION_SERVICE_SETTING
-            ) ?: return null
-            val component = ComponentName.unflattenFromString(service) ?: return null
-            if (component.packageName != DICTATE_PACKAGE_NAME) return null
-            val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(component.packageName)
-            val isAvailable = runCatching {
-                context.packageManager.queryIntentServices(query, 0).any { resolveInfo ->
-                    val info = resolveInfo.serviceInfo ?: return@any false
-                    info.packageName == component.packageName && info.name == component.className
+            )
+            val selectedComponent = selected?.let { ComponentName.unflattenFromString(it) }
+            if (selectedComponent?.packageName != DICTATE_PACKAGE_NAME) {
+                return resolveDictateServiceSelection(selected, emptyList())
+            }
+            val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(DICTATE_PACKAGE_NAME)
+            val services = runCatching {
+                context.packageManager.queryIntentServices(query, 0).mapNotNull { info ->
+                    info.serviceInfo?.let { ComponentName(it.packageName, it.name) }
                 }
-            }.getOrDefault(false)
-            return component.takeIf { isAvailable }
+            }.getOrDefault(emptyList())
+            return resolveDictateServiceSelection(selected, services)
         }
 
         // This rejects Hindi-script output because the owner requested English only. Dictate's
@@ -267,14 +270,28 @@ internal class InlineDictation(private val ime: LatinIME) {
                 !InputTypeUtils.isVisiblePasswordInputType(editor.inputType) &&
                 editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
 
-        private fun openVoiceInputSettings(context: Context): Boolean = runCatching {
-            context.startActivity(
-                Intent(AndroidSettings.ACTION_VOICE_INPUT_SETTINGS)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            )
-        }.isSuccess
-
         private const val VOICE_RECOGNITION_SERVICE_SETTING = "voice_recognition_service"
         private const val DICTATE_PACKAGE_NAME = "net.devemperor.dictate"
     }
+}
+
+/** Pure service-resolution policy. No platform activity or fallback recognizer is launched. */
+internal data class DictateServiceSelection(
+    val component: ComponentName?,
+    val failure: Failure? = null,
+) {
+    enum class Failure { NO_SELECTION, MALFORMED, WRONG_PROVIDER, SERVICE_MISSING }
+}
+
+internal fun resolveDictateServiceSelection(
+    selected: String?, available: Collection<ComponentName>,
+): DictateServiceSelection {
+    if (selected.isNullOrBlank()) return DictateServiceSelection(null, DictateServiceSelection.Failure.NO_SELECTION)
+    val component = ComponentName.unflattenFromString(selected)
+        ?: return DictateServiceSelection(null, DictateServiceSelection.Failure.MALFORMED)
+    if (component.packageName != "net.devemperor.dictate")
+        return DictateServiceSelection(null, DictateServiceSelection.Failure.WRONG_PROVIDER)
+    if (component !in available)
+        return DictateServiceSelection(null, DictateServiceSelection.Failure.SERVICE_MISSING)
+    return DictateServiceSelection(component)
 }

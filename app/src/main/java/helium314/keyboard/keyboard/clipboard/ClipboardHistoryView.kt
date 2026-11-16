@@ -395,11 +395,13 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     override fun onKeyUp(clipId: Long) {
         val clipContent = clipboardHistoryManager.getHistoryEntryContent(clipId)
-        if (clipContent != null && !clipboardHistoryManager.pasteHistoryEntry(clipContent)) {
+        val outcome = clipContent?.let(clipboardHistoryManager::pasteHistoryEntry)
+        if (outcome == helium314.keyboard.latin.ClipboardHistoryPasteOutcome.TEXT && clipContent != null) {
             keyboardActionListener.onTextInput(clipContent.text)
         }
         keyboardActionListener.onReleaseKey(KeyCode.NOT_SPECIFIED, false)
-        if (Settings.getValues().mAlphaAfterClipHistoryEntry)
+        if (outcome != helium314.keyboard.latin.ClipboardHistoryPasteOutcome.REJECTED &&
+            Settings.getValues().mAlphaAfterClipHistoryEntry)
             keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
     }
 

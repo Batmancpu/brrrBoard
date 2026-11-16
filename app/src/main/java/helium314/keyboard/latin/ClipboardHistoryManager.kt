@@ -35,7 +35,6 @@ import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.database.ClipboardDao
 import helium314.keyboard.latin.databinding.ClipboardSuggestionBinding
 import helium314.keyboard.latin.permissions.PermissionsUtil
-import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.prefs
@@ -67,8 +66,8 @@ class ClipboardHistoryManager(
         clipboardManager.addPrimaryClipChangedListener(this)
         clipboardDao = ClipboardDao.getInstance(latinIME)
         restoreProcessedScreenshotUris()
-        dismissedClipTimestamp = latinIME.prefs().getLong(PREF_DISMISSED_CLIP_TIMESTAMP, 0L)
-        dismissedClipContent = latinIME.prefs().getString(PREF_DISMISSED_CLIP_CONTENT, null)
+        // Migrate away from old preferences containing raw copied text/URI.
+        ClipboardDismissalPreferences.removeLegacyRawContent(latinIME.prefs())
         if (latinIME.mSettings.current.mClipboardHistoryEnabled)
             fetchPrimaryClip()
         syncScreenshotObserver()
@@ -88,6 +87,7 @@ class ClipboardHistoryManager(
         val settings = latinIME.mSettings.current
         return settings.mClipboardHistoryEnabled
                 && settings.mShowScreenshotsInClipboard
+                && !ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo, settings.mIncognitoModeEnabled)
                 && (hasScreenshotFolderAccess() || hasScreenshotReadPermission())
     }
 
@@ -171,6 +171,7 @@ class ClipboardHistoryManager(
                 var processedAny = false
 
                 for (screenshot in queryRecentScreenshots().asReversed()) {
+                    if (!shouldObserveScreenshots()) break
                     val uriString = screenshot.uri.toString()
                     if (!claimScreenshotUri(uriString)) continue
 
@@ -185,7 +186,7 @@ class ClipboardHistoryManager(
                         )
 
                         val cachedUri = cacheImageClip(imageClip)
-                        if (cachedUri != null && dao != null) {
+                        if (cachedUri != null && dao != null && shouldObserveScreenshots()) {
                             dao.addClip(
                                 timeStamp,
                                 false,
@@ -196,7 +197,7 @@ class ClipboardHistoryManager(
                             processedAny = true
                         }
                     } catch (e: Exception) {
-                        Log.e("ClipboardHistoryManager", "Failed processing screenshot $uriString", e)
+                        Log.w("ClipboardHistoryManager", "Failed processing screenshot (${e.javaClass.simpleName})")
                     } finally {
                         completeScreenshotUri(uriString, screenshot.dateAdded, processed)
                     }
@@ -279,7 +280,7 @@ class ClipboardHistoryManager(
                 )
             }
         } catch (e: Exception) {
-            Log.e("ClipboardHistoryManager", "Failed querying screenshots from SAF", e)
+            Log.w("ClipboardHistoryManager", "Failed querying screenshots from SAF (${e.javaClass.simpleName})")
         }
         return screenshots
     }
@@ -491,6 +492,13 @@ class ClipboardHistoryManager(
                 if (clipChanged) latestImageSuggestion = null
                 return
             }
+            if (!ClipboardPrivacyPolicy.mayCollect(
+                    latinIME.currentInputEditorInfo,
+                    latinIME.mSettings.current.mIncognitoModeEnabled,
+                    ClipboardManagerCompat.getClipSensitivity(clipData.description) == true)) {
+                latestImageSuggestion = null
+                return
+            }
             if (clipData.itemCount == 0) {
                 if (clipChanged) latestImageSuggestion = null
                 return
@@ -514,7 +522,7 @@ class ClipboardHistoryManager(
                 clipboardDao?.addClip(timeStamp, false, content.toString())
             }
         } catch (e: Exception) {
-            Log.e("ClipboardHistoryManager", "Failed to fetch primary clip safely", e)
+            Log.w("ClipboardHistoryManager", "Failed to fetch primary clip safely (${e.javaClass.simpleName})")
         }
     }
 
@@ -556,11 +564,14 @@ class ClipboardHistoryManager(
     // when history is about to be shown
     fun prepareClipboardHistory() = clipboardDao?.clearOldClips(true)
 
-    fun getHistorySize() = clipboardDao?.count() ?: 0
+    fun getHistorySize() = if (isHistoryPrivate()) 0 else clipboardDao?.count() ?: 0
 
-    fun getHistoryEntry(position: Int) = clipboardDao?.getAt(position)
+    fun getHistoryEntry(position: Int) = if (isHistoryPrivate()) null else clipboardDao?.getAt(position)
 
-    fun getHistoryEntryContent(id: Long) = clipboardDao?.get(id)
+    fun getHistoryEntryContent(id: Long) = if (isHistoryPrivate()) null else clipboardDao?.get(id)
+
+    private fun isHistoryPrivate(): Boolean = ClipboardPrivacyPolicy.isPrivateEditor(
+        latinIME.currentInputEditorInfo, latinIME.mSettings.current.mIncognitoModeEnabled)
 
     fun setHistoryChangeListener(listener: ClipboardDao.Listener?) {
         clipboardDao?.listener = listener
@@ -583,28 +594,25 @@ class ClipboardHistoryManager(
     }
 
     private fun isClipDismissed(clip: RecentClip): Boolean {
-        if (dismissedClipTimestamp != 0L && clip.timeStamp <= dismissedClipTimestamp) {
-            val dismissedContent = dismissedClipContent ?: return true
-            return when (clip) {
-                is RecentClip.Text -> clip.content.toString() == dismissedContent
-                is RecentClip.Image -> clip.uri.toString() == dismissedContent
-            }
-        }
-        return false
+        return dismissedClipTimestamp != 0L && clip.timeStamp <= dismissedClipTimestamp &&
+            recentClipIdentity(clip) == dismissedClipIdentity
     }
 
     private fun markClipDismissed(clip: RecentClip) {
         dontShowCurrentSuggestion = true
         dismissedClipTimestamp = clip.timeStamp
-        dismissedClipContent = when (clip) {
+        dismissedClipIdentity = recentClipIdentity(clip)
+    }
+
+    private fun recentClipIdentity(clip: RecentClip): String {
+        // Fixed-size fingerprint stays in memory; never persist copied content.
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update((if (clip is RecentClip.Text) "text:" else "image:").toByteArray(Charsets.UTF_8))
+        val content = when (clip) {
             is RecentClip.Text -> clip.content.toString()
             is RecentClip.Image -> clip.uri.toString()
         }
-        latinIME.prefs().edit().apply {
-            putLong(PREF_DISMISSED_CLIP_TIMESTAMP, dismissedClipTimestamp)
-            putString(PREF_DISMISSED_CLIP_CONTENT, dismissedClipContent)
-            apply()
-        }
+        return digest.digest(content.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 
     private fun ClipDescription.imageMimeType(): String? {
@@ -661,8 +669,7 @@ class ClipboardHistoryManager(
         val editor = editorInfo ?: return null
         val type = editor.inputType
         if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
-            InputTypeUtils.isPasswordInputType(type) || InputTypeUtils.isVisiblePasswordInputType(type) ||
-            (editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0) return null
+            ClipboardPrivacyPolicy.isPrivateEditor(editor, latinIME.mSettings.current.mIncognitoModeEnabled)) return null
         val clip = clipboardManager.primaryClip ?: return null
         val description = clip.description
         if (clip.itemCount == 0 || ClipboardManagerCompat.getClipSensitivity(description) == true ||
@@ -679,8 +686,7 @@ class ClipboardHistoryManager(
         editor ?: return null
         val type = editor.inputType
         if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
-            InputTypeUtils.isPasswordInputType(type) || InputTypeUtils.isVisiblePasswordInputType(type) ||
-            (editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0) return null
+            ClipboardPrivacyPolicy.isPrivateEditor(editor, latinIME.mSettings.current.mIncognitoModeEnabled)) return null
         val supported = androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(editor)
         if (supported.isEmpty()) return null
         val clip = clipboardManager.primaryClip ?: return null
@@ -784,9 +790,15 @@ class ClipboardHistoryManager(
         return FileProvider.getUriForFile(latinIME, "${latinIME.packageName}.fileprovider", imageFile)
     }
 
-    fun pasteHistoryEntry(entry: ClipboardHistoryEntry): Boolean {
-        val clip = decodeImageHistoryClip(entry.text) ?: return false
-        return latinIME.commitKlipyContent(clip.uri, clip.label, normalizeImageMimeType(clip.mimeType).mimeType)
+    fun pasteHistoryEntry(entry: ClipboardHistoryEntry): ClipboardHistoryPasteOutcome {
+        val outcome = ClipboardHistoryPastePolicy.paste(entry.text) { clip ->
+            latinIME.commitKlipyContent(clip.uri, clip.label, normalizeImageMimeType(clip.mimeType).mimeType)
+        }
+        if (outcome == ClipboardHistoryPasteOutcome.REJECTED &&
+            ClipboardImageHistoryClip.decode(entry.text) == null) {
+            latinIME.mKeyboardSwitcher.showToast(latinIME.getString(R.string.toast_msg_content_paste_failed), true)
+        }
+        return outcome
     }
 
     private fun copyImageClipAtomically(sourceUri: Uri, imageFile: File): Boolean {
@@ -798,7 +810,7 @@ class ClipboardHistoryManager(
             if (tempFile.length() == 0L) return false
 
             if (imageFile.exists() && !imageFile.delete()) {
-                Log.e("ClipboardHistoryManager", "Failed to replace cached image clipboard clip: $imageFile")
+                Log.w("ClipboardHistoryManager", "Failed to replace cached image clipboard clip")
                 return false
             }
             if (!tempFile.renameTo(imageFile)) {
@@ -807,14 +819,14 @@ class ClipboardHistoryManager(
             imageFile.length() > 0L
         } catch (e: Exception) {
             if (e is java.io.FileNotFoundException || e is IllegalArgumentException || e is IllegalStateException || e is SecurityException) {
-                Log.w("ClipboardHistoryManager", "Screenshot media not ready/accessible: ${e.message}")
+                Log.w("ClipboardHistoryManager", "Screenshot media not ready/accessible (${e.javaClass.simpleName})")
             } else {
-                Log.e("ClipboardHistoryManager", "Failed to cache image clipboard clip", e)
+                Log.w("ClipboardHistoryManager", "Failed to cache image clipboard clip (${e.javaClass.simpleName})")
             }
             false
         } finally {
             if (tempFile.exists() && !tempFile.delete()) {
-                Log.e("ClipboardHistoryManager", "Failed to delete temp image clipboard clip: $tempFile")
+                Log.w("ClipboardHistoryManager", "Failed to delete temp image clipboard clip")
             }
         }
     }
@@ -846,8 +858,6 @@ class ClipboardHistoryManager(
         private const val PREF_PROCESSED_SCREENSHOT_MEDIA_URIS = "clipboard_processed_screenshot_media_uris"
         private const val PREF_LAST_SCREENSHOT_MEDIA_URI = "clipboard_last_screenshot_media_uri"
         private const val PREF_LAST_SCREENSHOT_DATE_ADDED = "clipboard_last_screenshot_date_added"
-        private const val PREF_DISMISSED_CLIP_TIMESTAMP = "clipboard_dismissed_clip_timestamp"
-        private const val PREF_DISMISSED_CLIP_CONTENT = "clipboard_dismissed_clip_content"
         private const val SCREENSHOT_RECENT_WINDOW_SECONDS = 30L
         private const val MAX_SCREENSHOT_ROWS_TO_CHECK = 10
         private const val MAX_PROCESSED_SCREENSHOT_URIS = 20
@@ -858,7 +868,7 @@ class ClipboardHistoryManager(
         )
         private var dontShowCurrentSuggestion: Boolean = false
         private var dismissedClipTimestamp: Long = 0L
-        private var dismissedClipContent: String? = null
+        private var dismissedClipIdentity: String? = null
         const val RECENT_TIME_MILLIS = 3 * 60 * 1000L // 3 minutes (for clipboard suggestions)
 
         fun decodeImageHistoryClip(text: String) = ClipboardImageHistoryClip.decode(text)

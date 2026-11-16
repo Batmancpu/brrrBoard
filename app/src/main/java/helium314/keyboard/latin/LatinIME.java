@@ -14,7 +14,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.AssetFileDescriptor;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -825,7 +824,8 @@ public class LatinIME extends InputMethodService implements
     public boolean commitKlipyContent(Uri contentUri, String description, String mimeType) {
         final EditorInfo editorInfo = getCurrentInputEditorInfo();
         final InputConnection inputConnection = getCurrentInputConnection();
-        if (editorInfo == null || inputConnection == null) {
+        if (editorInfo == null || inputConnection == null || contentUri == null
+                || !"content".equals(contentUri.getScheme())) {
             showContentPasteFailedToast();
             return false;
         }
@@ -841,6 +841,8 @@ public class LatinIME extends InputMethodService implements
             return false;
         }
 
+        boolean manuallyGranted = false;
+        boolean committed = false;
         try {
             final InputContentInfoCompat inputContentInfo = new InputContentInfoCompat(
                     contentUri,
@@ -850,13 +852,14 @@ public class LatinIME extends InputMethodService implements
 
             try {
                 grantUriPermission(editorInfo.packageName, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                manuallyGranted = true;
             } catch (Exception e) {
-                Log.e(TAG, "Failed to grant URI permission", e);
+                Log.w(TAG, "Unable to grant rich content URI (" + e.getClass().getSimpleName() + ")");
             }
 
-            final boolean success = InputConnectionCompat.commitContent(inputConnection, editorInfo, inputContentInfo,
+            committed = InputConnectionCompat.commitContent(inputConnection, editorInfo, inputContentInfo,
                     InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION, null);
-            if (success) return true;
+            if (committed) return true;
             Log.w(TAG, "Target rejected rich content: package=" + editorInfo.packageName
                     + ", sentMimeTypes=" + Arrays.toString(contentMimeTypes)
                     + ", supportedMimeTypes=" + Arrays.toString(supportedMimeTypes)
@@ -865,7 +868,18 @@ public class LatinIME extends InputMethodService implements
             Log.e(TAG, "Failed to commit rich content: package=" + editorInfo.packageName
                     + ", sentMimeTypes=" + Arrays.toString(contentMimeTypes)
                     + ", supportedMimeTypes=" + Arrays.toString(supportedMimeTypes)
-                    + ", " + describeRichContentForLog(contentUri), e);
+                    + ", " + describeRichContentForLog(contentUri)
+                    + ", failureClass=" + e.getClass().getSimpleName());
+        } finally {
+            // Keep a successful grant available to the target, but do not leave
+            // a rejected image exposed to that editor.
+            if (manuallyGranted && !committed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    revokeUriPermission(editorInfo.packageName, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (RuntimeException e) {
+                    Log.w(TAG, "Failed to revoke rejected rich content URI (" + e.getClass().getSimpleName() + ")");
+                }
+            }
         }
 
         showContentPasteFailedToast();
@@ -892,21 +906,9 @@ public class LatinIME extends InputMethodService implements
     }
 
     private String describeRichContentForLog(final Uri contentUri) {
-        String providerType = null;
-        long contentLength = -1L;
-        try {
-            providerType = getContentResolver().getType(contentUri);
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to read rich content provider type for " + contentUri, e);
-        }
-        try (AssetFileDescriptor descriptor = getContentResolver().openAssetFileDescriptor(contentUri, "r")) {
-            if (descriptor != null) {
-                contentLength = descriptor.getLength();
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to read rich content length for " + contentUri, e);
-        }
-        return "uri=" + contentUri + ", providerType=" + providerType + ", length=" + contentLength;
+        // URI paths, query parameters and provider exception messages may contain
+        // clipboard data. Log only the scheme, never the raw URI.
+        return "uriScheme=" + contentUri.getScheme();
     }
 
     private void showContentPasteFailedToast() {

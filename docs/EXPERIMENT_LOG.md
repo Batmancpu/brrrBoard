@@ -1,5 +1,12 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-16 — B05 voice failure and Clipboard privacy/typed paste (CI pending)
+
+- **Baseline/authorization:** `430c10d` signed v1.0.61, B04 complete. Owner authorized B05 only.
+- **Root causes:** failed Dictate selection launched Android settings automatically on a mic tap. Clipboard history collector bypassed its strip's sensitive-flag/editor policy. Old dismissed-clip preferences saved raw text/URI. Rejecting a stored image returned the same boolean as plain text and pasted its serialization marker into an editor; rich paste errors logged raw URI and did not revoke a manually granted rejected content URI.
+- **Proposed remedy:** reason-coded pure Dictate service selection and no tap-launch; explicit About-screen voice configuration; shared private editor policy for collection, history/panel, screenshots and suggestions; purge obsolete raw pref values; bounded in-memory dismissal fingerprint; typed history paste outcome including malformed/file/non-image reject; safe content MIME/URI route and redacted diagnostics, revoke rejected manual grant on supported Android. Preserve existing successful Dictate route and text/image paste.
+- **Regression plan:** pure/Robolectric tests for matching/missing/wrong Dictate service, private/no-learning/sensitive clips, raw pref migration and rejected/committed image outcome; run Python tools, full Android CI, original signer/release. No raw user data or credentials used. Not yet verified or released. Next check and commit this B05-only code with context, then CI; do not implement B06.
+
 ## 2026-11-16 — B04 closed after full green retry and owner acceptance
 
 - **Outcome:** PASS. The owner confirms the all-key tint bug resolved on Reno10 after B04 signed v1.0.60. The two newly failing tint pixel tests in first debug run 43921741786 were corrected to validate drawable state; follow-up `1e197e7` full Android unit test/build/signature workflow [43924216687](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216687) **SUCCESS**. Original-signed production [v1.0.61](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.61/brrBoard.apk) workflow [43924216785](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216785) **SUCCESS**, SHA-256 `25c50c2818e07ffea787eac45b2598f43a73f08b7eaa92045003386db320d704`.

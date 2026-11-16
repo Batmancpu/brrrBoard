@@ -1197,6 +1197,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public void setClipboardKeyboard() {
+        if (helium314.keyboard.latin.ClipboardPrivacyPolicy.isPrivateEditor(
+                mLatinIME.getCurrentInputEditorInfo(), Settings.getValues().mIncognitoModeEnabled)) {
+            showToast(mLatinIME.getString(R.string.clipboard_private_unavailable), true);
+            return;
+        }
         if (DEBUG_ACTION) {
             Log.d(TAG, "setClipboardKeyboard");
         }

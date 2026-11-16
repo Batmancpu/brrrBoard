@@ -496,6 +496,9 @@
     <string name="inline_voice_hindi_result">Only English dictation is accepted. In Dictate → Languages, set Active language to English and turn off Follow keyboard language.</string>
     <string name="inline_voice_select_dictate_service">Select Dictate as Android’s Voice input service to use its configured transcription engine inline.</string>
     <string name="inline_voice_open_settings_failed">Open Android Settings → Voice input and select Dictate, then tap the microphone again.</string>
+    <string name="inline_voice_configure">Configure Dictate voice input</string>
+    <string name="inline_voice_configure_summary">Explicitly open Android voice-input settings to select Dictate; tapping the keyboard microphone never opens settings.</string>
+    <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>
     <!-- Description for English (US) keyboard subtype
          (US) should be an abbreviation of United States. -->

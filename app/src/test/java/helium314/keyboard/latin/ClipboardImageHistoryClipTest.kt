@@ -15,6 +15,33 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ClipboardImageHistoryClipTest {
     @Test
+    fun rejectedImageNeverFallsBackToEncodedMarkerText() {
+        val encoded = ClipboardImageHistoryClip.encode(
+            Uri.parse("content://test/failed"), "image/png", "Screenshot")
+        var commitCalls = 0
+        val failed = ClipboardHistoryPastePolicy.paste(encoded) { commitCalls++; false }
+        assertEquals(ClipboardHistoryPasteOutcome.REJECTED, failed)
+        assertEquals(1, commitCalls)
+        assertEquals(ClipboardHistoryPasteOutcome.REJECTED,
+            ClipboardHistoryPastePolicy.paste("\u0001image\tmalformed") { true })
+        assertEquals(ClipboardHistoryPasteOutcome.REJECTED,
+            ClipboardHistoryPastePolicy.paste(
+                ClipboardImageHistoryClip.encode(Uri.parse("file:///private/file"), "image/png", "Image")) { true })
+        assertEquals(ClipboardHistoryPasteOutcome.REJECTED,
+            ClipboardHistoryPastePolicy.paste(
+                ClipboardImageHistoryClip.encode(Uri.parse("content://test/text"), "text/plain", "Image")) { true })
+        assertEquals(ClipboardHistoryPasteOutcome.TEXT,
+            ClipboardHistoryPastePolicy.paste("normal copied text") { commitCalls++; true })
+        assertEquals(1, commitCalls)
+    }
+
+    @Test
+    fun validImageCommitHasTypedSuccessOutcome() {
+        val encoded = ClipboardImageHistoryClip.encode(Uri.parse("content://test/image"), "image/png", "Image")
+        assertEquals(ClipboardHistoryPasteOutcome.COMMITTED,
+            ClipboardHistoryPastePolicy.paste(encoded) { true })
+    }
+    @Test
     fun imageHistoryClipRoundTripsAndSanitizesLabel() {
         val uri = Uri.parse("content://com.orion.kboard.fileprovider/cache/clipboard/clip_1_a.png")
         val encoded = ClipboardHistoryManager.encodeImageHistoryClip(uri, "image/png", "Screenshot\tone\n")

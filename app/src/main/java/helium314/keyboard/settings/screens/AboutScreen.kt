@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings as AndroidSettings
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.widget.TextView
@@ -58,6 +59,7 @@ fun AboutScreen(
         SettingsWithoutKey.HIDDEN_FEATURES,
         SettingsWithoutKey.MANGOLOADS,
         SettingsWithoutKey.INLINE_VOICE,
+        SettingsWithoutKey.VOICE_SERVICE,
         SettingsWithoutKey.GITHUB,
         SettingsWithoutKey.SAVE_LOG,
     )
@@ -162,6 +164,18 @@ fun createAboutSettings(context: Context) = listOf(
             name = it.title,
             description = it.description,
             onClick = { launcher.launch(android.Manifest.permission.RECORD_AUDIO) },
+            icon = R.drawable.ic_settings_about
+        )
+    },
+    Setting(context, SettingsWithoutKey.VOICE_SERVICE, R.string.inline_voice_configure, R.string.inline_voice_configure_summary) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = {
+                runCatching { ctx.startActivity(Intent(AndroidSettings.ACTION_VOICE_INPUT_SETTINGS)) }
+                    .onFailure { Toast.makeText(ctx, R.string.inline_voice_open_settings_failed, Toast.LENGTH_LONG).show() }
+            },
             icon = R.drawable.ic_settings_about
         )
     },
