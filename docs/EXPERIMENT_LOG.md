@@ -1,5 +1,14 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-16 — B04 frosted key drawable role isolation (pending CI/owner)
+
+- **Build/source:** started `main` `b6f432e` / v1.0.59; one B04-only implementation, no other batch authorized.
+- **Problem/evidence:** owner's Reno10 video shows all normal keys becoming persistent warm accent after Chrome text/decimal/numeric/search/URL inputmode switches, persisting through ChatGPT until force-stop. Other user checks: 5 normal↔Emoji↔Clipboard cycles, hide/reopen, normal landscape keys passed; landscape Emoji bottom row clipped (still open B06/B10).
+- **Hypothesis:** material-frosted `KeyboardView.onDrawKeyBackground()` called `mColors.setColor()` repeatedly on the shared `Drawable` returned by `Key.selectBackgroundDrawable()`. Mutating that instance for special/accent roles can leak appearance to normal keys as the editor layout changes. No instrumented device trace confirms this as exclusive root cause.
+- **Change:** new `KeyBackgroundRoleCache.java` isolates `Drawable.ConstantState.newDrawable().mutate()` by `(source identity, ColorType)` and mirrors pressed state; `KeyboardView.java` draws isolated role instances and calls `clear()` on theme updates. Resource-backed shapes/intrinsic dimensions and non-frosted/iOS drawing branches remain unchanged. For custom drawables without `ConstantState`, the previous behavior remains as a fallback. Added `KeyBackgroundRoleCacheTest.kt` for base-vs-accent isolation, cache reuse and theme invalidation.
+- **Verification:** pending `git diff --check`, tool Python tests, full Android CI and production signer check. Local Android Gradle wrapper previously could not obtain distribution (network), so do not record a local Android pass. Pending on-device reproduction after new signed release; do not call resolved from a compile alone.
+- **Next:** run all checks, keep main changes atomic, inspect red CI without suppressing tests, obtain signed v1.0.60 if release automation succeeds, then ask owner to repeat Chrome inputmode→ChatGPT scenario. If tint no longer persists, close that B04 defect; track Emoji separately for B06/B10. Stop and explicitly seek permission before B05.
+
 This file is the project's durable engineering ledger.
 
 **Rule:** every attempted bug fix, UI experiment, CI repair, rollback, or workaround that is not obvious from the final code should be recorded here, including failed attempts. Never delete a failed experiment; append the outcome instead.

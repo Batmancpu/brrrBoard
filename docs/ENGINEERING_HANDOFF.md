@@ -1,5 +1,13 @@
 # brrBoard engineering handoff
 
+## Latest handoff — 2026-11-16 B04 editor tint isolation (CI/phone verification pending)
+
+Baseline `main` `b6f432e`/signed v1.0.59; full B15 source test workflow 43917170656 and production release workflow 43917170723 succeeded. B15 is owner-accepted complete, with normal daily typing reported satisfactory. B01/B02/B03/B15 complete, B00/B04 partial, all B05–B14 and B16–B19 pending. User specifically authorized B04 and no subsequent batch.
+
+Reno10 owner-tested: five normal↔Emoji↔Clipboard cycles, hide/reopen and field switches good; normal landscape keys and height good. **Unresolved:** landscape Emoji row is obscured by the footer (B06/B10, horizontal scroller cannot vertically reveal it); all ordinary keyboard keys become persistently orange after Chrome inputmode test fields and stay tinted in ChatGPT until force-stop. Owner supplied video; sanitized descriptions only, no private media committed. Ordinary swiping works but suggests poor words (B17).
+
+New B04 source proposal isolates shared mutable material-frosted key backgrounds in `KeyBackgroundRoleCache` keyed by base drawable identity and color role; `KeyboardView` applies a role-specific clone, synchronizes pressed/locked state and invalidates clones after theme updates. Unit tests exercise role isolation across editor-like transitions and theme reset. This does not redraw Emoji, change geometry or modify the planned B07 tint palette. **Do not call the device bug fixed until full Android CI and owner reproduction on the released APK.** If green, publish the next original-signer in-place release. Owner checklist: (1) update through Obtainium; (2) repeat Chrome text/numeric/search/URL then open ChatGPT—letters stay dark/neutral; (3) normal/Emoji/Clipboard cycles and hide/reopen; (4) optional screenshot if tint recurs. B04 may be closed after feedback; next dependency-safe implementation B05, only with explicit owner permission. Run `git diff --check` and Python generator tests locally; Android full gate in Actions as local Gradle wrapper download was previously network-blocked. Record exact new commit, workflow runs and APK URL in a follow-up handoff note; never erase earlier logs.
+
 ## Start here
 
 ## Active checkpoint — B04 and B15 partial; source CI green (2026-11-16)

@@ -1,5 +1,15 @@
 # brrBoard Known Issues & Audit Notes
 
+## Latest owner-supplied Reno10 defects — 2026-11-16
+
+| Symptom | Current state | Batch / acceptance |
+| --- | --- | --- |
+| Ordinary keys unexpectedly all acquire warm/orange tint after Chrome `inputmode` changes; survives switch to ChatGPT until IME force-stop | **Open; B04 source mitigation under CI/device review.** Frosted-material renderer recolored shared `Drawable` objects by role, risking tint leakage; per-base/per-role drawable clones and theme invalidation added. Do not claim resolved until owner repeats their video sequence on updated APK. | B04 lifecycle/renderer isolation; later B07 only for intended color design. |
+| Landscape Emoji bottom visible row cut off under fixed ABC/delete footer; horizontally paged grid cannot scroll vertically | **Open, not part of B04 tint fix.** Owner screenshot proves clipping and unreachable cells. Normal landscape text keyboard is acceptable. | B06 shared bounds/insets, B10 Emoji grid/scroll. |
+| Swipe gestures produce poor word suggestions | **Open, owner-reported.** Ordinary typed-word dictionary experience is satisfactory. | B17 decoder/suggestion-quality evaluation; no user numeric metrics requested. |
+
+Positive owner evidence: repeated normal↔Emoji↔Clipboard five times with no freeze/overlap; hide/reopen and text field switching fine. Other B04 rotations/insets cannot be declared globally verified from one device scenario. Signed v1.0.59 is the baseline before the B04 mitigation; B15 was explicitly declared complete after green CI/release. The table below contains historical statuses.
+
 **Current evidence (16 November 2026).** See the [reconciled feature and issue ledger](MASTER_IMPLEMENTATION_PLAN.md#reconciled-feature-and-issue-ledger) for the v1.0.57 baseline and implementation priorities. Retained rows below record the v1.0.39 checkpoint.
 
 This is the current engineering watchlist. Items are not fixed until CI, source evidence, or Reno10 use establishes the relevant behavior.

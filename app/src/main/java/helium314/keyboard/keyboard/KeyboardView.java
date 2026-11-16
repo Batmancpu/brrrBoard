@@ -66,6 +66,7 @@ public class KeyboardView extends View {
     private final Drawable mFunctionalKeyBackground;
     private final Drawable mActionKeyBackground;
     private final Drawable mSpacebarBackground;
+    private final KeyBackgroundRoleCache mFrostedRoleDrawables = new KeyBackgroundRoleCache();
     private final float mSpacebarIconWidthRatio;
     private final Rect mKeyBackgroundPadding = new Rect();
     private static final float KET_TEXT_SHADOW_RADIUS_DISABLED = -1.0f;
@@ -561,25 +562,28 @@ public class KeyboardView extends View {
             }
         }
 
-        if (mColors.isFrosted()) {
-            mColors.setColor(background, frostedColorType);
-        }
+        // Frosted controls and letters sometimes share the same base drawable.
+        // Do not retint that shared instance as input modes/panels change: a
+        // control accent must never turn ordinary keys into accent-colored keys.
+        final Drawable drawBackground = mColors.isFrosted()
+                ? mFrostedRoleDrawables.get(background, frostedColorType, mColors::setColor)
+                : background;
 
         if (key.needsToKeepBackgroundAspectRatio(mDefaultKeyLabelFlags)
                 // HACK: To disable expanding normal/functional key background.
                 && !key.hasCustomActionLabel()) {
-            final int bgWidthAspect = (int) (background.getIntrinsicWidth() * mIconScaleFactor);
-            final int bgHeightAspect = (int) (background.getIntrinsicHeight() * mIconScaleFactor);
+            final int bgWidthAspect = (int) (drawBackground.getIntrinsicWidth() * mIconScaleFactor);
+            final int bgHeightAspect = (int) (drawBackground.getIntrinsicHeight() * mIconScaleFactor);
             final int bgXAspect = (keyWidth - bgWidthAspect) / 2;
             final int bgYAspect = (keyHeight - bgHeightAspect) / 2;
-            background.setBounds(0, 0, bgWidthAspect, bgHeightAspect);
+            drawBackground.setBounds(0, 0, bgWidthAspect, bgHeightAspect);
             canvas.translate(bgXAspect, bgYAspect);
-            background.draw(canvas);
+            drawBackground.draw(canvas);
             canvas.translate(-bgXAspect, -bgYAspect);
         } else {
-            background.setBounds(0, 0, bgWidth, bgHeight);
+            drawBackground.setBounds(0, 0, bgWidth, bgHeight);
             canvas.translate(bgX, bgY);
-            background.draw(canvas);
+            drawBackground.draw(canvas);
             canvas.translate(-bgX, -bgY);
         }
     }
@@ -993,6 +997,7 @@ public class KeyboardView extends View {
      * @see #invalidateKey(Key)
      */
     public void updateThemeColors(final Colors colors) {
+        mFrostedRoleDrawables.clear();
         mColors = colors;
         if (mKeyBackground != null) {
             colors.setColor(mKeyBackground,
