@@ -2,6 +2,7 @@
 package helium314.keyboard.latin
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,6 +13,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.provider.Settings as AndroidSettings
 import android.view.View
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.EditorInfo
@@ -50,6 +52,13 @@ internal class InlineDictation(private val ime: LatinIME) {
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
+        if (!isDictateRecognitionServiceSelected(ime)) {
+            report(R.string.inline_voice_select_dictate_service)
+            if (!openVoiceInputSettings(ime)) {
+                report(R.string.inline_voice_open_settings_failed)
+            }
+            return
+        }
         if (ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             report(R.string.inline_voice_permission)
             return
@@ -225,6 +234,15 @@ internal class InlineDictation(private val ime: LatinIME) {
         fun isAvailable(context: Context): Boolean =
             runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
 
+        private fun isDictateRecognitionServiceSelected(context: Context): Boolean {
+            val service = AndroidSettings.Secure.getString(
+                context.contentResolver, VOICE_RECOGNITION_SERVICE_SETTING
+            ) ?: return false
+            val component = ComponentName.unflattenFromString(service) ?: return false
+            return component.packageName == DICTATE_PACKAGE_NAME &&
+                component.className == DICTATE_RECOGNITION_SERVICE_CLASS
+        }
+
         // This rejects Hindi-script output because the owner requested English only. Dictate's
         // saved Active language remains authoritative; this does not identify Romanized Hindi.
         private fun containsHindiScript(text: String): Boolean =
@@ -238,5 +256,17 @@ internal class InlineDictation(private val ime: LatinIME) {
                 !InputTypeUtils.isPasswordInputType(editor.inputType) &&
                 !InputTypeUtils.isVisiblePasswordInputType(editor.inputType) &&
                 editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
+
+        private fun openVoiceInputSettings(context: Context): Boolean = runCatching {
+            context.startActivity(
+                Intent(AndroidSettings.ACTION_VOICE_INPUT_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }.isSuccess
+
+        private const val VOICE_RECOGNITION_SERVICE_SETTING = "voice_recognition_service"
+        private const val DICTATE_PACKAGE_NAME = "net.devemperor.dictate"
+        private const val DICTATE_RECOGNITION_SERVICE_CLASS =
+            "dev.patrickgold.florisboard.dictate.recognition.DictateRecognitionService"
     }
 }
