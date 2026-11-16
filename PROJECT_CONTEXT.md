@@ -1,5 +1,14 @@
 # brrBoard project context
 
+## Current verified production release — v1.0.58, 2026-11-16 (supersedes earlier release-blocker notes below)
+
+- **Released:** [v1.0.58](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.58); [direct APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.58/brrBoard.apk). Existing production package `com.orion.frostkeys.brrrboard`, signer and in-place Obtainium upgrade path were checked. Signed APK SHA-256 `6fc9eb138570e835ed1e75899fa0714f4ab2f769d0b56581023153ccea04d222`.
+- **CI evidence:** [production Actions run 43905699269](https://github.com/Batmancpu/brrrBoard/actions/runs/43905699269) SUCCESS; [debug/test run 43905699279](https://github.com/Batmancpu/brrrBoard/actions/runs/43905699279) SUCCESS. Earlier 183/183 green test audit at `c229f9d`. Source audit branch was fast-forwarded into `main` as `4dcdd047` (22 commits); follow-up annotation `1102930` affected workflow comments only. Older sections that say stable is v1.0.57 or manual dispatch is needed were accurate at the time but **are now superseded**.
+- **Scope still open:** This is an intermediate installed-phone checkpoint, not a full iOS polish release. B01–B03 verified in source; B00/B04/B15 partial, B04 physical Reno10 acceptance outstanding; follow the full 20-batch plan and its dependency constraints. Do not claim later batches complete from an APK build alone.
+- **Next agent protocol:** Read `AGENTS.md`, all master-plan files, this full history, and live `main`/Actions/release state. Continue from actual completed tasks, avoid repeating prior work, validate B04 on phone with owner and advance independent tasks where possible. Maintain detailed cumulative context and exact next step after each small segment. Publish a signed stable Obtainium in-place APK after each completed, testable functionality batch; keep private signing secrets out of documentation; stop on failed CI instead of masking failures.
+- **Independent GitHub account note:** As of 2026-11-16, `Batmancpu/brrMusic` had FC Zenith run [43910220849](https://github.com/Batmancpu/brrMusic/actions/runs/43910220849) queued with no jobs yet. It is a distinct public repo using `ubuntu-latest`, not evidence brrBoard quota exhausted; do not alter brrBoard release workflow based solely on this queue.
+
+
 ## Release handoff — 2026-11-16; production update needs manual workflow dispatch
 
 - **Owner decision:** Install new checkpoints as in-place updates to the existing Obtainium brrBoard (`com.orion.frostkeys.brrrboard`), not the separate `.debug` keyboard. Keep the original persistent release signer and existing user data. The owner has separate Play Store Frost Keys as a fallback. Phone-specific B04 acceptance is still pending; this is an explicitly requested testable checkpoint, not completion of the 20-batch plan.
