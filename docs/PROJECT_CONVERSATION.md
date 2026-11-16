@@ -663,3 +663,18 @@ The required order is implementation in small batches, with a concrete plan and 
 **Next source batch — trim installable dictionary assets.** Repository assets contain 21 dictionaries. Keep the three owner-facing main dictionaries (`main_en-US.dict`, `main_en-GB.dict`, `main_hi-Latn.dict`) and both current Emoji dictionaries. Exclude the other 16 main dictionaries, 30,876,181 raw bytes, from installable build variants through Gradle's asset-ignore list. Leave all source files in place and retain the complete catalog in the `runTests` build type; this trims APK payload without deleting test fixtures or dictionary files from history. The existing selected-language UI and internal subtype catalog remain unchanged. CI will establish actual compressed APK savings and ensure asset lookup still works.
 
 **Next after this batch.** Continue the audit of alternate-symbol popups and visible icons/layout proportions; wire local Emoji usage/recency and brrPersonal shortcuts into the three-slot suggestion strip; then validate a default swipe decoder with clear redistribution rights. Keep device-only acceptance open for Reno10 geometry, palette rendering, Dictate component/language and swipe accuracy.
+
+
+## 2026-11-16 — v1.0.53 dictionary APK trim and Smart Emoji source audit
+
+**Owner direction carried forward.**
+
+> “Now give me a detailed plan what you will do after reading all this context, okay? I guess you should start with the basic corrections, adding the emojis, the glide typing library, the layout, behavior and everything.”
+
+Continue in reviewable implementation batches and preserve all progress in the four-file GitHub handoff. Keep the iOS-inspired layout target, three visible owner languages, neutral Apple palette, contextual Emoji, bundled offline Personal data, default rights-cleared swipe typing, selected Dictate service, and Reno10-specific acceptance boundary.
+
+**Dictionary payload result.** [v1.0.53](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.53), commit [1d9ed8d](https://github.com/Batmancpu/brrrBoard/commit/1d9ed8d476870e3fd0918659b0098ab86a72af4f), was built and signed by Obtainium run [43822092860](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092860). Release APK: 37,949,189 bytes, SHA-256 `38817186ea3db60c2937f7afa28ab89e49dff0e6163e351c71d21b8df5be62c6`; down 13,079,670 bytes (~25.6%) from v1.0.52. Debug run [43822092903](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092903) built/signer-verified/uploaded its APK (46,063,050 bytes, SHA-256 `d7cb84cd406b1d07c5c95b9f708e83c51a956966c4a112928588a11aa40eac5b`) and completed 180 tests with the same 13 baseline failures (5 parser/currency, 7 URL/autospace, 1 Emoji recognition). No manual tests were run.
+
+**Payload change.** All installable build variants now exclude 16 unsupported main dictionary assets totaling 30,876,181 raw bytes. English US, English UK, Romanized Hinglish and both bundled Emoji dictionaries remain eligible; source files and the full test catalog remain intact. The release workflow's exact-byte checks for shipped Hinglish and Emoji dictionaries passed. The APK shrank 13.08 MB compressed.
+
+**Smart Emoji source finding.** The Smart tab already returns `ic_emoji_smart`, has a Smart accessibility label, and its tab strip is made visible when Emoji mode opens. The optional persistent Emoji row is disabled by default and separate from the Emoji panel. The existing local frequency/recency ranker feeds that optional row; next integrate it into Smart category contents and typed-word side suggestions while preserving the text candidate and decoder scores. Reno10 visibility and relevance still require owner confirmation.
