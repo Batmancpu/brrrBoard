@@ -302,7 +302,7 @@ class InputLogicTest {
         reset()
         latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, true) }
         chainInput("bla.c")
-        assertEquals("bla.c", text)
+        assertEquals("bla.c", text, "text=$text composing=$composingText lastAddedWord=$lastAddedWord urlDetection=${settingsValues.mUrlDetectionEnabled}")
         assertEquals("bla.c", composingText)
         reset()
         latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, true) }
@@ -320,7 +320,7 @@ class InputLogicTest {
         reset()
         latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, true) }
         chainInput("example.com.")
-        assertEquals("example.com.", composingText)
+        assertEquals("example.com.", composingText, "text=$text composing=$composingText lastAddedWord=$lastAddedWord urlDetection=${settingsValues.mUrlDetectionEnabled}")
         input(' ')
         assertEquals("example.com", lastAddedWord)
     }
@@ -440,7 +440,7 @@ class InputLogicTest {
         reset()
         latinIME.prefs().edit { putBoolean(Settings.PREF_URL_DETECTION, true) }
         chainInput("bla.com/img.jpg")
-        assertEquals("bla", lastAddedWord)
+        assertEquals("bla", lastAddedWord, "text=$text composing=$composingText committed=$connectionTextBeforeComposingText urlDetection=${settingsValues.mUrlDetectionEnabled}")
         assertEquals("bla.com/img.jpg", composingText)
     }
 

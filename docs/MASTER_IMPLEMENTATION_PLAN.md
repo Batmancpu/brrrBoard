@@ -57,7 +57,7 @@ Pin US locale and an explicit locale-based blank currency override in KeyboardPa
 
 ### B02 — InputLogic URL/autospace contracts (B01)
 
-Reference `InputLogicTest.reset` (clear prefs) and SettingsValues (production defaults enabled). Make each URL detection, autospace and shift-phantom policy explicit before setting text/selection. Bury neither drift nor actual regression in relaxed expected text. If any failure remains, split fixture and production correction into separate sub-batches after comparing XML and seed state. Run seven tests individually and full class, then full suite. Test email/URL, sentence punctuation, deletion and autocorrection undo in external editor. Preserve current user setting defaults and learned-data exclusions.
+Reference `InputLogicTest.reset` (clear prefs) and SettingsValues (production defaults enabled). Make each URL detection, autospace and shift-phantom policy explicit before setting text/selection. Four of seven baseline failures were policy drift and are fixed without changing assertions/defaults. Three URL-enabled failures remain in `urlDetectionThings`, trailing separator history, and intermediate URL commit; CI 43852082788 ran 181 tests and confirms those plus Emoji are the remaining four. A first transfer commit was malformed; recovery commit 33afb1f verified full local/remote Git blob hashes. Diagnostic assertion messages are in progress to capture actual composing/committed/editor state. Keep fixture and product fixes separate; do not relax expectations. Continue with diagnostic CI and smallest confirmed runtime correction, then focused/full gate. Preserve current user defaults and learned-data exclusions.
 
 ### B03 — Unicode Emoji classifier and full green gate (B02)
 
