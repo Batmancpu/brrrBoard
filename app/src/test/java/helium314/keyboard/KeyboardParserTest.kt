@@ -3,6 +3,7 @@ package helium314.keyboard
 
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodSubtype
+import androidx.core.content.edit
 import com.android.inputmethod.keyboard.ProximityInfo
 import helium314.keyboard.keyboard.Key
 import helium314.keyboard.keyboard.Key.KeyParams
@@ -14,18 +15,22 @@ import helium314.keyboard.keyboard.internal.KeyboardBuilder
 import helium314.keyboard.keyboard.internal.KeyboardParams
 import helium314.keyboard.keyboard.internal.TouchPositionCorrection
 import helium314.keyboard.keyboard.internal.UniqueKeysCache
+import helium314.keyboard.keyboard.internal.keyboard_parser.LocaleKeyboardInfos
 import helium314.keyboard.keyboard.internal.keyboard_parser.LayoutParser
 import helium314.keyboard.keyboard.internal.keyboard_parser.POPUP_KEYS_NORMAL
 import helium314.keyboard.keyboard.internal.keyboard_parser.addLocaleKeyTextsToParams
+import helium314.keyboard.keyboard.internal.keyboard_parser.clearCache
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.RichInputMethodSubtype
+import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.LayoutUtils
 import helium314.keyboard.latin.utils.LayoutUtilsCustom
 import helium314.keyboard.latin.utils.POPUP_KEYS_LAYOUT
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.SubtypeUtilsAdditional
 import helium314.keyboard.latin.utils.mainLayoutName
+import helium314.keyboard.latin.utils.prefs
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -37,6 +42,7 @@ import java.io.File
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.test.BeforeTest
+import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -50,15 +56,32 @@ import kotlin.test.assertTrue
 class ParserTest {
     private lateinit var latinIME: LatinIME
     private lateinit var params: KeyboardParams
+    private var hadCustomCurrencyPreference = false
+    private var originalCustomCurrencyPreference: String? = null
 
     @BeforeTest fun setUp() {
         latinIME = Robolectric.setupService(LatinIME::class.java)
         ShadowLog.setupLogging()
         ShadowLog.stream = System.out
+        // These parser expectations describe the en-US layout. Pin the locale and
+        // currency override instead of inheriting the product's rupee default.
+        val prefs = latinIME.prefs()
+        hadCustomCurrencyPreference = prefs.contains(Settings.PREF_CUSTOM_CURRENCY_KEY)
+        originalCustomCurrencyPreference = prefs.getString(Settings.PREF_CUSTOM_CURRENCY_KEY, null)
+        prefs.edit { putString(Settings.PREF_CUSTOM_CURRENCY_KEY, "") }
+        clearCache()
         params = KeyboardParams()
-        params.mId = KeyboardLayoutSet.getFakeKeyboardId(KeyboardId.ELEMENT_ALPHABET)
+        params.mId = getFakeKeyboardId(KeyboardId.ELEMENT_ALPHABET)
         params.mPopupKeyOrder.add(POPUP_KEYS_LAYOUT)
         addLocaleKeyTextsToParams(latinIME, params, POPUP_KEYS_NORMAL)
+    }
+
+    @AfterTest fun restoreCurrencyPreference() {
+        latinIME.prefs().edit {
+            if (hadCustomCurrencyPreference) putString(Settings.PREF_CUSTOM_CURRENCY_KEY, originalCustomCurrencyPreference)
+            else remove(Settings.PREF_CUSTOM_CURRENCY_KEY)
+        }
+        clearCache()
     }
 
     // todo: add tests for background type, also consider e.g. emoji key has functional bg by default
@@ -217,6 +240,13 @@ f""", // no newline at the end
         assertIsExpected("""[[{ "label": "p", "popup": { "main": { "label": "$$$" } } }]]""", Expected('p'.code, "p", null, null, listOf("$" to '$'.code)))
         assertIsExpected("""[[{ "label": "p", "popup": { "main": { "label": "a", "code": -804 } } }]]""", Expected('p'.code, "p", null, null, listOf("a" to '€'.code)))
         assertIsExpected("""[[{ "label": "p", "popup": { "main": { "label": "!icon/clipboard_action_key", "code": -804 } } }]]""", Expected('p'.code, "p", null, null, listOf(null to '€'.code)))
+    }
+
+    @Test fun currencyKeyUsesConfiguredRupee() {
+        latinIME.prefs().edit { putString(Settings.PREF_CUSTOM_CURRENCY_KEY, "₹") }
+        val localeInfo = LocaleKeyboardInfos(null, Locale.US)
+        assertEquals("₹", localeInfo.currencyKey.first)
+        assertEquals(listOf("£", "€", "$", "¢", "¥", "₱"), localeInfo.currencyKey.second)
     }
 
     @Test fun weirdCurrencyKey() {
@@ -686,13 +716,23 @@ f""", // no newline at the end
 
     private fun parseJsonLayoutFile(path: String, elementId: Int): List<List<KeyParams>> {
         val previousId = params.mId
-        params.mId = KeyboardLayoutSet.getFakeKeyboardId(elementId)
+        params.mId = getFakeKeyboardId(elementId)
         try {
             return LayoutParser.parseJsonString(File(path).readText())
                 .map { row -> row.mapNotNull { it.compute(params)?.toKeyParams(params) } }
         } finally {
             params.mId = previousId
         }
+    }
+
+    private fun getFakeKeyboardId(elementId: Int): KeyboardId {
+        val layoutParams = KeyboardLayoutSet.Params()
+        KeyboardLayoutSet.Params::class.java.getDeclaredField("mEditorInfo").apply { isAccessible = true }
+            .set(layoutParams, EditorInfo())
+        val subtype = SubtypeUtilsAdditional.createEmojiCapableAdditionalSubtype(Locale.US, "qwerty", true)
+        KeyboardLayoutSet.Params::class.java.getDeclaredField("mSubtype").apply { isAccessible = true }
+            .set(layoutParams, RichInputMethodSubtype.get(subtype))
+        return KeyboardId(elementId, layoutParams)
     }
 
     private fun buildKeyboard(editorInfo: EditorInfo, subtype: InputMethodSubtype, elementId: Int): Pair<Keyboard, List<List<KeyParams>>> {

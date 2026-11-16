@@ -2,6 +2,8 @@
 
 **Planning baseline:** source [3ee9da9](https://github.com/Batmancpu/brrrBoard/commit/3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21), signed [v1.0.57](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.57), debug CI 13/180. **Implementation is now explicitly authorized by the owner (2026-11-16).** B00 has verified the current repository/CI baseline and remains partial until the owner’s Reno10 device measurements are captured. See the live [B00 checkpoint](ENGINEERING_HANDOFF.md#b00--implementation-baseline-2026-11-16). Continue with B01; do not repeat the completed R0–R6 research.
 
+**B01 implementation status (2026-11-16):** fixture-only patch is in progress on `brrrboard-audit-b01-currency-20261116` (based on B00 documentation checkpoint `7ab4bc5`). `ParserTest` now pins the parser locale to en-US, uses a blank test-only currency override for USD expectations, restores prior preference state after every test, clears the locale cache at fixture boundaries, and adds configured-rupee coverage. Product default and runtime implementation are untouched. Local Gradle could not download its 8.14.4 distribution; focused and full CI verification are still pending. No B02 work starts until the B01 CI report is inspected.
+
 [Start and checkpoint ledger](ENGINEERING_HANDOFF.md#start-here) · [Runtime and CI](SOURCE_ARCHITECTURE_AUDIT.md) · [Visuals and device](RENO10_VISUAL_SPEC.md) · [Local typing](LOCAL_TYPING_ENGINE.md) · [Clipboard, autofill and voice](IME_PROVIDER_INTEGRATIONS.md)
 
 ## Product and decision baseline

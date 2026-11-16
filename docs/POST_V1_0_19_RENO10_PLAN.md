@@ -6,6 +6,10 @@ The owner now authorizes implementation across the published dependency-ordered 
 
 **Next exact action — B01:** make currency parser fixture state deterministic (en-US, explicit blank custom currency) without changing the app’s `₹` default; preserve coverage for custom rupee and currency popup labels. Run focused and full tests in CI because local Gradle is unavailable. Do not proceed to B02 until the B01 evidence is recorded. All four continuity records must be committed with each batch. See [current engineering handoff](ENGINEERING_HANDOFF.md#b00--implementation-baseline-2026-11-16).
 
+## B01 — currency parser fixture isolation (in progress)
+
+Starting commit: `7ab4bc570b18ad79bd5e4d8761ae910f10de2174` (B00 documentation checkpoint). Changed only `app/src/test/java/helium314/keyboard/KeyboardParserTest.kt`: fake parser IDs now use an explicit US English subtype; the test fixture sets `custom_currency_key` to blank so legacy USD expectations exercise locale fallback; setup saves previous preference state, teardown restores/removes it and clears the locale-info cache; new `currencyKeyUsesConfiguredRupee` checks the existing custom-₹ path. No product source or `Defaults.PREF_CUSTOM_CURRENCY_KEY` changed. `git diff --check` is the only local validation so far; local Gradle cannot download 8.14.4, so CI is required. Exact B01 ending commit and focused/full test outcomes will be appended after the `brrrboard-audit-*` workflow result. Next: run/inspect focused parser tests and the full `testRunTests` suite; fix any failing fixture or test-order behavior before B02.
+
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).
 
 **R5 — dependency-ordered implementation master plan.** The plan is ready for a later implementation session. R6 will verify links, source immutability, recovered history and the remote checkpoint chain. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).
