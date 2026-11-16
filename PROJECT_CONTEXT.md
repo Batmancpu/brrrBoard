@@ -1,5 +1,14 @@
 # brrBoard project context
 
+## Release handoff — 2026-11-16; production update needs manual workflow dispatch
+
+- **Owner decision:** Install new checkpoints as in-place updates to the existing Obtainium brrBoard (`com.orion.frostkeys.brrrboard`), not the separate `.debug` keyboard. Keep the original persistent release signer and existing user data. The owner has separate Play Store Frost Keys as a fallback. Phone-specific B04 acceptance is still pending; this is an explicitly requested testable checkpoint, not completion of the 20-batch plan.
+- **Source promoted:** audit branch `brrrboard-audit-b01-currency-20261116` at `4dcdd04708dcb889cdce6294740d9e752056ec58` was a fast-forward of `main` from `7ab4bc570b18ad79bd5e4d8761ae910f10de2174` (22 commits, no divergence). Last source CI run [43874232917](https://github.com/Batmancpu/brrrBoard/actions/runs/43874232917) at `c229f9d` completed the signer check, APK artifact, and all **183/183** unit tests. The subsequent tip `4dcdd047` only recorded documentation.
+- **Trigger attempt:** the GitHub integration moved `main` to `4dcdd047`, then committed a comment-only release workflow annotation as `1102930b67826aaaac9d19956bc6518f924f81c0`. Neither GitHub App operation started a new Actions run in the observed window; the stable release remained v1.0.57. No release APK was created in this session. **Do not claim an Obtainium update is ready until the live release run succeeds.**
+- **Next exact action:** An authenticated owner or agent with GitHub Actions write authority should open [brrBoard Obtainium Release](https://github.com/Batmancpu/brrrBoard/actions/workflows/obtainium-release.yml), select **Run workflow**, choose `main`, and launch it using the existing three release signing secrets. Verify the pinned signer/package checks, successful release publication with a new monotonically increasing `v1.0.N`, then supply the direct `brrBoard.apk` URL. If the workflow fails, inspect job logs and fix within scope without changing the signing certificate or package ID. Retest on the Reno10 and record results. Do not start additional code changes until this release status is resolved.
+- **Batch state remains:** B01–B03 complete; B00, B04, B15 partial; B05–B14 and B16–B19 unstarted. Source promotion did not imply B04 device sign-off or broader visual completion.
+
+
 ## Resume here
 
 **Implementation session — B00 partial; B01–B03 complete; B04 partial (CI green, Reno10 pending); B15 partial (fingerprint and 183 tests passed).** Main `7ab4bc5`/stable v1.0.57 unchanged. B04 source `2be4e54` passed CI and produced signed test prerelease; device transition/inset checks remain open. B15 source `c229f9d` passed build/signing, generated `brrPersonal.tsv` SHA-256 `26de07d1825ce75c8121104a97829b6e414aa179fd8cfe322e7e72123c77ff0a`, and all 183 tests. No dictionary behavior changed. Next: execute R3 fixed-set accuracy/cold-warm latency/heap and Reno10 reset checks before B16.
