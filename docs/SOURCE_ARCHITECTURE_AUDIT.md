@@ -50,3 +50,8 @@ Future local reproducer (CI uses JDK 21), with exact XML at `app/build/test-resu
 ```
 
 Capture assertion messages from XML, compare against pinned baseline and run full suite for test-order effects. A green compiler or artifact upload never substitutes for a green gate. An already-green gate on newer main should be verified and skipped. Investigate the dispatcher teardown message only if it reproduces with meaningful stack context or causes nondeterminism. Preserve actual behavior and historical baseline while fixing the contract.
+
+
+## Post-R6 implementation update — B01 (2026-11-16)
+
+B01 source commit [e4a4a01](https://github.com/Batmancpu/brrrBoard/commit/e4a4a01ce13edf7020335cb802c4687c165db841) made the ParserTest locale and custom-currency override explicit and added configured-rupee coverage. This is test fixture isolation, not a product default change. Debug workflow [43848172243](https://github.com/Batmancpu/brrrBoard/actions/runs/43848172243) completed 181 tests: the five parser/currency failures listed above no longer fail, the new rupee test passed, and eight failures remain (the same seven InputLogic URL/autospace cases plus one Emoji classifier case). APK build, signer verification and upload succeeded; the test gate failed and prerelease publication was skipped. Local Gradle could not fetch Gradle 8.14.4. Next implementation batch is B02; the exact URL/autospace method list and fixture hypothesis above remain unverified until focused CI confirms them. The test runner added one new rupee test; no new failure was introduced.
