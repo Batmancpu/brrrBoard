@@ -2,6 +2,8 @@
 
 ## Resume here
 
+**Implementation session — B00 partial (2026-11-16).** The owner authorized all 20 planned batches and will be away for about 4–5 hours. Latest main is `cb1a35d6b506b2214bb19e56d62e50d8b80e48b6`, clean; source remains unchanged from `3ee9da9`. Release `v1.0.57` is still latest. Latest debug job `133178974688` built/signer-verified the APK, then ran 180 tests and failed the known 13 (five parser/currency, seven URL/autospace, one Emoji classifier). Local `./gradlew :app:testRunTestsUnitTest` could not start because Gradle 8.14.4 was not cached and network access failed; JDK 21.0.13 is present. `adb` is absent. No open PRs or extra remote branches were found. **Next: B01**, pin the parser test fixture to en-US and blank custom currency; preserve and test the `₹` product default. Keep B02+ gated by focused/full CI results. Device baseline still needs owner Reno10 measurements and interaction checks; no hardware result is claimed. Full evidence and exact paths are in the latest [conversation checkpoint](docs/PROJECT_CONVERSATION.md#2026-11-16--b00-implementation-baseline).
+
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
 **R5 — dependency-ordered implementation master plan.** The plan is ready for a later implementation session. R6 will verify links, source immutability, recovered history and the remote checkpoint chain. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).

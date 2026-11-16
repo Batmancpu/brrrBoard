@@ -1,5 +1,11 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
+## 2026-11-16 — autonomous implementation B00 checkpoint
+
+The owner now authorizes implementation across the published dependency-ordered plan and requests continuous, recoverable progress while unavailable for approximately 4–5 hours. This latest direction supersedes the older planning-only instruction preserved below. **B00 is partial:** latest main is `cb1a35d6b506b2214bb19e56d62e50d8b80e48b6`; its diff from source baseline `3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21` is documentation-only. Release v1.0.57 remains latest (37,949,189 bytes; SHA-256 `a57da3ad314f4f6e21dd64cf18996c5e215134d631d93f4a3a396e75b32bdbfd`). Debug job 133178974688 built and signer-verified an APK, then its test gate failed 13 of 180 tests: 5 currency parser, 7 URL/autospace, 1 Emoji classification. Local Gradle execution is blocked before configuration by a network failure downloading Gradle 8.14.4. This workspace has no `adb`; Reno10 baseline remains unverified.
+
+**Next exact action — B01:** make currency parser fixture state deterministic (en-US, explicit blank custom currency) without changing the app’s `₹` default; preserve coverage for custom rupee and currency popup labels. Run focused and full tests in CI because local Gradle is unavailable. Do not proceed to B02 until the B01 evidence is recorded. All four continuity records must be committed with each batch. See [current engineering handoff](ENGINEERING_HANDOFF.md#b00--implementation-baseline-2026-11-16).
+
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).
 
 **R5 — dependency-ordered implementation master plan.** The plan is ready for a later implementation session. R6 will verify links, source immutability, recovered history and the remote checkpoint chain. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).

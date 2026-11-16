@@ -14,6 +14,15 @@
 | R5 — Ordered implementation and acceptance plan | Published in this checkpoint | [MASTER_IMPLEMENTATION_PLAN.md](MASTER_IMPLEMENTATION_PLAN.md) |
 | R6 — Final handoff verification | Complete | [Verification and readiness](#r6--verification-and-readiness) |
 
+## B00 — Implementation baseline (2026-11-16)
+
+- The owner has now authorized implementation of the full 20-batch plan and requests autonomous work during a 4–5 hour absence. This supersedes the earlier planning-only authorization stated in R0–R6.
+- Start commit was `cb1a35d6b506b2214bb19e56d62e50d8b80e48b6`; local `main` matched `origin/main`, was clean, and the diff from `3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21` is documentation only (11 Markdown files, 457 insertions). Repository branches were `main`, `codex/incognito-voice-guard-20261115`, `codex/reno10-ime-boundary-20261115`, and `jules-board-10408838174702712066`; no open PR was found.
+- Latest release remains signed [v1.0.57](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.57), APK 37,949,189 bytes, SHA-256 `a57da3ad314f4f6e21dd64cf18996c5e215134d631d93f4a3a396e75b32bdbfd`.
+- Latest debug job [133178974688](https://github.com/Batmancpu/brrrBoard/actions/runs/43831906039/job/133178974688) succeeded through APK build, signer verification and artifact upload, then failed the test gate: 180 tests, 13 failures (five `ParserTest` currency, seven `InputLogicTest` URL/autospace, one `StringUtilsTest` Emoji). Debug publication was skipped. No device acceptance was reported.
+- Local `./gradlew :app:testRunTestsUnitTest` was attempted under JDK 21.0.13 and stopped before Gradle configuration because Gradle 8.14.4 was not cached and Java could not reach `services.gradle.org` (`java.net.SocketException: Network is unreachable`). `adb devices -l` could not run because `adb` is not installed. These are environment limitations, not application/test results.
+- B00 is **partial**: repository/release/CI/concurrency review complete; Reno10 configuration, host-app interaction matrix and device baseline remain owner-device work. Start B01 by isolating currency parser fixtures with an English-US locale and blank test override while retaining explicit `₹`-default coverage. Do not claim the suite is locally green. Keep unverified code off release-triggering `main`; record each source checkpoint in all four required continuity documents.
+
 ## R0 — Repository baseline on 16 November 2026
 
 - GitHub repository [Batmancpu/brrrBoard](https://github.com/Batmancpu/brrrBoard), ID 1358166218, public, default branch main. GitHub connection reports read and push access. Git and API both resolved source tip [3ee9da9](https://github.com/Batmancpu/brrrBoard/commit/3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21), committed at 14:01 IST. The previous source change was [8463fc8](https://github.com/Batmancpu/brrrBoard/commit/8463fc80c1f8695c0f0b11075db25d5e0d3434db), with the intervening 9408a43 documentation checkpoint. No running or queued workflow was visible at discovery. Recent commits show an earlier implementation burst. A live editor or unpushed work cannot be observed. Recheck main and workflow activity before every update.
