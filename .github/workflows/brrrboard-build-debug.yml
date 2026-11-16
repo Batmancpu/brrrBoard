@@ -94,6 +94,22 @@ jobs:
           set -euo pipefail
           ./gradlew --no-daemon --stacktrace testRunTests
 
+      - name: Print Emoji classifier failure detail
+        if: always() && steps.unit_tests.outcome == 'failure'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          report = "app/build/test-results/testRunTestsUnitTest/TEST-helium314.keyboard.latin.StringUtilsTest.xml"
+          if os.path.exists(report):
+              root = ET.parse(report).getroot()
+              for test in root.iter("testcase"):
+                  if test.get("name") == "isEmojiDetectsAllAvailableEmojis":
+                      failure = test.find("failure")
+                      if failure is not None:
+                          print("Emoji classifier failure:", failure.get("message", ""))
       - name: Upload JUnit reports for failed tests
         if: always() && steps.unit_tests.outcome == 'failure'
         uses: actions/upload-artifact@v4

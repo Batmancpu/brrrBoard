@@ -67,3 +67,6 @@ CI 43857301235 confirms the PHANTOM-resume runtime fix cleared all three enabled
 
 
 **B02 final result (2026-11-16):** CI 43858699048 confirms all seven URL/autospace tests pass; only Emoji classifier failure remains among 181 tests. The URL-resume change allows PHANTOM state after a separator and avoids autospace once composing resumes. Explicit fixtures pin disabled URL policy where intended. Product defaults/assertions unchanged. B03 next isolates `isEmojiDetectsAllAvailableEmojis` using JUnit XML; no regex patch until exact code point is known.
+
+
+**B03 checkpoint:** B02 full CI has only `isEmojiDetectsAllAvailableEmojis` remaining. A failure-only audit CI step now logs just that test's JUnit message/code points to avoid hardcoded skipping. No regex change until exact sequence and source/data version evidence are known.

@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## Active checkpoint — B03 Emoji classifier diagnosis (2026-11-16)
+
+B02 is complete through `9c9fbdab3d496e45f2ce203e1fb933a7f16b5841`; see [B02 result](docs/PROJECT_CONVERSATION.md#2026-11-16--b02-complete-b03-begins). B03 begins on `brrrboard-audit-b01-currency-20261116`. Current CI [43858699048](https://github.com/Batmancpu/brrrBoard/actions/runs/43858699048) ran 181 tests with only `StringUtilsTest.isEmojiDetectsAllAvailableEmojis` failing; APK build/signer/artifact passed. Failure-only JUnit XML artifact is available, but the workspace is currently unavailable to parse it. The audit workflow now prints only this test's failure message (exact sequence/code points) from JUnit XML before uploading reports. This is a diagnostic-only CI change; no production code changed. Next: run audit CI, capture exact failure string, compare ICU grapheme classification, `mightBeEmoji` fast guard, regex and the emoji assets' supported version. Do not hardcode an ignore. Local Gradle and phone tests remain unavailable.
+
 ## Active checkpoint — B02 complete; B03 in progress (2026-11-16)
 
 B02 is complete on audit branch `brrrboard-audit-b01-currency-20261116`. Starting checkpoint `2df304cdcd98b7f08bb912f8974fcd93631b24d5`; ending source/checkpoint commit `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. It pins URL/autospace test policies explicitly and fixes InputLogic's URL composition resume when a pending phantom space follows a URL connector. The change allows resume with NONE or PHANTOM space state and skips automatic spacing after composition resumes. Production defaults and test expectations remain unchanged.

@@ -61,7 +61,7 @@ B02 completed at `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. Product defaults en
 
 ### B03 — Unicode Emoji classifier and full green gate (B02)
 
-Reproduce failing sequence and isolate whether selector, fast guard, grapheme ICU or Unicode regex is at fault. Use version-matched Emoji data and content tests, no hardcoded suppression. Add edge coverage if existing tests miss the confirmed bug. Re-run :app:testRunTestsUnitTest on JDK 21 and record full case count and teardown status. Inspect CI arrangement if release still blocked by infrastructure with verified green tests. Subsequent batches start from green; document an unrelated flaky barrier with evidence before deciding how to proceed.
+Reproduce the exact failing sequence from the JUnit report. Audit CI prints only this test's failure message/code points on failure because the scratch runtime is unavailable. Isolate whether selector, fast guard, grapheme ICU or Unicode regex is at fault. Use version-matched Emoji data and content tests, no hardcoded suppression. Add edge coverage if existing tests miss the confirmed bug. Re-run :app:testRunTestsUnitTest on JDK 21 and record full case count and teardown status. Inspect CI arrangement if release still blocked by infrastructure with verified green tests. Subsequent batches start from green; document an unrelated flaky barrier with evidence before deciding how to proceed.
 
 ### B04 — Lifecycle, panel ownership and insets (B03, B00)
 
