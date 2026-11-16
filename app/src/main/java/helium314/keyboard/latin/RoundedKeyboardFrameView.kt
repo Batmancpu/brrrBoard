@@ -5,7 +5,9 @@ package helium314.keyboard.latin
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Insets
 import android.graphics.Outline
+import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.os.Build
@@ -29,6 +31,13 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
 
     private val clipPath = Path()
     private val outlineClipPath = Path()
+    private val topHighlightPath = Path()
+    private val topHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        strokeWidth = resources.displayMetrics.density
+    }
     private val clipRect = RectF()
     private var lastWidth = -1
     private var lastHeight = -1
@@ -77,13 +86,30 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
-        setPadding(paddingLeft, paddingTop, paddingRight, insets.systemWindowInsetBottom)
-        return insets.replaceSystemWindowInsets(
-            insets.systemWindowInsetLeft,
-            insets.systemWindowInsetTop,
-            insets.systemWindowInsetRight,
-            0
-        )
+        val navigationBottomInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+        } else {
+            insets.systemWindowInsetBottom
+        }
+        setPadding(paddingLeft, paddingTop, paddingRight, navigationBottomInset)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsets.Builder(insets)
+                .setInsets(WindowInsets.Type.navigationBars(), Insets.NONE)
+                .setSystemWindowInsets(Insets.of(
+                    insets.systemWindowInsetLeft,
+                    insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight,
+                    0
+                ))
+                .build()
+        } else {
+            insets.replaceSystemWindowInsets(
+                insets.systemWindowInsetLeft,
+                insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight,
+                0
+            )
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -139,6 +165,28 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             staticDustOverlay.clear()
         }
         super.dispatchDraw(canvas)
+        drawTopGlassHighlight(canvas)
+    }
+
+    private fun drawTopGlassHighlight(canvas: Canvas) {
+        if (!runCatching { Settings.getValues()?.mColors?.isFrosted == true }.getOrDefault(false)
+            || width <= 0 || height <= 0) return
+
+        val stroke = topHighlightPaint.strokeWidth
+        val radius = (if (cachedRadiusPx >= 0f) cachedRadiusPx else keyboardCornerRadiusPx())
+            .coerceAtMost(width / 2f)
+        if (radius <= stroke) return
+        topHighlightPaint.color = ColorUtils.setAlphaComponent(
+            Color.WHITE,
+            if (KeyboardTheme.isDarkThemeActive(context)) 0x52 else 0x30
+        )
+        val edge = stroke / 2f
+        topHighlightPath.reset()
+        topHighlightPath.moveTo(edge, radius)
+        topHighlightPath.quadTo(edge, edge, radius, edge)
+        topHighlightPath.lineTo(width - radius, edge)
+        topHighlightPath.quadTo(width - edge, edge, width - edge, radius)
+        canvas.drawPath(topHighlightPath, topHighlightPaint)
     }
 
     private fun keyboardCornerRadiusPx(): Float {

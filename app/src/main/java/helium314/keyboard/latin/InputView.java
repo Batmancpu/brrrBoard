@@ -264,11 +264,17 @@ public final class InputView extends FrameLayout {
     }
 
     private Unit onNextLayout(View v) {
-        Settings.getValues().mColors.setBackground(findViewById(R.id.main_keyboard_frame), ColorType.MAIN_BACKGROUND);
+        refreshBoardFrameBackground();
 
         // Work around inset application being unreliable
         requestApplyInsets();
         return null;
+    }
+
+    public void refreshBoardFrameBackground() {
+        if (mBoardFrame == null || Settings.getValues() == null) return;
+        Settings.getValues().mColors.setBackground(mBoardFrame, ColorType.MAIN_BACKGROUND);
+        mBoardFrame.invalidate();
     }
 
     /**
