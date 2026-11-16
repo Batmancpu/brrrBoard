@@ -1283,6 +1283,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
+        mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
         mClipboardHistoryManager.updatePrimaryClip();
 
@@ -1473,6 +1474,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mKeyboardSwitcher.cancelPanelTransition();
         mInlineDictation.cancel();
         super.onWindowHidden();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
@@ -1498,6 +1500,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onFinishInputInternal() {
+        mKeyboardSwitcher.cancelPanelTransition();
         super.onFinishInput();
         Log.i(TAG, "onFinishInput");
 
@@ -1509,6 +1512,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onFinishInputViewInternal(final boolean finishingInput) {
+        mKeyboardSwitcher.cancelPanelTransition();
         super.onFinishInputView(finishingInput);
         Log.i(TAG, "onFinishInputView");
         cleanupInternalStateForFinishInput();

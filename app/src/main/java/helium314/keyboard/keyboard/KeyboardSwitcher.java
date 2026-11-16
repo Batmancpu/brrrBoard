@@ -142,6 +142,23 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private boolean mThemeNeedsReload;
     private View mCurrentAnimatingPanel = null;
     private android.view.ViewPropertyAnimator mRunningAnimator = null;
+    private final PanelTransitionGuard mPanelTransitionGuard = new PanelTransitionGuard();
+
+    static final class PanelTransitionGuard {
+        private long mGeneration;
+
+        long start() {
+            return ++mGeneration;
+        }
+
+        void invalidate() {
+            ++mGeneration;
+        }
+
+        boolean isCurrent(final long generation) {
+            return generation == mGeneration;
+        }
+    }
 
     @SuppressLint("StaticFieldLeak") // this is a keyboard, we want to keep it alive in background
     private static final KeyboardSwitcher sInstance = new KeyboardSwitcher();
@@ -295,6 +312,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             action.run();
             return;
         }
+        // Invalidate the prior end action before cancel(), since cancel may deliver it.
+        final long transitionGeneration = mPanelTransitionGuard.start();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
             mRunningAnimator = null;
@@ -313,12 +332,31 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .withEndAction(new Runnable() {
                     @Override
                     public void run() {
+                        if (!mPanelTransitionGuard.isCurrent(transitionGeneration)
+                                || mCurrentAnimatingPanel != targetPanel) {
+                            return;
+                        }
                         targetPanel.setAlpha(1f);
                         mCurrentAnimatingPanel = null;
                         mRunningAnimator = null;
                     }
                 });
         mRunningAnimator.start();
+    }
+
+    /**
+     * Invalidates delayed panel animation cleanup when the input view/editor/window changes owner.
+     */
+    public void cancelPanelTransition() {
+        mPanelTransitionGuard.invalidate();
+        if (mRunningAnimator != null) {
+            mRunningAnimator.cancel();
+            mRunningAnimator = null;
+        }
+        if (mCurrentAnimatingPanel != null) {
+            mCurrentAnimatingPanel.setAlpha(1f);
+            mCurrentAnimatingPanel = null;
+        }
     }
 
     private boolean mSearchModeTransitionPending = false;
@@ -1121,6 +1159,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 // Hide typing candidates before revealing their shared strip container,
                 // so stale words cannot flash in place of the Emoji category tabs.
                 mSuggestionStripView.setVisibility(View.GONE);
+                if (mClipboardHistoryView != null) {
+                    mClipboardHistoryView.stopClipboardHistory();
+                }
                 mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                         mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
                 mEmojiPalettesView.setVisibility(View.VISIBLE);
@@ -1167,6 +1208,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mKeyboardView.setVisibility(View.GONE);
 
                 // Start clipboard
+                if (mEmojiPalettesView != null) {
+                    mEmojiPalettesView.stopEmojiPalettes();
+                }
                 mClipboardHistoryView.startClipboardHistory(mLatinIME.getClipboardHistoryManager(),
                         mKeyboardView.getKeyVisualAttribute(),
                         mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);

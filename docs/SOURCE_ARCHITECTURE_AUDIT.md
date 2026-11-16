@@ -99,3 +99,8 @@ The classifier now recognizes the bundled Emoji 18 entries. The failure chain en
 ## CI release scope checkpoint
 
 The workflow release-scope guard at `dc4b2f6` was verified by run [43869454530](https://github.com/Batmancpu/brrrBoard/actions/runs/43869454530): APK build, signer identity and full unit tests passed; release was skipped for a workflow/docs-only diff. Audit run [43869454420](https://github.com/Batmancpu/brrrBoard/actions/runs/43869454420) likewise skipped its release. Unguarded docs-only audit run [43868861513](https://github.com/Batmancpu/brrrBoard/actions/runs/43868861513) could not publish because GitHub returned 403 `Resource not accessible by integration`; no release was created. Do not retry the audit-only release without owner permission review. The debug test release path remains operational.
+
+
+## B04 implementation checkpoint
+
+B04 starts at `a34872eb1529abdeb3879ed796903d277d408119`. The current source change creates a monotonic transition generation and checks both generation and target view before an animation end action mutates alpha/ownership. Lifecycle cancellation is wired to LatinIME start/finish input-view and window-hidden callbacks. Direct Emoji↔Clipboard switches stop the outgoing panel's listeners/search mode before starting the new panel. Unit tests cover guard invalidation; CI pending. Owner Reno10 still must verify rapid panel switches, hide/reopen, rotation, editor restarts, hardware keyboard and geometry/insets. No visual dimension changes in this sub-batch.

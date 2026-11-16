@@ -65,11 +65,9 @@ B03 completed at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`. It fixed the asset/
 
 **CI release discipline:** the release-scope guard `dc4b2f6` passed; docs/workflow-only changes no longer publish prereleases. Audit-only publish has a repo integration 403 and remains owner-permission-blocked; the debug test release path works.
 
-### B04 — Lifecycle, panel ownership and insets (B03, B00)
+### B04 — Lifecycle, panel ownership and insets (B03, B00) — IN PROGRESS
 
-Define a small source-local transition contract in KeyboardSwitcher and LatinIME. Track actual target panel, editing session and transient overlay identity. Cancel old animation/end deliveries, stop outgoing panel listeners/search submode, clear pending popped keyboard and dismiss cleanup, apply new state then report insets. Use source's window callbacks and owner actual geometry rather than additional independent layout controllers. Scope toggle behavior, identity and measurement to this batch. Do not alter labels or native decoder.
-
-Gate: fast alpha → Emoji → Clipboard → alpha plus hide/reopen, rotate, input restart in same/different editor, hardware attach, background, landscape and locked bounds. No stale suggestions, delayed old animation hiding current view or content occlusion. Real nav inset and layout/footer measured from same coordinate space, no duplicated padding. Add read-only geometry logging only if necessary, with device-specific runtime consent where needed and no text.
+B04 starts at `a34872eb1529abdeb3879ed796903d277d408119`. Implement a monotonic panel-transition generation/target identity guard; invalidate animation cleanup at input-view start/finish and window hide; stop outgoing Emoji and Clipboard listeners/search state on direct switches. Unit coverage checks stale callback rejection. Full CI pending. The Reno10 gate remains required for rapid alpha→Emoji→Clipboard→alpha, hide/reopen, same/different editor restart, rotation, hardware attach, background, landscape and locked bounds. No dp/inset changes in this sub-batch. Do not close B04 or proceed to B05 until source gate passes and owner device checks are recorded.
 
 ### B05 — Safety seams for voice and Clipboard (B03, B04)
 

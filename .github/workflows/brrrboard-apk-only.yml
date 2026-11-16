@@ -92,7 +92,8 @@ jobs:
           retention-days: 14
 
       - name: Publish audit release
-        if: steps.release_scope.outputs.product_changed == 'true'
+        # Automatic audit releases are disabled until repository token write access is reviewed.
+        if: github.event_name == 'workflow_dispatch' && steps.release_scope.outputs.product_changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

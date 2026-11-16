@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01–B03 complete; B04 next.** Main `7ab4bc5` and stable v1.0.57 are unchanged. B03 completed at `5dd17c7`; CI passed the full 181-test task and signed debug APK. Test prerelease: [brrrboard-test-20261116-123802-5dd17c7](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-123802-5dd17c7). CI `dc4b2f6` release-scope guard was verified: workflows still test docs-only changes, but skip publishing. A prior unguarded audit-only publish failed with `403 Resource not accessible by integration`; if audit releases are required, owner must review Actions token write permissions. Reno10 remains unverified. Next: B04 panel transition lifecycle; device gate remains pending.
+**Implementation session — B00 partial; B01–B03 complete; B04 implementation in progress.** Main `7ab4bc5` / v1.0.57 unchanged. B03 finished at `5dd17c7`; full 181-test suite and signed debug build passed. CI release-scope guard `dc4b2f6` passed and skipped docs-only publishing. B04 starts at `a34872e`: protect panel animation end callbacks from stale generations, invalidate them at input/window lifecycle boundaries, and stop outgoing Emoji/Clipboard listeners. Pure transition guard tests are being added. Audit-only automatic publish is disabled pending repo permission review; debug test prerelease path remains operational. No local Gradle/adb or Reno10. Next: CI verify the B04 source gate, then leave device acceptance open.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
