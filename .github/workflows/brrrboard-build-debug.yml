@@ -25,6 +25,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determine whether this commit changes the app
+        id: release_scope
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" != "push" || -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
+            echo "product_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
+          if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
+            echo "product_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "product_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No application or build inputs changed; CI will run without publishing a release."
+          fi
+
       - name: Restore persistent debug signing key
         shell: bash
         run: |
@@ -127,6 +146,7 @@ jobs:
           exit 1
 
       - name: Publish GitHub release
+        if: steps.release_scope.outputs.product_changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
