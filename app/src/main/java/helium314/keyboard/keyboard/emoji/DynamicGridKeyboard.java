@@ -28,6 +28,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -47,6 +48,8 @@ final class DynamicGridKeyboard extends Keyboard {
     private final boolean mIsRecents;
     private final ArrayDeque<GridKey> mGridKeys = new ArrayDeque<>();
     private final ArrayDeque<Key> mPendingKeys = new ArrayDeque<>();
+    // Starter recommendations are shown in memory but are not saved as user recents.
+    private final HashSet<String> mAdaptiveSeededOutputs = new HashSet<>();
 
     private List<Key> mCachedGridKeys;
     private final ArrayList<Integer> mEmptyColumnIndices = new ArrayList<>(4);
@@ -174,6 +177,10 @@ final class DynamicGridKeyboard extends Keyboard {
         return mColumnsNum - mEmptyColumnIndices.size();
     }
 
+    public int getMaxKeyCount() {
+        return mMaxKeyCount;
+    }
+
     public void addPendingKey(final Key usedKey) {
         synchronized (mLock) {
             mPendingKeys.addLast(usedKey);
@@ -183,13 +190,22 @@ final class DynamicGridKeyboard extends Keyboard {
     public void flushPendingRecentKeys() {
         synchronized (mLock) {
             while (!mPendingKeys.isEmpty()) {
-                addKey(mPendingKeys.pollFirst(), true);
+                final Key pendingKey = mPendingKeys.pollFirst();
+                if (pendingKey != null) {
+                    mAdaptiveSeededOutputs.remove(getKeyOutputText(pendingKey));
+                }
+                addKey(pendingKey, true);
             }
             saveRecentKeys();
         }
     }
 
     public void addKeyFirst(final Key usedKey) {
+        if (mIsRecents && usedKey != null) {
+            synchronized (mLock) {
+                mAdaptiveSeededOutputs.remove(getKeyOutputText(usedKey));
+            }
+        }
         addKey(usedKey, true);
         if (mIsRecents) {
             saveRecentKeys();
@@ -201,27 +217,59 @@ final class DynamicGridKeyboard extends Keyboard {
     }
 
     /**
-     * Moves the most relevant locally used Emojis to the first three rows of the
-     * existing Recents grid without adding a category or changing the grid size.
+     * Puts locally ranked Emojis in the first three rows of the existing Recents grid.
+     * Missing starter recommendations are transient: they are not saved as user recents.
      */
     public void prioritizeKeys(final List<String> rankedEmojiOutputs, final int maxPrioritizedKeys) {
         if (!mIsRecents || rankedEmojiOutputs == null || maxPrioritizedKeys <= 0) {
             return;
         }
         synchronized (mLock) {
+            // Replace old transient defaults so changed local rankings can take effect.
+            final java.util.Iterator<GridKey> iterator = mGridKeys.iterator();
+            while (iterator.hasNext()) {
+                if (mAdaptiveSeededOutputs.contains(getKeyOutputText(iterator.next()))) {
+                    iterator.remove();
+                }
+            }
+            mAdaptiveSeededOutputs.clear();
+
+            final int priorityLimit = Math.min(maxPrioritizedKeys, mMaxKeyCount);
+            final ArrayList<String> priorityOrder = new ArrayList<>(priorityLimit);
+            for (final String outputText : rankedEmojiOutputs) {
+                if (outputText == null || priorityOrder.size() >= priorityLimit) {
+                    break;
+                }
+                if (priorityOrder.contains(outputText)) {
+                    continue;
+                }
+                priorityOrder.add(outputText);
+
+                boolean alreadyPresent = false;
+                for (final GridKey gridKey : mGridKeys) {
+                    if (outputText.equals(getKeyOutputText(gridKey))) {
+                        alreadyPresent = true;
+                        break;
+                    }
+                }
+                // Do not evict a user's actual recent Emoji to make room for a default.
+                if (!alreadyPresent && mGridKeys.size() < mMaxKeyCount) {
+                    final Key starterKey = getKeyByOutputText(Collections.emptyList(), outputText);
+                    if (starterKey != null) {
+                        addKey(starterKey, true);
+                        mAdaptiveSeededOutputs.add(outputText);
+                    }
+                }
+            }
+
             final ArrayList<GridKey> current = new ArrayList<>(mGridKeys);
             final ArrayList<GridKey> reordered = new ArrayList<>(current.size());
             final boolean[] selected = new boolean[current.size()];
-            int prioritizedCount = 0;
-            for (final String outputText : rankedEmojiOutputs) {
-                if (outputText == null || prioritizedCount >= maxPrioritizedKeys) {
-                    break;
-                }
+            for (final String outputText : priorityOrder) {
                 for (int i = 0; i < current.size(); i++) {
                     if (!selected[i] && outputText.equals(getKeyOutputText(current.get(i)))) {
                         selected[i] = true;
                         reordered.add(current.get(i));
-                        prioritizedCount++;
                         break;
                     }
                 }
@@ -231,11 +279,10 @@ final class DynamicGridKeyboard extends Keyboard {
                     reordered.add(current.get(i));
                 }
             }
-            if (!reordered.equals(current)) {
-                mGridKeys.clear();
-                mGridKeys.addAll(reordered);
-                mCachedGridKeys = null;
-            }
+            mGridKeys.clear();
+            mGridKeys.addAll(reordered);
+            mCachedGridKeys = null;
+            updateGridKeyCoordinates();
         }
     }
 
@@ -249,6 +296,7 @@ final class DynamicGridKeyboard extends Keyboard {
     public void removeAllKeys() {
         synchronized (mLock) {
             mGridKeys.clear();
+            mAdaptiveSeededOutputs.clear();
             mCachedGridKeys = null;
         }
     }
@@ -280,24 +328,32 @@ final class DynamicGridKeyboard extends Keyboard {
             while (mGridKeys.size() > mMaxKeyCount) {
                 mGridKeys.removeLast();
             }
-            int index = 0;
-            for (final GridKey gridKey : mGridKeys) {
-                while (mEmptyColumnIndices.contains(index % mColumnsNum)) {
-                    index++;
-                }
-                final int keyX0 = getKeyX0(index);
-                final int keyY0 = getKeyY0(index);
-                final int keyX1 = getKeyX1(index);
-                final int keyY1 = getKeyY1(index);
-                gridKey.updateCoordinates(keyX0, keyY0, keyX1, keyY1);
+            updateGridKeyCoordinates();
+        }
+    }
+
+    private void updateGridKeyCoordinates() {
+        int index = 0;
+        for (final GridKey gridKey : mGridKeys) {
+            while (mEmptyColumnIndices.contains(index % mColumnsNum)) {
                 index++;
             }
+            final int keyX0 = getKeyX0(index);
+            final int keyY0 = getKeyY0(index);
+            final int keyX1 = getKeyX1(index);
+            final int keyY1 = getKeyY1(index);
+            gridKey.updateCoordinates(keyX0, keyY0, keyX1, keyY1);
+            index++;
         }
     }
 
     private void saveRecentKeys() {
         final ArrayList<Object> keys = new ArrayList<>();
         for (final Key key : mGridKeys) {
+            final String outputText = getKeyOutputText(key);
+            if (outputText != null && mAdaptiveSeededOutputs.contains(outputText)) {
+                continue;
+            }
             if (key.getOutputText() != null) {
                 keys.add(key.getOutputText());
             } else {

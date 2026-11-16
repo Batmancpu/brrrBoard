@@ -678,3 +678,20 @@ Continue in reviewable implementation batches and preserve all progress in the f
 **Payload change.** All installable build variants now exclude 16 unsupported main dictionary assets totaling 30,876,181 raw bytes. English US, English UK, Romanized Hinglish and both bundled Emoji dictionaries remain eligible; source files and the full test catalog remain intact. The release workflow's exact-byte checks for shipped Hinglish and Emoji dictionaries passed. The APK shrank 13.08 MB compressed.
 
 **Smart Emoji source finding.** The Smart tab already returns `ic_emoji_smart`, has a Smart accessibility label, and its tab strip is made visible when Emoji mode opens. The optional persistent Emoji row is disabled by default and separate from the Emoji panel. The existing local frequency/recency ranker feeds that optional row; next integrate it into Smart category contents and typed-word side suggestions while preserving the text candidate and decoder scores. Reno10 visibility and relevance still require owner confirmation.
+
+
+## 2026-11-16 — Smart Emoji first-use implementation
+
+**Owner (verbatim, current direction)**
+
+> “Now give me a detailed plan what you will do after reading all this context, okay? I guess you should start with the basic corrections, adding the emojis, the glide typing library, the layout, behavior and everything.”
+>
+> “And then start doing it”
+
+The owner also supplied two visual keyboard frames. They show a dark iPhone text-entry surface with a three-slot candidate strip, a compact control at the strip's right, a QWERTY layout, and Emoji/mic controls at opposite ends of the bottom row. The frames are visual references only; they do not prove gesture, prediction, or Dictate behavior. Message text, names, and media details are intentionally omitted from this public record.
+
+**Source audit and correction.** The Recents tab already uses the sparkle Smart Emoji glyph, and EmojiPalettesView.startEmojiPalettes() already calls the local AdaptiveEmojiEngine and moves matching Recents into ranked order. The first-use defect was that the stored Recents list is empty on install; no keys existed to reorder, and EmojiCategory.initialize() fell back to Smileys. An earlier plan note that implied the ranker only fed an optional row was inaccurate and is superseded by this source trace.
+
+**Implementation in this batch.** Seed the ranked local Emoji list into free Recents-grid capacity when the panel is initialized, select Smart Emoji for a new install and migrate the old empty-Recents-to-Smileys fallback once, and keep those transient starter entries out of persisted user Recents. Preserve user recents when the grid is full; limit ranking to the smaller of the grid capacity and three rows. Skip ranking while incognito. CI and Reno10 acceptance are pending at this handoff.
+
+**Previous CI failure verified.** Debug run [43823427430](https://github.com/Batmancpu/brrrBoard/actions/runs/43823427430) compiled the debug APK, verified its signer, uploaded it, and ran 180 tests. The workflow failed only at its explicit test gate because the same 13 known failures remain (five Parser/currency, seven InputLogic URL/autospace, one emoji recognition). The APK build itself succeeded. No Reno10 manual test was performed in that run.

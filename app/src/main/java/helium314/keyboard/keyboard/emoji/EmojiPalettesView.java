@@ -1545,7 +1545,8 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
-        final int maxRankedCount = Math.min(48, Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
+        final int maxRankedCount = Math.min(recentsKeyboard.getMaxKeyCount(),
+                Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
         recentsKeyboard.prioritizeKeys(
                 AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
                 maxRankedCount);

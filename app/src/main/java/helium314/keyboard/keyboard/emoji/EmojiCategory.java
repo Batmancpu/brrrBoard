@@ -48,6 +48,7 @@ final class EmojiCategory {
     private static final int ID_SYMBOLS = 8;
     private static final int ID_FLAGS = 9;
     private static final int ID_EMOTICONS = 10;
+    private static final String PREF_SMART_EMOJI_DEFAULT_MIGRATED = "pref_smart_emoji_default_migrated";
 
     private static final int MAX_LINE_COUNT_PER_PAGE = 3;
 
@@ -142,7 +143,9 @@ final class EmojiCategory {
     }
 
     public void initialize() {
-        int defaultCategoryId = EmojiCategory.ID_SMILEYS_EMOTION;
+        final boolean incognito = Settings.getValues().mIncognitoModeEnabled;
+        final int defaultCategoryId = incognito
+                ? EmojiCategory.ID_SMILEYS_EMOTION : EmojiCategory.ID_RECENTS;
         addShownCategoryId(EmojiCategory.ID_RECENTS);
         addShownCategoryId(EmojiCategory.ID_SMILEYS_EMOTION);
         addShownCategoryId(EmojiCategory.ID_PEOPLE_BODY);
@@ -157,14 +160,28 @@ final class EmojiCategory {
         }
         addShownCategoryId(EmojiCategory.ID_EMOTICONS);
 
-        DynamicGridKeyboard recentsKbd = getKeyboard(EmojiCategory.ID_RECENTS, 0);
-        mCurrentCategoryId = mPrefs.getInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, defaultCategoryId);
+        final DynamicGridKeyboard recentsKbd = getKeyboard(EmojiCategory.ID_RECENTS, 0);
+        int requestedCategoryId = mPrefs.getInt(
+                Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, defaultCategoryId);
+        // Earlier releases saved Smileys after empty Recents fell back there. Redirect that
+        // one-time default to Smart Emoji, while preserving any other explicit category choice.
+        if (!incognito && !mPrefs.getBoolean(PREF_SMART_EMOJI_DEFAULT_MIGRATED, false)) {
+            if (requestedCategoryId == EmojiCategory.ID_SMILEYS_EMOTION
+                    || requestedCategoryId == EmojiCategory.ID_RECENTS) {
+                requestedCategoryId = EmojiCategory.ID_RECENTS;
+            }
+            mPrefs.edit()
+                    .putBoolean(PREF_SMART_EMOJI_DEFAULT_MIGRATED, true)
+                    .putInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, requestedCategoryId)
+                    .apply();
+        }
+        mCurrentCategoryId = requestedCategoryId;
         mCurrentCategoryPageId = mPrefs.getInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID, Defaults.PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID);
         if (!isShownCategoryId(mCurrentCategoryId)) {
             mCurrentCategoryId = defaultCategoryId;
         } else if (mCurrentCategoryId == EmojiCategory.ID_RECENTS &&
                 recentsKbd.getSortedKeys().isEmpty()) {
-            mCurrentCategoryId = defaultCategoryId;
+            mCurrentCategoryId = EmojiCategory.ID_SMILEYS_EMOTION;
         }
 
         if (mCurrentCategoryPageId >= computeCategoryPageCount(mCurrentCategoryId)) {
@@ -319,6 +336,14 @@ final class EmojiCategory {
                         mMaxRecentsKeyCount, categoryId, currentWidth);
                 mCategoryKeyboardMap.put(categoryKeyboardMapKey, kbd);
                 kbd.loadRecentKeys(mCategoryKeyboardMap.values());
+                if (!Settings.getValues().mIncognitoModeEnabled) {
+                    final int maxRankedCount = Math.min(kbd.getMaxKeyCount(),
+                            Math.max(1, kbd.getOccupiedColumnCount() * 3));
+                    kbd.prioritizeKeys(
+                            EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(
+                                    mContext, maxRankedCount),
+                            maxRankedCount);
+                }
                 return kbd;
             }
 

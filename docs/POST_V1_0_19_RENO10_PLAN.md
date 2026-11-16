@@ -2,6 +2,10 @@
 
 **Status (2026-11-16 UTC):** Latest signed release is [v1.0.53](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.53), source [1d9ed8d](https://github.com/Batmancpu/brrrBoard/commit/1d9ed8d476870e3fd0918659b0098ab86a72af4f), Obtainium run [43822092860](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092860), APK 37,949,189 bytes (SHA-256 `38817186ea3db60c2937f7afa28ab89e49dff0e6163e351c71d21b8df5be62c6`). The 16 unsupported main dictionaries are excluded from installable variants; measured release size fell 13,079,670 bytes (~25.6%) from v1.0.52. Debug run [43822092903](https://github.com/Batmancpu/brrrBoard/actions/runs/43822092903) built/signed its APK, then reported the unchanged 13/180 automatic-test baseline. No manual tests were run. Reno10 acceptance remains open.
 
+## Current implementation checkpoint — first-use Smart Emoji
+
+The sparkle Smart Emoji tab and local frequency/recency ranker were already present in source; the owner's “I don't see Smart Emoji” report exposed an empty first-use Recents grid, which caused the category to fall back to Smileys. This batch seeds ranked Emoji keys into free Recents capacity on opening, defaults/migrates the old Smileys fallback to Smart once, and preserves actual recent Emoji history by keeping default seed keys transient and excluding them from saved recents. Ranking is capped at the lesser of grid capacity and three rows, and the ranker is not read in incognito mode. The source and all four carry-forward files are committed together. Automatic CI and Reno10 confirmation remain pending.
+
 ## Product target
 
 Make brrBoard a reliable, light, offline-first keyboard for the owner's OPPO Reno10 5G. Its visual language and common interactions should closely follow the iPhone keyboard shown in the owner's two current reference frames and current iOS 27 documentation. “Smart” means accurate, quick, predictable, and unobtrusive. It does not mean adding an AI service or feature clutter.

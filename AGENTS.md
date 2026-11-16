@@ -9,6 +9,13 @@
 5. This repository is public. Keep signing keys, passwords, tokens, private messages, and keyboard or clipboard contents out of these files. Use a clear omission note when needed and preserve the project decision or outcome.
 6. When the owner provides a screen recording or screenshots, inspect the available visual evidence and add the **observed state**, owner-stated requirements, unresolved ambiguities, and outstanding device tests to `PROJECT_CONTEXT.md` and the appropriate plan/issue log. Quote the owner's accompanying written corrections verbatim in `docs/PROJECT_CONVERSATION.md`. Distinguish visual evidence from verified interactions and from narration that was not transcribed. Never publish private raw media, identifying text, typed content, clipboard contents, or inferred speech to this public repository. The owner explicitly wants new agents to resume from the last feedback without retelling the project.
 
+## Active checkpoint — first-use Smart Emoji (2026-11-16)
+
+- The sparkle Smart Emoji/Recents tab and local ranker already existed. Empty PREF_EMOJI_RECENT_KEYS caused the default tab to fall back to Smileys; see current source in EmojiCategory.java, DynamicGridKeyboard.java, and EmojiPalettesView.java.
+- This implementation seeds offline ranked emoji into unused grid capacity, migrates the old Smileys fallback to Smart once, preserves actual user Recents, excludes transient starter keys from the saved recents list, caps to three rows and keyboard capacity, and skips adaptive ranking in incognito mode.
+- The previous docs-only debug run [43823427430](https://github.com/Batmancpu/brrrBoard/actions/runs/43823427430) built, signed, and uploaded an APK but failed the 180-test gate on the known 13-test baseline. Current source CI and Reno10 acceptance are pending.
+- Do not proceed to contextual three-slot Emoji ranking until this batch's CI is inspected and the four handoff files record its result.
+
 ## Earlier source checkpoints — 2026-11-16 (v1.0.41–v1.0.43)
 
 - Corrected source commit [d1f8aff](https://github.com/Batmancpu/brrrBoard/commit/d1f8affdb637266693b2a3c91f8d0ba380519d0b) restores the complete internal `method.xml` catalog (128 subtype entries) while `LanguageScreen.kt` and the one-time preference migration retain only English US, English UK and `hi-Latn`. Obtainium run [43806306816](https://github.com/Batmancpu/brrrBoard/actions/runs/43806306816) published v1.0.41. Debug run [43806467695](https://github.com/Batmancpu/brrrBoard/actions/runs/43806467695) built, signer-verified, and uploaded an APK; its automatic gate found the same known 13/180 baseline failures (5 ParserTest, 7 InputLogicTest, 1 StringUtilsTest), with no subtype or Hangul regressions. No tests were run manually.
