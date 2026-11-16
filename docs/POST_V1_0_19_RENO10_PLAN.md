@@ -318,6 +318,7 @@ The working source diff now touches `RoundedKeyboardFrameView.kt`, `InputView.ja
 
 - **Dictate:** `InlineDictation.kt` reads the selected `voice_recognition_service`, checks the exact component is a discoverable RecognitionService in `net.devemperor.dictate`, and binds `SpeechRecognizer` to that component. It keeps brrBoard visible and does not launch Dictate's voice-input IME or recognition activity. Obtainium run [43818042870](https://github.com/Batmancpu/brrrBoard/actions/runs/43818042870) published [v1.0.50](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.50) from [11810ad](https://github.com/Batmancpu/brrrBoard/commit/11810ad0e6778a2a473dbfc005dcc9a54630f131). Debug run [43818042687](https://github.com/Batmancpu/brrrBoard/actions/runs/43818042687) compiled/signed/uploaded but failed the known automatic gate: 180 tests, 13 failures. No tests were run manually.
 - **Tint:** frosted defaults were 250% saturation and up to 500% vibrancy, amplifying Material You hue on surfaces/letter keys; night special-key vibrancy was 0%, muting Apple action accents. `Defaults.kt` now sets saturation/vibrancy to 100%. `KeyboardTheme.kt` migrates stored values only when equal to previous shipped defaults and preserves customized values. The optional action tint still maps the system accent through the Apple palette. v1.0.51 release build/signing passed; the debug build compiled and the same 13/180 automatic-test baseline remained. No phone color acceptance is claimed.
+- **Current source batch:** the selected Emoji category tab was using raw Android `colorAccent`; it now uses the shared nearest-Apple CIELAB palette mapper. CI is pending and no phone appearance result is claimed.
 - **Next:** inspect alternate-key popups and every visible icon, connect local Emoji counts/recency and brrPersonal shortcuts to the strip, then integrate a licensed offline swipe path that can use `brrPersonal`. Keep all Reno10 checks open.
 
 ## 2026-11-16 — v1.0.51 neutral tint batch completed
@@ -326,3 +327,10 @@ The working source diff now touches `RoundedKeyboardFrameView.kt`, `InputView.ja
 - Obtainium run [43819288817](https://github.com/Batmancpu/brrrBoard/actions/runs/43819288817) published [v1.0.51](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.51), signed APK 51,028,859 bytes, SHA-256 `f52c1ea1031ec20720abc4595f5899495054e4b1710a2f67b2504cdaf4b6ef97`.
 - Debug run [43819288789](https://github.com/Batmancpu/brrrBoard/actions/runs/43819288789) compiled, verified the signer and uploaded a 59,266,617-byte APK (SHA-256 `453c9ed21a0448f7f0674283c3e245ff6a61bef7300f265fa0403418b210bbd7`). Its automatic gate retained the 13/180 baseline: 5 parser/currency, 7 URL/autospace, and 1 Emoji-recognition failure. No manual tests were run.
 - **Still open:** Reno10 color and layout acceptance. Next source batch: audit alternate-symbol popup behavior and icon mapping, then connect local Emoji use/recency and brrPersonal mappings to the suggestion strip; assess a licensed offline swipe decoder before removing the external import.
+
+
+## 2026-11-16 — Apple-palette Emoji category highlight
+
+- Source audit found `EmojiPalettesView.setCurrentCategoryId()` was applying the raw Android `colorAccent` to the selected category tab. This bypassed the CIELAB nearest-Apple palette helper already used by the keyboard theme.
+- `KeyboardTheme.kt` now exposes that existing mapper to Java, and `EmojiPalettesView.java` uses it for the selected category highlight. No keyboard surface or key tint behavior changes in this batch.
+- CI is pending. Confirm the highlight on Reno10 after installing the resulting signed APK. Next audit alternate-key popup behavior and visible icon mappings.

@@ -236,7 +236,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             DoubleArray(3).also { ColorUtils.colorToLAB(color, it) }
         }
 
-        private fun nearestAppleAccent(androidAccent: Int): Int {
+        @JvmStatic
+        fun nearestAppleAccent(androidAccent: Int): Int {
             val lab = DoubleArray(3)
             ColorUtils.colorToLAB(androidAccent, lab)
             val index = iosAccentPalette.indices.minBy { ColorUtils.distanceEuclidean(lab, iosAccentLab[it]) }

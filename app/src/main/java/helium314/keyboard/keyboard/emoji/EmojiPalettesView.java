@@ -49,6 +49,7 @@ import helium314.keyboard.keyboard.Keyboard;
 import helium314.keyboard.keyboard.KeyboardActionListener;
 import helium314.keyboard.keyboard.KeyboardId;
 import helium314.keyboard.keyboard.KeyboardLayoutSet;
+import helium314.keyboard.keyboard.KeyboardTheme;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.KeyboardView;
 import helium314.keyboard.keyboard.MainKeyboardView;
@@ -1598,7 +1599,7 @@ public final class EmojiPalettesView extends LinearLayout
             if (current instanceof TabImageView) {
                 android.util.TypedValue typedValue = new android.util.TypedValue();
                 getContext().getTheme().resolveAttribute(android.R.attr.colorAccent, typedValue, true);
-                int accentColor = typedValue.data;
+                int accentColor = KeyboardTheme.nearestAppleAccent(typedValue.data);
                 ((TabImageView) current).setSelectedCategory(true, accentColor);
 
                 // Set contrasting color for the icon so it's visible on the accent circle

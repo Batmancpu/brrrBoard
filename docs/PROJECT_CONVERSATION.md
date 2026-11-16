@@ -639,3 +639,12 @@ The active Emoji code batch turns the page list horizontal with snap paging and 
 **Tint result.** Source commit [3cbdab6](https://github.com/Batmancpu/brrrBoard/commit/3cbdab649b7df1fa6efc39d5f9f0e788143e642c) sets frosted saturation/vibrancy defaults to 100% and migrates only stored values that equal the old defaults. Obtainium run [43819288817](https://github.com/Batmancpu/brrrBoard/actions/runs/43819288817) published [v1.0.51](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.51), 51,028,859 bytes, SHA-256 `f52c1ea1031ec20720abc4595f5899495054e4b1710a2f67b2504cdaf4b6ef97`. The debug workflow [43819288789](https://github.com/Batmancpu/brrrBoard/actions/runs/43819288789) compiled, verified signing and uploaded a 59,266,617-byte APK (SHA-256 `453c9ed21a0448f7f0674283c3e245ff6a61bef7300f265fa0403418b210bbd7`), then failed its automatic gate at the unchanged 13/180 baseline: five parser/currency, seven URL/autospace, and one Emoji-recognition failure. No tests were run manually.
 
 **Acceptance boundary and next action.** Release CI passing confirms a signed APK was produced; it does not verify appearance on the Reno10. Next audit alternate-key popup and visible icon behavior, connect local Emoji use/recency and brrPersonal shortcuts to the suggestion strip, and finish the rights-cleared default swipe path. Maintain the four-file handoff and leave Reno10 color, geometry, Dictate provider and transcription acceptance open.
+
+
+## 2026-11-16 — selected Emoji highlight palette correction
+
+**Source finding.** `EmojiPalettesView.setCurrentCategoryId()` colored the active category with raw Android `colorAccent`, while keyboard action keys already used the shared CIELAB nearest-Apple palette mapper. That left an inconsistent accent in the Emoji category strip.
+
+**Change and expectation.** `KeyboardTheme.kt` exposes the existing palette mapper as a static method; `EmojiPalettesView.java` routes the selected category highlight through it. This changes only the selected Emoji tab highlight. The keyboard glass and letter/action key colors are unchanged in this batch. The four handoff files are updated in the same source checkpoint. CI and Reno10 visual acceptance are pending.
+
+**Next action.** Wait for the signed/debug workflows, then continue the alternate-symbol popup/icon audit, local Emoji ranking, and rights-cleared swipe-engine assessment.
