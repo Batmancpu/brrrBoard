@@ -1,5 +1,10 @@
 # brrBoard agent instructions
 
+## Release trigger blocker — 2026-11-16 (current)
+
+The owner wants **in-place Obtainium updates**, not side-installed debug APKs. The tested B01–B04 source branch was fast-forwarded to `main` at `4dcdd047`; a workflow comment-only commit `1102930` followed. The connected GitHub App did not launch Actions on either commit, and the browser was signed out. **The stable release is still v1.0.57; no new signed Obtainium APK was published by this agent.** The 183/183 green CI result belongs to audit source `c229f9d`. Before any additional feature batch, an authorized account must manually dispatch `.github/workflows/obtainium-release.yml` on `main`, verify pinned production signing and package, wait for a successful GitHub release, and give the owner its direct APK link. B04 Reno10 hardware acceptance remains open. Read the exact current checkpoint at the top of [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md#release-handoff--2026-11-16-production-update-needs-manual-workflow-dispatch) and do not erase prior conversation/history. Do not use a different signing key to force installation.
+
+
 ## Active checkpoint — B04 and B15 partial; source CI green (2026-11-16)
 
 Main/stable remains `7ab4bc570b18ad79bd5e4d8761ae910f10de2174` / v1.0.57. B04 source commit `2be4e5494d54632517e5aa5fb3ddfdc17793277e` passed the complete CI gate and produced signed debug test APK `brrrboard-test-20261116-130630-2be4e54`; Reno10 fast-panel, lifecycle, and inset acceptance remains open. B15 source/CI checkpoint `c229f9dae5cfbbd57db1060d861418b03a452b36` verifies pinned PHINC provenance, separate learned-history reset semantics, and reports the generated brrPersonal asset fingerprint. Debug workflow [43874232917](https://github.com/Batmancpu/brrrBoard/actions/runs/43874232917) passed assemble, signer verification, upload and all 183 unit tests; audit workflow [43874232779](https://github.com/Batmancpu/brrrBoard/actions/runs/43874232779) passed and skipped release.
