@@ -1,5 +1,7 @@
 # brrBoard agent instructions
 
+**Current research checkpoint.** Start with the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here). The owner authorized documentation-only architecture work in this session. Earlier implementation directions below describe historical sessions.
+
 **Start here in every new chat or agent session.** Read the [current checkpoint](PROJECT_CONTEXT.md#resume-here) and the latest entry in the [conversation record](docs/PROJECT_CONVERSATION.md) before editing, building, or answering a status question. Resume the latest owner request and honor its acceptance criteria and decisions.
 
 1. At the start of a project task, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) and [docs/PROJECT_CONVERSATION.md](docs/PROJECT_CONVERSATION.md). Check the current branch, HEAD, and working tree. Verify relevant code, release, or CI claims before continuing. The context page is the current checkpoint. The conversation record preserves original project requests in order.

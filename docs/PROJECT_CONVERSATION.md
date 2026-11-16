@@ -751,3 +751,7 @@ Key requirements to retain:
 The current source batch hides dead AI Tools/GIF/Stickers and internal Close History toolbar choices, migrates old toolbar settings, and preserves working toolbar actions. CI is pending. Earlier shipped work: Smart Emoji first-use grid (v1.0.54), local Emoji side ranking (v1.0.55), and 123 slide-to-symbol behavior (v1.0.56). The v1.0.56 automatic test job had the unchanged 13/180 failures (five Parser/currency, seven InputLogic URL/autospace, one StringUtils Emoji recognition). No Reno10 acceptance has occurred.
 
 Next after CI checkpoint: map visible icons/popups and implement measured geometry/interaction fixes; then Dictate routing, bundled rights-cleared swipe engine + brrPersonal quality, payload audit, and final device acceptance.
+
+## 2026-11-16 — architecture mission, R0
+
+Owner: “During this phase, you must not: … Implement keyboard features.” Owner: “Your primary deliverable is an exceptionally thorough, permanently preserved engineering knowledge base inside the brrBoard GitHub repository.” This session is documentation-only. The current source, release and CI anchors are in [R0](ENGINEERING_HANDOFF.md#r0--repository-baseline-on-16-november-2026). Continue with R1 source and CI triage. The supplied message ends in F6; missing text remains unverified.

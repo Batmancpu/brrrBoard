@@ -1,5 +1,7 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
+**Current research checkpoint.** See [engineering handoff R0](ENGINEERING_HANDOFF.md#r0--repository-baseline-on-16-november-2026) for the current planning-only scope, newer v1.0.57 baseline and status of the new implementation plan.
+
 **Status (2026-11-16 UTC):** Latest signed release is [v1.0.56](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.56), source [8463fc8](https://github.com/Batmancpu/brrrBoard/commit/8463fc80c1f8695c0f0b11075db25d5e0d3434db), Obtainium run [43829494372](https://github.com/Batmancpu/brrrBoard/actions/runs/43829494372), 37,949,189 bytes, SHA-256 `1340be9ef8ba3b85cc080900d74d743b072c8ccd8b99d10d846de227ef276f25`. The 123 key now taps to persistent Symbols and slides to one momentary symbol before returning to letters. Debug run [43829494384](https://github.com/Batmancpu/brrrBoard/actions/runs/43829494384) built, signer-verified and uploaded its APK, but the 180-test gate found the same 13 failures: 5 parser/currency, 7 URL/autospace, 1 Emoji recognition. No new failure was introduced; no Reno10 test was run.
 
 ## Current implementation checkpoint — 123 momentary-symbol selection
