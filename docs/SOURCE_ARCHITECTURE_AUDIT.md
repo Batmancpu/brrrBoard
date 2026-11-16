@@ -1,5 +1,9 @@
 # R1 — Runtime architecture and CI triage
 
+## B03 implementation checkpoint — Emoji classifier
+
+The failing catalog case is U+1FA8D 🪍, present in `app/src/main/assets/emoji/ACTIVITIES.txt`. The rejection was in `StringUtils.emoRegex`: its broad supplementary base range had a deliberate gap from U+1FA8A to U+1FA8E and no explicit U+1FA8D alternative. Official Unicode Emoji 18.0 data identifies U+1FA8D as “net with handle.” The implementation adds only U+1FA8D to the accepted base code-point class, keeping unsupported/reserved code points excluded. Full CI is pending on the audit branch; local test execution and OPPO Reno10 display/input checks are unavailable. Do not call B03 complete until the complete test task and signed debug build pass.
+
 Audited source [3ee9da9](https://github.com/Batmancpu/brrrBoard/tree/3ee9da9e9b2a0b4a8c42b1e27d93f4686ff65b21), the v1.0.57 source baseline. JVM packages below are relative to `app/src/main/java/helium314/keyboard/` unless otherwise specified. Source line numbers refer to this SHA. [Engineering handoff](ENGINEERING_HANDOFF.md)
 
 ## Origin, build and existing contracts
