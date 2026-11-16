@@ -61,7 +61,7 @@ B02 completed at `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. Product defaults en
 
 ### B03 — Unicode Emoji classifier and full green gate (B02)
 
-**In progress — isolate an in-range Emoji failure.** The Unicode 18 asset points are now added to `emoRegex`, and CI verified the debug APK signer. The next catalog failure is U+1FAA9 🪩, already inside the regex's U+1FA8E–U+1FAC2 range and fast guard's U+1F104–U+1FAFF range. The assertion reports grapheme and fast-guard results on the next run; use those to isolate ICU segmentation vs regex matching before any further classifier change. B03 requires the full test task and signer/build gate. Local Gradle and Reno10 checks remain unavailable.
+**In progress — repair regex interval and verify.** The current failure at U+1FAA9 🪩 had `singleGrapheme=true` and `mightBeEmoji=true`. Source inspection found an accidental chained interval `1FA80–1FA8E–1FAC2` introduced while adding Emoji 18 points. The source now restores the valid existing U+1FA80–U+1FAC2 interval, which also includes U+1FA8B–D. The all-assets test and full 181-test gate plus APK signing verification must pass before B03 is complete. Local Gradle/Reno10 remain unavailable.
 
 ### B04 — Lifecycle, panel ownership and insets (B03, B00)
 

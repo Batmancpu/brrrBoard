@@ -849,3 +849,8 @@ The U+1FA8D fix compiled, the debug APK passed signer verification, and CI [4386
 ## 2026-11-16 — B03 surfaced an in-range Emoji failure
 
 After the combined Unicode 18 range update, CI built/signer-verified the APK but the catalog assertion failed at U+1FAA9 🪩. Source inspection confirms this scalar is within `emoRegex`'s existing U+1FA8E–U+1FAC2 range and within `StringUtils.mightBeEmoji`'s U+1F104–U+1FAFF guard. The test failure cannot yet be attributed to range coverage. The existing assertion now includes `isSingleGrapheme` and `mightBeEmoji` values on failure, so the next run will isolate whether ICU segmentation, the fast guard, or regex matching rejects it. Record CI run [43863881818](https://github.com/Batmancpu/brrrBoard/actions/runs/43863881818) as failed at the unit-test gate after build/sign verification. Next: inspect this diagnostic before changing product code, fix only the proven layer, and rerun the full suite.
+
+
+## 2026-11-16 — B03 regex range root cause and correction
+
+CI [43866094468](https://github.com/Batmancpu/brrrBoard/actions/runs/43866094468) built and signer-verified the APK, then the catalog test failed at U+1FAA9 🪩. The failure-only test message reported `singleGrapheme=true` and `mightBeEmoji=true`, isolating regex acceptance. Inspection found the previous Unicode 18 coalescing had accidentally changed the existing valid regex class from U+1FA80–U+1FAC2 into `\x{1FA80}-\x{1FA8E}-\x{1FAC2}`. That malformed range no longer covered U+1FAA9. The correction restores the valid continuous U+1FA80–U+1FAC2 range, which includes newly assigned U+1FA8B–D as well as the already supported code points. This was an implementation error; it is recorded and corrected before completion. Full CI must pass before B03 closes.

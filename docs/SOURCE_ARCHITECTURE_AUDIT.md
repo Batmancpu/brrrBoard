@@ -84,3 +84,8 @@ The first exact scalar fix compiled, and CI [43862270142](https://github.com/Bat
 ## B03 follow-up — in-range scalar failure
 
 U+1FAA9 🪩 is covered by the regex's existing U+1FA8E–U+1FAC2 base class and by the `StringUtils.java` fast guard U+1F104–U+1FAFF, yet the catalog sweep reported `isEmoji=false`. The test message now reports single-grapheme and fast-guard booleans on failure. Wait for those values before changing classifier logic; regex coverage alone does not explain this result.
+
+
+## B03 follow-up — malformed supplementary range
+
+CI's expanded assertion values for U+1FAA9 🪩 were `singleGrapheme=true`, `mightBeEmoji=true`, proving the regex branch was rejecting it. Inspection of the edited pattern found an accidental chained range `\\x{1FA80}-\\x{1FA8E}-\\x{1FAC2}`. The valid original coverage was U+1FA80–U+1FAC2; B03 restores that continuous interval, which includes the newly assigned Emoji 18 points U+1FA8B–D. The implementation error is fixed in the next checkpoint; full CI remains the acceptance gate.

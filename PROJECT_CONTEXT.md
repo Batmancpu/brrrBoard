@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01/B02 complete; B03 Emoji guard diagnosis in CI (2026-11-16).** Latest safe main `7ab4bc5`; v1.0.57 unchanged. Audit branch has aligned classifier ranges to the currently bundled Unicode 18 additions. CI [43863881818](https://github.com/Batmancpu/brrrBoard/actions/runs/43863881818) built and signer-verified the APK, but catalog test next failed at U+1FAA9 🪩, which lies inside the existing regex and broad fast-guard ranges. Test failure diagnostics now expose `isSingleGrapheme` and `mightBeEmoji` for that scalar to distinguish ICU from regex behavior. No local Gradle/adb; Reno10 unverified. Next: use the diagnostic, fix the isolated layer, then re-run all tests before B04.
+**Implementation session — B00 partial; B01/B02 complete; B03 regex range repair in CI (2026-11-16).** Latest safe main `7ab4bc5`; v1.0.57 unchanged. Unicode 18 scalar additions are present on the audit branch. CI [43866094468](https://github.com/Batmancpu/brrrBoard/actions/runs/43866094468) built/signer-verified the debug APK and diagnosed U+1FAA9 🪩 with `singleGrapheme=true`, `mightBeEmoji=true`; source review found the preceding coalescing edit had left a malformed `1FA80–1FA8E–1FAC2` regex range. The current fix restores `1FA80–1FAC2`. Full gate pending. No local Gradle/adb; Reno10 unverified. Next: check full CI, then close B03 and proceed to B04 only on green.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
