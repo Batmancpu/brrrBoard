@@ -206,7 +206,7 @@ class StringUtilsTest {
         val brokenDetectionAtStart = listOf("〰️", "〽️", "©️", "®️", "#️⃣", "*️⃣", "0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "㊗️", "㊙️")
         allEmojis.forEach {
             if (it == "🀄" || it == "🃏") return@forEach // todo: should be fixed, ideally in the regex
-            assertTrue(isEmoji(it), "isEmoji=false for [$it] codePoints=${it.codePoints().toArray().joinToString(","){ "U+" + it.toString(16).uppercase() }} singleGrapheme=${it.isSingleGrapheme} mightBeEmoji=${StringUtils.mightBeEmoji(it)}")
+            assertTrue(isEmoji(it), "isEmoji=false for [$it] codePoints=${it.codePoints().toArray().joinToString(","){ "U+" + it.toString(16).uppercase() }} singleGrapheme=${it.isSingleGrapheme} mightBeEmoji=${helium314.keyboard.latin.common.mightBeEmoji(it)}")
             assert(StringUtils.mightBeEmoji(it.codePointBefore(it.length)))
             if (it !in brokenDetectionAtStart)
                 assert(StringUtils.mightBeEmoji(it.codePointAt(0)))
