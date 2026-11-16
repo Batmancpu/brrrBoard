@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01–B03 complete; B04 next (2026-11-16).** Main remains `7ab4bc5`; v1.0.57 is unchanged. B03 completed on the audit branch at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`; CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) passed the debug APK build/signature checks and full 181-test task. Unicode 18 assets are recognized by the corrected `StringUtils.emoRegex`; see the B03 handoff entry. A signed debug test prerelease is available, separate from stable package. No local Gradle/adb or Reno10 testing was possible. Next: B04 lifecycle/panel transition seam per master plan; keep device geometry and toggle acceptance open.
+**Implementation session — B00 partial; B01–B03 complete; B04 next.** Main `7ab4bc5` and stable v1.0.57 are unchanged. B03 completed at `5dd17c7`; CI passed the full 181-test task and signed debug APK. Test prerelease: [brrrboard-test-20261116-123802-5dd17c7](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-123802-5dd17c7). CI `dc4b2f6` release-scope guard was verified: workflows still test docs-only changes, but skip publishing. A prior unguarded audit-only publish failed with `403 Resource not accessible by integration`; if audit releases are required, owner must review Actions token write permissions. Reno10 remains unverified. Next: B04 panel transition lifecycle; device gate remains pending.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 

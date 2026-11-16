@@ -61,7 +61,9 @@ B02 completed at `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. Product defaults en
 
 ### B03 — Unicode Emoji classifier and full green gate (B02) — COMPLETE
 
-B03 completed at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`. It fixed the asset/regex version mismatch for bundled Emoji 18 entries and repaired the malformed chained range found by CI. CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) built and signer-verified the debug APK and passed the full 181-test `:app:testRunTestsUnitTest` task. Audit run [43867544607](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544607) passed. Signed debug test prerelease: [brrrboard-test-20261116-123802-5dd17c7](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-123802-5dd17c7). Main/stable release unchanged. Local Gradle and Reno10 checks remain pending. Next B04 is eligible.
+B03 completed at `5dd17c7d072fe9440b1dd4ecf09aeb6e768cbabf`. It fixed the asset/regex version mismatch for bundled Emoji 18 entries and repaired the malformed chained range found by CI. CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) built and signer-verified the debug APK and passed the full 181-test `:app:testRunTestsUnitTest` task. Audit run [43867544607](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544607) passed. Signed debug test prerelease: [brrrboard-test-20261116-123802-5dd17c7](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-123802-5dd17c7). Main/stable release unchanged. Local Gradle and Reno10 checks remain pending. Next B04 is eligible. CI release-scope guard `dc4b2f6` was verified; see the current handoff checkpoint. Audit-only release publication returned HTTP 403 and requires owner Actions-token permission review if that path is needed.
+
+**CI release discipline:** the release-scope guard `dc4b2f6` passed; docs/workflow-only changes no longer publish prereleases. Audit-only publish has a repo integration 403 and remains owner-permission-blocked; the debug test release path works.
 
 ### B04 — Lifecycle, panel ownership and insets (B03, B00)
 

@@ -94,3 +94,8 @@ CI's expanded assertion values for U+1FAA9 🪩 were `singleGrapheme=true`, `mig
 ## B03 result — complete
 
 The classifier now recognizes the bundled Emoji 18 entries. The failure chain ended at U+1FAA9 🪩 with diagnostics `singleGrapheme=true` and `mightBeEmoji=true`; source review found the actual bug was the malformed `\\x{1FA80}-\\x{1FA8E}-\\x{1FAC2}` class range introduced while coalescing Emoji 18 entries. The final code restores U+1FA80–U+1FAC2 and retains the precise additional Unicode 18 scalars/modifier support. CI [43867544657](https://github.com/Batmancpu/brrrBoard/actions/runs/43867544657) passed APK build/signature and the full 181-test unit task. Local tests and OPPO Reno10 display/insertion remain unverified. B04 is the next eligible batch.
+
+
+## CI release scope checkpoint
+
+The workflow release-scope guard at `dc4b2f6` was verified by run [43869454530](https://github.com/Batmancpu/brrrBoard/actions/runs/43869454530): APK build, signer identity and full unit tests passed; release was skipped for a workflow/docs-only diff. Audit run [43869454420](https://github.com/Batmancpu/brrrBoard/actions/runs/43869454420) likewise skipped its release. Unguarded docs-only audit run [43868861513](https://github.com/Batmancpu/brrrBoard/actions/runs/43868861513) could not publish because GitHub returned 403 `Resource not accessible by integration`; no release was created. Do not retry the audit-only release without owner permission review. The debug test release path remains operational.
