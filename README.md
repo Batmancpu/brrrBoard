@@ -15,7 +15,7 @@ brrBoard is my personal Android keyboard for the OPPO Reno10 5G. I want the clea
 
 [Download the latest signed APK](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrrBoard.apk) · [Release notes](https://github.com/Batmancpu/brrrBoard/releases/latest) · [Set up Obtainium](docs/OBTAINIUM.md)
 
-For English-only Dictate transcription, set **Dictate → Languages → Active language → English** and turn off **Follow keyboard language**. brrBoard requests English and refuses non-English results when the RecognitionService reports a confident language tag; Dictate currently controls the actual language itself.
+For English-only Dictate transcription, set **Dictate → Languages → Active language → English** and turn off **Follow keyboard language**. The latest build requests English and blocks confident non-English or Devanagari results, but Dictate controls its saved language and the owner still needs to verify English output on the Reno10. Latin-script Hindi cannot be reliably identified from the transcript alone.
 
 ## Project notes
 
