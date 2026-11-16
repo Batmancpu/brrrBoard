@@ -2,7 +2,6 @@
 package helium314.keyboard.settings.screens
 
 import android.content.Context
-import android.os.Build
 import android.view.inputmethod.InputMethodSubtype
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -31,12 +30,9 @@ import helium314.keyboard.latin.common.Constants.Subtype.ExtraValue
 import helium314.keyboard.latin.common.LocaleUtils.constructLocale
 import helium314.keyboard.latin.common.LocaleUtils.localizedDisplayName
 import helium314.keyboard.latin.common.splitOnWhitespace
-import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.SettingsSubtype.Companion.toSettingsSubtype
-import helium314.keyboard.latin.utils.DictionaryInfoUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.MissingDictionaryDialog
-import helium314.keyboard.latin.utils.SubtypeLocaleUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.getActivity
@@ -55,7 +51,7 @@ fun LanguageScreen(
     onClickBack: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val sortedSubtypes by remember { mutableStateOf(getSortedSubtypes(ctx)) }
+    val sortedSubtypes by remember { mutableStateOf(getSortedSubtypes()) }
     val b = (LocalContext.current.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
     if ((b?.value ?: 0) < 0)
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
@@ -70,27 +66,6 @@ fun LanguageScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        try {
-                            val intent = android.content.Intent(android.provider.Settings.ACTION_INPUT_METHOD_SUBTYPE_SETTINGS).apply {
-                                val imiId = helium314.keyboard.latin.RichInputMethodManager.getInstance().inputMethodInfoOfThisIme.id
-                                putExtra(android.provider.Settings.EXTRA_INPUT_METHOD_ID, imiId)
-                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            }
-                            ctx.startActivity(intent)
-                        } catch (e: Exception) {
-                            Log.e("LanguageScreen", "Failed to launch system enabler", e)
-                        }
-                    },
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Text(
-                        "Sync Enabled Languages with OS Switcher",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
             }
         },
         filteredItems = { term ->
@@ -150,34 +125,11 @@ private fun dictsAvailable(locale: Locale, context: Context): Boolean {
 }
 
 // sorting by display name is still slow, even with the cache... but probably good enough
-private fun getSortedSubtypes(context: Context): List<InputMethodSubtype> {
-    val systemLocales = SubtypeSettings.getSystemLocales()
-    val enabledSubtypes = SubtypeSettings.getEnabledSubtypes(true)
-    val localesWithDictionary = DictionaryInfoUtils.getCacheDirectories(context).mapNotNull { dir ->
-        if (dir.list()?.any { it.endsWith(DictionaryInfoUtils.USER_DICTIONARY_SUFFIX) } == true)
-            dir.name.constructLocale()
-        else null
-    }
-
-    val defaultAdditionalSubtypes = Defaults.PREF_ADDITIONAL_SUBTYPES.split(Separators.SETS).map {
-        it.substringBefore(Separators.SET) to (it.substringAfter(Separators.SET) + ",AsciiCapable,EmojiCapable,isAdditionalSubtype")
-    }
-    fun isDefaultSubtype(subtype: InputMethodSubtype): Boolean =
-        defaultAdditionalSubtypes.any { it.first == subtype.locale().language && it.second == subtype.extraValue }
-
-    val subtypeSortComparator = compareBy<InputMethodSubtype>(
-        { it !in enabledSubtypes },
-        { it.locale() !in localesWithDictionary },
-        { it.locale() !in systemLocales},
-        { !(SubtypeSettings.isAdditionalSubtype(it) && !isDefaultSubtype(it) ) },
-        {
-            @Suppress("DEPRECATION")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) it.languageTag == SubtypeLocaleUtils.NO_LANGUAGE
-            else it.locale == SubtypeLocaleUtils.NO_LANGUAGE
-        },
-        { it.displayName() }
-    )
-    return SubtypeSettings.getAllAvailableSubtypes().sortedWith(subtypeSortComparator)
+private fun getSortedSubtypes(): List<InputMethodSubtype> {
+    val order = listOf("en-US", "en-GB", "hi-Latn")
+    return SubtypeSettings.getAllAvailableSubtypes()
+        .filter { it.languageTag in order && !SubtypeSettings.isAdditionalSubtype(it) }
+        .sortedBy { order.indexOf(it.languageTag) }
 }
 
 @Preview

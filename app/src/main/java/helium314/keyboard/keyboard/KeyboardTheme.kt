@@ -164,7 +164,9 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         @JvmStatic
         fun getKeyboardTheme(context: Context): KeyboardTheme {
             val prefs = context.prefs()
-            val style = prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE)
+            // The board has one fixed iOS-like key and glyph style. Retired style
+            // preferences from older installs must not silently alter its shape.
+            val style = Defaults.PREF_THEME_STYLE
             val borders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             val matchingId = when (style) {
                 STYLE_HOLO -> THEME_ID_HOLO_BASE
@@ -189,7 +191,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                 prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, Defaults.PREF_THEME_COLORS_NIGHT)
             else
                 prefs.getString(Settings.PREF_THEME_COLORS, Defaults.PREF_THEME_COLORS)
-            val themeStyle = prefs.getString(Settings.PREF_THEME_STYLE, Defaults.PREF_THEME_STYLE)
+            val themeStyle = Defaults.PREF_THEME_STYLE
             val hasBorders = prefs.getBoolean(Settings.PREF_THEME_KEY_BORDERS, Defaults.PREF_THEME_KEY_BORDERS)
             helium314.keyboard.latin.utils.Log.i("KeyboardTheme", "Active theme: colors=$themeName, style=$themeStyle, hasBorders=$hasBorders, isNight=$isNight")
 

@@ -8,10 +8,8 @@ import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.settings.customIconIds
 import helium314.keyboard.latin.settings.Defaults
-import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ToolbarKey
-import helium314.keyboard.latin.utils.prefs
 import java.util.Locale
 
 class KeyboardIconsSet private constructor() {
@@ -20,14 +18,12 @@ class KeyboardIconsSet private constructor() {
     private val iconsByName = HashMap<String, Drawable>(80)
 
     fun loadIcons(context: Context) {
-        val prefs = context.prefs()
-        val iconStyle = prefs.getString(Settings.PREF_ICON_STYLE, Defaults.PREF_ICON_STYLE)
-        val defaultIds = when (iconStyle) {
+        val defaultIds = when (Defaults.PREF_ICON_STYLE) {
             KeyboardTheme.STYLE_HOLO -> keyboardIconsHolo
             KeyboardTheme.STYLE_ROUNDED, KeyboardTheme.STYLE_CIRCLE -> keyboardIconsRounded
             else -> keyboardIconsMaterial
         }
-        val overrideIds = customIconIds(context, prefs)
+        val overrideIds = customIconIds(context)
         val ids = if (overrideIds.isEmpty()) defaultIds else defaultIds + overrideIds
         if (!needsReload && ids == iconIds) return
         iconIds = ids
@@ -294,8 +290,8 @@ class KeyboardIconsSet private constructor() {
         } }
 
         fun getAllIcons(context: Context): Map<String, List<Int>> {
-            // currently active style first
-            val iconStyle = context.prefs().getString(Settings.PREF_ICON_STYLE, Defaults.PREF_ICON_STYLE)
+            // Offer the same fixed iOS-like glyph mapping used by the keyboard.
+            val iconStyle = Defaults.PREF_ICON_STYLE
             return keyboardIconsMaterial.entries.associate { (name, id) ->
                 name to when (iconStyle) {
                     KeyboardTheme.STYLE_HOLO -> listOfNotNull(keyboardIconsHolo[name], keyboardIconsRounded[name], id)

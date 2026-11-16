@@ -24,6 +24,9 @@ import helium314.keyboard.latin.utils.ScriptUtils.script
 import java.util.Locale
 
 object SubtypeSettings {
+    private val ownerKeyboardLanguages = setOf("en-US", "en-GB", "hi-Latn")
+    private const val OWNER_LANGUAGE_MIGRATION_KEY = "brr_owner_keyboard_languages_v1"
+
     /** @return enabled subtypes. If no subtypes are enabled, but a contextForFallback is provided,
      *  subtypes for system locales will be returned, or en-US if none found. */
     fun getEnabledSubtypes(fallback: Boolean = false): List<InputMethodSubtype> {
@@ -211,9 +214,47 @@ object SubtypeSettings {
         reloadSystemLocales(context)
 
         loadResourceSubtypes(context.resources)
+        enforceOwnerKeyboardLanguages(context)
         loadAdditionalSubtypes(context.prefs())
         loadEnabledSubtypes(context)
         updateSystemSubtypes(context)
+    }
+
+    /** Keep the IME picker and Android's subtype switcher limited to the owner's three languages. */
+    private fun enforceOwnerKeyboardLanguages(context: Context) {
+        val prefs = context.prefs()
+        val supported = resourceSubtypesByLocale.values.flatten()
+            .filter { it.languageTag in ownerKeyboardLanguages }
+        if (supported.size != ownerKeyboardLanguages.size) {
+            Log.e(TAG, "Expected keyboard subtypes missing: ${ownerKeyboardLanguages - supported.map { it.languageTag }.toSet()}")
+            return
+        }
+
+        val firstRun = !prefs.getBoolean(OWNER_LANGUAGE_MIGRATION_KEY, false)
+        val enabledLocales = if (firstRun) emptySet() else createSettingsSubtypes(
+            prefs.getString(Settings.PREF_ENABLED_SUBTYPES, Defaults.PREF_ENABLED_SUBTYPES)!!
+        ).map { it.locale.toLanguageTag() }.toSet()
+        val enabledSubtypes = supported.filter {
+            firstRun || it.languageTag in enabledLocales
+        }.ifEmpty { supported }
+        val enabled = createPrefSubtypes(enabledSubtypes.map { it.toSettingsSubtype() })
+        val currentSelection = prefs.getString(
+            Settings.PREF_SELECTED_SUBTYPE,
+            Defaults.PREF_SELECTED_SUBTYPE
+        )!!.toSettingsSubtype()
+        val selectedLocale = currentSelection.locale.toLanguageTag()
+        val selected = enabledSubtypes.firstOrNull { it.languageTag == selectedLocale }
+            ?.toSettingsSubtype()?.toPref()
+            ?: enabledSubtypes.firstOrNull { it.languageTag == "hi-Latn" }
+                ?.toSettingsSubtype()?.toPref()
+            ?: enabledSubtypes.first().toSettingsSubtype().toPref()
+
+        prefs.edit {
+            putString(Settings.PREF_ADDITIONAL_SUBTYPES, "")
+            putString(Settings.PREF_ENABLED_SUBTYPES, enabled)
+            putString(Settings.PREF_SELECTED_SUBTYPE, selected)
+            putBoolean(OWNER_LANGUAGE_MIGRATION_KEY, true)
+        }
     }
 
     @Suppress("SameReturnValue")

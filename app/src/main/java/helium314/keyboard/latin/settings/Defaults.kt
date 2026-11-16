@@ -8,7 +8,6 @@ import helium314.keyboard.keyboard.KeyboardActionListener
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.latin.BuildConfig
 import helium314.keyboard.latin.common.Constants.Separators
-import helium314.keyboard.latin.common.Constants.Subtype.ExtraValue
 import helium314.keyboard.latin.utils.LayoutType
 import helium314.keyboard.latin.utils.POPUP_KEYS_LABEL_DEFAULT
 import helium314.keyboard.latin.utils.POPUP_KEYS_ORDER_DEFAULT
@@ -73,9 +72,7 @@ object Defaults {
     const val PREF_LANGUAGE_SWITCH_KEY = "input_method"
     const val PREF_SHOW_EMOJI_KEY = false
     const val PREF_VARIABLE_TOOLBAR_DIRECTION = false
-    const val PREF_ADDITIONAL_SUBTYPES = "de${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwerty${Separators.SETS}" +
-            "fr${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwertz${Separators.SETS}" +
-            "hu${Separators.SET}${ExtraValue.KEYBOARD_LAYOUT_SET}=MAIN:qwerty"
+    const val PREF_ADDITIONAL_SUBTYPES = ""
     const val PREF_ENABLE_SPLIT_KEYBOARD = false
     @JvmField
     val PREF_SPLIT_SPACER_SCALE = Array(4) { DEFAULT_SIZE_SCALE }
@@ -151,7 +148,8 @@ object Defaults {
     @JvmField
     val PREF_NAVBAR_COLOR = true
     const val PREF_NARROW_KEY_GAPS = true
-    const val PREF_ENABLED_SUBTYPES = "hi-Latn${Separators.SET}"
+    const val PREF_ENABLED_SUBTYPES = "en-GB${Separators.SET}${Separators.SETS}" +
+            "en-US${Separators.SET}${Separators.SETS}hi-Latn${Separators.SET}"
     const val PREF_SELECTED_SUBTYPE = "hi-Latn${Separators.SET}"
     const val PREF_URL_DETECTION = true
     const val PREF_DONT_SHOW_MISSING_DICTIONARY_DIALOG = false

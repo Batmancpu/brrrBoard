@@ -17,6 +17,8 @@ The owner supplied a previous-chat transcript and two keyboard reference screens
 
 ### Batch 1 — Verify behavior and remove product clutter
 
+**Implementation checkpoint — 2026-11-16:** The local source batch now keeps only English (US), English (UK), and Hinglish (Romanized Hindi) subtypes in the IME manifest and language screen; an upgrade migration removes old extra subtype entries, while later user toggles among the three remain respected. Appearance no longer exposes global key/icon styles, per-icon customization, or preset theme pickers; the existing default key/glyph style is pinned. XML parsing and `git diff --check` pass. Local `:app:assembleDebug` could not start because the Gradle 8.14.4 distribution was unavailable and external network access is blocked; no tests were run. Remote CI result is pending.
+
 - Restrict keyboard input layouts in app/src/main/res/xml/method.xml and LanguageScreen.kt to English US, English UK, and Romanized Hinglish. Keep app UI translations unless they are specifically keyboard choices.
 - In AppearanceScreen.kt, remove the global Key Style and Icon Style selectors and pin one iOS-inspired default. Preserve unrelated settings. Retain only automatic OG Frosted Glass light/dark plus the optional action-key tint; do not add separate theme presets.
 - Triage the existing 13 failing automatic tests (parser/currency, URL/autospace, Emoji recognition) as a separate known issue before release; do not report the current red debug gate as green.
@@ -256,3 +258,10 @@ Commit [283b179](https://github.com/Batmancpu/brrrBoard/commit/283b17987d025fa2c
 | README and context continuity | Personalized README, AGENTS.md, PROJECT_CONTEXT.md, plan, known issues, and conversation log are updated on GitHub. | Keep these checkpoint files current on each future batch. |
 
 The source/release audit is complete. The project is **not yet Reno10-accepted**: user-device verification is required for layout, tint, gestures, suggestions, dictionary quality, and Dictate English output.
+
+### 2026-11-16 implementation log — Batch 1
+
+- Updated `method.xml` to retain the three owner-selected keyboard subtypes, `LanguageScreen.kt` to show only those choices and remove the redundant OS subtype-sync control, and `SubtypeSettings.kt` to clear old extras and migrate existing installations.
+- Removed Key Style, Icon Style, individual icon customization, and theme-preset pickers from the appearance settings flow. Pinned key/glyph rendering to the existing default style in `KeyboardTheme.kt`, `KeyboardIconsSet.kt`, and layout-scale defaults in `Settings.java`.
+- Validation: XML parsed with exactly `en-US`, `en-GB`, and `hi-Latn`; `git diff --check` passed. Local APK assembly was blocked before source compilation by unavailable Gradle 8.14.4/network access. No tests were run.
+- Next: make Emoji category pages horizontal and page-aware; expose Smart Emoji visibly; implement the single ABC return behavior; then correct frame/edge measurements.

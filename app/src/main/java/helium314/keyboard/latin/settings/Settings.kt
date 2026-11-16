@@ -12,11 +12,15 @@ fun customIconNames(prefs: SharedPreferences) = runCatching {
 }.getOrElse { emptyMap() }
 
 @SuppressLint("DiscouragedApi")
-fun customIconIds(context: Context, prefs: SharedPreferences) = customIconNames(prefs)
-    .mapNotNull { entry ->
+fun customIconIds(context: Context): Map<String, Int> {
+    val names = runCatching {
+        Json.decodeFromString<Map<String, String>>(Defaults.PREF_CUSTOM_ICON_NAMES)
+    }.getOrElse { emptyMap() }
+    return names.mapNotNull { entry ->
         val id = runCatching { context.resources.getIdentifier(entry.value, "drawable", context.packageName) }.getOrNull()
         id?.let { entry.key to it }
-    }
+    }.toMap()
+}
 
 /** Derive an index from a number of boolean [settingValues], used to access the matching default value in a defaults arraY */
 fun findIndexOfDefaultSetting(vararg settingValues: Boolean): Int {
