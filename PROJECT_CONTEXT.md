@@ -2,7 +2,7 @@
 
 ## Resume here
 
-**Implementation session — B00 partial; B01–B03 complete; B04 partial (CI green, Reno10 pending); B15 next.** Main `7ab4bc5`/stable v1.0.57 unchanged. B04 source commit `2be4e54` passed full CI and published a signed debug test build. It guards stale panel animations, cancels them at LatinIME lifecycle boundaries and stops outgoing Emoji/Clipboard listeners. Two guard tests pass. Device fast-switch/reopen/editor/rotation/hardware/inset checks are unavailable; keep B04 partial. B15 is independent after B03; next verify dictionary assets, brrPersonal provenance/hash and learning reset against R3 without tuning frequencies until measured.
+**Implementation session — B00 partial; B01–B03 complete; B04 partial (CI green, Reno10 pending); B15 partial (fingerprint and 183 tests passed).** Main `7ab4bc5`/stable v1.0.57 unchanged. B04 source `2be4e54` passed CI and produced signed test prerelease; device transition/inset checks remain open. B15 source `c229f9d` passed build/signing, generated `brrPersonal.tsv` SHA-256 `26de07d1825ce75c8121104a97829b6e414aa179fd8cfe322e7e72123c77ff0a`, and all 183 tests. No dictionary behavior changed. Next: execute R3 fixed-set accuracy/cold-warm latency/heap and Reno10 reset checks before B16.
 
 **R6 — handoff verified.** The documentation-only architecture phase is complete. A later authorized implementation should begin with B00 and the current CI triage before changing product features. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 

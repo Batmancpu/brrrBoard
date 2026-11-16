@@ -2,13 +2,13 @@
 
 ## Start here
 
-## Active checkpoint — B04 source gate passed; device acceptance pending (2026-11-16)
+## Active checkpoint — B04 and B15 partial; source CI green (2026-11-16)
 
 B04 source checkpoint `2be4e5494d54632517e5aa5fb3ddfdc17793277e` passed CI. `KeyboardSwitcher` now guards delayed animation end actions with a monotonic generation and target identity; `LatinIME` invalidates pending transitions at window hide and input-view start/finish; direct Emoji↔Clipboard switches stop the outgoing panel listener/search state. Two pure guard tests were added. CI [43871586879](https://github.com/Batmancpu/brrrBoard/actions/runs/43871586879) passed build, debug-signature verification and the full test task; audit build [43871586907](https://github.com/Batmancpu/brrrBoard/actions/runs/43871586907) passed and skipped release. Debug test prerelease [brrrboard-test-20261116-130630-2be4e54](https://github.com/Batmancpu/brrrBoard/releases/tag/brrrboard-test-20261116-130630-2be4e54), APK SHA-256 `e127696ca0d03db03584e68966dcf3012919d1f2624d8f96cbe5ae56b252d44c`.
 
 B04 remains **partial**: no OPPO Reno10 access, so rapid alpha→Emoji→Clipboard→alpha, hide/reopen, editor change/restart, rotate, hardware attach, background, landscape and real nav inset/footer measurements are unverified. Main remains `7ab4bc5`; stable v1.0.57 unchanged. The audit-only automatic release is disabled pending repository permission review; test build publishing uses the passing debug workflow.
 
-Because B15 depends only on B03, it is the next safe batch while B04 waits for device acceptance. B15 exact next action: verify packaged locale/static dictionary assets, brrPersonal generator source/hash/licensing and reset semantics against `LOCAL_TYPING_ENGINE.md`; use CI/build evidence where local benchmark execution is unavailable. Do not change frequencies or remove languages without measured targets. B05–B14 remain gated on B04 or other explicit prerequisites.
+B15 source/CI checkpoint `c229f9d` passed build, signing, generated dictionary fingerprint, and all 183 tests. It remains partial pending the R3 accuracy/latency/heap benchmark and Reno10 reset acceptance. Next: define disjoint R3 phrases; capture cold/warm metrics on device; verify the history reset preserves brrPersonal and explicit Android words. B16 is blocked until these baseline targets exist. B04 Reno10 fast-panel/lifecycle/inset checks remain open; B05–B14 remain dependency-gated.
 ## Active checkpoint — B02 complete; B03 in progress (2026-11-16)
 
 B02 is complete on audit branch `brrrboard-audit-b01-currency-20261116`. Starting checkpoint `2df304cdcd98b7f08bb912f8974fcd93631b24d5`; ending source/checkpoint commit `e65b62185a6a32a96defc8c3e1ab17a009eae31f`. It pins URL/autospace test policies explicitly and fixes InputLogic's URL composition resume when a pending phantom space follows a URL connector. The change allows resume with NONE or PHANTOM space state and skips automatic spacing after composition resumes. Production defaults and test expectations remain unchanged.
