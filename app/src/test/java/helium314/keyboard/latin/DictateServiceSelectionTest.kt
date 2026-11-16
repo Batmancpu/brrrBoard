@@ -2,6 +2,7 @@
 package helium314.keyboard.latin
 
 import android.content.ComponentName
+import android.speech.SpeechRecognizer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -49,5 +50,14 @@ class DictateServiceSelectionTest {
         assertNull(resolveDictateServiceSelection(null, listOf(dictate, second)).component)
         assertEquals(DictateServiceSelection.Failure.NO_SELECTION,
             resolveDictateServiceSelection(null, listOf(dictate, second)).failure)
+    }
+
+    @Test fun recognizerPermissionErrorIsNotMisreportedAsLocalDeniedPermission() {
+        assertEquals(R.string.inline_voice_provider_audio_failure,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, true))
+        assertEquals(R.string.inline_voice_permission,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, false))
+        assertEquals(R.string.inline_voice_no_speech,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_NO_MATCH, true))
     }
 }

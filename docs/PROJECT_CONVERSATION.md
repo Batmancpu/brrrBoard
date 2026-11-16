@@ -3,6 +3,10 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-17 — Overnight user directive and new B18 visual requirement
+
+Owner: "The permission has been given already." Owner observed microphone red briefly and centered `Allow brrBoard microphone permission`, with no transcription or system prompt. Dictate works from YouTube but has online processing latency. Owner explicitly authorizes focused B05 diagnosis then B06–B09 without between-batch permission, **never B10**, two conditional signed APK checkpoints, no phone checks while sleeping, and preservation of all GitHub context. Owner requests centered `Listening…` and `Transcribing…` footer states, with subtle multicoloured moving glow for transcription, stable layout/light-dark/reduced-motion, real callback states, no stale status, to be built in B18. Full specification saved in `IME_PROVIDER_INTEGRATIONS.md`. Video analysis supports post-start provider `ERROR_INSUFFICIENT_PERMISSIONS` mislabel; patch distinguishes provider rejection from local denied permission without pretending provider issue solved.
+
 ## 2026-11-17 — B05 owner feedback blocks mic acceptance
 
 Owner reports: "now that I click on my microphone button, nothing happens. But when I tap and hold it, it opens the other keyboard. So the tap and hold is fine, but tapping does not do anything ... if I go to my YouTube app and click on the mic button, it launches the dictate voice engine ... works perfectly." Requests short-tap fix first and explicitly defers recording-state feedback idea. Green v1.0.62 CI does **not** equal physical acceptance. Corrective B05-only patch to voice routing and visible failure status; no B06 permission or changes. Owner to test new signed APK once full CI passes.
