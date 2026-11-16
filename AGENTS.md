@@ -1,5 +1,7 @@
 # brrBoard agent instructions
 
+**R4 — Clipboard, inline autofill and Dictate integration audit.** The mic-to-settings branch and Clipboard safety seams are mapped. R5 will order test repair, editor safety, interaction and late release gates. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **R3 — local language engine, Smart Emoji and glide research.** Current Smart is usage-ranked Recents and the default build lacks a working gesture factory. R4 will trace provider integrations and privacy boundaries. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
 **R2 — Reno10 and iOS visual reference audit.** Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).

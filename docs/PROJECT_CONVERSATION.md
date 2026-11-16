@@ -767,3 +767,7 @@ Owner: “During this phase, you must not: … Implement keyboard features.” O
 ## 2026-11-16 — R3 local language engine, Smart Emoji and glide research
 
 [LOCAL_TYPING_ENGINE.md](LOCAL_TYPING_ENGINE.md). Current Smart is usage-ranked Recents and the default build lacks a working gesture factory. R4 will trace provider integrations and privacy boundaries.
+
+## 2026-11-16 — R4 Clipboard, inline autofill and Dictate integration audit
+
+[IME_PROVIDER_INTEGRATIONS.md](IME_PROVIDER_INTEGRATIONS.md). The mic-to-settings branch and Clipboard safety seams are mapped. R5 will order test repair, editor safety, interaction and late release gates.
