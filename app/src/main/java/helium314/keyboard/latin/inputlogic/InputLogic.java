@@ -1173,7 +1173,9 @@ public final class InputLogic {
         // for the whole word
         // (only with URL detection and suggestions enabled)
         if (settingsValues.mUrlDetectionEnabled && settingsValues.needsToLookupSuggestions()
-                && !isComposingWord && SpaceState.NONE == inputTransaction.getSpaceState()
+                && !isComposingWord
+                && (SpaceState.NONE == inputTransaction.getSpaceState()
+                        || SpaceState.PHANTOM == inputTransaction.getSpaceState())
                 && settingsValues.mSpacingAndPunctuations
                         .isSometimesWordConnector(mConnection.getCodePointBeforeCursor())
                 // but not if there are two consecutive sometimesWordConnectors (e.g. "...bla")
@@ -1189,13 +1191,10 @@ public final class InputLogic {
         // TODO: remove isWordConnector() and use isUsuallyFollowedBySpace() instead.
         // See onStartBatchInput() to see how to do it.
         if (SpaceState.PHANTOM == inputTransaction.getSpaceState()
+                && !isComposingWord
                 && !settingsValues.isWordConnector(codePoint)
                 && !settingsValues.isUsuallyFollowedBySpace(codePoint) // only relevant in rare cases
         ) {
-            if (isComposingWord) {
-                // Sanity check
-                throw new RuntimeException("Should not be composing here");
-            }
             insertAutomaticSpaceIfOptionsAndTextAllow(settingsValues);
         }
 
