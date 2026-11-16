@@ -1,5 +1,7 @@
 # brrBoard agent instructions
 
+**R2 — Reno10 and iOS visual reference audit.** Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
+
 **R1 — source architecture and test triage.** R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline. See the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here).
 
 **Current research checkpoint.** Start with the [engineering handoff](docs/ENGINEERING_HANDOFF.md#start-here). The owner authorized documentation-only architecture work in this session. Earlier implementation directions below describe historical sessions.

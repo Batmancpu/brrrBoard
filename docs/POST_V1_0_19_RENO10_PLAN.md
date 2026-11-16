@@ -1,5 +1,7 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
+**R2 — Reno10 and iOS visual reference audit.** Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).
+
 **R1 — source architecture and test triage.** R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline. See the [engineering handoff](ENGINEERING_HANDOFF.md#start-here).
 
 **Current research checkpoint.** See [engineering handoff R0](ENGINEERING_HANDOFF.md#r0--repository-baseline-on-16-november-2026) for the current planning-only scope, newer v1.0.57 baseline and status of the new implementation plan.

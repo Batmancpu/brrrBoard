@@ -759,3 +759,7 @@ Owner: “During this phase, you must not: … Implement keyboard features.” O
 ## 2026-11-16 — R1 source architecture and test triage
 
 [SOURCE_ARCHITECTURE_AUDIT.md](SOURCE_ARCHITECTURE_AUDIT.md). R2 will measure the visual reference and specify shared geometry. Future implementation begins with the test baseline.
+
+## 2026-11-16 — R2 Reno10 and iOS visual reference audit
+
+[RENO10_VISUAL_SPEC.md](RENO10_VISUAL_SPEC.md). Original media was sampled where available. R3 will trace the local ranking and swipe engine before choosing evaluation gates.
