@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## Immediate B04 verification follow-up — 2026-11-16
+
+Source `be62fc5` / stable original-signed [v1.0.60](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.60/brrBoard.apk) published by [production CI 43921741598](https://github.com/Batmancpu/brrrBoard/actions/runs/43921741598) SUCCESS. The **owner reports tint bug fixed** on Oppo Reno10 following the supplied Chrome→ChatGPT repro. Earlier owner panel-switch/hide/reopen checks also passed. But the Android unit CI [43921741786](https://github.com/Batmancpu/brrrBoard/actions/runs/43921741786) FAILED **two new tests of 186** at Robolectric tint-to-bitmap color assertions; production compilation and signature passed, but do not claim full quality gate passing. New B04-only test correction replaces those unreliable graphics raster comparisons with direct ColorDrawable `.color` state assertions while preserving independent normal/accent and theme-refresh requirements. No production code changes. Full Android CI rerun pending. After green, document new source/release checkpoint, accept B04 based on owner evidence and CI, and ask to proceed with B05 in the next batch session. B06/B10 Emoji clipping and B17 swipe quality remain unresolved. This supersedes the immediately following older pending-checkpoint wording without deleting history.
+
 ## Latest handoff — 2026-11-16 B04 editor tint isolation (CI/phone verification pending)
 
 Baseline `main` `b6f432e`/signed v1.0.59; full B15 source test workflow 43917170656 and production release workflow 43917170723 succeeded. B15 is owner-accepted complete, with normal daily typing reported satisfactory. B01/B02/B03/B15 complete, B00/B04 partial, all B05–B14 and B16–B19 pending. User specifically authorized B04 and no subsequent batch.

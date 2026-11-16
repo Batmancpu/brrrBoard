@@ -1,5 +1,12 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-16 — B04 regression-test rasterization correction
+
+- **Product result:** source `be62fc5`, original-signed production v1.0.60 (run 43921741598 SUCCESS); owner says the persistent all-key tint has been fixed on Oppo Reno10. Treat this as owner-reported acceptance, not developer-controlled device testing.
+- **CI regression:** full test run 43921741786 returned 186 tests, 2 failed: `KeyBackgroundRoleCacheTest.coloredControlDoesNotRetintOrdinaryKeysOrTheirSource` at line 47, `themeChangeDiscardsRoleDrawables` at line 60. Both were `assertEquals(expectedColor, pixel(tintedDrawable))` using Robolectric bitmap graphics; other 184 passed. The failure is in unreliable test tint rendering, not a compile or signing failure. Do not disable or skip these tests.
+- **Correction:** test colorizer now directly changes isolated `ColorDrawable.color` property; tests compare the drawable's state (source remains unchanged, neutral/accent distinct and reused, theme reset recolors new clone) without assuming Robolectric's pixel pipeline applies tint exactly like hardware. Production cache code unmodified.
+- **Next:** run full CI, record green/red result and direct signed release, update project handoff, then close B04 if green given owner's device confirmation. One batch per chat; require explicit next-batch consent.
+
 ## 2026-11-16 — B04 frosted key drawable role isolation (pending CI/owner)
 
 - **Build/source:** started `main` `b6f432e` / v1.0.59; one B04-only implementation, no other batch authorized.

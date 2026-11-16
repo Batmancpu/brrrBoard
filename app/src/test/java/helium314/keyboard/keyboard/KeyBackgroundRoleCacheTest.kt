@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.keyboard
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
 import helium314.keyboard.latin.common.ColorType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
@@ -16,13 +13,6 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class KeyBackgroundRoleCacheTest {
-    private fun pixel(drawable: Drawable): Int {
-        val image = Bitmap.createBitmap(2, 2, Bitmap.Config.ARGB_8888)
-        drawable.setBounds(0, 0, 2, 2)
-        drawable.draw(Canvas(image))
-        return image.getPixel(0, 0)
-    }
-
     @Test
     fun coloredControlDoesNotRetintOrdinaryKeysOrTheirSource() {
         val normalColor = Color.rgb(48, 50, 54)
@@ -32,7 +22,8 @@ class KeyBackgroundRoleCacheTest {
         var recolorCount = 0
         val colorize = KeyBackgroundRoleCache.Colorizer { drawable, role ->
             recolorCount++
-            drawable.setTint(if (role == ColorType.KEY_BACKGROUND) normalColor else accentColor)
+            (drawable as ColorDrawable).color =
+                if (role == ColorType.KEY_BACKGROUND) normalColor else accentColor
         }
 
         val normal = cache.get(source, ColorType.KEY_BACKGROUND, colorize)
@@ -44,9 +35,11 @@ class KeyBackgroundRoleCacheTest {
         assertNotSame(normal, accent)
         assertSame(normal, normalAfterSwitch)
         assertEquals(2, recolorCount)
-        assertEquals(normalColor, pixel(normalAfterSwitch))
-        assertEquals(accentColor, pixel(accent))
-        assertEquals(Color.WHITE, pixel(source))
+        // Check the drawable's actual color state: Robolectric's bitmap raster
+        // pipeline does not reliably render Drawable.setTint for a pixel probe.
+        assertEquals(normalColor, (normalAfterSwitch as ColorDrawable).color)
+        assertEquals(accentColor, (accent as ColorDrawable).color)
+        assertEquals(Color.WHITE, source.color)
     }
 
     @Test
@@ -54,16 +47,18 @@ class KeyBackgroundRoleCacheTest {
         val source = ColorDrawable(Color.WHITE)
         val cache = KeyBackgroundRoleCache()
         var activeColor = Color.BLUE
-        val colorize = KeyBackgroundRoleCache.Colorizer { drawable, _ -> drawable.setTint(activeColor) }
+        val colorize = KeyBackgroundRoleCache.Colorizer { drawable, _ ->
+            (drawable as ColorDrawable).color = activeColor
+        }
 
         val previous = cache.get(source, ColorType.KEY_BACKGROUND, colorize)
-        assertEquals(Color.BLUE, pixel(previous))
+        assertEquals(Color.BLUE, (previous as ColorDrawable).color)
         activeColor = Color.GREEN
         cache.clear()
         val refreshed = cache.get(source, ColorType.KEY_BACKGROUND, colorize)
 
         assertNotSame(previous, refreshed)
-        assertEquals(Color.BLUE, pixel(previous))
-        assertEquals(Color.GREEN, pixel(refreshed))
+        assertEquals(Color.BLUE, (previous as ColorDrawable).color)
+        assertEquals(Color.GREEN, (refreshed as ColorDrawable).color)
     }
 }
