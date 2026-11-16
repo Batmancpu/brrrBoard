@@ -39,6 +39,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val targets = ArrayList<ImageButton>()
     private var dictationActive = false
     private var dictationProcessing = false
+    private var emojiPanelActive = false
     private var micPulse: ObjectAnimator? = null
     private var cancelDictationActionId: Int? = null
     private var selected = -1
@@ -71,7 +72,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     fun bind(owner: LatinIME) {
         if (this::ime.isInitialized && ime === owner) return
         ime = owner
-        emojiButton.setOnClickListener { feedback(it); send(KeyCode.EMOJI) }
+        emojiButton.setOnClickListener {
+            feedback(it)
+            send(if (emojiPanelActive) KeyCode.ALPHA else KeyCode.EMOJI)
+        }
         microphone.setOnClickListener { feedback(it); send(KeyCode.VOICE_INPUT) }
         // Input-method switching is a distinct mic hold action. Start it sooner
         // than Android's default 500 ms long-press while preserving tap-to-dictate.
@@ -151,8 +155,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
-    fun render(show: Boolean, showMicrophone: Boolean) {
+    fun render(show: Boolean, showMicrophone: Boolean, emojiMode: Boolean) {
         visibility = if (show) VISIBLE else GONE
+        emojiPanelActive = emojiMode
+        emojiButton.setImageResource(if (emojiMode) R.drawable.ic_board_abc else R.drawable.ic_board_emoji)
+        emojiButton.contentDescription = resources.getString(
+            if (emojiMode) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
+        )
         if (!show) {
             reset()
             return

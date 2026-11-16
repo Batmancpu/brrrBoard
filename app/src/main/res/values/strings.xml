@@ -476,6 +476,7 @@
     <string name="about_mangoloads">About MangoLoads</string>
     <string name="about_mangoloads_description">brrBoard is maintained by Batmancpu. See this and other projects on the MangoLoads website.</string>
     <string name="board_language_and_shortcuts">Emoji. Hold to choose Emoji, clipboard, or settings.</string>
+    <string name="board_return_to_letters">Switch to letters. Hold to choose Emoji, clipboard, or settings.</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
     <string name="board_inline_dictation">Start dictation. Hold to switch keyboards.</string>
     <string name="board_dictation_stop">Stop dictation</string>

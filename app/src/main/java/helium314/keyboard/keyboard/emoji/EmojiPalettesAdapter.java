@@ -9,7 +9,6 @@ package helium314.keyboard.keyboard.emoji;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,92 +17,67 @@ import java.util.ArrayList;
 import java.util.List;
 
 import helium314.keyboard.keyboard.Keyboard;
-import helium314.keyboard.keyboard.KeyboardTypeface;
 import helium314.keyboard.latin.R;
-import helium314.keyboard.latin.common.ColorType;
-import helium314.keyboard.latin.settings.Settings;
 
-final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapter.ViewHolder> {
-    private static final String TAG = EmojiPalettesAdapter.class.getSimpleName();
-
-    private static final int VIEW_TYPE_HEADER = 0;
-    private static final int VIEW_TYPE_PAGE = 1;
-
+/** One full-width horizontal page per emoji grid. */
+final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapter.PageViewHolder> {
     private final EmojiViewCallback mEmojiViewCallback;
     private final EmojiCategory mEmojiCategory;
-    private final List<AdapterItem> mItems = new ArrayList<>();
+    private final List<PageItem> mItems = new ArrayList<>();
 
-    abstract static class AdapterItem {
+    private static final class PageItem {
         final int categoryId;
-        AdapterItem(int categoryId) { this.categoryId = categoryId; }
-        abstract long getStableId();
-    }
-
-    static final class HeaderItem extends AdapterItem {
-        final String title;
-        HeaderItem(int categoryId, String title) {
-            super(categoryId);
-            this.title = title;
-        }
-        @Override
-        long getStableId() {
-            return (((long) categoryId) << 32) | 0xFFFFFFFFL;
-        }
-    }
-
-    static final class PageItem extends AdapterItem {
         final int pagePosition;
+
         PageItem(int categoryId, int pagePosition) {
-            super(categoryId);
+            this.categoryId = categoryId;
             this.pagePosition = pagePosition;
         }
-        @Override
+
         long getStableId() {
             return (((long) categoryId) << 32) | pagePosition;
         }
     }
 
-    public EmojiPalettesAdapter(final EmojiCategory emojiCategory, final EmojiViewCallback emojiViewCallback) {
+    EmojiPalettesAdapter(final EmojiCategory emojiCategory, final EmojiViewCallback emojiViewCallback) {
         mEmojiCategory = emojiCategory;
         mEmojiViewCallback = emojiViewCallback;
         setHasStableIds(true);
         updateItems();
     }
 
-    public void updateItems() {
+    void updateItems() {
         mItems.clear();
         for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
             final int categoryId = properties.mCategoryId;
-            mItems.add(new HeaderItem(categoryId, mEmojiCategory.getAccessibilityDescription(categoryId)));
-            final int pageCount = properties.getPageCount();
-            for (int i = 0; i < pageCount; i++) {
-                mItems.add(new PageItem(categoryId, i));
+            for (int page = 0; page < properties.getPageCount(); page++) {
+                mItems.add(new PageItem(categoryId, page));
             }
         }
         notifyDataSetChanged();
     }
 
-    public int getCategoryIdForPosition(int position) {
-        if (position >= 0 && position < mItems.size()) {
-            return mItems.get(position).categoryId;
-        }
-        return -1;
+    int getCategoryIdForPosition(int position) {
+        return position >= 0 && position < mItems.size() ? mItems.get(position).categoryId : -1;
     }
 
-    public int getHeaderPositionOfCategory(int categoryId) {
+    int getPagePositionForAdapterPosition(int position) {
+        return position >= 0 && position < mItems.size() ? mItems.get(position).pagePosition : -1;
+    }
+
+    int getAdapterPositionForCategoryPage(int categoryId, int pagePosition) {
         for (int i = 0; i < mItems.size(); i++) {
-            final AdapterItem item = mItems.get(i);
-            if (item instanceof HeaderItem && item.categoryId == categoryId) {
+            final PageItem item = mItems.get(i);
+            if (item.categoryId == categoryId && item.pagePosition == pagePosition) {
                 return i;
             }
         }
-        return -1;
+        return getFirstPagePositionOfCategory(categoryId);
     }
 
-    public int getFirstPagePositionOfCategory(int categoryId) {
+    int getFirstPagePositionOfCategory(int categoryId) {
         for (int i = 0; i < mItems.size(); i++) {
-            final AdapterItem item = mItems.get(i);
-            if (item instanceof PageItem && item.categoryId == categoryId) {
+            if (mItems.get(i).categoryId == categoryId) {
                 return i;
             }
         }
@@ -115,63 +89,35 @@ final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapt
         return mItems.get(position).getStableId();
     }
 
-    @Override
-    public int getItemViewType(int position) {
-        return mItems.get(position) instanceof HeaderItem ? VIEW_TYPE_HEADER : VIEW_TYPE_PAGE;
-    }
-
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == VIEW_TYPE_HEADER) {
-            final TextView textView = new TextView(parent.getContext());
-            final float density = parent.getContext().getResources().getDisplayMetrics().density;
-            final int paddingH = (int) (12 * density);
-            final int paddingV = (int) (8 * density);
-            textView.setPadding(paddingH, paddingV, paddingH, paddingV);
-            textView.setTextSize(14f);
-            KeyboardTypeface.applyToTextView(textView, null, android.graphics.Typeface.DEFAULT_BOLD);
-            textView.setTextColor(Settings.getValues().mColors.get(ColorType.EMOJI_KEY_TEXT));
-            textView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            return new HeaderViewHolder(textView);
-        } else {
-            final LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-            final EmojiPageKeyboardView keyboardView = (EmojiPageKeyboardView) inflater.inflate(
-                    R.layout.emoji_keyboard_page, parent, false);
-            keyboardView.setEmojiViewCallback(mEmojiViewCallback);
-            keyboardView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            return new PageViewHolder(keyboardView);
-        }
+    public PageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        final LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        final EmojiPageKeyboardView keyboardView = (EmojiPageKeyboardView) inflater.inflate(
+                R.layout.emoji_keyboard_page, parent, false);
+        keyboardView.setEmojiViewCallback(mEmojiViewCallback);
+        keyboardView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return new PageViewHolder(keyboardView);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        final AdapterItem item = mItems.get(position);
-        if (holder instanceof HeaderViewHolder) {
-            ((HeaderViewHolder) holder).textView.setText(((HeaderItem) item).title);
-        } else if (holder instanceof PageViewHolder) {
-            final PageItem pageItem = (PageItem) item;
-            final Keyboard keyboard = mEmojiCategory.getKeyboardFromAdapterPosition(pageItem.categoryId, pageItem.pagePosition);
-            ((PageViewHolder) holder).getKeyboardView().setKeyboard(keyboard);
-        }
+    public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
+        final PageItem item = mItems.get(position);
+        final Keyboard keyboard = mEmojiCategory.getKeyboardFromAdapterPosition(item.categoryId, item.pagePosition);
+        holder.keyboardView.setKeyboard(keyboard);
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull ViewHolder holder) {
-        if (holder instanceof PageViewHolder) {
-            final EmojiPageKeyboardView keyboardView = ((PageViewHolder) holder).getKeyboardView();
-            keyboardView.releaseCurrentKey(false);
-            keyboardView.deallocateMemory();
-        }
+    public void onViewDetachedFromWindow(@NonNull PageViewHolder holder) {
+        holder.keyboardView.releaseCurrentKey(false);
+        holder.keyboardView.deallocateMemory();
     }
 
     @Override
-    public void onViewRecycled(@NonNull ViewHolder holder) {
-        if (holder instanceof PageViewHolder) {
-            final EmojiPageKeyboardView keyboardView = ((PageViewHolder) holder).getKeyboardView();
-            keyboardView.releaseCurrentKey(false);
-            keyboardView.deallocateMemory();
-        }
+    public void onViewRecycled(@NonNull PageViewHolder holder) {
+        holder.keyboardView.releaseCurrentKey(false);
+        holder.keyboardView.deallocateMemory();
     }
 
     @Override
@@ -179,27 +125,12 @@ final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapt
         return mItems.size();
     }
 
-    abstract static class ViewHolder extends RecyclerView.ViewHolder {
-        public ViewHolder(View v) { super(v); }
-    }
+    static final class PageViewHolder extends RecyclerView.ViewHolder {
+        final EmojiPageKeyboardView keyboardView;
 
-    static final class HeaderViewHolder extends ViewHolder {
-        final TextView textView;
-        public HeaderViewHolder(TextView v) {
-            super(v);
-            textView = v;
-        }
-    }
-
-    static final class PageViewHolder extends ViewHolder {
-        final EmojiPageKeyboardView customView;
-        public PageViewHolder(View v) {
-            super(v);
-            customView = (EmojiPageKeyboardView) v;
-        }
-        public EmojiPageKeyboardView getKeyboardView() {
-            return customView;
+        PageViewHolder(View view) {
+            super(view);
+            keyboardView = (EmojiPageKeyboardView) view;
         }
     }
 }
-

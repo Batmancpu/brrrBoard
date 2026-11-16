@@ -39,6 +39,7 @@ import androidx.core.graphics.ColorUtils;
 
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -202,20 +203,6 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategory.initialize();
         final View tabStripView = KeyboardSwitcher.getInstance().getEmojiTabStrip();
         mTabStrip = (LinearLayout) tabStripView.findViewById(R.id.emoji_tab_strip);
-        final ImageButton backButton = tabStripView.findViewById(R.id.emoji_back_button);
-        if (backButton != null) {
-            mColors.setColor(backButton, ColorType.FUNCTIONAL_KEY_TEXT);
-            backButton.setBackground(createBackButtonBackground(mColors));
-            backButton.setPadding(0, 0, 0, 0);
-            backButton.setScaleType(ImageView.ScaleType.CENTER);
-            backButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, v, HapticEvent.KEY_PRESS);
-                    mKeyboardActionListener.onCodeInput(KeyCode.ALPHA, NOT_A_COORDINATE, NOT_A_COORDINATE, false);
-                }
-            });
-        }
         if (Settings.getValues().mSecondaryStripVisible) {
             for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
                 addTab(mTabStrip, properties.mCategoryId);
@@ -225,22 +212,26 @@ public final class EmojiPalettesView extends LinearLayout
         mPager = findViewById(R.id.emoji_pager);
         mPager.setHasFixedSize(true);
         mPager.setItemAnimator(null);
-        final LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+        final LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
         mPager.setLayoutManager(layoutManager);
         final EmojiPalettesAdapter adapter = new EmojiPalettesAdapter(mEmojiCategory, this);
         mPager.setAdapter(adapter);
+        final PagerSnapHelper snapHelper = new PagerSnapHelper();
+        snapHelper.attachToRecyclerView(mPager);
 
         mPager.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                if (recyclerView.getScrollState() == RecyclerView.SCROLL_STATE_IDLE) {
-                    return;
-                }
-                final int firstVisible = layoutManager.findFirstVisibleItemPosition();
-                if (firstVisible != RecyclerView.NO_POSITION) {
-                    final int categoryId = adapter.getCategoryIdForPosition(firstVisible);
+                final View snapped = snapHelper.findSnapView(layoutManager);
+                if (snapped != null) {
+                    final int position = layoutManager.getPosition(snapped);
+                    final int categoryId = adapter.getCategoryIdForPosition(position);
                     if (categoryId != -1 && categoryId != mEmojiCategory.getCurrentCategoryId()) {
                         setCurrentCategoryId(categoryId, true);
+                    }
+                    final int pagePosition = adapter.getPagePositionForAdapterPosition(position);
+                    if (pagePosition >= 0 && pagePosition != mEmojiCategory.getCurrentCategoryPageId()) {
+                        mEmojiCategory.setCurrentCategoryPageId(pagePosition);
                     }
                 }
             }
@@ -252,6 +243,11 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiLayoutParams.setCategoryPageIdViewProperties(mEmojiCategoryPageIndicatorView);
         mBottomRowKeyboard = findViewById(R.id.bottom_row_keyboard);
         setupInlineSearchViews();
+        final int savedPosition = adapter.getAdapterPositionForCategoryPage(
+                mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
+        if (savedPosition >= 0) {
+            layoutManager.scrollToPositionWithOffset(savedPosition, 0);
+        }
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
         initialized = true;
     }
@@ -1588,9 +1584,11 @@ public final class EmojiPalettesView extends LinearLayout
             mEmojiCategory.setCurrentCategoryId(categoryId);
 
             if (!fromScroll && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                final int headerPos = ((EmojiPalettesAdapter) mPager.getAdapter()).getHeaderPositionOfCategory(categoryId);
-                if (headerPos != -1 && mPager.getLayoutManager() instanceof LinearLayoutManager) {
-                    ((LinearLayoutManager) mPager.getLayoutManager()).scrollToPositionWithOffset(headerPos, 0);
+                final EmojiPalettesAdapter adapter = (EmojiPalettesAdapter) mPager.getAdapter();
+                final int firstPagePos = adapter.getAdapterPositionForCategoryPage(categoryId, 0);
+                if (firstPagePos != -1 && mPager.getLayoutManager() instanceof LinearLayoutManager) {
+                    mEmojiCategory.setCurrentCategoryPageId(0);
+                    ((LinearLayoutManager) mPager.getLayoutManager()).scrollToPositionWithOffset(firstPagePos, 0);
                 }
             }
 

@@ -203,10 +203,16 @@ final class EmojiCategory {
     }
 
     public int getCategoryTabIcon(final int categoryId) {
+        if (categoryId == ID_RECENTS) {
+            return R.drawable.ic_emoji_smart;
+        }
         return mCategoryTabIconId[categoryId];
     }
 
     public String getAccessibilityDescription(final int categoryId) {
+        if (categoryId == ID_RECENTS) {
+            return mRes.getString(R.string.spoken_description_smart_emoji_category);
+        }
         return mRes.getString(sAccessibilityDescriptionResourceIdsForCategories[categoryId]);
     }
 

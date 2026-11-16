@@ -105,6 +105,7 @@
     <string name="keyboard_mode_url">URL</string>
 
     <!-- Description of the emoji category icon of Recents. -->
+    <string name="spoken_description_smart_emoji_category">Smart Emoji</string>
     <string name="spoken_description_emoji_category_recents">Recents</string>
     <!-- Description of the emoji category icon of Objects. -->
     <string name="spoken_description_emoji_category_objects">Objects</string>
