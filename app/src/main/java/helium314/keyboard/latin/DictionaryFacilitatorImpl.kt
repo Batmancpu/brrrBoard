@@ -520,7 +520,17 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             suggestionResults.mRawSuggestions?.addAll(it)
         }
 
-        includeAtLeastTwoWordSuggestions(suggestionResults, suggestionsArray, composedData.mTypedWord)
+        // For a typed word, keep a text candidate in the center and let contextual Emoji use
+        // either side slot. Empty-token predictions and swipe decoding retain the two-word
+        // preference so their first visible choices remain useful text candidates.
+        val minimumTextSuggestionCount = if (!composedData.mIsBatchMode && composedData.mTypedWord.isNotEmpty()) {
+            1
+        } else {
+            2
+        }
+        includeMinimumTextSuggestions(
+            suggestionResults, suggestionsArray, composedData.mTypedWord, minimumTextSuggestionCount
+        )
 
         return suggestionResults
     }
@@ -679,26 +689,28 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             return locales
         }
 
-        /** Include at least two non-emoji, non-typed word results if possible, so that the first two shown suggestions can be non-emoji */
-        private fun includeAtLeastTwoWordSuggestions(
+        /** Keep the requested number of non-emoji, non-typed words near the front when available. */
+        private fun includeMinimumTextSuggestions(
             suggestionResults: SuggestionResults,
             suggestionsArray: Array<List<SuggestedWordInfo>?>,
-            typedWord: String
+            typedWord: String,
+            minimumTextSuggestionCount: Int
         ) {
-            if (suggestionResults.size <= 2) return
+            if (suggestionResults.size <= minimumTextSuggestionCount) return
             var nonEmojiNonTypedWordCount = 0
             suggestionResults.forEach {
                 if (isEmojiOrTypedWord(it, typedWord)) return@forEach
                 ++nonEmojiNonTypedWordCount
-                if (nonEmojiNonTypedWordCount >= 2) return
+                if (nonEmojiNonTypedWordCount >= minimumTextSuggestionCount) return
             }
+            if (nonEmojiNonTypedWordCount >= minimumTextSuggestionCount) return
             val allResults = SuggestionResults(Int.MAX_VALUE, false, false)
             suggestionsArray.forEach {
                 if (it == null) return@forEach
                 allResults.addAll(it)
             }
             var addedWord: String? = null
-            for (i in 0 until 2 - nonEmojiNonTypedWordCount) {
+            for (i in 0 until minimumTextSuggestionCount - nonEmojiNonTypedWordCount) {
                 val firstNonEmojiNonTypedWord = allResults.firstOrNull {
                     !suggestionResults.contains(it) && !isEmojiOrTypedWord(it, typedWord)
                         && addedWord?.compareTo(it.word, true) != 0

@@ -95,7 +95,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val typedWordFirstOccurrenceWordInfo = if (noSuggestionTypedWord) null else
             suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
         val firstOccurrenceOfTypedWordInSuggestions = SuggestedWordInfo.removeDupsAndTypedWord(capitalizedTypedWord, suggestionsContainer)
-        makeFirstTwoSuggestionsNonEmoji(suggestionsContainer)
+        // Keep the decoder's best text candidate in the center, but allow relevant Emoji from
+        // the following results to occupy the two side slots in the three-part strip.
+        makeFirstSuggestionNonEmoji(suggestionsContainer)
 
         val (decoderAllowsToBeAutoCorrected, decoderHasAutoCorrection) = shouldBeAutoCorrected(
             trailingSingleQuotesCount,
@@ -522,6 +524,14 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                         words.add(i, words.removeAt(firstNonEmojiIndex))
                     }
                 }
+            }
+        }
+
+        private fun makeFirstSuggestionNonEmoji(words: MutableList<SuggestedWordInfo>) {
+            if (words.isEmpty() || !words[0].isEmoji) return
+            val firstTextSuggestion = words.indexOfFirst { !it.isEmoji }
+            if (firstTextSuggestion > 0) {
+                words.add(0, words.removeAt(firstTextSuggestion))
             }
         }
 
