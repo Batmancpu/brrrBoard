@@ -1,5 +1,7 @@
 # brrBoard Known Issues & Audit Notes
 
+**Verified 2026-11-16 B04 closure:** owner reports persistent all-key tint fixed; full Android CI [43924216687](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216687) and production signer [43924216785](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216785) succeeded; signed v1.0.61 is current. Historical test failure and its correction are preserved below. The landscape Emoji clipped last row remains **OPEN (B06/B10)**; bad swipe suggestion choices remain **OPEN (B17)**. Do not retest these as if B04 solved them.
+
 **B04 owner result (2026-11-16):** The user confirms the recorded all-key warm tint bug **no longer occurs** on their Reno10 after the B04 source v1.0.60 release. Source/production signed, but the two new graphics pixel assertions failed in debug CI 43921741786 (2/186); direct drawable state test correction is pending full CI. Do not yet claim a green test gate. Landscape Emoji bottom-row clipping is **still open** (B06/B10); swipe suggestion ranking remains **open** (B17). The earlier table below represents status before owner retest.
 
 ## Latest owner-supplied Reno10 defects — 2026-11-16

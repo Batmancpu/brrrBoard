@@ -1,5 +1,9 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
+## B04 complete — owner Reno10 tint fix, full CI and signed v1.0.61 (2026-11-16)
+
+The user confirms the persistent all-key tint bug is fixed; the original B04 `be62fc5` product code was signed in v1.0.60. The two new Robolectric pixel assertions initially failed (run 43921741786, 2/186); corrected state tests at `1e197e7` passed full Android CI [43924216687](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216687). Production signer/release [43924216785](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216785) succeeded with [v1.0.61 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.61/brrBoard.apk), SHA-256 `25c50c2818e07ffea787eac45b2598f43a73f08b7eaa92045003386db320d704`. No product changes after v1.0.60; B04 complete. B01–B04/B15 complete, B00 partial, B05–B14/B16–B19 pending. Emoji landscape clipped row stays B06/B10; swipe suggestions B17. New one-batch chat may begin B05 with owner authorization, not this B04 chat.
+
 ## B04 owner acceptance and CI repair — 2026-11-16
 
 The user confirms the all-key tint regression from the video is fixed after B04 signed v1.0.60 (`be62fc5`, release run 43921741598 SUCCESS). Earlier no-freeze panel-switch and hide/reopen checks remain positive. Android test run 43921741786 compiled and verified debug signature but **failed 2 of 186**, both newly added cache tests at unreliable Robolectric tint bitmap pixel assertions. Fix the tests without removing the scenarios, then rerun full CI. A new test-only patch uses `ColorDrawable.color` state assertions instead, preserving explicit normal/accent isolation, unchanged source, reuse and theme-refresh cases. B04 stays CI-gated until green, despite owner's hardware report. Emoji landscape bottom-row clipping remains open for B06/B10; B05 voice/Clipboard safety is next after B04, in a new one-batch session with permission. Do not repeat technical user benchmarks. Historical notes follow.

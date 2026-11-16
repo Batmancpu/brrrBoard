@@ -1,5 +1,10 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-16 — B04 closed after full green retry and owner acceptance
+
+- **Outcome:** PASS. The owner confirms the all-key tint bug resolved on Reno10 after B04 signed v1.0.60. The two newly failing tint pixel tests in first debug run 43921741786 were corrected to validate drawable state; follow-up `1e197e7` full Android unit test/build/signature workflow [43924216687](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216687) **SUCCESS**. Original-signed production [v1.0.61](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.61/brrBoard.apk) workflow [43924216785](https://github.com/Batmancpu/brrrBoard/actions/runs/43924216785) **SUCCESS**, SHA-256 `25c50c2818e07ffea787eac45b2598f43a73f08b7eaa92045003386db320d704`.
+- **Scope boundary:** v1.0.61 test/docs only relative to v1.0.60; no Emoji grid or swipe ranking changes. Landscape Emoji clipping remains B06/B10; swipe suggestion errors B17. No subsequent batch implemented. B05 next after one-batch session boundary.
+
 ## 2026-11-16 — B04 regression-test rasterization correction
 
 - **Product result:** source `be62fc5`, original-signed production v1.0.60 (run 43921741598 SUCCESS); owner says the persistent all-key tint has been fixed on Oppo Reno10. Treat this as owner-reported acceptance, not developer-controlled device testing.
