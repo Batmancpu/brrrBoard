@@ -1,4 +1,5 @@
 # Publish the signed APK from main with a monotonically increasing version.
+# Release checkpoint: B01-B03 test fixes and B04 panel transition guards; Reno10 acceptance pending.
 name: brrBoard Obtainium Release
 on:
   push:
