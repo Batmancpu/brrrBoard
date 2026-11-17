@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-17 — VERIFIED B13 REFINEMENT AND B07V ENTRY
+
+B13 `ad65d1e1c6dd758f40872dc950835ad5bd6ee9f3` debug full [44032336719](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336719) SUCCESS, original production full [44032336762](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336762) SUCCESS, signed v1.0.73 digest `1a3aadb3f32b97c84aed307f0f8eaac61dee586f9c41ea96dcb199c25b319c57`, code73, package same. Source implementation is targeted reorder only; do not claim full contextual candidate injection or Oppo natural relevance. Next B07V implementation: audit live icon refs in `KeyboardIconsSet.kt`, `Defaults.kt` custom mapping, Settings drawables, Emoji category style attrs and toolbar; create original rounded vectors without proprietary SF symbols, record source/license and geometry; test all paths, sign release. No B16–B19.
+
 ## 2026-11-17 — B13 REFINEMENT SOURCE CANDIDATE, CI PENDING
 
 B13 relies on B11 scorer and B12 approved private editor gate. `EmojiContextScorer.rankEmojiSideCandidates` exposes only reviewed score>=520; `SuggestionStripView.kt` checks `EmojiContextEligibility` from active `LatinIME` and adds context ranking ahead of existing recency *only when decoder already provides >1 Emoji*. `SuggestionStripLayoutHelper.java` now refuses to displace any typed/predicted text side slot, preserving candidate-to-commit mapping and centered text. No Binder context read while typing, no new Emoji appended, no private field Emoji-side reorder. `EmojiContextScorerTest` adds positive and negative strip threshold cases. Source/GitHub tests/signing pending. Next guarded B13 main commit with full CI monitoring, verify APK/cert/digest, then B07V. Mark complete only as source+automated if passes; relevance needs Oppo natural sample.

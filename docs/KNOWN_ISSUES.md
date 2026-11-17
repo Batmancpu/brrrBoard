@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B13 safe CI verified, broader Emoji suggestions conditional
+
+B13 `ad65d1e` passed debug `44032336719`, original signer/full unit `44032336762`, [v1.0.73 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.73/brrBoard.apk) digest `1a3aadb3f32b97c84aed307f0f8eaac61dee586f9c41ea96dcb199c25b319c57`. It does **not** add new Emoji candidates into text strip; only reorders qualified existing Emoji, preserving text candidate slots. Full contextual insertion is intentionally deferred by confidence/typing requirements; owner needs one final consolidated Oppo test. Remaining B07V globally mixed icons (Material 960-filled Settings; default Holo key map, inconsistent Emoji nav variants), pending visual and source work. Preserve prior issues below.
+
 ## 2026-11-17 — B13 conditional contextual strip risks under source test
 
 Existing ordinary suggestion-strip candidate pool contains some dictionary Emoji; B13 only uses reviewed scorer to rank among those, never injects Emoji or moves existing text slots. The accepted-condition downside: if decoder emits no Emoji candidate, B13 does not create one; full contextual strip expansion intentionally deferred to avoid text prediction regressions until owner can validate actual relevance and narrow layouts. Source full CI and Oppo tests pending. If any provider chips, autocorrection or mapping regress, revert forward in small fix. No private context persistence.

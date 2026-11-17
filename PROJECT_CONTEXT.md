@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 — B13 v1.0.73 verified; begin B07V
+
+B13 source `ad65d1e1c6dd758f40872dc950835ad5bd6ee9f3` passed full debug [44032336719](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336719) and production original-signer [44032336762](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336762); [v1.0.73 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.73/brrBoard.apk), code73, source exact, hash `1a3aadb3f32b97c84aed307f0f8eaac61dee586f9c41ea96dcb199c25b319c57`. B13 only safely reranks existing Emoji; full side suggestion injection deferred by text quality gate. Next B07V replace inconsistent Material/Holo Settings and key icon families with cohesive 24-grid rounded original strokes, maintain custom overrides and existing icon sizes; official Tabler MIT, Phosphor MIT and Lucide ISC licenses examined. B14V/B10–B13 physical acceptance pending.
+
 ## 2026-11-17 — B13 safe suggestion-strip source candidate
 
 From B12/docs `64b47246c`, eligible contextual scorer prioritizes **existing** dictionary Emoji only if typed term has reviewed confidence >=520; original recency fallback remains. `SuggestionStripLayoutHelper` cannot swap an Emoji into a slot already containing ordinary text, preserving word candidates/center. Private fields and incognito refused; no keystroke IPC or new candidate synthesis. New tests cover birthday/congrats positive, pizza weak, sensitive/URL/negative. Source awaiting debug/full Android unit and original-sign release gate; no device acceptance claim. Next B13 gated release then B07V original rights-cleared Apple-inspired icon set.
