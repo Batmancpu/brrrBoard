@@ -15,6 +15,7 @@ import android.os.Build
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewTreeObserver
+import kotlin.math.ceil
 import androidx.core.graphics.ColorUtils
 
 /**
@@ -43,6 +44,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private var node: RenderNode? = null
     private var blurWidth = 0
     private var blurHeight = 0
+    private var blurBleed = -1
     private var headerMaskShader: LinearGradient? = null
     private var registeredObserver: ViewTreeObserver? = null
     private val scrollObserver = ViewTreeObserver.OnScrollChangedListener { postInvalidateOnAnimation() }
@@ -64,6 +66,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
             node = null
             blurWidth = 0
             blurHeight = 0
+            blurBleed = -1
             observe()
         }
         this.edge = edge
@@ -143,24 +146,34 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private fun drawBlurredSource(canvas: Canvas, content: View) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val renderNode = node ?: RenderNode("brrBoard internal panel glass").also { node = it }
-        if (blurWidth != width || blurHeight != height) {
+        val blur = 18f * resources.displayMetrics.density
+        // Bottom action glass and the separate ABC/mic glass each record the
+        // same live source. If each GPU effect ends exactly at its own edge,
+        // DECAL samples transparent pixels there, creating a visible seam.
+        // Add *source pixels* above/below each window, then crop only the
+        // final composited result. The host backdrop, tint and sharp keys are
+        // unchanged. Top fading remains deliberately clipped to its header.
+        val bleed = if (edge == Edge.BOTTOM) ceil(blur * 1.5f).toInt() else 0
+        val recordedHeight = height + bleed * 2
+        if (blurWidth != width || blurHeight != height || blurBleed != bleed) {
             blurWidth = width
             blurHeight = height
-            renderNode.setPosition(0, 0, width, height)
-            val blur = 18f * resources.displayMetrics.density
+            blurBleed = bleed
+            renderNode.setPosition(0, 0, width, recordedHeight)
             renderNode.setRenderEffect(RenderEffect.createBlurEffect(
                 blur, blur, Shader.TileMode.DECAL))
         }
         content.getLocationInWindow(sourcePosition)
         getLocationInWindow(overlayPosition)
-        // RecordingCanvas records draw commands directly in graphics memory;
-        // it never allocates a CPU bitmap or stores Clipboard content.
-        val recording = renderNode.beginRecording(width, height)
+        // RecordingCanvas captures GPU drawing commands only; no bitmap or
+        // clipboard screenshot is stored. Both bottom strips now use the same
+        // continuous source sampling neighborhood around their shared edge.
+        val recording = renderNode.beginRecording(width, recordedHeight)
         try {
             val save = recording.save()
             try {
                 recording.translate((sourcePosition[0] - overlayPosition[0]).toFloat(),
-                    (sourcePosition[1] - overlayPosition[1]).toFloat())
+                    (sourcePosition[1] - overlayPosition[1] + bleed).toFloat())
                 content.draw(recording)
             } finally {
                 recording.restoreToCount(save)
@@ -168,6 +181,13 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         } finally {
             renderNode.endRecording()
         }
-        canvas.drawRenderNode(renderNode)
+        val saved = canvas.save()
+        try {
+            canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+            canvas.translate(0f, -bleed.toFloat())
+            canvas.drawRenderNode(renderNode)
+        } finally {
+            canvas.restoreToCount(saved)
+        }
     }
 }

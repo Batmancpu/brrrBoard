@@ -19,6 +19,26 @@ object SharedPanelGeometry {
         .coerceAtLeast(normalPanelPx.coerceAtLeast(0).toLong())
         .coerceAtMost(availableBodyPx.coerceAtLeast(0).toLong()).toInt()
 
+    /**
+     * An Emoji panel in the bottom-aligned keyboard wrapper must occupy the
+     * same established viewport as the alphabetic keyboard. Otherwise the
+     * missing pixels appear as a detached empty band *above* the emoji grid.
+     * Only a small, known accessory-sized delta is safe to reconcile: a
+     * smaller landscape/window viewport must not be stretched.
+     */
+    @JvmStatic
+    fun retainExistingPanelViewport(
+        nominalPx: Int,
+        establishedPx: Int,
+        availablePx: Int,
+        maxGrowthPx: Int,
+    ): Int {
+        val nominal = nominalPx.coerceAtLeast(0).coerceAtMost(availablePx.coerceAtLeast(0))
+        val established = establishedPx.coerceAtLeast(0)
+        return if (established > nominal && established <= availablePx &&
+            established - nominal <= maxGrowthPx.coerceAtLeast(0)) established else nominal
+    }
+
     @JvmStatic
     fun panelBodyHeight(
         typingKeyBodyPx: Int,

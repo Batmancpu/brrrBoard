@@ -189,6 +189,21 @@ public final class EmojiPalettesView extends LinearLayout
         int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
+        if (!mSearchMode) {
+            // The wrapper preserves the taller alphabetic keyboard's measured
+            // viewport. A shorter, bottom-gravity Emoji child leaves an empty
+            // strip between the fixed category tabs and the first Emoji row.
+            // Match that established size, without moving the glass/footer or
+            // changing a genuinely shorter window (landscape/floating IME).
+            final View wrapper = getRootView().findViewById(R.id.keyboard_view_wrapper);
+            if (wrapper != null) {
+                final int maxGrowth = 2 * accessoryHeight
+                        + res.getDimensionPixelSize(R.dimen.config_board_footer_height);
+                finalHeight = helium314.keyboard.latin.SharedPanelGeometry
+                        .retainExistingPanelViewport(finalHeight, wrapper.getHeight(),
+                                availableHeight, maxGrowth);
+            }
+        }
         if (mSearchMode) {
             // Search is a complete typing keyboard plus one result row and a
             // search field. The fixed-height grid mode cannot accommodate it.

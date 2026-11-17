@@ -18,6 +18,14 @@ class SharedPanelGeometryTest {
         assertEquals(0, SharedPanelGeometry.panelBodyHeight(-3, 0, 0, false, 0))
     }
 
+    @Test fun emojiBrowseKeepsExistingViewportOnlyWithinSafeAccessoryDelta() {
+        assertEquals(400, SharedPanelGeometry.retainExistingPanelViewport(336, 400, 500, 100))
+        assertEquals(336, SharedPanelGeometry.retainExistingPanelViewport(336, 500, 500, 100))
+        assertEquals(336, SharedPanelGeometry.retainExistingPanelViewport(336, 400, 350, 100))
+        assertEquals(336, SharedPanelGeometry.retainExistingPanelViewport(336, 320, 500, 100))
+        assertEquals(0, SharedPanelGeometry.retainExistingPanelViewport(-1, 100, 0, 100))
+    }
+
     @Test fun searchAddsFieldAndExactlyOneResultRowWithoutTruncatingTypingBody() {
         assertEquals(356, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 1000))
         assertEquals(300, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 300))
