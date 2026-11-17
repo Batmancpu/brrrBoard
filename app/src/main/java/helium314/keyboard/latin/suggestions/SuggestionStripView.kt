@@ -185,6 +185,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             word.setOnClickListener(this)
             word.setOnLongClickListener(this)
             KeyboardTypeface.applyToTextView(word)
+            // Android's default font leading moves glyphs below the pill's optical center.
+            word.includeFontPadding = false
+            word.gravity = android.view.Gravity.CENTER
             colors.setBackground(word, ColorType.STRIP_BACKGROUND)
             wordViews.add(word)
             val divider = inflater.inflate(R.layout.suggestion_divider, null) as ImageView
@@ -194,7 +197,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 shape = GradientDrawable.RECTANGLE
                 setColor(if (KeyboardTheme.isDarkThemeActive(context))
                     0x6AFFFFFF else 0x56000000)
-                setSize(1.dpToPx(resources), 22.dpToPx(resources))
+                // 20dp vs 22dp: 9.1% shorter, still centered in the strip.
+                setSize(1.dpToPx(resources), 20.dpToPx(resources))
             }
             divider.setImageDrawable(separator)
             dividerViews.add(divider)

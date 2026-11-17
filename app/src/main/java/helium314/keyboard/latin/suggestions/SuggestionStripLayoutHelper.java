@@ -32,6 +32,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.graphics.ColorUtils;
 
 import helium314.keyboard.accessibility.AccessibilityUtils;
 import helium314.keyboard.keyboard.KeyboardTypeface;
@@ -422,6 +423,9 @@ final class SuggestionStripLayoutHelper {
         final int startIndexOfMoreSuggestions = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
                 suggestedWords, mSuggestionsCountInStrip);
         final TextView centerWordView = mWordViews.get(mCenterPositionInStrip);
+        // Confidence is a decoder decision, never a visual heuristic.
+        final boolean centerConfidence = isCenterConfidenceActive(
+                suggestedWords.mWillAutoCorrect, (Integer) centerWordView.getTag());
         final int stripWidth = stripView.getWidth();
         final int centerWidth = getSuggestionWidth(mCenterPositionInStrip, stripWidth);
         if (wordCountToShow == 1 || getTextScaleX(centerWordView.getText(), centerWidth,
@@ -447,7 +451,9 @@ final class SuggestionStripLayoutHelper {
         for (int positionInStrip = 0; positionInStrip < countInStrip; positionInStrip++) {
             if (positionInStrip != 0) {
                 final View divider = mDividerViews.get(positionInStrip);
-                // Add divider if this isn't the left most suggestion in suggestions strip.
+                // Retain its measured width so the three slots do not shift when
+                // the high-confidence center pill takes over the visual hierarchy.
+                divider.setVisibility(centerConfidence ? View.INVISIBLE : View.VISIBLE);
                 addDivider(stripView, divider);
                 x += divider.getMeasuredWidth();
             }
@@ -512,14 +518,17 @@ final class SuggestionStripLayoutHelper {
         final TextView wordView = mWordViews.get(positionInStrip);
         resetWordViewForStrip(wordView);
         final Integer suggestionIndex = (Integer)wordView.getTag();
-        if (willAutoCorrect && positionInStrip == mCenterPositionInStrip
-                && suggestionIndex != null
-                && suggestionIndex == SuggestedWords.INDEX_OF_AUTO_CORRECTION) {
-            // Give the high-confidence center correction its own subtle, rounded surface, as in
-            // the supplied iPhone keyboard reference. Side suggestions keep the strip background.
-            wordView.setBackground(new InsetDrawable(createChipBackground(),
-                    mChipHorizontalMargin, mChipVerticalMargin,
-                    mChipHorizontalMargin, mChipVerticalMargin));
+        final boolean isConfidencePill = positionInStrip == mCenterPositionInStrip
+                && isCenterConfidenceActive(willAutoCorrect, suggestionIndex);
+        final int pillInset;
+        if (isConfidencePill) {
+            // A single source of truth: the existing decoder-approved correction only.
+            // Preserve the entire tap target, shrinking the visual pill inside the slot.
+            pillInset = getConfidencePillHorizontalInset(width);
+            wordView.setBackground(new InsetDrawable(createConfidencePillBackground(),
+                    pillInset, mChipVerticalMargin, pillInset, mChipVerticalMargin));
+        } else {
+            pillInset = 0;
         }
         final CharSequence word = wordView.getText();
         // Dots below the center word displaced its optical baseline. The full
@@ -534,7 +543,7 @@ final class SuggestionStripLayoutHelper {
                     ? context.getResources().getString(R.string.spoken_empty_suggestion)
                     : word.toString());
         final CharSequence text = getEllipsizedTextWithSettingScaleX(
-                word, width, wordView.getPaint());
+                word, Math.max(1, width - 2 * pillInset), wordView.getPaint());
         final float scaleX = wordView.getTextScaleX();
         wordView.setText(text); // TextView.setText() resets text scale x to 1.0.
         wordView.setTextScaleX(scaleX);
@@ -654,6 +663,45 @@ final class SuggestionStripLayoutHelper {
         return stripWidth > 0 ? stripWidth : context.getResources().getDisplayMetrics().widthPixels;
     }
 
+    static boolean isCenterConfidenceActive(final boolean willAutoCorrect,
+            @Nullable final Integer centerSuggestionIndex) {
+        return willAutoCorrect && centerSuggestionIndex != null
+                && centerSuggestionIndex == SuggestedWords.INDEX_OF_AUTO_CORRECTION;
+    }
+
+    // Text-driven, neutral mauve contrast tones: the pill is neither a keyboard-wide
+    // theme tint nor a new confidence/ranking decision.
+    static int confidencePillColor(final int textColor) {
+        final int opaqueText = ColorUtils.setAlphaComponent(textColor, 255);
+        final boolean lightText = ColorUtils.calculateLuminance(opaqueText) >= 0.18;
+        final int mauve = lightText ? Color.rgb(125, 97, 123) : Color.rgb(216, 195, 212);
+        // Custom suggestion text shades may be medium gray, not pure black/white.
+        // In that case prefer legibility over decorative tint.
+        if (ColorUtils.calculateContrast(opaqueText, mauve) < 4.5) {
+            return lightText ? Color.rgb(33, 26, 33) : Color.rgb(252, 249, 252);
+        }
+        return mauve;
+    }
+
+    private int getConfidencePillHorizontalInset(final int width) {
+        final float density = mWordViews.get(0).getResources().getDisplayMetrics().density;
+        final int maxInset = Math.round(16 * density);
+        // The visual pill is narrower than its touch target, especially for a
+        // long single suggestion. Keep a minimum visible area in compact layouts.
+        final int proportionalInset = Math.min(maxInset, width / 10);
+        final int maxPillWidth = mSuggestionsStripHeight * 4;
+        return Math.max(mChipHorizontalMargin, Math.max(proportionalInset,
+                (width - maxPillWidth) / 2));
+    }
+
+    private Drawable createConfidencePillBackground() {
+        final GradientDrawable background = new GradientDrawable();
+        background.setShape(GradientDrawable.RECTANGLE);
+        background.setColor(confidencePillColor(mColorAutoCorrect));
+        background.setCornerRadius(mSuggestionsStripHeight / 2.0f);
+        return background;
+    }
+
     private Drawable createChipBackground() {
         final Colors colors = Settings.getValues().mColors;
         final GradientDrawable background = new GradientDrawable();
@@ -668,6 +716,8 @@ final class SuggestionStripLayoutHelper {
         wordView.setPadding(mWordViewPaddingLeft, mWordViewPaddingTop,
                 mWordViewPaddingRight, mWordViewPaddingBottom);
         wordView.setGravity(Gravity.CENTER);
+        wordView.setIncludeFontPadding(false);
+        wordView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
         wordView.setElevation(0f);
         wordView.setBackgroundColor(Color.TRANSPARENT);
         Settings.getValues().mColors.setBackground(wordView, ColorType.STRIP_BACKGROUND);
@@ -722,8 +772,10 @@ final class SuggestionStripLayoutHelper {
         final int countInStrip = Math.min(punctuationSuggestions.size(), PUNCTUATIONS_IN_STRIP);
         for (int positionInStrip = 0; positionInStrip < countInStrip; positionInStrip++) {
             if (positionInStrip != 0) {
-                // Add divider if this isn't the left most suggestion in suggestions strip.
-                addDivider(stripView, mDividerViews.get(positionInStrip));
+                // Punctuation rows never inherit the hidden confidence dividers.
+                final View divider = mDividerViews.get(positionInStrip);
+                divider.setVisibility(View.VISIBLE);
+                addDivider(stripView, divider);
             }
 
             final TextView wordView = mWordViews.get(positionInStrip);
