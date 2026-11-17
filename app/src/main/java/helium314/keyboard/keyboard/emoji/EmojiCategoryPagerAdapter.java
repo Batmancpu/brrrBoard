@@ -80,9 +80,10 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         final int categoryId = categoryAt(position);
         holder.categoryId = categoryId;
         final float density = holder.rows.getResources().getDisplayMetrics().density;
-        // The first row starts BELOW the tappable Search Emoji field. Subsequent
-        // rows continue scrolling behind the fixed top and bottom glass.
-        final int topPadding = (int) (60 * density);
+        // Categories now sit in the fixed strip ABOVE this viewport. Keep only
+        // the original 8dp breathing room; the old 60dp reservation for an
+        // overlaid Search Emoji pill caused a huge blank band before row one.
+        final int topPadding = (int) (8 * density);
         final int bottomPadding = (int) (50 * density)
                 + holder.rows.getResources().getDimensionPixelSize(
                         helium314.keyboard.latin.R.dimen.config_board_footer_height)

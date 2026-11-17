@@ -214,3 +214,7 @@ VERIFICATION: GitHub debug build and Android unit tests, original-signed Obtaini
 RELEASE NOTE: intermediate original-signed run #91 on 7cb0010 failed unrelated online XLinkTest.otherLinks (assert HTTP 200 at XLinkTest.kt:79; 245 tests/1 fail), despite correct compile. Newer signed run #92 and debug run #182 on cf1ad80 passed; v1.0.92 published. Avoid altering unrelated website links during this focused Emoji fix unless a recurring release gate failure proves it necessary.
 
 FUTURE MOTION REFLECTION SCOPE CLARIFICATION: User explicitly restricts gyroscope-controlled glow/prismatic effects to the NARROW TOP HIGHLIGHT WINDOW and its rounded tips. NEVER overlay moving light on keyboard keys, footer, emoji or whole keyboard. Make optional and battery-efficient after Emoji/Clipboard/Toolbar stability. Preserve all earlier history.
+
+### 2026-11-17 Emoji browse spacing follow-up
+
+During post-commit layout audit, EmojiCategoryPagerAdapter.onBindViewHolder still reserved 60dp of empty top padding for the now-removed experimental Search Emoji pill (introduced in 1d5d212). Restore the 8dp top grid padding from pre-change 7830f85, retaining the bottom space needed to scroll the final row above native Search/Space/Delete and ABC/mic. This specifically eliminates the large blank band between the restored top categories and first emoji row. Treat the subsequent signed release as the visual-test candidate; never test an earlier intermediate layout release as final. No changes to search indexing or user data.
