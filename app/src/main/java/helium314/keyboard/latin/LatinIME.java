@@ -1947,6 +1947,13 @@ public class LatinIME extends InputMethodService implements
     public void onEvent(@NonNull final Event event) {
         if (event.getKeyCode() == KeyCode.ALPHA) {
             final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
+            // A normal keyboard switch deliberately preserves an active inline
+            // Emoji Search panel. Explicit ABC must first leave Search and
+            // reparent the typing view, then dismiss the Emoji panel.
+            final EmojiPalettesView emojiPanel = switcher.getEmojiPalettesView();
+            if (emojiPanel != null && emojiPanel.isSearchMode()) {
+                emojiPanel.exitSearchMode(false, false);
+            }
             if (switcher.isShowingEmojiPalettes() || switcher.isShowingKlipyPalettes()
                     || switcher.isShowingClipboardHistory() || switcher.isShowingAiWritingTools()) {
                 switcher.setAlphabetKeyboard();

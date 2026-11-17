@@ -109,8 +109,6 @@
         android:id="@+id/board_footer"
         android:layout_width="match_parent"
         android:layout_height="@dimen/config_board_footer_height"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
         android:visibility="gone">
 
         <TextView
@@ -130,7 +128,8 @@
             android:id="@+id/board_footer_globe"
             android:layout_width="48dp"
             android:layout_height="match_parent"
-            android:layout_gravity="left|center_vertical"
+            android:layout_gravity="start|center_vertical"
+            android:layout_marginStart="12dp"
             android:paddingBottom="@dimen/config_board_footer_icon_optical_bottom_padding"
             android:scaleType="center"
             android:src="@drawable/ic_board_emoji"
@@ -141,7 +140,8 @@
             android:id="@+id/board_footer_mic"
             android:layout_width="48dp"
             android:layout_height="match_parent"
-            android:layout_gravity="right|center_vertical"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
             android:paddingBottom="@dimen/config_board_footer_icon_optical_bottom_padding"
             android:scaleType="center"
             android:src="@drawable/ic_board_mic"

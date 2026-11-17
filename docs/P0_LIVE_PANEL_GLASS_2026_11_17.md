@@ -1,5 +1,10 @@
 # P0 — live internal glass, category paging and Emoji Search (2026-11-17)
 
+## P0.1 update — owner rejected v1.0.82 on device (source correction pending)
+
+At 2026-11-17 after P0 v1.0.82 release from `2b0eb46d`, the owner uploaded `VID_20261117_150409.mp4` (55.61 s, 382×854, 30fps) and a phone photograph. Sampled frames at 8 s and 28–32 s show opaque/detached header and footer layers, black gutters, Emoji content packed below a largely empty region, gray blur streak and Tile/Toolbar/Clipboard mismatch. Owner separately reports Search yielding no Emoji and ABC failing to close Search, without a full search typing/ABC sequence in sampled frames. Source inspection rather than a phone logcat located four deterministic causes: the always-opaque `PanelGlassOverlayView` paint immediately ahead of blurred RenderNode; padded footer parent preventing full-width glass; optional locale dictionary as sole Search data source; `ALPHA` handling that leaves `emojiSearchActive` true during ordinary alphabet switch. Proposed P0.1 changes re-establish two distinct layers: existing `FrostedGlassHelper` native whole-window app backdrop (subject to ColorOS support) and translucent internal live scroller-sampling only under fixed controls. The top overlay fades to zero, bottom is constant strength; the 12dp margin is applied to icons rather than backdrop. Search uses existing CLDR48 English metadata when binary dict absent and remains local/offline; explicit ABC Search exit restores main typing view. A small Java JUnit index search test verifies names, keywords, limits, unmatched queries. Source/CI and physical acceptance are distinct; P0.1 is not evidence of true Apple Liquid Glass or hardware runtime acceptance. No screenshot or raw user content is checked into Git.
+
+
 ## Scope, references and precedence
 
 Owner's 17 November assignment supersedes the older B10V *release-time* category switch and the B14V/P0 simulated `PanelMaterial` gradient. The source of truth remains current main; this is a corrective batch, not a B17 glide rewrite.

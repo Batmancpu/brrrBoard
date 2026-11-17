@@ -103,16 +103,20 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (width <= 0 || height <= 0) return
 
-        // An opaque theme-colored local underpaint removes the sharp copy of
-        // list pixels drawn behind this view. The RenderNode below supplies the
-        // true soft moving pixels, rather than reusing a tinted gradient.
-        fill.color = baseColor
-        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fill)
+        // This is the SECOND material layer, above the single native IME-window
+        // backdrop. Never paint an opaque rectangle here: doing so creates the
+        // detached grey slabs and erases the app's native frosted backdrop.
+        // The top fades to the sharp viewport. The lower controls use one
+        // constant-strength tint with live scroll pixels beneath it.
         val content = source
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && canvas.isHardwareAccelerated
-            && content != null && content.isAttachedToWindow && content.width > 0 && content.height > 0) {
-            drawBlurredSource(canvas, content)
+        val live = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            canvas.isHardwareAccelerated && content != null &&
+            content.isAttachedToWindow && content.width > 0 && content.height > 0
+        if (edge == Edge.BOTTOM) {
+            fill.color = ColorUtils.setAlphaComponent(baseColor, if (live) 112 else 188)
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fill)
         }
+        if (live) drawBlurredSource(canvas, content!!)
         if (edge == Edge.TOP) {
             veil.shader = headerShader ?: LinearGradient(0f, 0f, 0f, height.toFloat(),
                 PanelMaterial.headerStops(baseColor), null, Shader.TileMode.CLAMP)

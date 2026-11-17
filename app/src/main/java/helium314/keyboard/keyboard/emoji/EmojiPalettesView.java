@@ -795,21 +795,49 @@ public final class EmojiPalettesView extends LinearLayout
         searchEmoji(mSearchQuery);
     }
 
+    private static EmojiContextIndex sSearchAnnotations;
+    private static boolean sSearchAnnotationsAttempted;
+
+    private static synchronized EmojiContextIndex getSearchAnnotations(final Context context) {
+        if (!sSearchAnnotationsAttempted) {
+            sSearchAnnotationsAttempted = true;
+            try (final java.io.InputStream stream =
+                    context.getAssets().open(EmojiContextIndex.ASSET_NAME)) {
+                sSearchAnnotations = EmojiContextIndex.read(stream);
+            } catch (final java.io.IOException error) {
+                Log.e("EmojiPalettesView", "Bundled CLDR Emoji search index unavailable", error);
+            }
+        }
+        return sSearchAnnotations;
+    }
+
     private void searchEmoji(final String text) {
         if (mSearchResultsKeyboard == null || mSearchResultsView == null) {
             return;
         }
-        initSearchDictionaryFacilitator();
-        final ArrayList<String> emojis = new ArrayList<>();
-        final SingleDictionaryFacilitator facilitator = sSearchDictionaryFacilitator;
-        if (facilitator != null) {
-            final List<String> tokens = StringUtilsKt.splitOnWhitespace(text == null ? "" : text);
-            for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
-                if (suggestion.isEmoji()) {
-                    emojis.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
+        // Search must work offline even if the optional per-locale binary Emoji
+        // dictionary is absent. CLDR metadata is bundled in every APK.
+        final java.util.LinkedHashSet<String> matches = new java.util.LinkedHashSet<>();
+        if (text != null && !text.isBlank()) {
+            final EmojiContextIndex annotations = getSearchAnnotations(getContext());
+            if (annotations != null) {
+                for (final String candidate : annotations.search(text, 96)) {
+                    matches.add(EmojiParserKt.getEmojiDefaultVersion(candidate));
+                }
+            }
+            initSearchDictionaryFacilitator();
+            final SingleDictionaryFacilitator facilitator = sSearchDictionaryFacilitator;
+            if (facilitator != null) {
+                final List<String> tokens = StringUtilsKt.splitOnWhitespace(text);
+                for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
+                    if (suggestion.isEmoji()) {
+                        matches.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
+                        if (matches.size() >= 96) break;
+                    }
                 }
             }
         }
+        final ArrayList<String> emojis = new ArrayList<>(matches);
 
         final int keyboardWidth = getSearchResultsKeyboardWidth(emojis.size());
         if (keyboardWidth != mSearchResultsKeyboardWidth) {
