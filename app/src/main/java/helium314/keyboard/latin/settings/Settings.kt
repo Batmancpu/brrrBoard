@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings.Global
 import kotlinx.serialization.json.Json
+import helium314.keyboard.latin.utils.prefs
 
 fun customIconNames(prefs: SharedPreferences) = runCatching {
     Json.decodeFromString<Map<String, String>>(prefs.getString(Settings.PREF_CUSTOM_ICON_NAMES, Defaults.PREF_CUSTOM_ICON_NAMES)!!)
@@ -13,9 +14,9 @@ fun customIconNames(prefs: SharedPreferences) = runCatching {
 
 @SuppressLint("DiscouragedApi")
 fun customIconIds(context: Context): Map<String, Int> {
-    val names = runCatching {
-        Json.decodeFromString<Map<String, String>>(Defaults.PREF_CUSTOM_ICON_NAMES)
-    }.getOrElse { emptyMap() }
+    // Respect the user's persisted custom choices instead of mistakenly
+    // reapplying baked-in legacy Material glyphs on every reload.
+    val names = customIconNames(prefs(context))
     return names.mapNotNull { entry ->
         val id = runCatching { context.resources.getIdentifier(entry.value, "drawable", context.packageName) }.getOrNull()
         id?.let { entry.key to it }

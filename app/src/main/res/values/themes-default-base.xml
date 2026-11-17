@@ -67,7 +67,7 @@
         <item name="iconEmojiRecentsTab">@drawable/ic_emoji_recents_rounded</item>
         <item name="iconEmojiCategory1Tab">@drawable/ic_emoji_smileys_emotion_rounded</item>
         <item name="iconEmojiCategory2Tab">@drawable/ic_emoji_people_body_rounded</item>
-        <item name="iconEmojiCategory3Tab">@drawable/ic_emoji_animals_nature_lxx</item>
+        <item name="iconEmojiCategory3Tab">@drawable/ic_emoji_animals_nature_rounded</item>
         <item name="iconEmojiCategory4Tab">@drawable/ic_emoji_food_drink_rounded</item>
         <item name="iconEmojiCategory5Tab">@drawable/ic_emoji_travel_places_rounded</item>
         <item name="iconEmojiCategory6Tab">@drawable/ic_emoji_activities_rounded</item>

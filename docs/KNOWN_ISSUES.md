@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B07V source icon normalization awaits device QA
+
+B07V default key style rounded rather than inherited Holo, 11 Emoji tab mappings across four style bases normalized, 13 Settings + 4 clipboard/toolbar Material-fill vectors redrawn original, saved custom preferences now honored. Need Android resource/Gradle unit and original signer gates and real Oppo screenshots in both themes. Remaining exceptions: explicit user custom icons, historical unused 200+ legacy vector alternatives, proprietary branded service marks. Do not claim all old assets replaced or SF Symbol pixel equivalence. Detailed inventory/legal notes in `docs/ICON_SURFACE_AUDIT.md`. Verify no changed hit areas, captions, tint role leakage, TalkBack, text input, and translucent footer.
+
 ## 2026-11-17 — B13 safe CI verified, broader Emoji suggestions conditional
 
 B13 `ad65d1e` passed debug `44032336719`, original signer/full unit `44032336762`, [v1.0.73 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.73/brrBoard.apk) digest `1a3aadb3f32b97c84aed307f0f8eaac61dee586f9c41ea96dcb199c25b319c57`. It does **not** add new Emoji candidates into text strip; only reorders qualified existing Emoji, preserving text candidate slots. Full contextual insertion is intentionally deferred by confidence/typing requirements; owner needs one final consolidated Oppo test. Remaining B07V globally mixed icons (Material 960-filled Settings; default Holo key map, inconsistent Emoji nav variants), pending visual and source work. Preserve prior issues below.

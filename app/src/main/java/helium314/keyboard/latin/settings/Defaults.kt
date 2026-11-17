@@ -38,14 +38,17 @@ object Defaults {
 
     private const val DEFAULT_SIZE_SCALE = 1.0f // 100%
     const val PREF_THEME_STYLE = KeyboardTheme.STYLE_MATERIAL
-    const val PREF_ICON_STYLE = KeyboardTheme.STYLE_HOLO
+    // B07V: original rounded 24-grid glyphs across all three frosted themes.
+    const val PREF_ICON_STYLE = KeyboardTheme.STYLE_ROUNDED
     const val PREF_THEME_COLORS = KeyboardTheme.THEME_FROSTED_GLASS
     const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_FROSTED_GLASS
     const val PREF_THEME_ACTION_TINT = false
     const val PREF_THEME_KEY_BORDERS = true
     @JvmField
     val PREF_THEME_DAY_NIGHT = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-    const val PREF_CUSTOM_ICON_NAMES = "{\"shift_key_locked\":\"sym_keyboard_shift_caps\",\"done_key\":\"sym_keyboard_done_lxx\",\"go_key\":\"sym_keyboard_go_lxx\",\"one_handed\":\"sym_keyboard_start_onehanded_holo\",\"paste\":\"sym_keyboard_paste\",\"enter_key\":\"sym_keyboard_return_lxx\",\"delete_key\":\"sym_keyboard_delete_lxx\",\"send_key\":\"ic_arrow_right_rounded\",\"shift_key\":\"sym_keyboard_shift_outline\",\"shift_key_shifted\":\"sym_keyboard_shift_filled\",\"space_key_for_number_layout\":\"sym_keyboard_space_holo\",\"toolbar_key\":\"ic_arrow_right_rounded\",\"next_key\":\"ic_arrow_right_rounded\",\"previous_key\":\"ic_arrow_left_rounded\",\"search_key\":\"sym_keyboard_search_lxx\",\"settings\":\"sym_keyboard_settings_lxx\"}"
+    // No legacy Material/Holo overrides for new users. Saved custom values
+    // continue to win, including user-imported icon configuration.
+    const val PREF_CUSTOM_ICON_NAMES = "{}"
     const val PREF_TOOLBAR_CUSTOM_KEY_CODES = ""
     const val PREF_AUTO_CAP = true
     const val PREF_VIBRATE_ON = true

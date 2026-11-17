@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B07V original round-vector and preference audit
+
+Inspected active `KeyboardIconsSet`, `Defaults.PREF_ICON_STYLE=STYLE_HOLO`, `customIconIds` incorrectly reading constant instead of stored custom prefs, 4 Emoji theme style bindings, 13 inconsistent Settings Material/pictogram icons, 4 heavy clipboard/tool glyphs. Source implementation switches standard key map to rounded, fresh custom defaults `{}`, preserves actual saved custom values, unifies 11 Emoji categories with original paw, redrew 17 visual glyphs, keeps accepted mic/Emoji footer sizes. Official upstream icon library licenses inspected (Tabler MIT, Lucide ISC, Phosphor MIT) but no external art imported; original GPL vectors. New Robolectric test for override. XML parser and diff hygiene passed, GitHub source/CI/physical review pending. Next commit/poll full Android/signing gates and integrated acceptance audit.
+
 ## 2026-11-17 — B13 final CI/signing, bounded feature acceptance
 
 B13 typed-term reviewed score threshold tests and actual Android app full unit [44032336719](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336719) SUCCESS, original production test/sign [44032336762](https://github.com/Batmancpu/brrrBoard/actions/runs/44032336762) SUCCESS, exact source `ad65d1e`, signed code73 v1.0.73, 38,039,450 bytes, SHA `1a3aadb3f32b97c84aed307f0f8eaac61dee586f9c41ea96dcb199c25b319c57`. B13 conditional choice: only rerank existing side Emojis because new injection might reduce text correction quality; no full contextual merge claims until real data/owner feedback. Next B07V original rounded vector icon audit and CI, followed by final integrated owner checklist. Earlier experiments preserved.
