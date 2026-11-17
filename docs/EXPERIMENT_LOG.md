@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B12 actual original-signer CI outcome
+
+B12 source `1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596` contains separate Smart context row/editor strict gating/unit tests. GitHub full debug/unit `44031058816` completed SUCCESS; full production unit/sign/publish `44031058782` completed SUCCESS, original certificate and version/app-id gate preserved. GitHub release v1.0.72 targets exact source, 38,039,450 bytes, digest `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. No CI failures to repair; visual/real keyboard context still unverified. Next B13 inspect existing decoder Emoji outputs and text-candidate mapping; do not add a noisy candidate just to claim feature completion, then B07V.
+
 ## 2026-11-17 — B12 ephemeral Smart source experiment
 
 From B11 verified v1.0.71/docs `e9f2907`, added review-phrase context row distinct from Recents, strict eligibility before requesting surrounding text, 160-char bound, no editor text saved/logged, stable visibility during drag, compact landscape hides row; Emoji tap routed through ordinary Key press/release with editor epoch identity check. New `EmojiContextEligibilityTest` checks allowed prose and excluded private variations. Static diff hygiene passed; full Android/production signing gates, visual evidence, owner device acceptance remain pending. If the hosting IME or app declines text request, row intentionally absent. Next B12 source commit and full CI monitoring, no artificial successes.

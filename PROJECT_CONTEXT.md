@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 — B12 original-signed v1.0.72 verified; B13 conditional next
+
+B12 [`1fa4db2`](https://github.com/Batmancpu/brrrBoard/commit/1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596) Smart row/privacy source; debug+unit [44031058816](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058816) SUCCESS, original-sign production/unit [44031058782](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058782) SUCCESS. Signed [v1.0.72](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.72/brrBoard.apk) targets exact commit; versionCode72, package `com.orion.frostkeys.brrrboard`, size 38,039,450, SHA-256 `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. No hardware visual claim. B13 next inspect existing Emoji-in-strip decoder candidates before contextual merge; B07V vector audit afterward. B14V, B10–B12 device acceptance outstanding. Prior state preserved below.
+
 ## 2026-11-17 — B12 contextual Smart row source prepared; CI next
 
 B12 candidate adds `EmojiContextEligibility.java`/`Test`, `EmojiPalettesView` context capture only at Emoji opening and only for ordinary non-private fields, a separate tactile accessible Smart row with reviewed matches distinct from existing Recents, and `emoji_smart_strings.xml` plus XML layout. Incognito/no learning/secure inputs show no contextual row; no text/usage persistence; rechecks editor identity on tap and follows original Emoji insertion/recents. Compact landscape hides row; active scroll does not resize viewport. `git diff --check` passed, local Gradle toolchain unavailable; awaiting original GitHub debug/full-unit and production signer gate, source/CI/Oppo acceptance not yet verified. Base handoff `e9f2907` from signed v1.0.71. Next B12 GitHub tree+lease push, monitor workflows and fix errors; then B13 conditional, B07V; no intermediate owner tests.

@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B12 CI green; on-device Smart behavior pending
+
+B12 [`1fa4db2`](https://github.com/Batmancpu/brrrBoard/commit/1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596) compiled and passed all debug/production Android tests [44031058816](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058816), [44031058782](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058782), original signed [v1.0.72](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.72/brrBoard.apk), digest `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. Remaining physical risk: host EditorInfo object identity must match, compact portrait may suppress Smart row, Smart row/Recents view height, TalkBack, real phrase relevance, category and search transitions. Intentional fail-closed on sensitive/editor text refusal. B13 candidate quality gate still open; B07V visuals pending. No CI failure.
+
 ## 2026-11-17 — B12 contextual Smart-row source checks remain
 
 B12 creates a separate ephemeral Smart Emoji row only for high-confidence context in ordinary text/chat fields, leaving Recents intact, and hides it for password/incognito/no-learning/code/email/URI fields or compact landscape. **CI and Oppo physical input/visual fidelity NOT YET CHECKED**; potential host `InputConnection` refusal is fail-closed (no Smart row). Verify that active-editor identity, multi-codepoint Emoji tapping, keyboard shell, search transitions, Recents, TalkBack and landscape never regress. Next complete debug/unit/signer gates and owner consolidated device test at group end. Historic issues retained.
