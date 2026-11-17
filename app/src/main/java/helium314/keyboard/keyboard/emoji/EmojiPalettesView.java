@@ -21,7 +21,6 @@ import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -39,7 +38,6 @@ import androidx.core.graphics.ColorUtils;
 
 
 import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -215,19 +213,17 @@ public final class EmojiPalettesView extends LinearLayout
         mPager = findViewById(R.id.emoji_pager);
         mPager.setHasFixedSize(true);
         mPager.setItemAnimator(null);
+        mPager.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         final LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
         mPager.setLayoutManager(layoutManager);
         final EmojiPalettesAdapter adapter = new EmojiPalettesAdapter(mEmojiCategory, this);
         mPager.setAdapter(adapter);
-        final PagerSnapHelper snapHelper = new PagerSnapHelper();
-        snapHelper.attachToRecyclerView(mPager);
 
         mPager.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                final View snapped = snapHelper.findSnapView(layoutManager);
-                if (snapped != null) {
-                    final int position = layoutManager.getPosition(snapped);
+                final int position = layoutManager.findFirstVisibleItemPosition();
+                if (position != RecyclerView.NO_POSITION) {
                     final int categoryId = adapter.getCategoryIdForPosition(position);
                     if (categoryId != -1 && categoryId != mEmojiCategory.getCurrentCategoryId()) {
                         setCurrentCategoryId(categoryId, true);
@@ -265,7 +261,7 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchKeyboardPlaceholder = findViewById(R.id.emoji_search_keyboard_placeholder);
 
         setupSearchResultKeyboard();
-        setupSearchResultsPaging();
+        setupSearchResultsScrolling();
         setupSearchField();
         setupSearchClickListeners();
         applySearchTheme();
@@ -306,34 +302,12 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchResultsView.setPadding(0, 10, 0, 10);
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private void setupSearchResultsPaging() {
+    private void setupSearchResultsScrolling() {
         if (mSearchResultsScrollView == null) {
             return;
         }
         mSearchResultsScrollView.setSmoothScrollingEnabled(true);
-        mSearchResultsScrollView.setOnTouchListener((view, event) -> {
-            if (event.getActionMasked() == MotionEvent.ACTION_UP
-                    || event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
-                view.postDelayed(this::snapSearchResultsToNearestPage, 120);
-            }
-            return false;
-        });
-    }
-
-    private void snapSearchResultsToNearestPage() {
-        if (mSearchResultsScrollView == null) {
-            return;
-        }
-        final int pageWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
-        if (pageWidth <= 0) {
-            return;
-        }
-        final int maxScrollX = Math.max(0, mSearchResultsKeyboardWidth - pageWidth);
-        final int currentScrollX = mSearchResultsScrollView.getScrollX();
-        final int targetPage = Math.round(currentScrollX / (float) pageWidth);
-        final int targetScrollX = Math.max(0, Math.min(maxScrollX, targetPage * pageWidth));
-        mSearchResultsScrollView.smoothScrollTo(targetScrollX, 0);
+        mSearchResultsScrollView.setHorizontalScrollBarEnabled(false);
     }
 
     private int getSearchResultsKeyboardWidth(final int resultCount) {
@@ -492,11 +466,16 @@ public final class EmojiPalettesView extends LinearLayout
         }
         setSearchText("", 0);
 
-        // Reset scroll position to the top every time the emoji panel is opened
-        if (mPager != null) {
-            mPager.scrollToPosition(0);
+        // Recents can grow between openings; rebuild the virtual columns after
+        // flushing pending keys without discarding the saved category/page.
+        if (mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter adapter) {
+            adapter.updateItems();
+            final int savedPosition = adapter.getAdapterPositionForCategoryPage(
+                    mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
+            if (savedPosition >= 0 && mPager.getLayoutManager() instanceof LinearLayoutManager manager) {
+                manager.scrollToPositionWithOffset(savedPosition, 0);
+            }
         }
-        // Also reset the selected category back to the first one (Recents)
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
 
         setupBottomRowKeyboard(editorInfo, keyboardActionListener);
@@ -1268,10 +1247,7 @@ public final class EmojiPalettesView extends LinearLayout
         }
         getRecentsKeyboard().addKeyFirst(key);
         if (initialized && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            final int pos = ((EmojiPalettesAdapter) mPager.getAdapter()).getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-            if (pos != -1) {
-                mPager.getAdapter().notifyItemChanged(pos);
-            }
+            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
         }
     }
 
@@ -1555,11 +1531,7 @@ public final class EmojiPalettesView extends LinearLayout
                 AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
                 maxRankedCount);
         if (initialized && mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            final int position = ((EmojiPalettesAdapter) mPager.getAdapter())
-                    .getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-            if (position != -1) {
-                mPager.getAdapter().notifyItemChanged(position);
-            }
+            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
         }
     }
 
@@ -1576,10 +1548,7 @@ public final class EmojiPalettesView extends LinearLayout
             if (oldCategoryId == EmojiCategory.ID_RECENTS && !fromScroll) {
                 getRecentsKeyboard().flushPendingRecentKeys();
                 if (mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                    final int pos = ((EmojiPalettesAdapter) mPager.getAdapter()).getFirstPagePositionOfCategory(EmojiCategory.ID_RECENTS);
-                    if (pos != -1) {
-                        mPager.getAdapter().notifyItemChanged(pos);
-                    }
+                    ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
                 }
             }
 

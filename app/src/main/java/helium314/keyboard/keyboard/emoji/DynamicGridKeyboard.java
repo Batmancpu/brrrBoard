@@ -91,7 +91,7 @@ final class DynamicGridKeyboard extends Keyboard {
         final int paddingWidth = mOccupiedWidth - mBaseWidth;
         final int layoutWidth = Math.max(1, Math.min(width, pageWidth));
         final int layoutBaseWidth = Math.max(1, layoutWidth - paddingWidth);
-        mBaseWidth = width - paddingWidth;
+        mBaseWidth = Math.max(1, width - paddingWidth);
         mOccupiedWidth = width;
         final float spacerWidth = Settings.getValues().mSplitKeyboardSpacerRelativeWidth * layoutBaseWidth;
         final Key key0 = getTemplateKey(Constants.RECENTS_TEMPLATE_KEY_CODE_0);
@@ -101,7 +101,7 @@ final class DynamicGridKeyboard extends Keyboard {
         mHorizontalGap = (int) (horizontalGap * widthScale);
         mHorizontalStep = (int) ((key0.getWidth() + horizontalGap) * widthScale);
         mVerticalStep = (int) ((key0.getHeight() + mVerticalGap) / Math.sqrt(Settings.getValues().mKeyboardHeightScale));
-        mColumnsNum = mBaseWidth / mHorizontalStep;
+        mColumnsNum = Math.max(1, mBaseWidth / Math.max(1, mHorizontalStep));
         mMaxRowCount = fixedRowCount ? maxCount : 0;
         mPagedFixedRowCount = fixedRowCount && width > layoutWidth;
         mPageWidth = layoutWidth;
@@ -147,7 +147,9 @@ final class DynamicGridKeyboard extends Keyboard {
     // determine a width scale so emojis evenly fill the entire width
     private float determineWidthScale(final float horizontalStep, final int baseWidth) {
         final float columnsNumRaw = baseWidth / horizontalStep;
-        final float columnsNum = Math.round(columnsNumRaw);
+        // A virtualized Emoji column can be narrower than one template key,
+        // especially under large font/one-handed sizing. Never divide by zero.
+        final float columnsNum = Math.max(1, Math.round(columnsNumRaw));
         return columnsNumRaw / columnsNum;
     }
 

@@ -7,6 +7,7 @@
 package helium314.keyboard.keyboard.emoji;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
@@ -368,10 +369,48 @@ final class EmojiCategory {
     }
 
     private int computeMaxKeyCountPerPage() {
+        return getRowsPerPage() * getPageColumnCount();
+    }
+
+    int getPageColumnCount() {
         final DynamicGridKeyboard tempKeyboard = DynamicGridKeyboard.ofKeyCount(mPrefs,
                 mLayoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS),
                 0, 0, ResourceUtils.getKeyboardWidth(mContext, Settings.getValues()));
-        return MAX_LINE_COUNT_PER_PAGE * tempKeyboard.getOccupiedColumnCount();
+        return tempKeyboard.getOccupiedColumnCount();
+    }
+
+    int getCategoryKeyCount(final int categoryId) {
+        return mLayoutSet.getKeyboard(sCategoryElementId[categoryId]).getSortedKeys().size();
+    }
+
+    int getRowsPerPage() {
+        // The landscape Emoji panel is shorter than the alphabet layout. Its
+        // old three-row page hid the bottom row behind the persistent footer.
+        return mRes.getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE
+                ? 2 : MAX_LINE_COUNT_PER_PAGE;
+    }
+
+    DynamicGridKeyboard getColumnKeyboard(final int categoryId, final int page,
+            final int column) {
+        final boolean recent = categoryId == ID_RECENTS;
+        final DynamicGridKeyboard source = getKeyboard(categoryId, recent ? 0 : page);
+        final List<Key> sourceKeys = source.getSortedKeys();
+        final int columns = Math.max(1, source.getOccupiedColumnCount());
+        final int rows = getRowsPerPage();
+        final int sourcePage = recent ? page : 0;
+        final int width = EmojiColumnPolicy.columnWidth(
+                ResourceUtils.getKeyboardWidth(mContext, Settings.getValues()), columns, column);
+        final DynamicGridKeyboard keyboard = DynamicGridKeyboard.ofKeyCount(mPrefs,
+                mLayoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS),
+                rows, categoryId, width);
+        for (int row = 0; row < rows; row++) {
+            final int keyIndex = EmojiColumnPolicy.keyIndex(
+                    sourceKeys.size(), columns, rows, sourcePage, column, row);
+            if (keyIndex >= 0) {
+                keyboard.addKeyLast(sourceKeys.get(keyIndex));
+            }
+        }
+        return keyboard;
     }
 
     private static final Comparator<Key> EMOJI_KEY_COMPARATOR = (lhs, rhs) -> {
