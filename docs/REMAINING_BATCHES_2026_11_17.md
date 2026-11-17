@@ -103,3 +103,7 @@ FINDABILITY ROOT CAUSE: Four cards were only inside the "Adjust Frosted Glass" d
 VALIDATION STILL REQUIRED: Debug compile, unit tests, original-signed CI run, physical Oppo Reno 10 5G review. Confirm original lifted top silhouette, soft side fade, no bright vertical edge, style chooser from search, live keyboard preview and Save/Cancel/Reset, retained existing settings. Source edits alone do not confirm the visual result.
 
 NEXT SEPARATE BATCHES: neutral-palette action Search key tint (CIELAB matching forces muted gray to orange); Emoji top fixed category strip, central emoji grid, fixed Search/Space/Backspace above ABC/mic with content-only live blur; clipboard search/clear and screenshot audit; toolbar icons/scroll clipping; suggestion divider height; optional low-energy motion-reflection. Keep commits focused and append-only agent/context history.
+
+### 2026-11-17 follow-up — restore first-highlight luminance under a fade shader
+
+Review of RoundedKeyboardFrameView.reflection showed both Paint.color alpha and LinearGradient color-stop alpha set to the same sub-opaque value. Canvas combines these opacities; the intended original 0x52/0x30 bright top line became excessively faint under the new fade. When a shader owns the fade, make Paint.color opaque white; preserve the per-style gradient alpha exactly, and leave the non-shader fallback using its previous alpha. This restores the luminosity of the a271e5a original geometry with the desired small side fade, without touching real blur or adding double blur. Verify visually on Oppo after signed CI.

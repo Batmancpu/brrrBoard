@@ -200,7 +200,10 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             val shoulder = ColorUtils.setAlphaComponent(Color.WHITE, (a * 0.7f).toInt())
             topHighlightPaint.strokeWidth = lineDp * density
             topHighlightPaint.strokeCap = Paint.Cap.BUTT
-            topHighlightPaint.color = peak
+            // The shader already contains the requested opacity gradient.
+            // Leaving Paint.color alpha at "a" would multiply opacity twice
+            // and wash out the first-ever highlight (especially in light mode).
+            topHighlightPaint.color = if (softSides) Color.WHITE else peak
             topHighlightPaint.shader = if (softSides) LinearGradient(
                 0f, 0f, width.toFloat(), 0f,
                 intArrayOf(transparent, shoulder, peak, peak, shoulder, transparent),
