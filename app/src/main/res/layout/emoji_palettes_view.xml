@@ -186,7 +186,78 @@
             android:id="@+id/bottom_row_keyboard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom" />
+            android:layout_gravity="bottom"
+            android:visibility="gone" />
+
+        <!-- The iPad-style browse field is fixed. Emoji rows can scroll underneath
+             the live upper glass, but this field remains sharp and tappable. -->
+        <LinearLayout
+            android:id="@+id/emoji_browse_search_bar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_gravity="top"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/emoji_browse_search_hint">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="14dp"
+                android:paddingEnd="12dp"
+                android:background="@drawable/klipy_search_bar_ripple_bg">
+                <ImageView
+                    android:id="@+id/emoji_browse_search_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="10dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_brr_search" />
+                <TextView
+                    android:id="@+id/emoji_browse_search_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emoji_browse_search_hint"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </LinearLayout>
+        <!-- The category navigator belongs next to Delete, directly above the
+             shared ABC/microphone footer. The pager continues behind its glass. -->
+        <LinearLayout
+            android:id="@+id/emoji_bottom_category_strip"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_gravity="bottom"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="5dp"
+            android:clickable="true"
+            android:focusable="false">
+            <LinearLayout
+                android:id="@+id/emoji_bottom_category_host"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <ImageButton
+                android:id="@+id/emoji_category_backspace_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/emoji_browse_delete"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_brr_delete" />
+        </LinearLayout>
+
     </FrameLayout>
     <helium314.keyboard.keyboard.emoji.EmojiCategoryPageIndicatorView
         android:id="@+id/emoji_category_page_id_view"

@@ -107,6 +107,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             themeName == THEME_IOS_CLEAR || themeName == THEME_IOS_TINTED
 
         private const val PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED = "frosted_neutral_defaults_migrated_v1"
+        private const val PREF_FROSTED_KEYCAP_CONTRAST_MIGRATED = "frosted_keycap_contrast_migrated_v1"
 
         private val boardThemes = listOf(THEME_FROSTED_GLASS)
         private val legacyTintedBoardThemes = setOf(THEME_OG_FROST_TINTED, THEME_IOS_TINTED)
@@ -119,7 +120,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         private fun migrateBoardThemePreferences(prefs: SharedPreferences) {
             val migrateLegacyTheme = !prefs.contains(Settings.PREF_THEME_ACTION_TINT)
             val migrateNeutralDefaults = !prefs.getBoolean(PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED, false)
-            if (!migrateLegacyTheme && !migrateNeutralDefaults) return
+            val migrateKeycapContrast = !prefs.getBoolean(PREF_FROSTED_KEYCAP_CONTRAST_MIGRATED, false)
+            if (!migrateLegacyTheme && !migrateNeutralDefaults && !migrateKeycapContrast) return
 
             val lightTheme = prefs.getString(Settings.PREF_THEME_COLORS, null)
             val darkTheme = prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, null)
@@ -137,6 +139,18 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                         Settings.PREF_THEME_ACTION_TINT,
                         lightTheme in legacyTintedBoardThemes || darkTheme in legacyTintedBoardThemes
                     )
+                }
+                if (migrateKeycapContrast) {
+                    // Change only the previously shipped *default* keycap opacity.
+                    // User-selected translucency remains authoritative; background
+                    // translucency is NEVER touched by this migration.
+                    if (prefs.getInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY, 98) == 98) {
+                        putInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY, Defaults.PREF_FROSTED_KEY_TRANSPARENCY)
+                    }
+                    if (prefs.getInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT, 93) == 93) {
+                        putInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT, Defaults.PREF_FROSTED_KEY_TRANSPARENCY_NIGHT)
+                    }
+                    putBoolean(PREF_FROSTED_KEYCAP_CONTRAST_MIGRATED, true)
                 }
                 if (migrateNeutralDefaults) {
                     // Replace only values that still equal the previous shipped defaults.

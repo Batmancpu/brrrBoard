@@ -1171,10 +1171,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                         mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
                 mEmojiPalettesView.setVisibility(View.VISIBLE);
-                mEmojiTabStripView.setVisibility(View.VISIBLE);
-                // Emoji category navigation occupies this strip while the Emoji panel
-                // is open, even when the typing suggestion strip is disabled.
-                mStripContainer.setVisibility(View.VISIBLE);
+                // Emoji has its own top search field and bottom category tabs.
+                // The old suggestions strip must not reserve a second blank band.
+                mEmojiTabStripView.setVisibility(View.GONE);
+                mStripContainer.setVisibility(View.GONE);
                 setKeyboardPanelOffsets(true);
 
                 mClipboardStripScrollView.setVisibility(View.GONE);

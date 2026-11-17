@@ -1314,4 +1314,6 @@ New dictionary:
     <string name="compat_input_mode_auto_shadow">Auto with suggestions (Experimental)</string>
     <string name="compat_input_mode_force_internal">Force internal composing</string>
     <string name="compat_input_mode_force_raw">Force composing-less (Raw commit)</string>
+    <string name="emoji_browse_search_hint">Search Emoji</string>
+    <string name="emoji_browse_delete">Delete character</string>
 </resources>
