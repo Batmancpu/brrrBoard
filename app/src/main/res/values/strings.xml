@@ -1323,9 +1323,11 @@ New dictionary:
 
     <!-- Four optional specular edge treatments; default preserves the original floating slab illusion. -->
     <string name="keyboard_highlight_style_title">Glass edge reflection</string>
-    <string name="keyboard_highlight_style_summary">Compare live on the keyboard below. Classic Lift is the default.</string>
-    <string name="keyboard_highlight_classic">Classic Lift</string>
-    <string name="keyboard_highlight_classic_detail">Rounded, softly trimmed</string>
+    <string name="keyboard_highlight_style_summary">Compare live on the keyboard below. Original Lift is the default.</string>
+    <string name="keyboard_highlight_classic">Original Lift</string>
+    <string name="keyboard_highlight_classic_detail">The first curved glass glint</string>
+    <string name="keyboard_highlight_settings_entry">Keyboard highlight styles</string>
+    <string name="keyboard_highlight_settings_description">Original Lift and three alternatives. Preview on the live keyboard.</string>
     <string name="keyboard_highlight_soft">Soft Horizon</string>
     <string name="keyboard_highlight_soft_detail">Broad diffused sheen</string>
     <string name="keyboard_highlight_studio">Studio Glints</string>

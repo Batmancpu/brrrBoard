@@ -215,17 +215,13 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         topHighlightPath.reset()
         when (style) {
             0 -> {
-                // Classic Lift (DEFAULT): original floating-glass top arc,
-                // carefully trimmed at both ends before it becomes an outline.
-                topHighlightPath.arcTo(
-                    RectF(edge, edge, 2f * radius - edge, 2f * radius - edge),
-                    214f, 56f, true
-                )
+                // Original Lift (DEFAULT): first-ever quadratic glint from
+                // a271e5a. Only its outer tips fade, keeping the slab illusion
+                // without turning the reflection into a closed perimeter.
+                topHighlightPath.moveTo(edge, radius)
+                topHighlightPath.quadTo(edge, edge, radius, edge)
                 topHighlightPath.lineTo(width - radius, edge)
-                topHighlightPath.arcTo(
-                    RectF(width - 2f * radius + edge, edge, width - edge, 2f * radius - edge),
-                    270f, 56f, false
-                )
+                topHighlightPath.quadTo(width - edge, edge, width - edge, radius)
                 reflection(topHighlightPath, 1f, baseAlpha)
             }
             1 -> {

@@ -55,6 +55,7 @@ fun AppearanceScreen(
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
+        if (isFrostedActive) "keyboard_glass_highlight_dialog" else null,
         SettingsWithoutKey.BACKGROUND_IMAGE,
         SettingsWithoutKey.BACKGROUND_IMAGE_LANDSCAPE,
         Settings.PREF_KEYBOARD_CORNER_RADIUS,
@@ -257,11 +258,29 @@ fun createAppearanceSettings(context: Context) = listOf(
     Setting(context, "adjust_frosted_glass_dialog", R.string.button_adjust_frosted_glass) { setting ->
         Preference(
             name = setting.title,
-            onClick = { 
+            onClick = {
                 helium314.keyboard.settings.SettingsActivity.activeOverlay = { hazeState ->
                     helium314.keyboard.settings.dialogs.FrostedGlassAdjustDialog(
                         hazeState = hazeState,
                         onDismissRequest = { helium314.keyboard.settings.SettingsActivity.activeOverlay = null }
+                    )
+                }
+            }
+        )
+    },
+    Setting(context, "keyboard_glass_highlight_dialog",
+        R.string.keyboard_highlight_settings_entry,
+        R.string.keyboard_highlight_settings_description
+    ) { setting ->
+        Preference(
+            name = setting.title,
+            description = setting.description,
+            onClick = {
+                helium314.keyboard.settings.SettingsActivity.activeOverlay = { hazeState ->
+                    helium314.keyboard.settings.dialogs.FrostedGlassAdjustDialog(
+                        hazeState = hazeState,
+                        onDismissRequest = { helium314.keyboard.settings.SettingsActivity.activeOverlay = null },
+                        startAtHighlight = true
                     )
                 }
             }

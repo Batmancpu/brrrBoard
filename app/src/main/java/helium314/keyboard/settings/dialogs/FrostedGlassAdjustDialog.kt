@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -74,11 +75,23 @@ private data class FrostedSettingsSnapshot(
 @Composable
 fun FrostedGlassAdjustDialog(
     hazeState: HazeState,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    startAtHighlight: Boolean = false
 ) {
     val context = LocalContext.current
     val prefs = context.prefs()
     val coroutineScope = rememberCoroutineScope()
+    val contentScrollState = rememberScrollState()
+    val density = LocalDensity.current
+
+    // Searchable Appearance shortcut reveals the styles without digging
+    // through all glass sliders; the regular entry still opens at the top.
+    LaunchedEffect(startAtHighlight) {
+        if (startAtHighlight) {
+            kotlinx.coroutines.delay(420)
+            contentScrollState.animateScrollTo(with(density) { 210.dp.roundToPx() })
+        }
+    }
 
     var activeProfile by remember { mutableStateOf(if (helium314.keyboard.latin.utils.ResourceUtils.isNight(context.resources)) "dark" else "light") }
 
@@ -358,7 +371,7 @@ fun FrostedGlassAdjustDialog(
                     Column(
                         modifier = Modifier
                             .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(contentScrollState)
                             .padding(20.dp)
                     ) {
                         Text(
