@@ -189,33 +189,11 @@ public final class EmojiPalettesView extends LinearLayout
         int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
-        if (!mSearchMode) {
-            // The wrapper preserves the taller alphabetic keyboard's measured
-            // viewport. A shorter, bottom-gravity Emoji child leaves an empty
-            // strip between the fixed category tabs and the first Emoji row.
-            // Match that established size, without moving the glass/footer or
-            // changing a genuinely shorter window (landscape/floating IME).
-            final View wrapper = getRootView().findViewById(R.id.keyboard_view_wrapper);
-            final View alphabet = getRootView().findViewById(R.id.keyboard_view);
-            // The wrap-content wrapper shrinks when alphabet goes GONE; its
-            // earlier measured height is still available on the typing view.
-            final int rememberedAlphabetHeight =
-                    wrapper instanceof helium314.keyboard.latin.KeyboardWrapperView
-                        ? ((helium314.keyboard.latin.KeyboardWrapperView) wrapper)
-                                .getLastTypingKeyboardHeight() : 0;
-            // The just-hidden alphabet view can remeasure at zero before this
-            // body is measured; use its last *visible* height, not an empty
-            // wrapper left over from a previous frame.
-            final int establishedHeight = Math.max(rememberedAlphabetHeight,
-                    Math.max(wrapper == null ? 0 : wrapper.getHeight(),
-                            alphabet == null ? 0 : alphabet.getMeasuredHeight()));
-            final int maxGrowth = 2 * res.getDimensionPixelSize(
-                    R.dimen.config_suggestions_strip_height)
-                    + res.getDimensionPixelSize(R.dimen.config_board_footer_height);
-            finalHeight = helium314.keyboard.latin.SharedPanelGeometry
-                    .retainExistingPanelViewport(finalHeight, establishedHeight,
-                            availableHeight, maxGrowth);
-        }
+        // Compact Browse uses only the configured typing geometry and the current
+        // window cap. Never borrow a wrapper/alphabet measured height: Search
+        // reparents that alphabet view, and its stale size previously made
+        // Browse grow depending on whether Search had just been dismissed.
+        // Keep the existing grid, fixed tabs, footer and glass unchanged.
         if (mSearchMode) {
             // Search is a complete typing keyboard plus one result row and a
             // search field. The fixed-height grid mode cannot accommodate it.
