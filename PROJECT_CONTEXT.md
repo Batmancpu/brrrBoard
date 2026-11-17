@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 — B12 contextual Smart row source prepared; CI next
+
+B12 candidate adds `EmojiContextEligibility.java`/`Test`, `EmojiPalettesView` context capture only at Emoji opening and only for ordinary non-private fields, a separate tactile accessible Smart row with reviewed matches distinct from existing Recents, and `emoji_smart_strings.xml` plus XML layout. Incognito/no learning/secure inputs show no contextual row; no text/usage persistence; rechecks editor identity on tap and follows original Emoji insertion/recents. Compact landscape hides row; active scroll does not resize viewport. `git diff --check` passed, local Gradle toolchain unavailable; awaiting original GitHub debug/full-unit and production signer gate, source/CI/Oppo acceptance not yet verified. Base handoff `e9f2907` from signed v1.0.71. Next B12 GitHub tree+lease push, monitor workflows and fix errors; then B13 conditional, B07V; no intermediate owner tests.
+
 ## 2026-11-17 — B11 verified v1.0.71; B12 active next
 
 `1c619690` B11 3944 Unicode17 CLDR48.2 entries and vetted scorer passed full debug [44029361745](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361745) and production [44029361799](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361799), original signer verified. Public [v1.0.71](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.71/brrBoard.apk), versionCode71, package unchanged, SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`, exact source target. B14V/B10/B11 device acceptance pending. Next B12 audit `EmojiPalettesView.startEmojiPalettes`, `EmojiCategory`, `DynamicGridKeyboard` and LatinIME editor privacy; capture no persistent text; then B13 conditional, B07V. Earlier failures below retained.

@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B12 ephemeral Smart source experiment
+
+From B11 verified v1.0.71/docs `e9f2907`, added review-phrase context row distinct from Recents, strict eligibility before requesting surrounding text, 160-char bound, no editor text saved/logged, stable visibility during drag, compact landscape hides row; Emoji tap routed through ordinary Key press/release with editor epoch identity check. New `EmojiContextEligibilityTest` checks allowed prose and excluded private variations. Static diff hygiene passed; full Android/production signing gates, visual evidence, owner device acceptance remain pending. If the hosting IME or app declines text request, row intentionally absent. Next B12 source commit and full CI monitoring, no artificial successes.
+
 ## 2026-11-17 — B11 CI and signer verification
 
 B11 source `1c619690`: local TSV 3944/3944 three-field check, generator syntax and diff hygiene passed; local Gradle download blocked (`services.gradle.org` unreachable). GitHub debug+unit [44029361745](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361745) SUCCESS; complete production [44029361799](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361799) SUCCESS including `:app:testRunTestsUnitTest` and original keystore/apksigner certificate/package checks. Signed v1.0.71 exact source target, 38,035,354 bytes SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`. B11 no UI changes or real device proof. B12 next, keep historical failed runs below.

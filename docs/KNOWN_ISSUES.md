@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B12 contextual Smart-row source checks remain
+
+B12 creates a separate ephemeral Smart Emoji row only for high-confidence context in ordinary text/chat fields, leaving Recents intact, and hides it for password/incognito/no-learning/code/email/URI fields or compact landscape. **CI and Oppo physical input/visual fidelity NOT YET CHECKED**; potential host `InputConnection` refusal is fail-closed (no Smart row). Verify that active-editor identity, multi-codepoint Emoji tapping, keyboard shell, search transitions, Recents, TalkBack and landscape never regress. Next complete debug/unit/signer gates and owner consolidated device test at group end. Historic issues retained.
+
 ## 2026-11-17 — B11 gates cleared; B12 UI outstanding
 
 B11 `1c619690` Unicode/CLDR index/scorer passed debug `44029361745` and production `44029361799`; original signed [v1.0.71](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.71/brrBoard.apk), SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`. It intentionally provides **no contextual Smart grid/suggestion UI**; B12 and conditional B13 remain. B14V glass appearance, B10 gestures/landscape, B11 actual user relevance not verified on Oppo. No new CI/source failures. Next guarded B12 context UI, no private context persistence.

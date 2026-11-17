@@ -25,10 +25,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.ImageButton;
 import android.graphics.drawable.RippleDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -130,6 +132,12 @@ public final class EmojiPalettesView extends LinearLayout
     private boolean mUpdatingSearchText = false;
     private String mSearchQuery = "";
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
+    private LinearLayout mContextSmartSection;
+    private LinearLayout mContextSmartRow;
+    private boolean mHasContextSmartPicks;
+    private boolean mCompactContextPanel;
+    private EditorInfo mContextSmartEditor;
+    private boolean mEmojiGridScrollActive;
 
     public EmojiPalettesView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.emojiPalettesViewStyle);
@@ -171,6 +179,13 @@ public final class EmojiPalettesView extends LinearLayout
         final int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
+        // The Smart row must not sacrifice the two visible Emoji rows in a
+        // short landscape IME. The keyboard shell height itself never grows.
+        final boolean compact = finalHeight < (int) (260 * res.getDisplayMetrics().density);
+        if (mCompactContextPanel != compact) {
+            mCompactContextPanel = compact;
+            updateContextSmartVisibility();
+        }
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY));
         final int requestedWidth = ResourceUtils.getKeyboardWidth(getContext(), settings)
                 + getPaddingLeft() + getPaddingRight();
@@ -221,6 +236,12 @@ public final class EmojiPalettesView extends LinearLayout
 
         mPager.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                mEmojiGridScrollActive = newState != RecyclerView.SCROLL_STATE_IDLE;
+                if (!mEmojiGridScrollActive) updateContextSmartVisibility();
+            }
+
+            @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 final int position = layoutManager.findFirstVisibleItemPosition();
                 if (position != RecyclerView.NO_POSITION) {
@@ -241,6 +262,13 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
         mEmojiLayoutParams.setCategoryPageIdViewProperties(mEmojiCategoryPageIndicatorView);
         mBottomRowKeyboard = findViewById(R.id.bottom_row_keyboard);
+        mContextSmartSection = findViewById(R.id.emoji_context_smart_section);
+        mContextSmartRow = findViewById(R.id.emoji_context_smart_row);
+        final TextView smartTitle = findViewById(R.id.emoji_context_smart_title);
+        final TextView recentLabel = findViewById(R.id.emoji_context_recent_label);
+        final int labelColor = ColorUtils.setAlphaComponent(mColors.get(ColorType.TOOL_BAR_KEY), 0xC0);
+        if (smartTitle != null) smartTitle.setTextColor(labelColor);
+        if (recentLabel != null) recentLabel.setTextColor(labelColor);
         setupInlineSearchViews();
         final int savedPosition = adapter.getAdapterPositionForCategoryPage(
                 mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
@@ -465,6 +493,7 @@ public final class EmojiPalettesView extends LinearLayout
             exitSearchMode(false, false);
         }
         setSearchText("", 0);
+        updateContextSmartPicks(editorInfo);
 
         // Recents can grow between openings; rebuild the virtual columns after
         // flushing pending keys without discarding the saved category/page.
@@ -497,6 +526,7 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         mSearchMode = true;
+        updateContextSmartVisibility();
         mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
 
         mPager.setVisibility(View.GONE);
@@ -540,6 +570,7 @@ public final class EmojiPalettesView extends LinearLayout
             setSearchText("", 0);
         }
         mSearchMode = false;
+        updateContextSmartVisibility();
         if (mSearchEditText != null) {
             mSearchEditText.setCursorVisible(false);
 
@@ -1514,10 +1545,115 @@ public final class EmojiPalettesView extends LinearLayout
             exitSearchMode(false, false);
         }
         getRecentsKeyboard().flushPendingRecentKeys();
+        // Never retain even a reviewed trigger or selection across editors.
+        mHasContextSmartPicks = false;
+        mContextSmartEditor = null;
+        if (mContextSmartRow != null) mContextSmartRow.removeAllViews();
+        updateContextSmartVisibility();
     }
 
     private DynamicGridKeyboard getRecentsKeyboard() {
         return mEmojiCategory.getKeyboard(EmojiCategory.ID_RECENTS, 0);
+    }
+
+    /** Ephemeral, reviewed Smart picks. Actual saved Recents remain in their grid. */
+    private void updateContextSmartPicks(final EditorInfo editorInfo) {
+        mHasContextSmartPicks = false;
+        mContextSmartEditor = null;
+        if (mContextSmartRow == null) return;
+        mContextSmartRow.removeAllViews();
+        if (!EmojiContextEligibility.isEligible(editorInfo,
+                Settings.getValues().mIncognitoModeEnabled)) {
+            updateContextSmartVisibility();
+            return;
+        }
+        final LatinIME ime = findHostingIme(getContext());
+        if (ime == null || ime.getCurrentInputEditorInfo() != editorInfo) {
+            updateContextSmartVisibility();
+            return;
+        }
+        final InputConnection connection = ime.getCurrentInputConnection();
+        if (connection == null) {
+            updateContextSmartVisibility();
+            return;
+        }
+        final CharSequence beforeCursor;
+        try {
+            beforeCursor = connection.getTextBeforeCursor(160, 0);
+        } catch (RuntimeException unavailableEditor) {
+            updateContextSmartVisibility();
+            return;
+        }
+        if (beforeCursor == null || beforeCursor.length() == 0) {
+            updateContextSmartVisibility();
+            return;
+        }
+        // User text exists only within this stack frame, never in preferences.
+        final List<EmojiContextScorer.Candidate> candidates =
+                EmojiContextScorer.rank(beforeCursor.toString(), false);
+        final float density = getResources().getDisplayMetrics().density;
+        for (final EmojiContextScorer.Candidate candidate : candidates) {
+            final Key key = mEmojiCategory.findEmojiKey(candidate.emoji);
+            if (key == null) continue;
+            final TextView cell = new TextView(getContext());
+            cell.setText(candidate.emoji);
+            cell.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 28);
+            cell.setGravity(android.view.Gravity.CENTER);
+            cell.setContentDescription(getResources().getString(
+                    R.string.emoji_context_accessibility, candidate.matchedTrigger, candidate.emoji));
+            cell.setFocusable(true);
+            cell.setClickable(true);
+            final int margin = Math.round(4 * density);
+            final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    0, Math.round(48 * density), 1f);
+            params.setMargins(margin, 0, margin, 0);
+            final GradientDrawable glass = new GradientDrawable();
+            glass.setColor(ColorUtils.setAlphaComponent(
+                    mColors.get(ColorType.SPECIAL_KEY_BACKGROUND), 0x70));
+            glass.setCornerRadius(14 * density);
+            final ColorStateList press = ColorStateList.valueOf(ColorUtils.setAlphaComponent(
+                    mColors.get(ColorType.TOOL_BAR_KEY), 0x2A));
+            cell.setBackground(new RippleDrawable(press, glass, null));
+            cell.setOnClickListener(view -> {
+                final LatinIME activeIme = findHostingIme(getContext());
+                if (activeIme == null || activeIme.getCurrentInputEditorInfo() != mContextSmartEditor
+                        || !EmojiContextEligibility.isEligible(mContextSmartEditor,
+                                Settings.getValues().mIncognitoModeEnabled)) return;
+                // Use the normal Emoji key path for insertion and user Recents.
+                onPressKey(key);
+                onReleaseKey(key);
+            });
+            mContextSmartRow.addView(cell, params);
+            mHasContextSmartPicks = true;
+        }
+        if (mHasContextSmartPicks) mContextSmartEditor = editorInfo;
+        updateContextSmartVisibility();
+    }
+
+    private void updateContextSmartVisibility() {
+        if (mContextSmartSection == null) return;
+        // Never resize the scrolling viewport underneath an active finger.
+        if (mEmojiGridScrollActive && mHasContextSmartPicks && !mSearchMode) return;
+        final boolean visible = mHasContextSmartPicks && !mSearchMode
+                && !mCompactContextPanel
+                && mEmojiCategory.getCurrentCategoryId() == EmojiCategory.ID_RECENTS;
+        mContextSmartSection.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    private static LatinIME findHostingIme(final Context context) {
+        // The palette can be inflated with an application/theme context rather
+        // than the service itself; LatinIME clears this reference on destroy.
+        final LatinIME active = LatinIME.getInstance();
+        if (active != null) return active;
+        Context current = context;
+        for (int depth = 0; current != null && depth < 12; depth++) {
+            if (current instanceof LatinIME) return (LatinIME) current;
+            if (!(current instanceof ContextWrapper)) return null;
+            final Context next = ((ContextWrapper) current).getBaseContext();
+            if (next == current) return null;
+            current = next;
+        }
+        return null;
     }
 
     private void updateAdaptiveEmojiOrder() {
@@ -1582,6 +1718,7 @@ public final class EmojiPalettesView extends LinearLayout
                 ((TabImageView) current).setColorFilter(contrastColor, android.graphics.PorterDuff.Mode.SRC_IN);
             }
         }
+        updateContextSmartVisibility();
     }
 
     private boolean isAnimationsDisabled() {

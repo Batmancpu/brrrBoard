@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="emoji_context_smart_title">Smart</string>
+    <string name="emoji_context_recent_below">Recent emoji below</string>
+    <string name="emoji_context_accessibility">Suggested %1$s emoji: %2$s</string>
+</resources>

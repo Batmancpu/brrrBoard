@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-17 — B12 SOURCE TEST GATE PENDING
+
+Base docs `e9f2907`, verified v1.0.71/B11. B12 source candidate changes `EmojiPalettesView.java`, `emoji_palettes_view.xml`, adds `EmojiContextEligibility.java`, `EmojiContextEligibilityTest.java`, `emoji_smart_strings.xml`. Context is an ephemeral suffix read after strict `EditorInfo` eligibility, reviewed offline rank only, Smart result row distinct from saved Recents, taps through existing `onPressKey/onReleaseKey`, reset on stop, no network/disk editor text; header hidden on compact landscape, search/other category, viewport resize deferred during drag. Static `git diff --check` PASS. Full unit tests and original signer **not yet run** for B12, physical experience pending. Next exact action: push coherent B12 source commit from `e9f2907`, monitor full debug/release workflows to terminal, diagnose failures; if success verify APK digest/signer, add verified handoff and proceed conditional B13 then B07V.
+
 ## 2026-11-17 — B11 RELEASE VERIFIED, B12 ENTRY
 
 B11 commit `1c61969018b78887e4725a1c5690703e740d8a3e`; 14 files including index/scorer/tests/provenance and historical docs. Debug+unit `44029361745` SUCCESS; original signer full unit+release `44029361799` SUCCESS. Signed [v1.0.71 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.71/brrBoard.apk), SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`, exact target, code71, package unchanged. Owner Oppo acceptance pending. Next B12 capture ephemeral `EditorInfo`/`InputConnection` suffix only when eligible, rank context, preserve distinct actual Recents, reset per editor/panel, guard gestures and add tests. B13 conditional, B07V next. B16–B19 excluded.
