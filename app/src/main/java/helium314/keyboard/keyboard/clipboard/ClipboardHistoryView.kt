@@ -13,9 +13,11 @@ import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -67,7 +69,6 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private lateinit var clipboardRecyclerView: ClipboardHistoryRecyclerView
     private lateinit var placeholderView: TextView
-    private lateinit var backButton: ImageButton
     private lateinit var clearButton: ImageButton
     private lateinit var titleView: TextView
     private lateinit var clipboardAdapter: ClipboardAdapter
@@ -117,7 +118,6 @@ class ClipboardHistoryView @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     private fun initialize() { // needs to be delayed for access to ClipboardStrip, which is not a child of this view
         if (this::clipboardAdapter.isInitialized) return
-        val colors = Settings.getValues().mColors
         clipboardAdapter = ClipboardAdapter(clipboardLayoutParams, this).apply {
             itemBackgroundId = keyBackgroundId
             pinnedIconResId = pinIconId
@@ -131,13 +131,66 @@ class ClipboardHistoryView @JvmOverloads constructor(
             clipboardLayoutParams.setListProperties(this)
             placeholderView = this@ClipboardHistoryView.placeholderView
             clipDismissListener = this@ClipboardHistoryView
+            onEmptyStateChanged = { isEmpty ->
+                findViewById<View>(R.id.clipboard_header_scrim).visibility =
+                    if (isEmpty) View.INVISIBLE else View.VISIBLE
+            }
         }
-        backButton = findViewById(R.id.clipboard_back_button)
         clearButton = findViewById(R.id.clipboard_clear_button)
         titleView = findViewById(R.id.clipboard_title)
         undoBar = findViewById(R.id.clipboard_undo_bar)
         undoText = findViewById(R.id.clipboard_undo_text)
         undoButton = findViewById(R.id.clipboard_undo_button)
+
+        findViewById<MainKeyboardView>(R.id.bottom_row_keyboard).addOnLayoutChangeListener {
+                _, left, top, right, bottom, _, _, _, _ ->
+            updateBottomLayerGeometry(bottom - top)
+        }
+    }
+
+    private fun updateBottomLayerGeometry(rowHeight: Int) {
+        if (rowHeight <= 0) return
+        val reserved = rowHeight + 12.dpToPx(resources)
+        val topInset = 54.dpToPx(resources)
+        if (clipboardRecyclerView.paddingTop != topInset || clipboardRecyclerView.paddingBottom != reserved) {
+            clipboardRecyclerView.setPadding(
+                clipboardRecyclerView.paddingLeft, topInset,
+                clipboardRecyclerView.paddingRight, reserved,
+            )
+        }
+        val glass = findViewById<View>(R.id.clipboard_bottom_glass)
+        (glass.layoutParams as FrameLayout.LayoutParams).let { params ->
+            val desiredHeight = rowHeight + 18.dpToPx(resources)
+            if (params.height != desiredHeight) {
+                params.height = desiredHeight
+                glass.layoutParams = params
+            }
+        }
+        undoBar?.let { bar ->
+            (bar.layoutParams as FrameLayout.LayoutParams).let { params ->
+                val margin = rowHeight + 8.dpToPx(resources)
+                if (params.bottomMargin != margin) {
+                    params.bottomMargin = margin
+                    bar.layoutParams = params
+                }
+            }
+        }
+    }
+
+    private fun setupGlassLayers(colors: Colors) {
+        // RenderEffect blurs a view's own pixels, not sibling content beneath a
+        // translucent IME overlay. Avoid live Clipboard bitmap capture and use
+        // lightweight, theme-aware glass gradients with no black fade edges.
+        val baseColor = colors.get(ColorType.MAIN_BACKGROUND)
+        val opaqueBase = if (Color.alpha(baseColor) < 24) {
+            if (KeyboardTheme.isDarkThemeActive(context)) 0xFF24252B.toInt() else 0xFFF0F1F4.toInt()
+        } else ColorUtils.setAlphaComponent(baseColor, 255)
+        val header = findViewById<View>(R.id.clipboard_header_scrim)
+        header.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            ClipboardSurfacePolicy.headerStops(opaqueBase))
+        val bottom = findViewById<View>(R.id.clipboard_bottom_glass)
+        bottom.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            ClipboardSurfacePolicy.bottomStops(opaqueBase))
     }
 
     private fun setupUndoBar(colors: Colors) {
@@ -202,10 +255,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun setupHeader(colors: Colors) {
-        val stripColor = colors.get(ColorType.STRIP_BACKGROUND)
-        findViewById<LinearLayout>(R.id.clipboard_toolbar).setBackgroundColor(stripColor)
-        
-        setupHeaderButton(backButton, colors)
+        setupGlassLayers(colors)
         setupHeaderButton(clearButton, colors)
         
         val clearIcon = KeyboardIconsSet.instance.getNewDrawable(ToolbarKey.CLEAR_CLIPBOARD.name, context)
@@ -219,7 +269,6 @@ class ClipboardHistoryView @JvmOverloads constructor(
         titleView.setTextColor(colors.get(ColorType.KEY_TEXT))
         titleView.setOnClickListener { /* Consume clicks */ }
         
-        backButton.setOnClickListener(this)
         clearButton.setOnClickListener(this)
     }
 
@@ -312,7 +361,10 @@ class ClipboardHistoryView @JvmOverloads constructor(
         clipboardRecyclerView.apply {
             adapter = clipboardAdapter
             val keyboardWidth = ResourceUtils.getKeyboardWidth(context, settings.current)
-            layoutParams.width = keyboardWidth
+            val recyclerParams = layoutParams as FrameLayout.LayoutParams
+            recyclerParams.width = keyboardWidth
+            recyclerParams.gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = recyclerParams
 
             // set side padding
             val keyboardAttr = context.obtainStyledAttributes(
@@ -326,6 +378,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             keyboardAttr.recycle()
             setPadding(leftPadding, paddingTop, rightPadding, paddingBottom)
         }
+        updateBottomLayerGeometry(findViewById<View>(R.id.bottom_row_keyboard).height)
 
 
     }
@@ -395,10 +448,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onClick(view: View) {
-        if (view === backButton) {
-            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
-            keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
-        } else if (view === clearButton) {
+        if (view === clearButton) {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
             clipboardHistoryManager.clearHistory()
         }

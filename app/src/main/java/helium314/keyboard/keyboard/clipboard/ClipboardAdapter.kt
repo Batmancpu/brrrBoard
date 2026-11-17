@@ -8,6 +8,7 @@ import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.content.res.ColorStateList
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -49,8 +50,7 @@ class ClipboardAdapter(
     companion object {
         private const val VIEW_TYPE_TEXT = 0
         private const val VIEW_TYPE_IMAGE = 1
-        private const val ROUNDED_ENTRY_RADIUS_DP = 18f
-        private const val DEFAULT_IMAGE_RADIUS_DP = 8f
+        private const val ROUNDED_ENTRY_RADIUS_DP = 16f
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -102,13 +102,10 @@ class ClipboardAdapter(
                 isHapticFeedbackEnabled = false
             }
             val colors = Settings.getValues().mColors
-            val usesRoundedCards = colors.themeStyle == KeyboardTheme.STYLE_ROUNDED
-                    || colors.themeStyle == KeyboardTheme.STYLE_CIRCLE
-            if (usesRoundedCards) {
-                view.background = createRoundedClipboardEntryBackground(view)
-            } else {
-                colors.setBackground(view, ColorType.KEY_BACKGROUND)
-            }
+            // All supported themes share one quiet card silhouette; the glass
+            // fill lets the keyboard material show through instead of a heavy
+            // dark Android-style rectangle.
+            view.background = createRoundedClipboardEntryBackground(view)
             pinnedIconView = view.findViewById<ImageView>(R.id.clipboard_entry_pinned_icon).apply {
                 visibility = View.GONE
                 setImageResource(pinnedIconResId)
@@ -116,47 +113,52 @@ class ClipboardAdapter(
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             imageView = view.findViewById(R.id.clipboard_entry_image)
-            configureImagePreviewCorners(usesRoundedCards)
+            configureImagePreviewCorners()
             contentView = view.findViewById<TextView>(R.id.clipboard_entry_content)?.apply {
                 KeyboardTypeface.applyToTextView(this, null, itemTypeFace ?: android.graphics.Typeface.DEFAULT)
                 setTextColor(itemTextColor)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, itemTextSize)
             }
             clipboardLayoutParams.setItemProperties(view)
-            colors.setColor(pinnedIconView, ColorType.CLIPBOARD_PIN)
+            pinnedIconView.imageTintList = ColorStateList.valueOf(
+                ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_TEXT), 0xC4))
         }
 
         private fun createRoundedClipboardEntryBackground(view: View): StateListDrawable {
             val colors = Settings.getValues().mColors
-            val normalColor = KeyBackgroundUtils.fillColorFor(colors, ColorType.KEY_BACKGROUND)
-            val pressedColor = pressedEntryColor(colors.get(ColorType.KEY_BACKGROUND))
+            val isDark = KeyboardTheme.isDarkThemeActive(view.context)
+            val rawSurface = colors.get(ColorType.MAIN_BACKGROUND)
+            val baseSurface = if (Color.alpha(rawSurface) < 24) {
+                if (isDark) 0xFF24252B.toInt() else 0xFFF0F1F4.toInt()
+            } else ColorUtils.setAlphaComponent(rawSurface, 255)
+            val shade = if (isDark) Color.WHITE else Color.BLACK
+            val normalColor = ColorUtils.setAlphaComponent(
+                ColorUtils.blendARGB(baseSurface, shade, if (isDark) 0.11f else 0.045f),
+                if (isDark) 206 else 198,
+            )
+            val pressedColor = ColorUtils.setAlphaComponent(
+                ColorUtils.blendARGB(baseSurface, shade, if (isDark) 0.18f else 0.09f), 230)
             val radius = ROUNDED_ENTRY_RADIUS_DP * view.resources.displayMetrics.density
+            val outline = ColorUtils.setAlphaComponent(shade, if (isDark) 35 else 18)
+            val border = view.resources.displayMetrics.density.coerceAtLeast(1f).toInt()
             return StateListDrawable().apply {
-                addState(intArrayOf(android.R.attr.state_pressed), roundedRectDrawable(pressedColor, radius))
-                addState(intArrayOf(android.R.attr.state_selected), roundedRectDrawable(pressedColor, radius))
-                addState(intArrayOf(), roundedRectDrawable(normalColor, radius))
+                addState(intArrayOf(android.R.attr.state_pressed), roundedRectDrawable(pressedColor, radius, outline, border))
+                addState(intArrayOf(android.R.attr.state_selected), roundedRectDrawable(pressedColor, radius, outline, border))
+                addState(intArrayOf(), roundedRectDrawable(normalColor, radius, outline, border))
             }
         }
 
-        private fun roundedRectDrawable(color: Int, radius: Float) = GradientDrawable().apply {
+        private fun roundedRectDrawable(color: Int, radius: Float, outline: Int, border: Int) = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius
             setColor(color)
+            setStroke(border, outline)
         }
 
-        private fun pressedEntryColor(normalColor: Int): Int {
-            val base = if (ColorUtils.calculateLuminance(normalColor) < 0.5) Color.WHITE else Color.BLACK
-            return ColorUtils.blendARGB(normalColor, base, 0.10f)
-        }
-
-        private fun configureImagePreviewCorners(usesRoundedCards: Boolean) {
+        private fun configureImagePreviewCorners() {
             val density = imageView.resources.displayMetrics.density
-            val radius = if (usesRoundedCards) {
-                val margin = (imageView.layoutParams as? ViewGroup.MarginLayoutParams)?.leftMargin ?: 0
-                ROUNDED_ENTRY_RADIUS_DP * density - margin
-            } else {
-                DEFAULT_IMAGE_RADIUS_DP * density
-            }.coerceAtLeast(0f)
+            val margin = (imageView.layoutParams as? ViewGroup.MarginLayoutParams)?.leftMargin ?: 0
+            val radius = (ROUNDED_ENTRY_RADIUS_DP * density - margin).coerceAtLeast(0f)
             imageView.outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
                     outline.setRoundRect(0, 0, view.width, view.height, radius)

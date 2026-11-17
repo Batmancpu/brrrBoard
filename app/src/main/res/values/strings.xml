@@ -413,7 +413,7 @@
     <string name="page_down" tools:keep="@string/page_down">Page down</string>
     <string name="undo" tools:keep="@string/undo">Undo</string>
     <string name="clipboard_clip_deleted">Item deleted</string>
-    <string name="clipboard_empty_state">No clipboard items yet\nCopied text and images will appear here</string>
+    <string name="clipboard_empty_state">No Clips</string>
     <string name="clipboard_pin_item">Pin clipboard item</string>
     <string name="clipboard_unpin_item">Unpin clipboard item</string>
     <string name="clipboard_item_pinned">Pinned clipboard item</string>

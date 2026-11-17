@@ -34,12 +34,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="6dp"
-            android:layout_marginHorizontal="8dp"
+            android:layout_marginTop="9dp"
+            android:layout_marginBottom="9dp"
+            android:layout_marginHorizontal="10dp"
             android:hapticFeedbackEnabled="false"
             android:soundEffectsEnabled="false"
             android:ellipsize="end"
+            android:breakStrategy="balanced"
             android:maxLines="4"/>
 
 </LinearLayout>

@@ -27,6 +27,7 @@ import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.view.isGone
 import coil.load
+import coil.request.CachePolicy
 import helium314.keyboard.compat.ClipboardManagerCompat
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardTypeface
@@ -723,7 +724,13 @@ class ClipboardHistoryManager(
             // and a content URI. Coil owns/cancels this view's asynchronous load.
             binding.clipboardSuggestionPreview.apply {
                 contentDescription = latinIME.getString(R.string.clipboard_image_preview)
-                load(rich!!.uri) { crossfade(false) }
+                load(rich!!.uri) {
+                    crossfade(false)
+                    // This chip is ephemeral, not pinned Clipboard history.
+                    // Never persist an extra preview of another app's content.
+                    memoryCachePolicy(CachePolicy.DISABLED)
+                    diskCachePolicy(CachePolicy.DISABLED)
+                }
             }
         }
         KeyboardTypeface.applyToTextView(textView)

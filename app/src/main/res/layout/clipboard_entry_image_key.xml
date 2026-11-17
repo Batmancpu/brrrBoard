@@ -11,8 +11,8 @@
         android:id="@+id/clipboard_entry_image"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="3dp"
-        android:scaleType="centerCrop"
+        android:layout_margin="6dp"
+        android:scaleType="fitCenter"
         android:contentDescription="@string/show_screenshots_in_clipboard"/>
 
     <ImageView
@@ -21,7 +21,7 @@
         android:layout_width="@dimen/config_clipboard_pinned_icon_size"
         android:layout_height="@dimen/config_clipboard_pinned_icon_size"
         android:layout_gravity="top|end"
-        android:layout_margin="8dp"
+        android:layout_margin="10dp"
         android:visibility="gone"/>
 
 </FrameLayout>

@@ -1,5 +1,13 @@
 # brrBoard project context
 
+## 2026-11-17 current mission — B14V visual source checkpoint (CI not yet run)
+
+User authorized a single connected B14V, B10, B11, B12, conditional B13 and B07V group; no B16–B19 and no physical-test requests between batches. The earlier wider authorization is superseded. Verified starting `main` `d6354bfeace3ab47f3f1d9ae9da6ac971b06629d`, signed v1.0.67 SHA-256 `4810acadccfe594970b96f23432505593dae73b4e66253fa27a8838479dcf5ea`, full CI `43946082091` / signer `43946082132` success. No competing new head observed.
+
+Owner rejected B14 first pass visually and asked B14V. Local source candidate replaces split header/list/footer with a single layered viewport; horizontally centered Clipboard title and Clear at end; Back removed (ABC/Emoji return kept); top fade uses translucent theme-color gradient over scrolling content rather than RecyclerView black edge; bottom overlay follows measured ABC row, revealing content faintly below fixed sharp keys without taking private snapshots; empty view is `No Clips`. Rounded translucent image/text cards, 5dp minimum inter-card gap, 16dp corners, smaller subdued pin, full-image `fitCenter`, bounded card height, and input protections remain. No extra footer features. Ephemeral recent image-chip Coil cache disabled. Pure `ClipboardSurfacePolicy` adds two gradient color tests. Full Android CI and physical Reno visual acceptance pending; static XML parse and diff check passed. No live dynamic sibling-blur claim: Android window blur and `RenderEffect` do not provide a cheap scoped RecyclerView backdrop blur inside the IME; use material approximation.
+
+Next: publish guarded B14V main source with context and full regression CI / pinned production signing, append exact commit+APK+signer; then proceed B10 mechanics. Final owner test only after the whole authorized group or real blocker. Future shared contextual status/footer area is a backlog idea, explicitly not implemented.
+
 ## 2026-11-17 new autonomous mission — B14 Clipboard source checkpoint (pending CI)
 
 The latest owner authorization permits all remaining roadmap batches B14, B10–B13, B16–B19 without per-batch approval; it explicitly defers the multipurpose footer status lane. The previous overnight instruction to stop after B09 is historical and superseded. Confirmed live starting `main` `fb9854389ff9717ec521bf8898e5d57be9f322a9` (latest app source `952c8c4`), v1.0.66 production release, SHA-256 `0fe5f8bc568ba3495cd8624ef1c10efb38f45e5d4044d6f95f9f6923eeaf1e0a`, passing actions `43940095584` and `43940095537`.

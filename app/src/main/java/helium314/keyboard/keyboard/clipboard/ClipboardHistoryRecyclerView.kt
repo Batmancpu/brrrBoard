@@ -24,6 +24,7 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
 
     var clipDismissListener: OnClipDismissListener? = null
     var placeholderView: View? = null
+    var onEmptyStateChanged: ((Boolean) -> Unit)? = null
     val historyManager: ClipboardHistoryManager? get() = (adapter as? ClipboardAdapter?)?.clipboardHistoryManager
     @Suppress("unused")
     private val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
@@ -67,6 +68,7 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
     private fun checkAdapterContentChange() {
         if (placeholderView == null) return
         val adapterIsEmpty = adapter == null || adapter?.itemCount == 0
+        onEmptyStateChanged?.invoke(adapterIsEmpty)
         if (isVisible && adapterIsEmpty) {
             placeholderView!!.visibility = VISIBLE
             visibility = INVISIBLE
