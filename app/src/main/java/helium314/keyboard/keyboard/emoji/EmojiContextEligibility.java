@@ -5,10 +5,10 @@ import android.text.InputType;
 import android.view.inputmethod.EditorInfo;
 
 /** Strict, local-only eligibility gate before reading the active editor's text. */
-final class EmojiContextEligibility {
+public final class EmojiContextEligibility {
     private EmojiContextEligibility() {}
 
-    static boolean isEligible(final EditorInfo editorInfo, final boolean incognito) {
+    public static boolean isEligible(final EditorInfo editorInfo, final boolean incognito) {
         return !incognito && editorInfo != null
                 && isEligibleInput(editorInfo.inputType, editorInfo.imeOptions);
     }

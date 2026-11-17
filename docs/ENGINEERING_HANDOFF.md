@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-17 — B13 REFINEMENT SOURCE CANDIDATE, CI PENDING
+
+B13 relies on B11 scorer and B12 approved private editor gate. `EmojiContextScorer.rankEmojiSideCandidates` exposes only reviewed score>=520; `SuggestionStripView.kt` checks `EmojiContextEligibility` from active `LatinIME` and adds context ranking ahead of existing recency *only when decoder already provides >1 Emoji*. `SuggestionStripLayoutHelper.java` now refuses to displace any typed/predicted text side slot, preserving candidate-to-commit mapping and centered text. No Binder context read while typing, no new Emoji appended, no private field Emoji-side reorder. `EmojiContextScorerTest` adds positive and negative strip threshold cases. Source/GitHub tests/signing pending. Next guarded B13 main commit with full CI monitoring, verify APK/cert/digest, then B07V. Mark complete only as source+automated if passes; relevance needs Oppo natural sample.
+
 ## 2026-11-17 — VERIFIED B12, ENTER B13 CONDITIONAL REVIEW
 
 B12 source `1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596`, 11 files including `EmojiContextEligibility`, test and Smart panel layout. Debug full [44031058816](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058816) SUCCESS; production complete gate+original signer [44031058782](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058782) SUCCESS. Exact-target signed v1.0.72, size 38,039,450, package same, versionCode72, SHA-256 `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. Physical Smart/Recents geometry, real editor, TalkBack pending. Next B13 audit `Suggest.kt` existing `isEmoji` candidates, `SuggestionStripView.kt` recency-only rerank and `SuggestionStripLayoutHelper.prioritizeEmojiSideSuggestions` to decide strictly eligible contextual refinement. Safely defer any unproven merged candidate that risks word correctness, then B07V rights-cleared vector overhaul. No further scope.

@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B13 bounded score rerank experiment
+
+Inspected `Suggest.kt` decoder Emoji collection, `SuggestionStripView.kt` existing adaptive reorder, `SuggestionStripLayoutHelper.java` side-slot position mapping. Rejected direct injection of new Emoji and per-keystroke Binder `getTextBeforeCursor`: risks typed correctness/latency, violates conditional B13 acceptance without real-device evidence. New change applies confidence>=520 reviewed rule for typed term only if decoder already has multiple Emoji; keeps adaptive fallback, excludes private/ineligible fields, locks all text slots, and retains original `SuggestedWordInfo` objects for correct commit values. Added positive and weak/sensitive cases. Source diff check and full CI pending, Oppo acceptance pending. Next B13 GitHub test/signing then B07V.
+
 ## 2026-11-17 — B12 actual original-signer CI outcome
 
 B12 source `1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596` contains separate Smart context row/editor strict gating/unit tests. GitHub full debug/unit `44031058816` completed SUCCESS; full production unit/sign/publish `44031058782` completed SUCCESS, original certificate and version/app-id gate preserved. GitHub release v1.0.72 targets exact source, 38,039,450 bytes, digest `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. No CI failures to repair; visual/real keyboard context still unverified. Next B13 inspect existing decoder Emoji outputs and text-candidate mapping; do not add a noisy candidate just to claim feature completion, then B07V.

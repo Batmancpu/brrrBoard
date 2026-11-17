@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B13 conditional contextual strip risks under source test
+
+Existing ordinary suggestion-strip candidate pool contains some dictionary Emoji; B13 only uses reviewed scorer to rank among those, never injects Emoji or moves existing text slots. The accepted-condition downside: if decoder emits no Emoji candidate, B13 does not create one; full contextual strip expansion intentionally deferred to avoid text prediction regressions until owner can validate actual relevance and narrow layouts. Source full CI and Oppo tests pending. If any provider chips, autocorrection or mapping regress, revert forward in small fix. No private context persistence.
+
 ## 2026-11-17 — B12 CI green; on-device Smart behavior pending
 
 B12 [`1fa4db2`](https://github.com/Batmancpu/brrrBoard/commit/1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596) compiled and passed all debug/production Android tests [44031058816](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058816), [44031058782](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058782), original signed [v1.0.72](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.72/brrBoard.apk), digest `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. Remaining physical risk: host EditorInfo object identity must match, compact portrait may suppress Smart row, Smart row/Recents view height, TalkBack, real phrase relevance, category and search transitions. Intentional fail-closed on sensitive/editor text refusal. B13 candidate quality gate still open; B07V visuals pending. No CI failure.

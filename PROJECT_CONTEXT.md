@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 — B13 safe suggestion-strip source candidate
+
+From B12/docs `64b47246c`, eligible contextual scorer prioritizes **existing** dictionary Emoji only if typed term has reviewed confidence >=520; original recency fallback remains. `SuggestionStripLayoutHelper` cannot swap an Emoji into a slot already containing ordinary text, preserving word candidates/center. Private fields and incognito refused; no keystroke IPC or new candidate synthesis. New tests cover birthday/congrats positive, pizza weak, sensitive/URL/negative. Source awaiting debug/full Android unit and original-sign release gate; no device acceptance claim. Next B13 gated release then B07V original rights-cleared Apple-inspired icon set.
+
 ## 2026-11-17 — B12 original-signed v1.0.72 verified; B13 conditional next
 
 B12 [`1fa4db2`](https://github.com/Batmancpu/brrrBoard/commit/1fa4db2ccb04f48dc596d7cc76f4c44e0ae23596) Smart row/privacy source; debug+unit [44031058816](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058816) SUCCESS, original-sign production/unit [44031058782](https://github.com/Batmancpu/brrrBoard/actions/runs/44031058782) SUCCESS. Signed [v1.0.72](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.72/brrBoard.apk) targets exact commit; versionCode72, package `com.orion.frostkeys.brrrboard`, size 38,039,450, SHA-256 `32f214dbbb9b93d47106e5413a34994855f17658f6093457a5a760437c9d57a8`. No hardware visual claim. B13 next inspect existing Emoji-in-strip decoder candidates before contextual merge; B07V vector audit afterward. B14V, B10–B12 device acceptance outstanding. Prior state preserved below.

@@ -355,7 +355,10 @@ final class SuggestionStripLayoutHelper {
         final HashSet<String> alreadyPlacedEmojis = new HashSet<>();
         boolean changed = false;
         for (final int targetIndex : sideSlotIndices) {
-            if (infos.get(targetIndex).isKindOf(SuggestedWordInfo.KIND_TYPED)) {
+            // Protect both typed and predicted text slots. This operation may
+            // only reorder Emoji that are ALREADY visible in Emoji side slots.
+            if (!infos.get(targetIndex).isEmoji()
+                    || infos.get(targetIndex).isKindOf(SuggestedWordInfo.KIND_TYPED)) {
                 lockedSlots.add(targetIndex);
                 continue;
             }

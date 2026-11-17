@@ -69,4 +69,15 @@ public class EmojiContextScorerTest {
         assertEquals(results.get(0).emoji,
                 EmojiContextScorer.rank("I wish you a happy birthday!", false).get(0).emoji);
     }
+
+    @Test public void suggestionStripUsesOnlyHighConfidenceReviewedExistingEmojiRanking() {
+        assertEquals(List.of("🎂", "🎉"),
+                EmojiContextScorer.rankEmojiSideCandidates("happy birthday", false));
+        assertEquals(List.of("🎉"),
+                EmojiContextScorer.rankEmojiSideCandidates("congrats", false));
+        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("pizza", false).isEmpty());
+        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("happy birthday", true).isEmpty());
+        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("mail@example.com", false).isEmpty());
+        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthdayparty", false).isEmpty());
+    }
 }

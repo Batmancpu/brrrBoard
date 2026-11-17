@@ -14,10 +14,11 @@ import java.util.Map;
  * suggestion; broad CLDR search keywords are intentionally not trigger rules.
  * No editor text is retained, logged or modified by this scorer.
  */
-final class EmojiContextScorer {
+public final class EmojiContextScorer {
     private static final int MIN_SCORE = 450;
     private static final int MAX_CONTEXT_CHARS = 160;
     private static final int MAX_RESULTS = 4;
+    private static final int STRIP_MIN_SCORE = 520;
 
     static final class Candidate {
         final String emoji;
@@ -137,6 +138,19 @@ final class EmojiContextScorer {
         sorted.sort(Comparator.comparingInt((Candidate c) -> c.confidence).reversed()
                 .thenComparing(c -> c.emoji));
         return Collections.unmodifiableList(sorted.subList(0, Math.min(MAX_RESULTS, sorted.size())));
+    }
+
+    /**
+     * Compact, strictly high-confidence ranking for existing decoder-provided
+     * Emoji only. Callers must never synthesize or replace a text candidate.
+     */
+    public static List<String> rankEmojiSideCandidates(final String typedWord,
+            final boolean sensitiveField) {
+        final List<String> outputs = new ArrayList<>();
+        for (final Candidate candidate : rank(typedWord, sensitiveField)) {
+            if (candidate.confidence >= STRIP_MIN_SCORE) outputs.add(candidate.emoji);
+        }
+        return Collections.unmodifiableList(outputs);
     }
 
     private static String normalizeSuffix(final String input) {

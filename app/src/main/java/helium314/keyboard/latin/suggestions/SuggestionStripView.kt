@@ -42,6 +42,8 @@ import androidx.core.graphics.ColorUtils
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView
+import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
+import helium314.keyboard.keyboard.emoji.EmojiContextScorer
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
@@ -49,6 +51,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.SuggestedWords
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ColorType
@@ -564,13 +567,22 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
         val hasMultipleEmojiCandidates = suggestions.size() > 1
             && (0 until suggestions.size()).count { suggestions.getInfo(it).isEmoji() } > 1
+        val service = LatinIME.getInstance()
+        val eligibleEditor = EmojiContextEligibility.isEligible(
+            service?.currentInputEditorInfo, Settings.getValues().mIncognitoModeEnabled)
         val suggestionsForStrip = if (
-            !Settings.getValues().mIncognitoModeEnabled
+            eligibleEditor
                 && !suggestions.isEmpty
                 && !suggestions.isPunctuationSuggestions
                 && hasMultipleEmojiCandidates
         ) {
-            val rankedEmojis = EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(context, 48)
+            // No Binder surrounding-text query on this keystroke-hot path.
+            // The deterministic scorer only prioritizes already emitted Emoji;
+            // all ordinary text candidates retain their visible slots.
+            val contextual = EmojiContextScorer.rankEmojiSideCandidates(
+                suggestions.mTypedWordInfo?.mWord, false)
+            val adaptive = EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(context, 48)
+            val rankedEmojis = (contextual + adaptive).distinct()
             layoutHelper.prioritizeEmojiSideSuggestions(suggestions, rankedEmojis)
         } else {
             suggestions
