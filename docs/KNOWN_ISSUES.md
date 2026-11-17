@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B11 gates cleared; B12 UI outstanding
+
+B11 `1c619690` Unicode/CLDR index/scorer passed debug `44029361745` and production `44029361799`; original signed [v1.0.71](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.71/brrBoard.apk), SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`. It intentionally provides **no contextual Smart grid/suggestion UI**; B12 and conditional B13 remain. B14V glass appearance, B10 gestures/landscape, B11 actual user relevance not verified on Oppo. No new CI/source failures. Next guarded B12 context UI, no private context persistence.
+
 **B11 pending automated proof 2026-11-17:** Provenance-pinned CLDR48.2/Unicode17 data index and local reviewed scorer added without activating UI. Critical `#️⃣` keycap collision with `#`-comment detection identified in static audit and handled with `# ` provenance-only prefix; regression fixture covers it. Full CLDR annotations intentionally do not imply high-confidence contextual triggers. Security boundary `EmojiContextScorer.rank(context,sensitiveField)` rejects marked private fields; B12 must enforce real editor/no-learning/epoch before using. CI, p95 on actual Oppo and relevance acceptance are NOT yet verified. No claim that existing Smart tab is contextual yet.
 
 **B10 unit/build/sign gate CLOSED but physical checks OPEN 2026-11-17:** `201ee9e` two workflows `44027022347` / `44027022195` both success, original signed v1.0.70 APK SHA-256 `371166f3771df8438b059f9038cdfbe32a6a8046dd825029a99796e5ccd70590`. No automated failure. On-device concerns remain: keyboard footer overlap in landscape, continuous column scroll feel, Emoji category changes, retained variants and correct Unicode, TalkBack, large font, and repeated panel transitions. Duplicate ABC bottom key intentionally retained pending end-to-end acceptance. Prior source-only note below preserved. B11 now eligible.

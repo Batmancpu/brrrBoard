@@ -1,5 +1,9 @@
 # brrrBoard Experiment & Fix History
 
+## 2026-11-17 — B11 CI and signer verification
+
+B11 source `1c619690`: local TSV 3944/3944 three-field check, generator syntax and diff hygiene passed; local Gradle download blocked (`services.gradle.org` unreachable). GitHub debug+unit [44029361745](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361745) SUCCESS; complete production [44029361799](https://github.com/Batmancpu/brrrBoard/actions/runs/44029361799) SUCCESS including `:app:testRunTestsUnitTest` and original keystore/apksigner certificate/package checks. Signed v1.0.71 exact source target, 38,035,354 bytes SHA-256 `f928ff297e63d3cb1ee9c224354f09ff8e54f654ac0960b59e4af34e30451a65`. B11 no UI changes or real device proof. B12 next, keep historical failed runs below.
+
 ## 2026-11-17 B11 offline contextual metadata and scorer (source pending CI)
 
 CLDR48.2 English primary `fbf0e693ebafbae2dedf90f97b7ad141769941d9` and derived `8ba77741a2ff1e02e2be911b8a3766dc114f1d43` matched to repository Emoji17 `e42fdef494399d2a05b9b75930a3231fe81b2436` fully-qualified sequences. Output `emoji_cldr48_en.tsv` 3944 rows, SHA-256 `c63e913a05d7fcf3c31a755f7bf9e8f680204cde16e12bf725cce38b567bfd29`, 450,626 bytes; complete Unicode-3.0 license packaged. Generator checks Git blob identities, runs separately from app. Pure `EmojiContextIndex` lazy parser uses exact Unicode strings, `EmojiContextScorer` authored 68 reviewed semantic triggers (English/Hinglish), deterministic ranked threshold, bounded/no-retention private-context rules. Positive/negative tests 30+30; ZWJ/skin tone/`#️⃣` and malformed cases. Noticed `#️⃣` starts with literal hash and would otherwise be silently skipped as metadata; parse only `# ` comment rows. `awk` schema 3944/3944 valid, generator syntax and diff checks PASS; local Gradle blocked by unreachable services.gradle.org, no CI yet, no Smart UI change. Next commit+CI/release then B12.
