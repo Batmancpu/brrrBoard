@@ -23,6 +23,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
+import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardActionListener
@@ -40,6 +41,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.ClipboardHistoryEntry
 import helium314.keyboard.latin.ClipboardHistoryManager
+import helium314.keyboard.latin.BoardFooterView
 import helium314.keyboard.latin.FrostedGlassHelper
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.Colors
@@ -141,6 +143,11 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 headerScrim.visibility =
                     if (isEmpty) View.INVISIBLE else View.VISIBLE
             }
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    invalidatePanelGlass()
+                }
+            })
         }
         PanelMaterial.extendIntoFooter(clipboardRecyclerView.parent as View, clipboardRecyclerView)
         clearButton = findViewById(R.id.clipboard_clear_button)
@@ -153,6 +160,12 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 _, left, top, right, bottom, _, _, _, _ ->
             updateBottomLayerGeometry(bottom - top)
         }
+    }
+
+    private fun invalidatePanelGlass() {
+        headerScrim.postInvalidateOnAnimation()
+        findViewById<View>(R.id.clipboard_bottom_glass)?.postInvalidateOnAnimation()
+        rootView.findViewById<BoardFooterView>(R.id.board_footer)?.invalidatePanelGlass()
     }
 
     private fun updateBottomLayerGeometry(rowHeight: Int) {

@@ -90,6 +90,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
+    /** The source may move child views without changing its own scrollX/Y. */
+    fun invalidatePanelGlass() {
+        if (glass.visibility == VISIBLE) glass.postInvalidateOnAnimation()
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     fun bind(owner: LatinIME) {
         if (this::ime.isInitialized && ime === owner) return

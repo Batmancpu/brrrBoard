@@ -252,6 +252,7 @@ public final class EmojiPalettesView extends LinearLayout
         mCategoryPagerAdapter = new EmojiCategoryPagerAdapter(mEmojiCategory, this,
                 mCategoryScrollRows, new EmojiCategoryPagerAdapter.RowScrollCallback() {
                     @Override public void onCategoryRowScrolled(final int categoryId, final int firstRow) {
+                        invalidatePanelGlass();
                         if (categoryId == mEmojiCategory.getCurrentCategoryId()) {
                             final int page = firstRow / Math.max(1, mEmojiCategory.getRowsPerPage());
                             if (page != mEmojiCategory.getCurrentCategoryPageId())
@@ -269,6 +270,10 @@ public final class EmojiPalettesView extends LinearLayout
                 mEmojiCategory.getCurrentCategoryId())), false);
         PanelMaterial.extendIntoFooter(findViewById(R.id.emoji_grid_shell), mPager);
         mPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override public void onPageScrolled(final int position, final float positionOffset,
+                    final int positionOffsetPixels) {
+                invalidatePanelGlass();
+            }
             @Override public void onPageSelected(final int position) {
                 setCurrentCategoryId(mCategoryPagerAdapter.categoryAt(position), true);
             }
@@ -300,6 +305,16 @@ public final class EmojiPalettesView extends LinearLayout
         setupInlineSearchViews();
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
         initialized = true;
+    }
+
+    private void invalidatePanelGlass() {
+        final View header = findViewById(R.id.emoji_header_scrim);
+        final View bottom = findViewById(R.id.emoji_bottom_glass);
+        if (header != null) header.postInvalidateOnAnimation();
+        if (bottom != null) bottom.postInvalidateOnAnimation();
+        final helium314.keyboard.latin.BoardFooterView footer =
+                getRootView().findViewById(R.id.board_footer);
+        if (footer != null) footer.invalidatePanelGlass();
     }
 
     private void setupInlineSearchViews() {

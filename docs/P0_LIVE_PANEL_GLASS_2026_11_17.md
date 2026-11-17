@@ -22,6 +22,8 @@ Baseline main: `41643b2840635cf1bf1be709008721102ff9f887` (B17A synthetic, test-
 
 When the Clipboard panel closes, its top/bottom GPU display lists are released; the global footer drops the previous panel source when normal typing resumes. `RenderNode.endRecording()` now runs in `finally` to avoid a poisoned recording state on exceptional draws.
 
+Additional scroll-frame correction (after compiler repair): a generic `OnScrollChangedListener` alone is not guaranteed to observe `RecyclerView` child-offset animation. The active Clipboard `RecyclerView.OnScrollListener`, Emoji vertical row scroll callback, Emoji `ViewPager2.onPageScrolled`, and Toolbar `ScrollView` callback now explicitly invalidate their own top/bottom overlays **and the shared footer's glass** on motion. Each overlay re-records the current source offset on its next hardware draw. This is essential to keep blurred pixels moving with the finger; only physical-device/video acceptance can confirm the perceptual result. These callbacks do not allocate new bitmap/list items.
+
 Source owners:
 
 | Responsibility | Files |

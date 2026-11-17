@@ -21,6 +21,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
+import helium314.keyboard.latin.BoardFooterView
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.SharedPanelGeometry
 import helium314.keyboard.latin.common.ColorType
@@ -64,6 +65,11 @@ class AccessPointMenuView @JvmOverloads constructor(
         grid = findViewById(R.id.access_point_grid)
         scroll = findViewById(R.id.access_point_scroll)
         PanelMaterial.extendIntoFooter(scroll.parent as View, scroll)
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            findViewById<View>(R.id.access_point_header_scrim)?.postInvalidateOnAnimation()
+            findViewById<View>(R.id.access_point_bottom_glass)?.postInvalidateOnAnimation()
+            rootView.findViewById<BoardFooterView>(R.id.board_footer)?.invalidatePanelGlass()
+        }
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }
         setOnDragListener(dropPinnedKeyListener)
         grid.setOnDragListener(dropPinnedKeyListener)
