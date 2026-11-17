@@ -254,6 +254,14 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         fun nearestAppleAccent(androidAccent: Int): Int {
             val lab = DoubleArray(3)
             ColorUtils.colorToLAB(androidAccent, lab)
+            // Material You tonal palettes may be deliberately near-neutral (as on
+            // Oppo's gray wallpaper theme). Mapping those to the closest vivid
+            // Apple swatch used to turn gray Search/Enter keys orange or brown.
+            // Preserve their perceived lightness as a neutral instead.
+            val chroma = kotlin.math.hypot(lab[1], lab[2])
+            if (chroma < 26.0) {
+                return ColorUtils.LABToColor(lab[0], 0.0, 0.0)
+            }
             val index = iosAccentPalette.indices.minBy { ColorUtils.distanceEuclidean(lab, iosAccentLab[it]) }
             return iosAccentPalette[index]
         }

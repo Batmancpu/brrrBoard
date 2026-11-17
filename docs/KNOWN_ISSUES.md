@@ -186,3 +186,15 @@ NEXT SEPARATE BATCHES: neutral-palette action Search key tint (CIELAB matching f
 ### 2026-11-17 follow-up — restore first-highlight luminance under a fade shader
 
 Review of RoundedKeyboardFrameView.reflection showed both Paint.color alpha and LinearGradient color-stop alpha set to the same sub-opaque value. Canvas combines these opacities; the intended original 0x52/0x30 bright top line became excessively faint under the new fade. When a shader owns the fade, make Paint.color opaque white; preserve the per-style gradient alpha exactly, and leave the non-shader fallback using its previous alpha. This restores the luminosity of the a271e5a original geometry with the desired small side fade, without touching real blur or adding double blur. Verify visually on Oppo after signed CI.
+
+## 2026-11-17 — Focused batch: neutral Material You Search/Enter accent
+
+USER: Oppo Reno 10 system Material You palette is gray, yet action Search key is peach/orange. Want only action key tinted when intentionally colorful, with contrast and subdued Apple-esque vocabulary, never a tinted whole glass slab.
+
+ROOT CAUSE: KeyboardTheme.nearestAppleAccent() unconditionally finds a nearest member of a saturated twelve-color iOS palette in CIELAB, including apple orange and brown, even for near-neutral Android system_accent1_500. That large chroma jump breaks users' neutral grayscale wallpaper palette. Both iOS Tinted Search and optional OG Frost action tint use this function; their text colors already use a contrast check.
+
+IMPLEMENTATION: After the existing CIELAB conversion, compute chroma hypot(a,b). If chroma < 26, preserve L* and return neutral LABToColor(L*,0,0); otherwise use unchanged nearest-Apple palette selection. Scope limited to action-key accent mapping, no changes to background blur, main surface tint or user theme preference. New Robolectric regression test AppleAccentSelectionTest checks gray/taupe neutral behavior, colorful Apple red identity mapping and approximate lightness preservation.
+
+ACCEPTANCE: CI compile/test and original signed APK required; physical Oppo needed to verify neutral Search key under actual wallpaper, legible search icon, optional vibrant theme still colorful and no full-panel tint. No visual acceptance claimed yet.
+
+NEXT: Emoji browse search/category/grid/footer restructuring in separate batch, clipboard text search, icon redesign, dividers and motion highlight after this.
