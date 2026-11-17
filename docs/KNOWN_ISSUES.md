@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B17 swipe quality still unresolved; synthetic replay evidence only
+
+B16B actual source `55933d2d9cc9a41e000e72a59c3f63105ce85523` passed full debug `44047326546`, original production `44047326573`, signed v1.0.78 hash `71685e6742210b05dd73c2083f6bb303257d154e64bf13e3b8394448c7c7ea22`. That only checks parser/math on synthetic lists. Owner says imported glide recognizes gestures but suggests the wrong words; **no real glide replay or device latency measurement exists**. B17A staged test-only fake decoder replay sanity checks (see [B17A](B17A_GLIDE_REPLAY.md)) cannot resolve this. Do not swap native binary, claim candidate improvement or ask owner to run quantitative timing tests without evidence/license review. Physical Oppo v1.0.76 P0 Clipboard crash, unified panel optics and gestures remain open until the user reports; no device logcat available. B17A CI/signing pending.
+
 ## 2026-11-17 — B16B true decoder quality remains an evidence gap
 
 Full B16A debug/Android/Python `44044335856` and production original-signer `44044335909` passed, signed v1.0.77 hash `419a96a8626b3726d0876583f6e60baa6c11acfdba8a089b7c40df557e59d284`, original package/cert. Safe autocorrect targeting/seed determinism only. B16B source now introduces a synthetic-only harness for candidate top-1/top-3 and named/URL protected negative checks; **real next-word dictionary outputs, model accuracy, false correction rate and on-device latency are not measured**. No scoring/frequency changes should be shipped without that evidence. [B16B experiment](B16B_NGRAM_EVALUATION.md). New CI pending. Glide recognition remains user-reported weak (B17), Dictate recognition provider open (B18), and v1.0.76 Clipboard crash recovery remains pending owner Oppo test. Do not claim these fixed by B16.

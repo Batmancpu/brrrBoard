@@ -1,5 +1,7 @@
 # B16B — Next-word quality comparison harness (synthetic-only preflight)
 
+**Terminal source/automation checkpoint (2026-11-17):** Main commit [`55933d2d9cc9a41e000e72a59c3f63105ce85523`](https://github.com/Batmancpu/brrrBoard/commit/55933d2d9cc9a41e000e72a59c3f63105ce85523). Complete debug [44047326546](https://github.com/Batmancpu/brrrBoard/actions/runs/44047326546) and production original-signer [44047326573](https://github.com/Batmancpu/brrrBoard/actions/runs/44047326573) both terminal SUCCESS, including Android unit/build and required Python comparison tests. Public original-signed [v1.0.78 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.78/brrBoard.apk), SHA-256 `71685e6742210b05dd73c2083f6bb303257d154e64bf13e3b8394448c7c7ea22`. This validates the harness, **not** any prediction gain or Oppo physical behavior. The following historical pending-CI statements describe the pre-commit stage and are now superseded. Next B17A isolated gesture/decoder replay checks are documented in [B17A_GLIDE_REPLAY.md](B17A_GLIDE_REPLAY.md).
+
 Date: 17 November 2026. Owner requested continued development while testing the P0 v1.0.76 panels. Branch `main` only. Do **not** treat manually authored candidate lists as real dictionary output or report their scores as prediction quality.
 
 ## Verified starting boundary
