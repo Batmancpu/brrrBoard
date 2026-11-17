@@ -49,6 +49,8 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace testRunTests
       - name: Validate deterministic brrPersonal seed generator (B16A)
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
+      - name: Validate synthetic next-word comparison safety gate (B16B)
+        run: python3 -m unittest discover -s tools -p 'test_evaluate_ngram_predictions.py' -v
       - name: Sign and verify APK
         shell: bash
         env:

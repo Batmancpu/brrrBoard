@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-17 — B16B true decoder quality remains an evidence gap
+
+Full B16A debug/Android/Python `44044335856` and production original-signer `44044335909` passed, signed v1.0.77 hash `419a96a8626b3726d0876583f6e60baa6c11acfdba8a089b7c40df557e59d284`, original package/cert. Safe autocorrect targeting/seed determinism only. B16B source now introduces a synthetic-only harness for candidate top-1/top-3 and named/URL protected negative checks; **real next-word dictionary outputs, model accuracy, false correction rate and on-device latency are not measured**. No scoring/frequency changes should be shipped without that evidence. [B16B experiment](B16B_NGRAM_EVALUATION.md). New CI pending. Glide recognition remains user-reported weak (B17), Dictate recognition provider open (B18), and v1.0.76 Clipboard crash recovery remains pending owner Oppo test. Do not claim these fixed by B16.
+
 ## 2026-11-17 — P0 automatic gate closed; physical crash outcome still open
 
 The deterministic wrong-scope Clipboard header lookup was corrected in `e7f12afda9980d205f672cd8159c942cef6f00f6`. Both full Android test gates [debug 44041419446](https://github.com/Batmancpu/brrrBoard/actions/runs/44041419446) and [original signer 44041419448](https://github.com/Batmancpu/brrrBoard/actions/runs/44041419448) passed; [v1.0.76 signed APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.76/brrBoard.apk), SHA-256 `0eeaf4721fc84536f8345811f29af1ebb966700c3e42c45420ee8bab55353628`. **Not closed:** actual Oppo re-entry crash, empty/text/image/mixed Clipboard access, panel material optics/geometry, Emoji gestures, TalkBack/large font, stability, FPS and actual logged stack trace; no attached device. Owner testing now. The source fix and CI evidence are not a replacement for phone acceptance.

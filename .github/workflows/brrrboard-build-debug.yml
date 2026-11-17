@@ -131,6 +131,13 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
 
+      - name: Validate synthetic next-word comparison safety gate (B16B)
+        if: steps.unit_tests.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tools -p 'test_evaluate_ngram_predictions.py' -v
+
       - name: Print Emoji classifier failure detail
         if: always() && steps.unit_tests.outcome == 'failure'
         shell: bash
