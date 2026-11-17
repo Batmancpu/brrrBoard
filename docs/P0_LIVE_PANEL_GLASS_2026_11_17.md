@@ -20,6 +20,8 @@ Baseline main: `41643b2840635cf1bf1be709008721102ff9f887` (B17A synthetic, test-
 
 `PanelMaterial` supplies common theme parameters and source binding to Clipboard/Toolbar/Emoji. It expands the **real** scroll viewport by the 48 dp footer height in the non-clipping panel layout, so source contents can move beyond the action row toward the global ABC/mic footer. `BoardFooterView` adds a shared live-glass backdrop under its sharp controls, with `InputView` binding the currently visible panel source. The fixed glass overlays consume touches; foreground controls are later siblings. Legacy non-HWUI/Android below 12 has a theme-material fallback, **not** actual live blur.
 
+When the Clipboard panel closes, its top/bottom GPU display lists are released; the global footer drops the previous panel source when normal typing resumes. `RenderNode.endRecording()` now runs in `finally` to avoid a poisoned recording state on exceptional draws.
+
 Source owners:
 
 | Responsibility | Files |
@@ -48,6 +50,10 @@ Search body height is measured as the complete alphabet keyboard plus its search
 - No Apple-owned asset, font, new permission, external capture, signing change or dictionary change was introduced.
 
 ## Verification and acceptance boundary
+
+### Initial CI failure and compiler repair
+
+Exact first source tree `c23b9ec7b397659f182a24d3ddcf1650821095ed`, GitHub main commit `83733642c4e16dd10a09f2c6baf6dff6f31f20c1`. Both initial gates **FAILED at compilation**: [debug 44053381015](https://github.com/Batmancpu/brrrBoard/actions/runs/44053381015) `:app:compileDebugKotlin`, [production 44053381018](https://github.com/Batmancpu/brrrBoard/actions/runs/44053381018) unsigned build. Log showed `AccessPointMenuView.kt:66:40 Cannot infer type for type parameter T` and `:66:79 Unresolved reference parent`: a generic `findViewById(R.id.access_point_scroll)` call with no expected type was unnecessarily used instead of the already-typed `scroll` field. One-line follow-up changes to `scroll.parent as View`; no test or certificate gate was weakened. This is a source compile correction only; replacement CI still pending.
 
 Source-only checks to run before committing: `git diff --check`, JSON/XML syntax verification, exact remote-main lease, and code/hierarchy tests (`SharedPanelGeometryTest`, `EmojiPanelCompositionTest`, prior Clipboard lifecycle test). Local `./gradlew --version --offline` fails because Gradle 8.14.4 is absent and the network cannot reach `services.gradle.org`; Android compilation and all unit tests must run on the **existing full GitHub debug+original-signing CI** before publishing. No APK/commit/workflow success is asserted here before it is observed.
 

@@ -56,6 +56,10 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         if (source !== content) {
             unobserve()
             source = content
+            // Drop the old GPU display list when leaving a sensitive panel.
+            node = null
+            blurWidth = 0
+            blurHeight = 0
             observe()
         }
         this.edge = edge
@@ -138,12 +142,18 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         // RecordingCanvas records draw commands directly in graphics memory;
         // it never allocates a CPU bitmap or stores Clipboard content.
         val recording = renderNode.beginRecording(width, height)
-        val save = recording.save()
-        recording.translate((sourcePosition[0] - overlayPosition[0]).toFloat(),
-            (sourcePosition[1] - overlayPosition[1]).toFloat())
-        content.draw(recording)
-        recording.restoreToCount(save)
-        renderNode.endRecording()
+        try {
+            val save = recording.save()
+            try {
+                recording.translate((sourcePosition[0] - overlayPosition[0]).toFloat(),
+                    (sourcePosition[1] - overlayPosition[1]).toFloat())
+                content.draw(recording)
+            } finally {
+                recording.restoreToCount(save)
+            }
+        } finally {
+            renderNode.endRecording()
+        }
         canvas.drawRenderNode(renderNode)
     }
 }

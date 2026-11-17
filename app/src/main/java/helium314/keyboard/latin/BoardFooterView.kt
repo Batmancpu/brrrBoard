@@ -85,6 +85,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         glass.visibility = if (source == null) GONE else VISIBLE
         if (source != null) {
             PanelMaterial.apply(context, Settings.getValues().mColors, null, glass, source)
+        } else {
+            glass.configure(null, PanelGlassOverlayView.Edge.BOTTOM, Color.TRANSPARENT)
         }
     }
 

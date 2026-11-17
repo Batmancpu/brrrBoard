@@ -388,6 +388,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         lastDismissedEntry = null
         lastDismissedPosition = -1
         if (!this::clipboardAdapter.isInitialized) return
+        // Do not retain transient Clipboard pixels in the offscreen GPU list.
+        PanelMaterial.apply(context, Settings.getValues().mColors, headerScrim,
+            findViewById(R.id.clipboard_bottom_glass), null)
         clipboardRecyclerView.adapter = null
         clipboardHistoryManager.setHistoryChangeListener(null)
         clipboardAdapter.clipboardHistoryManager = null

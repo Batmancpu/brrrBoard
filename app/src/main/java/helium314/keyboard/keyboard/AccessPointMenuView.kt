@@ -63,7 +63,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
         grid = findViewById(R.id.access_point_grid)
         scroll = findViewById(R.id.access_point_scroll)
-        PanelMaterial.extendIntoFooter(findViewById(R.id.access_point_scroll).parent as View, scroll)
+        PanelMaterial.extendIntoFooter(scroll.parent as View, scroll)
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }
         setOnDragListener(dropPinnedKeyListener)
         grid.setOnDragListener(dropPinnedKeyListener)
