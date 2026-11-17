@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    SPDX-FileCopyrightText: Material Design Authors / Google LLC
-    SPDX-License-Identifier: Apache-2.0
--->
+<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960">
-    <path
-        android:fillColor="#FFF"
-        android:pathData="M480,880Q454,880 433,867.5Q412,855 400,834L400,834Q367,834 343.5,810.5Q320,787 320,754L320,612Q261,573 225.5,509Q190,445 190,370Q190,249 274.5,164.5Q359,80 480,80Q601,80 685.5,164.5Q770,249 770,370Q770,447 734.5,510Q699,573 640,612L640,754Q640,787 616.5,810.5Q593,834 560,834L560,834Q548,855 527,867.5Q506,880 480,880ZM400,754L560,754L560,718L400,718L400,754ZM400,678L560,678L560,640L400,640L400,678ZM510,560L510,452L577,385Q586,376 586,364Q586,352 577,343Q568,334 556,334Q544,334 535,343L480,398L425,343Q416,334 404,334Q392,334 383,343Q374,352 374,364Q374,376 383,385L450,452L450,560L510,560Z"/>
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.5 C7.7,2.5 4.8,5.4 4.8,9.4 C4.8,12.1 6.15,14.1 8.3,15.5 V17.8 H15.7 V15.5 C17.85,14.1 19.2,12.1 19.2,9.4 C19.2,5.4 16.3,2.5 12,2.5 Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8.7,19.2 H15.3 V20.55 H8.7 Z M9.8,21.3 H14.2 Q13.85,22.8 12,22.8 Q10.15,22.8 9.8,21.3 Z" />
 </vector>

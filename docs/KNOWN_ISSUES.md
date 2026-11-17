@@ -119,3 +119,11 @@ This is the current engineering watchlist. Items are not fixed until CI, source 
 2. **Install/update evidence:** owner verifies installation and in-place update on Reno10.
 3. **Runtime evidence:** the owner exercises the affected path on the actual device.
 4. **Regression evidence:** report existing automatic CI results; no issue is marked fixed solely from compilation.
+
+
+### November 17, 2026 — P0.B Apple-inspired icon system implementation
+- Roadmap: `docs/REMAINING_BATCHES_2026_11_17.md` defines P0/P1/P2 remaining work and acceptance gates.
+- P0.A original-signed v1.0.83 (commit `93a437ac`) passed debug and production unit-test and signing pipelines; real Oppo physical validation pending.
+- P0.B source pass: original tintable Emoji/ABC/microphone/Toolbar, delete/Search/Return/Clipboard/globe vectors; unified `KeyboardIconsSet` mappings across Holo/Material/Rounded for major controls; all 11 Emoji category vectors and smart sparkle normalized; Emoji category padding 6dp -> 3dp, selected badge radius .48 -> .41, idle alpha .45 -> .64; inline Emoji search icon unified; Shift optical stroke strengthened.
+- Preserve theme-aware tint, long-press actions, accessibility descriptions, custom icon override behavior, original signing, and main-only workflow. Compilation/device visual acceptance to be checked by CI and Oppo testing. Apple asset copying deliberately avoided; artwork is brrBoard-original or existing Apache-2.0 material gear.
+- Still open: real dual-layer glass and offset/scroll geometry acceptance, Emoji Search physical text/no-text tests, Dictate microphone integration, other P1/P2 batches. Do not mark the roadmap complete.

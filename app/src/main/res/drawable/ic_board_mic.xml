@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="31dp" android:height="31dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M12,2 C9.8,2 8.2,3.7 8.2,5.8 V11 C8.2,13.2 9.8,14.8 12,14.8 C14.2,14.8 15.8,13.2 15.8,11 V5.8 C15.8,3.7 14.2,2 12,2 Z" />
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="2" android:strokeLineCap="round"
-        android:strokeLineJoin="round" android:pathData="M5.4,10.6 V11.2 C5.4,15 8.3,17.8 12,17.8 C15.7,17.8 18.6,15 18.6,11.2 V10.6 M12,18 V22 M9.4,22 H14.6" />
+    android:width="31dp" android:height="31dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.0 C9.75,2.0 8.3,3.75 8.3,5.85 V10.8 C8.3,13.2 9.75,14.9 12,14.9 C14.25,14.9 15.7,13.2 15.7,10.8 V5.85 C15.7,3.75 14.25,2 12,2 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.25" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M5.2,10.8 V11.05 C5.2,14.95 8.0,17.9 12,17.9 C16,17.9 18.8,14.95 18.8,11.05 V10.8 M12,18 V21.8 M8.9,21.8 H15.1" />
 </vector>

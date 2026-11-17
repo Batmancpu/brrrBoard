@@ -1,13 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original balanced brrBoard ABC glyph; SPDX-License-Identifier: GPL-3.0-only -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="31dp"
-    android:height="31dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2.15"
-        android:strokeLineCap="round"
+    android:width="29dp" android:height="29dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.95" android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M1.6,20 L4.45,4.3 Q4.75,3.1 5.05,4.3 L7.9,20 M2.45,15 L7.05,15 M10,4 L10,20 M10,4 H12.6 C16,4 16,9.4 12.6,9.4 H10 M10,9.4 H13 C16.5,9.4 16.5,20 13,20 H10 M22.3,6 C21.1,4.4 19.9,4 18.7,4.5 C14.7,6.2 14.7,17.8 18.7,19.5 C19.9,20 21.1,19.6 22.3,18" />
+        android:pathData="M1.5,18.8 L4.1,5.5 Q4.4,4.1 4.8,5.5 L7.4,18.8 M2.4,14 H6.5 M9.45,5.3 V18.7 M9.45,5.3 H12.1 C15.25,5.3 15.25,11.65 12.1,11.65 H9.45 M9.45,11.65 H12.5 C15.75,11.65 15.75,18.7 12.5,18.7 H9.45 M22.2,7.2 C20.9,5.55 19.7,4.8 18.35,5.4 C14.75,7.05 14.75,16.95 18.35,18.6 C19.7,19.2 20.9,18.45 22.2,16.8" />
 </vector>

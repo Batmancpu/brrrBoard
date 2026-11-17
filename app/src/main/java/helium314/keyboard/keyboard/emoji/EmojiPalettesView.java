@@ -225,7 +225,7 @@ public final class EmojiPalettesView extends LinearLayout
         mColors.setBackground(iconView, ColorType.STRIP_BACKGROUND);
         mColors.setColor(iconView, ColorType.EMOJI_CATEGORY);
         iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        final int iconPadding = (int) (6 * getContext().getResources().getDisplayMetrics().density);
+        final int iconPadding = (int) (3 * getContext().getResources().getDisplayMetrics().density);
         iconView.setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
         iconView.setImageResource(mEmojiCategory.getCategoryTabIcon(categoryId));
         iconView.setContentDescription(mEmojiCategory.getAccessibilityDescription(categoryId));
@@ -1880,7 +1880,7 @@ public final class EmojiPalettesView extends LinearLayout
         public TabImageView(Context context) {
             super(context);
             // Start faded by default
-            setAlpha(0.45f);
+            setAlpha(0.64f);
         }
 
         public void setSelectedCategory(boolean selected, int accentColor) {
@@ -1889,7 +1889,7 @@ public final class EmojiPalettesView extends LinearLayout
             if (selected) {
                 setAlpha(1.0f);
             } else {
-                setAlpha(0.45f);
+                setAlpha(0.64f);
                 // restore normal unselected tint via clearColorFilter
                 clearColorFilter();
             }
@@ -1899,7 +1899,7 @@ public final class EmojiPalettesView extends LinearLayout
         @Override
         protected void onDraw(Canvas canvas) {
             if (mIsSelectedCategory) {
-                float radius = Math.min(getWidth(), getHeight()) * 0.48f;
+                float radius = Math.min(getWidth(), getHeight()) * 0.41f;
                 canvas.drawCircle(getWidth() / 2f, getHeight() / 2f, radius, mCirclePaint);
             }
             super.onDraw(canvas);

@@ -1,0 +1,56 @@
+# brrBoard — Remaining Engineering Batches (November 17, 2026)
+
+Owner: continuing implementation engineer. Branch: `main` only. Target: Oppo Reno 10 5G. This is the live execution and acceptance sequence, not a claim that untested work is done.
+
+## Non-negotiable surfaces and release policy
+- Whole IME: one visually continuous native/fallback frosted surface sampling host-app background when Android allows it.
+- Internal panels: separate content-aware local blur from the *panel's own scrolling Emoji, Clipboard or Toolbar content*, beneath fixed sharp controls, including spacebar and footer. Never double-blur the host app to simulate the inner blur.
+- Keep Original Frosted Glass, iOS Clear and iOS Tinted; don't globally tint the backdrop.
+- Avoid Apple-proprietary symbol assets/fonts. Closely match visual proportions with original or redistributable vectors; keep optical size, weight, tint and hit targets consistent.
+- Keep original production signing / in-place updates. Ship from GitHub CI only after required unit tests and signed verification pass.
+- Each batch gets durable context, tests or explicit physical-device checks, and a clear release checkpoint.
+
+## Ordered batches
+
+### P0.A — Recover glass and Emoji Search foundation
+State: Source commit `93a437ac`, released original-signed as v1.0.83; physical acceptance PENDING.
+- Remove opaque internal glass underpaint and footer black side gutters; local CLDR English Emoji search fallback; ABC exits search.
+- On-device gate: yellow/red Emoji and Clipboard images move beneath the softened spacebar/footer; no artificial black/grey slabs, no top blank block, Search returns English results and ABC exits immediately.
+
+### P0.B — Cohesive Apple-inspired icon family (STARTED)
+- Original 24x24-optical icon family for Emoji/ABC/microphone/Toolbar, search/delete/return/globe/Clipboard, with unified keyboard/Toolbar mapping and consistent Emoji-category vector weight.
+- Keep user custom icon overrides; all themes honor foreground tint; avoid shipping Apple-proprietary files.
+- Fix tiny category icons caused by 6dp insets, improve unselected contrast, reduce selected-category oversized circle.
+- Gate: no hollow/thin/black mismatched icons on bright or dark host app, icons identifiable at phone size, buttons remain accessible.
+
+### P0.C — Shared real panel geometry and compositor validation
+- Audit `PanelMaterial.extendIntoFooter` and coordinate mapping of RenderNode content; eliminate artificial overlay bars, stray overflow, footer/lower-strip slabs, clipping seams and duplicate background painting.
+- Ensure one moving vertical content source, fixed glass header/controls, localized top fade versus hard-start bottom material, correct touch exclusion.
+- Gate: visual frame-by-frame swipe behind both bars on Emoji, Toolbar and Clipboard on Oppo, with no ghosting, black gutters or host-app double sampling.
+
+### P1.A — Emoji navigation and Search behavior
+- Complete three QWERTY letter rows and normal bottom row during Search, one horizontally scrolling results row, reliable English CLDR index and no host text leaks.
+- Finger-following horizontal category pages, spring-back and fling thresholds, preserve per-category vertical rows, proper gesture disambiguation.
+- Gate: slow partial drag settles correctly; horizontal and vertical gestures don't interfere; Search smile/heart/coffee and no-match state work.
+
+### P1.B — Clipboard/Toolbar interaction design
+- Centered fixed headings, image cards with natural aspect ratio, pinned/text/rich-content behavior, control row alignment and cross-panel consistent glass.
+- Remove duplicate ABC/back buttons and card overlap, ensure undo/clear/pin safety and repeated opening never crashes.
+- Gate: image + text clipboard populated and empty, scrolling behind glass, all legitimate tools operate.
+
+### P2.A — Normal typing geometry and theme reconciliation
+- iOS-like key shape/size/spacing, bottom-row and suggestion centering, Search/Enter variants, keyboard height and no unexplained navigation gap.
+- Preserve 3 themes, glass accent restraint, brrBoard caption, system dismissal animation, globe hold menu, big number pad hold-123.
+- Gate: day/night, portrait/landscape, Chrome/WhatsApp/Instagram keyboard input with consistent geometry.
+
+### P2.B — Dictation and audio integration
+- Diagnose Oppo permission/AppOps/RecognitionService with sanitized stage/error logs; verify English language output and external Dictate compatibility before changing audio architecture.
+- No raw speech, typed text, passwords or Clipboard in diagnostics; no unsolicited upstream issue.
+- Gate: start/cancel/transcribe with correct English and no silent audio-capture failures.
+
+### P2.C — Swipe typing, performance and accessibility
+- Confirm shipped gesture data/library, long typing responsiveness, low GC over scrolling, stable panel height, TalkBack/touch targets, regression coverage and signing stability.
+- Gate: stable performance and zero critical crashes in physical-device run.
+
+## Current acceptance truth
+Automated compilation, local tests and release signing cannot prove glass quality, Apple-like optical balance, microphone access on ColorOS, or actual swiping behavior. Those are physical-device gates. Do not close these batches based solely on a green CI badge.

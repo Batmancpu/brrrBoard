@@ -382,3 +382,11 @@ The build-time generator `tools/prepare_brrpersonal.py` pins PHINC revision `44b
 The catalog remains 19 main language dictionaries plus existing Emoji dictionaries; available locale behavior is unchanged. brrPersonal loads for English or Romanized Hindi; explicit Android personal words are separate. Existing reset code clears only TYPE_USER_HISTORY / learned history and leaves brrPersonal and Android’s explicit personal dictionary intact. No data was cleared or rewritten.
 
 Status: PARTIAL pending workflow fingerprint, language-specific cold/warm latency and accuracy benchmark, and Reno10 device behavior. The local runtime and phone are unavailable in this session; no latency/quality numbers are claimed. Next exact action: read the generated TSV fingerprint from the triggered Actions run, then establish the disjoint R3 phrase set and capture cold/warm latency before any frequency or ranking change. If the run fails, diagnose its log before continuing.
+
+
+### November 17, 2026 — P0.B Apple-inspired icon system implementation
+- Roadmap: `docs/REMAINING_BATCHES_2026_11_17.md` defines P0/P1/P2 remaining work and acceptance gates.
+- P0.A original-signed v1.0.83 (commit `93a437ac`) passed debug and production unit-test and signing pipelines; real Oppo physical validation pending.
+- P0.B source pass: original tintable Emoji/ABC/microphone/Toolbar, delete/Search/Return/Clipboard/globe vectors; unified `KeyboardIconsSet` mappings across Holo/Material/Rounded for major controls; all 11 Emoji category vectors and smart sparkle normalized; Emoji category padding 6dp -> 3dp, selected badge radius .48 -> .41, idle alpha .45 -> .64; inline Emoji search icon unified; Shift optical stroke strengthened.
+- Preserve theme-aware tint, long-press actions, accessibility descriptions, custom icon override behavior, original signing, and main-only workflow. Compilation/device visual acceptance to be checked by CI and Oppo testing. Apple asset copying deliberately avoided; artwork is brrBoard-original or existing Apache-2.0 material gear.
+- Still open: real dual-layer glass and offset/scroll geometry acceptance, Emoji Search physical text/no-text tests, Dictate microphone integration, other P1/P2 batches. Do not mark the roadmap complete.

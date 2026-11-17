@@ -68,8 +68,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
     private val shortcuts = listOf(
         Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
-        Shortcut(R.string.clipboard, R.drawable.sym_keyboard_clipboard_lxx, FooterShortcutPolicy.Action.CLIPBOARD),
-        Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_lxx, FooterShortcutPolicy.Action.SETTINGS),
+        Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
+        Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_rounded, FooterShortcutPolicy.Action.SETTINGS),
     )
 
     private data class Shortcut(val label: Int, val icon: Int, val action: FooterShortcutPolicy.Action)
