@@ -54,13 +54,15 @@ fun AboutScreen(
     val items = listOf(
         SettingsWithoutKey.APP,
         SettingsWithoutKey.VERSION,
+        SettingsWithoutKey.MANGOLOADS,
+        SettingsWithoutKey.GITHUB,
+        SettingsWithoutKey.STAR_REPOSITORY,
+        SettingsWithoutKey.REPORT_ISSUE,
         SettingsWithoutKey.PRIVACY_POLICY,
         SettingsWithoutKey.LICENSE,
         SettingsWithoutKey.HIDDEN_FEATURES,
-        SettingsWithoutKey.MANGOLOADS,
         SettingsWithoutKey.INLINE_VOICE,
         SettingsWithoutKey.VOICE_SERVICE,
-        SettingsWithoutKey.GITHUB,
         SettingsWithoutKey.SAVE_LOG,
     )
     SearchSettingsScreen(
@@ -191,6 +193,26 @@ fun createAboutSettings(context: Context) = listOf(
                 ctx.startActivity(intent)
             },
             icon = R.drawable.ic_settings_about_github
+        )
+    },
+    Setting(context, SettingsWithoutKey.STAR_REPOSITORY,
+        R.string.about_star_repo, R.string.about_star_repo_description) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Links.STAR_REPOSITORY.toUri())) },
+            icon = R.drawable.ic_brr_star
+        )
+    },
+    Setting(context, SettingsWithoutKey.REPORT_ISSUE,
+        R.string.about_report_issue, R.string.about_report_issue_description) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Links.ISSUES.toUri())) },
+            icon = R.drawable.ic_brr_issue
         )
     },
     Setting(context, SettingsWithoutKey.SAVE_LOG, R.string.save_log) { setting ->

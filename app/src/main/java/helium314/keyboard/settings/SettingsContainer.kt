@@ -79,6 +79,8 @@ object SettingsWithoutKey {
     const val GITHUB = "github"
     const val GITHUB_WIKI = "github_wiki"
     const val MANGOLOADS = "mangoloads"
+    const val STAR_REPOSITORY = "star_repository"
+    const val REPORT_ISSUE = "report_issue"
     const val INLINE_VOICE = "inline_voice"
     const val VOICE_SERVICE = "voice_service"
     const val SAVE_LOG = "save_log"

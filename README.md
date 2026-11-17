@@ -1,29 +1,48 @@
-# My brrBoard
+# brrBoard
 
-brrBoard is my personal Android keyboard for the OPPO Reno10 5G. I want the clean, compact feel of an iPhone keyboard with Android's own input-method behavior and useful English/Hinglish typing.
+**A beautifully considered Android keyboard. By Mangoloads.**
 
-## What I use
+brrBoard combines a fast, local-first typing engine with a restrained frosted-glass interface inspired by the clarity and rhythm of modern mobile keyboards.
 
-- English (US/UK) and Romanized Hindi/Hinglish keyboards
-- brrPersonal: a finite offline dictionary with personal spelling, slang and Emoji shortcuts
-- Frosted Glass visuals with system light/dark appearance and optional Apple-inspired action-key tint
-- Emoji and clipboard panels with local Emoji recency
-- Local word learning and a confirmation-protected way to clear learned typing history
-- Dictation through Android's selected RecognitionService. My Dictate app handles transcription using its own language setting and may use its configured network provider.
+## What makes it brrBoard
 
-## Get the latest signed build
+- **Frosted Glass** — the system backdrop and in-keyboard Emoji, Toolbar and Clipboard content are different materials, with independently controlled rendering.
+- **Comfortable typing** — English and Hinglish layouts, smart suggestions, custom personal words and optional offline gesture typing libraries.
+- **Expressive tools** — searchable Emoji, local Clipboard history, familiar editing shortcuts and an accessible microphone control.
+- **Choice and control** — local backup/restore for your keyboard settings, words and compatible gesture library. No advertising or in-app donations.
 
-[Download the latest signed APK](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrrBoard.apk) · [Release notes](https://github.com/Batmancpu/brrrBoard/releases/latest) · [Set up Obtainium](docs/OBTAINIUM.md)
+brrBoard itself does not request internet access. If you use dictation, Android's selected speech recognition service manages audio processing and may use a network provider; see the [privacy policy](PRIVACY_POLICY.md).
 
-For English-only Dictate transcription, set **Dictate → Languages → Active language → English** and turn off **Follow keyboard language**. The latest build requests English and blocks confident non-English or Devanagari results, but Dictate controls its saved language and the owner still needs to verify English output on the Reno10. Latin-script Hindi cannot be reliably identified from the transcript alone.
+## Install
 
-## Project notes
+**[Download the latest signed brrBoard APK](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk)** · [Releases](https://github.com/Batmancpu/brrrBoard/releases) · [Obtainium setup](docs/OBTAINIUM.md)
 
-- [Current checkpoint and exact next steps](PROJECT_CONTEXT.md)
-- [Post-v1.0.19 Reno10 implementation plan](docs/POST_V1_0_19_RENO10_PLAN.md)
-- [Conversation and handoff record](docs/PROJECT_CONVERSATION.md)
+### New Android package identity
+
+Beginning with the Mangoloads identity release, the application ID is `com.mangoloads.board`. This is a **separate Android application** from the earlier `com.orion.frostkeys.brrrboard` builds; it cannot update the old installation in place. To bring existing data:
+
+1. In your old brrBoard installation, export a local ZIP through Settings → Backup and restore. Confirm the ZIP exists in Downloads/brrBoard.
+2. Install the new APK. Keep the old installation until the new one has passed your checks.
+3. Open the new brrBoard → Settings → Backup and restore → Restore, and select your saved ZIP.
+4. Verify personal words, settings and swipe typing library, then enable the new brrBoard under Android's keyboard list. Remove the older app only when satisfied.
+
+Backup ZIPs may include learned words and Clipboard history. They are **not encrypted**; keep them private.
+
+For English-only transcription in an external Dictate service, set **Dictate → Languages → Active language → English**, disable Follow keyboard language, and verify its own privacy/settings. brrBoard cannot override upstream recognition behavior.
+
+## Support and feedback
+
+No payment required. If brrBoard helps you, **[star the project](https://github.com/Batmancpu/brrrBoard)**. Have an idea or found a bug? **[Open an issue](https://github.com/Batmancpu/brrrBoard/issues)**.
+
+Explore more independently made projects at **[Mangoloads](https://batmancpu.github.io/mangoloads/)** · [GitHub profile](https://github.com/Batmancpu).
+
+## Engineering notes
+
+- [Current implementation checkpoint](PROJECT_CONTEXT.md)
+- [Open work and regressions](docs/KNOWN_ISSUES.md)
+- [Engineering handoff](docs/ENGINEERING_HANDOFF.md)
 - [Privacy policy](PRIVACY_POLICY.md)
 
-## Source and licenses
+## Open-source attribution
 
-This project is based on [FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), HeliBoard, OpenBoard and AOSP LatinIME. See [LICENSE](LICENSE), [Apache notices](LICENSE-Apache-2.0) and [asset license](LICENSE-CC-BY-SA-4.0).
+brrBoard is derived from the open-source [FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), HeliBoard, OpenBoard and AOSP LatinIME projects. Their required license notices and credits remain intact. See [GPL](LICENSE), [Apache notices](LICENSE-Apache-2.0) and [asset licenses](LICENSE-CC-BY-SA-4.0). Design inspiration does not imply endorsement by Apple.

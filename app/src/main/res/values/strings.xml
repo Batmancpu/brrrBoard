@@ -481,8 +481,8 @@
     <!-- Description for English (UK) keyboard subtype
          (UK) should be an abbreviation of United Kingdom. -->
     <string name="subtype_english_picker">English</string>
-    <string name="about_mangoloads">About MangoLoads</string>
-    <string name="about_mangoloads_description">brrBoard is maintained by Batmancpu. See this and other projects on the MangoLoads website.</string>
+    <string name="about_mangoloads">By Mangoloads</string>
+    <string name="about_mangoloads_description">Independent apps, thoughtfully made. Explore Mangoloads.</string>
     <string name="board_language_and_shortcuts">Emoji. Hold to choose Emoji, clipboard, or settings.</string>
     <string name="board_return_to_letters">Switch to letters. Hold to choose Emoji, clipboard, or settings.</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
@@ -903,7 +903,7 @@ New dictionary:
     <!-- version for about screen -->
     <string name="version">Version</string>
     <!-- github repo link for about screen -->
-    <string name="about_github_link">View on GitHub</string>
+    <string name="about_github_link">Source code and releases</string>
     <!-- link to Telegram channel in about screen -->
     <string name="join_telegram_community">Join Telegram community</string>
     <!-- link to Discord server in about screen -->
@@ -1148,7 +1148,7 @@ New dictionary:
         Submitted data will be downloaded and deleted from the ProtonMail mailbox where it is stored at our earliest convenience.
         After the gesture data gathering phase has ended, the accumulated data set from all users will be published under the Creative Commons BY-SA 4.0 license.\n\n
 
-        As part of trying to protect your privacy, you won\'t be listed explicitly as an author. Your credit will be as \"The Orion Gesture Data Project Contributors.\" It should not be possible to connect the data you generate in this screen to your identity. However, it might be possible to determine which gestures were made by the same person.
+        As part of trying to protect your privacy, you won\'t be listed explicitly as an author. Your credit will be as \"The brrBoard Gesture Data Project Contributors.\" It should not be possible to connect the data you generate in this screen to your identity. However, it might be possible to determine which gestures were made by the same person.
         This can be done e.g. from a custom keyboard layout, keyboard dimensions, language, or individual gesturing style.\n\n
     </string>
     <!-- Button text for showing gesture_data_description_privacy
@@ -1316,4 +1316,8 @@ New dictionary:
     <string name="compat_input_mode_force_raw">Force composing-less (Raw commit)</string>
     <string name="emoji_browse_search_hint">Search Emoji</string>
     <string name="emoji_browse_delete">Delete character</string>
+    <string name="about_star_repo">Star brrBoard on GitHub</string>
+    <string name="about_star_repo_description">Support this project with a star. No donations needed.</string>
+    <string name="about_report_issue">Report an issue</string>
+    <string name="about_report_issue_description">Bugs, suggestions and feature requests for brrBoard.</string>
 </resources>

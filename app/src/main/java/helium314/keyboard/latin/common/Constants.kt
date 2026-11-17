@@ -8,6 +8,9 @@ object Links {
     const val DICTIONARY_EXPERIMENTAL_SUFFIX = "dictionaries_experimental/"
     const val DICTIONARY_EMOJI_CLDR_SUFFIX = "emoji_cldr_signal_dictionaries/"
     const val GITHUB = "https://github.com/Batmancpu/brrrBoard"
+    const val GITHUB_PROFILE = "https://github.com/Batmancpu"
+    const val STAR_REPOSITORY = GITHUB
+    const val ISSUES = "$GITHUB/issues"
     const val MANGOLOADS = "https://batmancpu.github.io/mangoloads/"
     private const val UPSTREAM_GITHUB = "https://github.com/HeliBorg/HeliBoard"
     const val LICENSE = "$GITHUB/blob/main/LICENSE"

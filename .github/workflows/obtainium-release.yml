@@ -101,7 +101,7 @@ jobs:
           badging="$("$sdk_tools/aapt" dump badging "$apk")"
           grep -Fx "application-label:'brrBoard'" <<< "$badging"
           package="${badging%%$'\n'*}"
-          [[ "$package" == "package: name='com.orion.frostkeys.brrrboard' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
+          [[ "$package" == "package: name='com.mangoloads.board' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
           printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - name: Publish GitHub release
         shell: bash

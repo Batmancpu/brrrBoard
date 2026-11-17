@@ -61,7 +61,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.orion.frostkeys"
+        applicationId = "com.mangoloads.board"
         minSdk = 24
         targetSdk = 36
         versionCode = providers.of(GitCommitCountValueSource::class.java) {}.get()
@@ -90,9 +90,11 @@ android {
         }
         create("obtainium") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".brrrboard"
+            // Production Obtainium APK has the exact public identity.
+            // The old com.orion.frostkeys.brrrboard package remains separately
+            // installed for safe local-backup migration; no update-in-place.
             manifestPlaceholders["stickerProviderAuthority"] =
-                "${defaultConfig.applicationId}.brrrboard.stickercontentprovider"
+                "${defaultConfig.applicationId}.stickercontentprovider"
             isMinifyEnabled = false
         }
         create("nouserlib") { // same as release, but does not allow the user to provide a library

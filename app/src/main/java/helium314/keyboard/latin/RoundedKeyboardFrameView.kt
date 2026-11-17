@@ -34,7 +34,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     private val topHighlightPath = Path()
     private val topHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
+        // Butt caps avoid bright end bulbs where the rim meets side highlights.
+        strokeCap = Paint.Cap.BUTT
         strokeJoin = Paint.Join.ROUND
         strokeWidth = resources.displayMetrics.density
     }
@@ -182,10 +183,18 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         )
         val edge = stroke / 2f
         topHighlightPath.reset()
+        // A true quarter-circle matching clipPath.addRoundRect, not a quadratic
+        // curve that leaves a doubled specular streak at each corner.
         topHighlightPath.moveTo(edge, radius)
-        topHighlightPath.quadTo(edge, edge, radius, edge)
+        topHighlightPath.arcTo(
+            RectF(edge, edge, 2f * radius - edge, 2f * radius - edge),
+            180f, 90f, false
+        )
         topHighlightPath.lineTo(width - radius, edge)
-        topHighlightPath.quadTo(width - edge, edge, width - edge, radius)
+        topHighlightPath.arcTo(
+            RectF(width - 2f * radius + edge, edge, width - edge, 2f * radius - edge),
+            270f, 90f, false
+        )
         canvas.drawPath(topHighlightPath, topHighlightPaint)
     }
 

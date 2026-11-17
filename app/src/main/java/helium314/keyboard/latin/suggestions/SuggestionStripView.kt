@@ -186,7 +186,16 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             KeyboardTypeface.applyToTextView(word)
             colors.setBackground(word, ColorType.STRIP_BACKGROUND)
             wordViews.add(word)
-            val divider = inflater.inflate(R.layout.suggestion_divider, null)
+            val divider = inflater.inflate(R.layout.suggestion_divider, null) as ImageView
+            // iOS-like separators: brighter in dark mode, with explicit optical
+            // weight. The old #26080B0B drawable was almost invisible on glass.
+            val separator = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(if (KeyboardTheme.isDarkThemeActive(context))
+                    0x6AFFFFFF else 0x56000000)
+                setSize(1.dpToPx(resources), 22.dpToPx(resources))
+            }
+            divider.setImageDrawable(separator)
             dividerViews.add(divider)
             val info = TextView(context, null, R.attr.suggestionWordStyle)
             info.setTextColor(colors.get(ColorType.KEY_TEXT))
@@ -922,7 +931,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         toolbar.findViewWithTag<View>(ToolbarKey.VOICE)?.isVisible = false
         activatedStateVersion.value++
         if (persistentToolbarKey.tag == ToolbarKey.VOICE) {
-            persistentToolbarKey.visibility = INVISIBLE
+            persistentToolbarKey.visibility = GONE
         }
     }
 
@@ -1005,7 +1014,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         applyAlphabetIconTint(persistentToolbarKey, colors)
         applySpecialKeyCircleBackground(persistentToolbarKey, colors)
         updateToolbarButtonActivatedState(persistentToolbarKey)
-        persistentToolbarKey.visibility = if (key == ToolbarKey.VOICE) INVISIBLE else VISIBLE
+        persistentToolbarKey.visibility = if (key == ToolbarKey.VOICE) GONE else VISIBLE
     }
 
     fun updateThemeColors(colors: Colors) {
