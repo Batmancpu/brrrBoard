@@ -33,7 +33,6 @@ import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
-import helium314.keyboard.settings.screens.gesturedata.GestureDataScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -74,7 +73,6 @@ fun SettingsNavHost(
                 onClickPreferences = { navController.navigate(SettingsDestination.Preferences) },
                 onClickToolbar = { navController.navigate(SettingsDestination.Toolbar) },
                 onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
-                onClickDataGathering = { navController.navigate(SettingsDestination.DataGathering) },
                 onClickAdvanced = { navController.navigate(SettingsDestination.Advanced) },
                 onClickAppearance = { navController.navigate(SettingsDestination.Appearance) },
                 onClickLanguage = { navController.navigate(SettingsDestination.Languages) },
@@ -98,9 +96,6 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.GestureTyping) {
             GestureTypingScreen(onClickBack = ::goBack)
-        }
-        composable(SettingsDestination.DataGathering) {
-            GestureDataScreen(onClickBack = ::goBack)
         }
 /*      will be added as part of passive data gathering
         composable(SettingsDestination.DataReview) {

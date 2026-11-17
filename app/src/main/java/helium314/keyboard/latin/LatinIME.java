@@ -81,8 +81,6 @@ import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
 import helium314.keyboard.latin.touchinputconsumer.GestureConsumer;
 import helium314.keyboard.latin.utils.ColorUtilKt;
 import helium314.keyboard.latin.utils.FoldableUtils;
-import helium314.keyboard.latin.utils.GestureDataGatheringKt;
-import helium314.keyboard.latin.utils.GestureDataGatheringSettings;
 import helium314.keyboard.latin.utils.InlineAutofillUtils;
 import helium314.keyboard.latin.utils.InputMethodPickerKt;
 import helium314.keyboard.latin.utils.JniUtils;
@@ -185,10 +183,10 @@ public class LatinIME extends InputMethodService implements
 
     // UIHandler is needed when creating InputLogic
     public final UIHandler mHandler = new UIHandler(this);
-    private DictionaryFacilitator mDictionaryFacilitator = // non-final for active gesture data gathering, revert when
-                                                           // data gathering phase is done (end of 2026 latest)
+    // The old NLNet research collector is retired. GestureConsumer remains the
+    // local swipe recognizer and keeps the same production dictionary instance.
+    private final DictionaryFacilitator mDictionaryFacilitator =
             DictionaryFacilitatorProvider.getDictionaryFacilitator(false);
-    private final DictionaryFacilitator mOriginalDictionaryFacilitator = mDictionaryFacilitator;
     final InputLogic mInputLogic = new InputLogic(this, this, mDictionaryFacilitator);
 
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
@@ -1301,8 +1299,7 @@ public class LatinIME extends InputMethodService implements
         super.onStartInputView(editorInfo, restarting);
         mClipboardHistoryManager.updatePrimaryClip();
 
-        setGestureDataGatheringMode(editorInfo);
-
+        // Never switch an editor into the retired gesture-trace research mode.
         mDictionaryFacilitator.onStartInput();
         // Switch to the null consumer to handle cases leading to early exit below, for
         // which we
@@ -2504,15 +2501,4 @@ public class LatinIME extends InputMethodService implements
         }
     }
 
-    private void setGestureDataGatheringMode(EditorInfo editorInfo) {
-        // only for active gesture data gathering, remove when data gathering phase is
-        // done (end of 2026 latest)
-        if (GestureDataGatheringSettings.INSTANCE.isInActiveGatheringMode(editorInfo)) {
-            mDictionaryFacilitator = GestureDataGatheringKt.getGestureDataActiveFacilitator();
-        } else {
-            mDictionaryFacilitator = mOriginalDictionaryFacilitator;
-        }
-        GestureDataGatheringSettings.INSTANCE.showEndNotificationIfNecessary(this); // will do nothing for a long time
-        mInputLogic.setFacilitator(mDictionaryFacilitator);
-    }
 }

@@ -100,8 +100,6 @@ import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.latin.utils.previewDark
-import helium314.keyboard.settings.screens.gesturedata.END_DATE_EPOCH_MILLIS
-import helium314.keyboard.settings.screens.gesturedata.TWO_WEEKS_IN_MILLIS
 
 val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 1f))))
 
@@ -112,7 +110,6 @@ fun MainSettingsScreen(
     onClickPreferences: () -> Unit,
     onClickToolbar: () -> Unit,
     onClickGestureTyping: () -> Unit,
-    onClickDataGathering: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
@@ -133,9 +130,6 @@ fun MainSettingsScreen(
         val enabledSubtypes = remember(b?.value) { SubtypeSettings.getEnabledSubtypes(true) }
         val enabledSubtypeNames = remember(enabledSubtypes) {
             enabledSubtypes.joinToString(", ") { it.displayName() }
-        }
-        val showDataGathering = remember {
-            JniUtils.sHaveGestureLib && System.currentTimeMillis() < END_DATE_EPOCH_MILLIS + TWO_WEEKS_IN_MILLIS
         }
         val isGestureComplete = remember(b?.value) {
             val gesturePrefs = listOf("pref_gesture_input", "pref_gesture_space_after")
@@ -199,14 +193,6 @@ fun MainSettingsScreen(
                 onClick = onClickGestureTyping,
                 isFirst = true
             )
-            if (showDataGathering) {
-                Md3ePreference(
-                    icon = "gesture",
-                    title = stringResource(R.string.gesture_data_screen),
-                    description = "Manage data collection for gestures",
-                    onClick = onClickDataGathering
-                )
-            }
             Md3ePreference(
                 icon = "spellcheck",
                 title = stringResource(R.string.settings_screen_correction),
@@ -604,7 +590,7 @@ private fun PreviewScreen() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
         }
     }
 }
