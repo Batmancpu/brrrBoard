@@ -16,10 +16,10 @@ class ClipboardSurfacePolicyTest {
         assertTrue(colors.all { (it and 0x00FFFFFF) == (input and 0x00FFFFFF) })
     }
 
-    @Test fun bottomMaterialProgressivelyCoversScrolledContent() {
+    @Test fun bottomMaterialHasStraightEdgeAndRetainsTranslucency() {
         val input = 0xFF202127.toInt()
         val colors = ClipboardSurfacePolicy.bottomStops(input)
-        assertEquals(0, alpha(colors.first()))
+        assertTrue(alpha(colors.first()) >= 190)
         assertTrue((1 until colors.size).all { alpha(colors[it - 1]) <= alpha(colors[it]) })
         assertTrue(alpha(colors.last()) < 255)
     }

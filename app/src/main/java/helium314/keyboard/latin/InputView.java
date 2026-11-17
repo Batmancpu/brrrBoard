@@ -177,13 +177,17 @@ public final class InputView extends FrameLayout {
             final View clipboard = findViewById(R.id.clipboard_history_view);
             final View toolbarPanel = findViewById(R.id.access_point_menu_view);
             final boolean emojiPanel = emoji != null && emoji.getVisibility() == VISIBLE;
+            final boolean clipboardPanel = clipboard != null && clipboard.getVisibility() == VISIBLE;
+            final boolean toolbarActive = toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE;
             final boolean panelFooter = emojiPanel
-                    || (clipboard != null && clipboard.getVisibility() == VISIBLE)
+                    || clipboardPanel
                     // The access-point toolbar replaces the key rows but must keep
                     // the same bottom footer and IME window height as typing mode.
-                    || (toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE);
+                    || toolbarActive;
             final boolean showFooter = typingFooter || panelFooter;
-            mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey, emojiPanel);
+            // All three internal panels expose the same direct ABC return route.
+            mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
+                    FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive));
         }
         final View resizeOverlay = findViewById(R.id.keyboard_resize_overlay);
         final int overlayVisibility = resizeOverlay == null ? View.GONE : resizeOverlay.getVisibility();

@@ -322,13 +322,19 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mCurrentAnimatingPanel.setAlpha(1f);
             mCurrentAnimatingPanel = null;
         }
-        targetPanel.setAlpha(0f);
         action.run();
+        // Never fade the keyboard to an empty/black surface when Android has
+        // reduced animations or the panel isn't attached yet.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+                && !android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            targetPanel.setAlpha(1f);
+            return;
+        }
         targetPanel.setAlpha(0f);
         mCurrentAnimatingPanel = targetPanel;
         mRunningAnimator = targetPanel.animate()
                 .alpha(1f)
-                .setDuration(350)
+                .setDuration(PanelMaterial.TRANSITION_MS)
                 .withEndAction(new Runnable() {
                     @Override
                     public void run() {

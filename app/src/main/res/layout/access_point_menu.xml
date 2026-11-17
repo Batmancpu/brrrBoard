@@ -1,35 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_gravity="bottom"
-    android:orientation="vertical"
-    android:gravity="top"
-    android:background="@android:color/transparent"
     android:clipChildren="false"
     android:clipToPadding="false"
-    android:paddingBottom="24dp"
-    android:paddingTop="0dp"
-    android:fitsSystemWindows="true">
+    android:background="@android:color/transparent">
 
+    <!-- The first and last tiles can scroll clear of fixed material layers. -->
     <ScrollView
+        android:id="@+id/access_point_scroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="0dp"
-        android:paddingTop="0dp"
-        android:layout_marginBottom="4dp">
-
-
+        android:layout_height="match_parent"
+        android:fillViewport="false"
+        android:clipToPadding="false"
+        android:paddingTop="@dimen/panel_toolbar_content_top_inset"
+        android:paddingBottom="@dimen/panel_toolbar_content_bottom_inset"
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="none">
         <GridLayout
             android:id="@+id/access_point_grid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:columnCount="4"
             android:clipChildren="false"
-            android:clipToPadding="false"
-            android:columnCount="4">
-        </GridLayout>
+            android:clipToPadding="false" />
     </ScrollView>
 
-</LinearLayout>
+    <View
+        android:id="@+id/access_point_header_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/panel_header_fade"
+        android:layout_gravity="top"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/access_point_title"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/panel_header_height"
+        android:layout_gravity="top|center_horizontal"
+        android:gravity="center"
+        android:text="@string/board_toolbar"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <View
+        android:id="@+id/access_point_bottom_glass"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/panel_bottom_glass_height"
+        android:layout_gravity="bottom"
+        android:importantForAccessibility="no" />
+</FrameLayout>

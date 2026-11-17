@@ -15,12 +15,14 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.FrameLayout
+import android.widget.ScrollView
 import android.content.Intent
 import androidx.core.graphics.drawable.DrawableCompat
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.SharedPanelGeometry
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.event.HapticEvent
@@ -50,6 +52,7 @@ class AccessPointMenuView @JvmOverloads constructor(
 
     private var keyboardActionListener: KeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER
     private val grid: GridLayout
+    private val scroll: ScrollView
     private var accessDropPreviewView: View? = null
     private var accessDropPreviewIndex = -1
     private var ownGridDragIndex = -1
@@ -59,6 +62,7 @@ class AccessPointMenuView @JvmOverloads constructor(
     init {
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
         grid = findViewById(R.id.access_point_grid)
+        scroll = findViewById(R.id.access_point_scroll)
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }
         setOnDragListener(dropPinnedKeyListener)
         grid.setOnDragListener(dropPinnedKeyListener)
@@ -71,7 +75,19 @@ class AccessPointMenuView @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val settings = Settings.getValues()
         val abcHeight = ResourceUtils.getKeyboardHeight(resources, settings)
-        val finalHeight = abcHeight + paddingTop + paddingBottom
+        val emojiRowHeight = if (context.prefs().getBoolean(
+                Settings.PREF_PERSISTENT_EMOJI_ROW,
+                helium314.keyboard.latin.settings.Defaults.PREF_PERSISTENT_EMOJI_ROW))
+            (41 * resources.displayMetrics.density).toInt() else 0
+        val accessoryHeight = if (settings.mToolbarMode == ToolbarMode.HIDDEN) 0 else
+            resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+        val strip = rootView.findViewById<View>(R.id.strip_container)
+        val availableHeight = when (MeasureSpec.getMode(heightMeasureSpec)) {
+            MeasureSpec.EXACTLY, MeasureSpec.AT_MOST -> MeasureSpec.getSize(heightMeasureSpec)
+            else -> Int.MAX_VALUE
+        }
+        val finalHeight = SharedPanelGeometry.panelBodyHeight(abcHeight, emojiRowHeight,
+            accessoryHeight, strip != null && strip.visibility == View.VISIBLE, availableHeight)
         val constrainedHeightSpec = MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY)
         super.onMeasure(widthMeasureSpec, constrainedHeightSpec)
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), finalHeight)
@@ -79,6 +95,15 @@ class AccessPointMenuView @JvmOverloads constructor(
 
     fun populateMenu() {
         grid.removeAllViews()
+        scroll.scrollTo(0, 0)
+        val colors = Settings.getValues().mColors
+        PanelMaterial.apply(context, colors,
+            findViewById(R.id.access_point_header_scrim),
+            findViewById(R.id.access_point_bottom_glass))
+        findViewById<TextView>(R.id.access_point_title).also {
+            KeyboardTypeface.applyToTextView(it)
+            it.setTextColor(colors.get(ColorType.KEY_TEXT))
+        }
         val prefs = context.prefs()
         val persistentKey = getPersistentToolbarKey(prefs)
         val pinnedRowEnabled = Settings.getValues().mToolbarMode != ToolbarMode.HIDDEN
@@ -94,7 +119,6 @@ class AccessPointMenuView @JvmOverloads constructor(
             try {
                 tile.setBackgroundResource(android.R.color.transparent)
                 val iconView = tile.findViewById<ImageButton>(R.id.menu_tile_icon)
-                val colors = Settings.getValues().mColors
                 if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_ROUNDED || colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {
                     val drawable = android.graphics.drawable.GradientDrawable()
                     if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {

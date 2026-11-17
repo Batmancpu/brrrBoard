@@ -748,7 +748,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
         if (view.id == R.id.access_point_trigger_btn) {
             KeyboardSwitcher.getInstance().onToggleKeyboard(KeyboardSwitcher.KeyboardSwitchState.ACCESS_POINT)
-            // Update icon based on resulting state (back arrow when menu is open, grid when closed)
+            // Toolbar owns ABC in the persistent footer; no redundant Back arrow.
             val isMenuOpen = KeyboardSwitcher.getInstance().isShowingAccessPointMenu
             setAccessPointIcon(isMenuOpen = isMenuOpen)
             return
@@ -1282,11 +1282,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private fun setAccessPointIcon(isMenuOpen: Boolean) {
         isAccessPointMenuOpen = isMenuOpen
         val colors = Settings.getValues().mColors
-        val drawable = if (isMenuOpen) {
-            androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()
-        } else {
-            androidx.core.content.ContextCompat.getDrawable(context, R.drawable.ic_board_toolbar)?.mutate()
-        } ?: return
+        // Keep the existing functional pinned tools but remove the redundant
+        // top-right arrow; footer ABC is the sole direct return action.
+        accessPointTriggerBtn.visibility = if (isMenuOpen) GONE else VISIBLE
+        val drawable = androidx.core.content.ContextCompat.getDrawable(
+            context, R.drawable.ic_board_toolbar)?.mutate() ?: return
         accessPointTriggerBtn.setImageDrawable(drawable)
         applyAlphabetIconTint(accessPointTriggerBtn, colors)
         applySuggestionStripButtonIconSizing(accessPointTriggerBtn)

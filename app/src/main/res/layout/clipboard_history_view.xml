@@ -19,7 +19,7 @@
             android:id="@+id/clipboard_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="54dp"
+            android:paddingTop="@dimen/panel_content_top_inset"
             android:paddingBottom="70dp"
             android:clipToPadding="false"
             android:orientation="vertical" />
@@ -38,14 +38,14 @@
         <View
             android:id="@+id/clipboard_header_scrim"
             android:layout_width="match_parent"
-            android:layout_height="72dp"
+            android:layout_height="@dimen/panel_header_fade"
             android:layout_gravity="top"
             android:importantForAccessibility="no" />
 
         <FrameLayout
             android:id="@+id/clipboard_toolbar"
             android:layout_width="match_parent"
-            android:layout_height="46dp"
+            android:layout_height="@dimen/panel_header_height"
             android:layout_gravity="top"
             android:paddingStart="12dp"
             android:paddingEnd="12dp">

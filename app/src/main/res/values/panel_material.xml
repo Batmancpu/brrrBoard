@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<resources>
+    <dimen name="panel_header_height">46dp</dimen>
+    <dimen name="panel_header_fade">72dp</dimen>
+    <dimen name="panel_emoji_header_fade">28dp</dimen>
+    <dimen name="panel_bottom_glass_height">56dp</dimen>
+    <dimen name="panel_content_top_inset">54dp</dimen>
+    <dimen name="panel_content_bottom_extra">10dp</dimen>
+    <dimen name="panel_toolbar_content_top_inset">50dp</dimen>
+    <dimen name="panel_toolbar_content_bottom_inset">66dp</dimen>
+    <dimen name="panel_card_radius">13dp</dimen>
+</resources>

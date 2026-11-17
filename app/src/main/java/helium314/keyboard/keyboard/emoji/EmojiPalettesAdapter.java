@@ -3,165 +3,104 @@
  * modified
  * SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
  */
-
 package helium314.keyboard.keyboard.emoji;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import helium314.keyboard.keyboard.Keyboard;
 import helium314.keyboard.latin.R;
 
-/** Virtualized, freely scrolling columns of a fixed-height Emoji grid. */
-final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapter.PageViewHolder> {
-    private final EmojiViewCallback mEmojiViewCallback;
-    private final EmojiCategory mEmojiCategory;
-    private final List<PageItem> mItems = new ArrayList<>();
+/**
+ * B10V: one virtualized row per RecyclerView item, only for the selected
+ * category. No horizontal pages/snapping; native vertical fling works inside
+ * each category, while horizontal gestures are owned by the parent panel.
+ */
+final class EmojiPalettesAdapter extends RecyclerView.Adapter<EmojiPalettesAdapter.RowViewHolder> {
+    private final EmojiViewCallback mCallback;
+    private final EmojiCategory mCategory;
+    private int mCategoryId;
+    private int mRowCount;
 
-    private static final class PageItem {
-        final int categoryId;
-        final int pagePosition;
-        final int columnPosition;
-
-        PageItem(int categoryId, int pagePosition, int columnPosition) {
-            this.categoryId = categoryId;
-            this.pagePosition = pagePosition;
-            this.columnPosition = columnPosition;
-        }
-
-        long getStableId() {
-            return (((long) categoryId) << 48) | (((long) pagePosition) << 16) | columnPosition;
-        }
-    }
-
-    EmojiPalettesAdapter(final EmojiCategory emojiCategory, final EmojiViewCallback emojiViewCallback) {
-        mEmojiCategory = emojiCategory;
-        mEmojiViewCallback = emojiViewCallback;
+    EmojiPalettesAdapter(final EmojiCategory category, final EmojiViewCallback callback) {
+        mCategory = category;
+        mCallback = callback;
+        mCategoryId = category.getCurrentCategoryId();
         setHasStableIds(true);
         updateItems();
     }
 
+    void setCategory(final int categoryId) {
+        if (mCategoryId == categoryId) return;
+        mCategoryId = categoryId;
+        updateItems();
+    }
+
     void updateItems() {
-        mItems.clear();
-        final int rows = mEmojiCategory.getRowsPerPage();
-        final int columns = mEmojiCategory.getPageColumnCount();
-        for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
-            final int categoryId = properties.mCategoryId;
-            final boolean recents = categoryId == EmojiCategory.ID_RECENTS;
-            final int keyCount = recents
-                    ? mEmojiCategory.getKeyboard(categoryId, 0).getSortedKeys().size()
-                    : mEmojiCategory.getCategoryKeyCount(categoryId);
-            final int pages;
-            if (recents) {
-                pages = EmojiColumnPolicy.pageCount(keyCount, columns, rows);
-            } else {
-                pages = properties.getPageCount();
-            }
-            for (int page = 0; page < pages; page++) {
-                final int columnCount = EmojiColumnPolicy.columnCount(
-                        keyCount, columns, rows, page);
-                for (int column = 0; column < columnCount; column++) {
-                    mItems.add(new PageItem(categoryId, page, column));
-                }
-            }
-        }
+        final int count = mCategoryId == EmojiCategory.ID_RECENTS
+                ? mCategory.getKeyboard(mCategoryId, 0).getSortedKeys().size()
+                : mCategory.getCategoryKeyCount(mCategoryId);
+        mRowCount = EmojiRowPolicy.rowCount(count, mCategory.getPageColumnCount());
         notifyDataSetChanged();
     }
 
-    int getCategoryIdForPosition(int position) {
-        return position >= 0 && position < mItems.size() ? mItems.get(position).categoryId : -1;
+    int getCategoryIdForPosition(final int position) {
+        return position >= 0 && position < mRowCount ? mCategoryId : -1;
     }
 
-    int getPagePositionForAdapterPosition(int position) {
-        return position >= 0 && position < mItems.size() ? mItems.get(position).pagePosition : -1;
+    int getPagePositionForAdapterPosition(final int position) {
+        return position >= 0 && position < mRowCount
+                ? position / Math.max(1, mCategory.getRowsPerPage()) : -1;
     }
 
-    int getAdapterPositionForCategoryPage(int categoryId, int pagePosition) {
-        for (int i = 0; i < mItems.size(); i++) {
-            final PageItem item = mItems.get(i);
-            if (item.categoryId == categoryId && item.pagePosition == pagePosition) {
-                return i;
-            }
-        }
-        // Older versions persisted whole-page offsets. Prefer the nearest
-        // available page if the category or number of columns changed.
-        int lastPageStart = -1;
-        for (int i = 0; i < mItems.size(); i++) {
-            final PageItem item = mItems.get(i);
-            if (item.categoryId == categoryId) {
-                if (item.columnPosition == 0) {
-                    lastPageStart = i;
-                }
-                if (item.pagePosition > pagePosition) {
-                    return i;
-                }
-            }
-        }
-        return lastPageStart;
-    }
-
-    int getFirstPagePositionOfCategory(int categoryId) {
-        for (int i = 0; i < mItems.size(); i++) {
-            if (mItems.get(i).categoryId == categoryId) {
-                return i;
-            }
-        }
-        return -1;
+    int getAdapterPositionForCategoryPage(final int categoryId, final int page) {
+        return categoryId == mCategoryId
+                ? Math.min(mRowCount - 1, Math.max(0, page) * mCategory.getRowsPerPage()) : -1;
     }
 
     @Override
-    public long getItemId(int position) {
-        return mItems.get(position).getStableId();
+    public long getItemId(final int position) {
+        return (((long) mCategoryId) << 32) | position;
     }
 
     @NonNull
     @Override
-    public PageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        final LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        final EmojiPageKeyboardView keyboardView = (EmojiPageKeyboardView) inflater.inflate(
-                R.layout.emoji_keyboard_page, parent, false);
-        keyboardView.setEmojiViewCallback(mEmojiViewCallback);
-        keyboardView.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return new PageViewHolder(keyboardView);
+    public RowViewHolder onCreateViewHolder(@NonNull final ViewGroup parent, final int viewType) {
+        final EmojiPageKeyboardView view = (EmojiPageKeyboardView) LayoutInflater
+                .from(parent.getContext()).inflate(R.layout.emoji_keyboard_page, parent, false);
+        view.setEmojiViewCallback(mCallback);
+        view.setLayoutParams(new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return new RowViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
-        final PageItem item = mItems.get(position);
-        final Keyboard keyboard = mEmojiCategory.getColumnKeyboard(
-                item.categoryId, item.pagePosition, item.columnPosition);
+    public void onBindViewHolder(@NonNull final RowViewHolder holder, final int position) {
+        final Keyboard keyboard = mCategory.getRowKeyboard(mCategoryId, position);
         holder.keyboardView.setKeyboard(keyboard);
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull PageViewHolder holder) {
+    public void onViewDetachedFromWindow(@NonNull final RowViewHolder holder) {
         holder.keyboardView.releaseCurrentKey(false);
         holder.keyboardView.deallocateMemory();
     }
 
     @Override
-    public void onViewRecycled(@NonNull PageViewHolder holder) {
+    public void onViewRecycled(@NonNull final RowViewHolder holder) {
         holder.keyboardView.releaseCurrentKey(false);
         holder.keyboardView.deallocateMemory();
     }
 
     @Override
-    public int getItemCount() {
-        return mItems.size();
-    }
+    public int getItemCount() { return mRowCount; }
 
-    static final class PageViewHolder extends RecyclerView.ViewHolder {
+    static final class RowViewHolder extends RecyclerView.ViewHolder {
         final EmojiPageKeyboardView keyboardView;
 
-        PageViewHolder(View view) {
+        RowViewHolder(final View view) {
             super(view);
             keyboardView = (EmojiPageKeyboardView) view;
         }

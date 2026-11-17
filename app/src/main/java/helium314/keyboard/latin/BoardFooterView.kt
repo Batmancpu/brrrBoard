@@ -41,7 +41,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val targets = ArrayList<ImageButton>()
     private var dictationActive = false
     private var dictationProcessing = false
-    private var emojiPanelActive = false
+    private var returnToLetters = false
     private var micPulse: ObjectAnimator? = null
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
@@ -77,7 +77,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         ime = owner
         emojiButton.setOnClickListener {
             feedback(it)
-            send(if (emojiPanelActive) KeyCode.ALPHA else KeyCode.EMOJI)
+            send(if (returnToLetters) KeyCode.ALPHA else KeyCode.EMOJI)
         }
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.
@@ -160,12 +160,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
-    fun render(show: Boolean, showMicrophone: Boolean, emojiMode: Boolean) {
+    fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean) {
         visibility = if (show) VISIBLE else GONE
-        emojiPanelActive = emojiMode
-        emojiButton.setImageResource(if (emojiMode) R.drawable.ic_board_abc else R.drawable.ic_board_emoji)
+        returnToLetters = returnToAbc
+        emojiButton.setImageResource(if (returnToAbc) R.drawable.ic_board_abc else R.drawable.ic_board_emoji)
         emojiButton.contentDescription = resources.getString(
-            if (emojiMode) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
+            if (returnToAbc) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
         )
         if (!show) {
             reset()

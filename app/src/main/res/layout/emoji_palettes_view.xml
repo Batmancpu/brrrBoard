@@ -144,11 +144,33 @@
             android:orientation="horizontal" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/emoji_pager"
+    <FrameLayout
+        android:id="@+id/emoji_grid_shell"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/emoji_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="8dp"
+            android:paddingBottom="@dimen/panel_toolbar_content_bottom_inset"
+            android:clipToPadding="false"
+            android:scrollbars="none" />
+        <!-- Same shared material as Toolbar/Clipboard; crisp tabs stay above. -->
+        <View
+            android:id="@+id/emoji_header_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/panel_emoji_header_fade"
+            android:layout_gravity="top"
+            android:importantForAccessibility="no" />
+        <View
+            android:id="@+id/emoji_bottom_glass"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/panel_bottom_glass_height"
+            android:layout_gravity="bottom"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
     <helium314.keyboard.keyboard.emoji.EmojiCategoryPageIndicatorView
         android:id="@+id/emoji_category_page_id_view"
         android:layout_width="match_parent"

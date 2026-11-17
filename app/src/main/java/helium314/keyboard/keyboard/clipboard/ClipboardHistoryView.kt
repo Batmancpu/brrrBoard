@@ -31,6 +31,7 @@ import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.MainKeyboardView
+import helium314.keyboard.keyboard.PanelMaterial
 import helium314.keyboard.keyboard.PointerTracker
 import helium314.keyboard.keyboard.internal.KeyDrawParams
 import helium314.keyboard.keyboard.internal.KeyVisualAttributes
@@ -68,6 +69,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private val keyBackgroundId: Int
 
     private lateinit var clipboardRecyclerView: ClipboardHistoryRecyclerView
+    private lateinit var headerScrim: View
     private lateinit var placeholderView: TextView
     private lateinit var clearButton: ImageButton
     private lateinit var titleView: TextView
@@ -122,6 +124,10 @@ class ClipboardHistoryView @JvmOverloads constructor(
             itemBackgroundId = keyBackgroundId
             pinnedIconResId = pinIconId
         }
+        // The header is a sibling of the RecyclerView. Never resolve it through
+        // the RecyclerView's implicit `apply` receiver: that returns null and
+        // crashes the entire IME when setAdapter() reports the empty state.
+        headerScrim = findViewById(R.id.clipboard_header_scrim)
         placeholderView = findViewById(R.id.clipboard_empty_view)
         clipboardRecyclerView = findViewById<ClipboardHistoryRecyclerView>(R.id.clipboard_list).apply {
             val colCount = resources.getInteger(R.integer.config_clipboard_keyboard_col_count)
@@ -132,7 +138,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             placeholderView = this@ClipboardHistoryView.placeholderView
             clipDismissListener = this@ClipboardHistoryView
             onEmptyStateChanged = { isEmpty ->
-                findViewById<View>(R.id.clipboard_header_scrim).visibility =
+                headerScrim.visibility =
                     if (isEmpty) View.INVISIBLE else View.VISIBLE
             }
         }
@@ -150,8 +156,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun updateBottomLayerGeometry(rowHeight: Int) {
         if (rowHeight <= 0) return
-        val reserved = rowHeight + 12.dpToPx(resources)
-        val topInset = 54.dpToPx(resources)
+        val extra = resources.getDimensionPixelSize(R.dimen.panel_content_bottom_extra)
+        val reserved = rowHeight + extra
+        val topInset = resources.getDimensionPixelSize(R.dimen.panel_content_top_inset)
         if (clipboardRecyclerView.paddingTop != topInset || clipboardRecyclerView.paddingBottom != reserved) {
             clipboardRecyclerView.setPadding(
                 clipboardRecyclerView.paddingLeft, topInset,
@@ -160,7 +167,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         }
         val glass = findViewById<View>(R.id.clipboard_bottom_glass)
         (glass.layoutParams as FrameLayout.LayoutParams).let { params ->
-            val desiredHeight = rowHeight + 18.dpToPx(resources)
+            val desiredHeight = rowHeight + extra
             if (params.height != desiredHeight) {
                 params.height = desiredHeight
                 glass.layoutParams = params
@@ -178,19 +185,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun setupGlassLayers(colors: Colors) {
-        // RenderEffect blurs a view's own pixels, not sibling content beneath a
-        // translucent IME overlay. Avoid live Clipboard bitmap capture and use
-        // lightweight, theme-aware glass gradients with no black fade edges.
-        val baseColor = colors.get(ColorType.MAIN_BACKGROUND)
-        val opaqueBase = if (Color.alpha(baseColor) < 24) {
-            if (KeyboardTheme.isDarkThemeActive(context)) 0xFF24252B.toInt() else 0xFFF0F1F4.toInt()
-        } else ColorUtils.setAlphaComponent(baseColor, 255)
-        val header = findViewById<View>(R.id.clipboard_header_scrim)
-        header.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-            ClipboardSurfacePolicy.headerStops(opaqueBase))
-        val bottom = findViewById<View>(R.id.clipboard_bottom_glass)
-        bottom.background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-            ClipboardSurfacePolicy.bottomStops(opaqueBase))
+        PanelMaterial.apply(context, colors, headerScrim,
+            findViewById(R.id.clipboard_bottom_glass))
     }
 
     private fun setupUndoBar(colors: Colors) {

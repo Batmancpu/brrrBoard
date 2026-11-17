@@ -413,6 +413,27 @@ final class EmojiCategory {
         return keyboard;
     }
 
+    /** A single full-width row for B10V's vertical RecyclerView. */
+    DynamicGridKeyboard getRowKeyboard(final int categoryId, final int row) {
+        final int columns = Math.max(1, getPageColumnCount());
+        final int rowsPerPage = Math.max(1, getRowsPerPage());
+        final boolean recents = categoryId == ID_RECENTS;
+        final int page = recents ? 0 : row / rowsPerPage;
+        final int rowInPage = recents ? row : row % rowsPerPage;
+        final DynamicGridKeyboard source = getKeyboard(categoryId, page);
+        final List<Key> sourceKeys = source.getSortedKeys();
+        final int width = ResourceUtils.getKeyboardWidth(mContext, Settings.getValues());
+        final DynamicGridKeyboard keyboard = DynamicGridKeyboard.ofKeyCount(mPrefs,
+                mLayoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS),
+                columns, categoryId, width);
+        for (int column = 0; column < columns; column++) {
+            final int keyIndex = EmojiRowPolicy.keyIndex(sourceKeys.size(), columns,
+                    rowInPage, column);
+            if (keyIndex >= 0) keyboard.addKeyLast(sourceKeys.get(keyIndex));
+        }
+        return keyboard;
+    }
+
     private static final Comparator<Key> EMOJI_KEY_COMPARATOR = (lhs, rhs) -> {
         final Rect lHitBox = lhs.getHitBox();
         final Rect rHitBox = rhs.getHitBox();
