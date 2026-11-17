@@ -63,6 +63,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
         grid = findViewById(R.id.access_point_grid)
         scroll = findViewById(R.id.access_point_scroll)
+        PanelMaterial.extendIntoFooter(findViewById(R.id.access_point_scroll).parent as View, scroll)
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }
         setOnDragListener(dropPinnedKeyListener)
         grid.setOnDragListener(dropPinnedKeyListener)
@@ -99,7 +100,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         val colors = Settings.getValues().mColors
         PanelMaterial.apply(context, colors,
             findViewById(R.id.access_point_header_scrim),
-            findViewById(R.id.access_point_bottom_glass))
+            findViewById(R.id.access_point_bottom_glass), scroll)
         findViewById<TextView>(R.id.access_point_title).also {
             KeyboardTypeface.applyToTextView(it)
             it.setTextColor(colors.get(ColorType.KEY_TEXT))

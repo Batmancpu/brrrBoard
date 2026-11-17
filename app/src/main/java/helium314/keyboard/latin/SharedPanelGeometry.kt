@@ -8,6 +8,18 @@ package helium314.keyboard.latin
  */
 object SharedPanelGeometry {
     @JvmStatic
+    fun emojiSearchBodyHeight(
+        typingBodyPx: Int,
+        searchFieldPx: Int,
+        resultRowPx: Int,
+        normalPanelPx: Int,
+        availableBodyPx: Int,
+    ): Int = (typingBodyPx.coerceAtLeast(0).toLong() + searchFieldPx.coerceAtLeast(0)
+        + resultRowPx.coerceAtLeast(0))
+        .coerceAtLeast(normalPanelPx.coerceAtLeast(0).toLong())
+        .coerceAtMost(availableBodyPx.coerceAtLeast(0).toLong()).toInt()
+
+    @JvmStatic
     fun panelBodyHeight(
         typingKeyBodyPx: Int,
         persistentRowPx: Int,

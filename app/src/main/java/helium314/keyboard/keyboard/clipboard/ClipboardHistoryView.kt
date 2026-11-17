@@ -142,6 +142,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
                     if (isEmpty) View.INVISIBLE else View.VISIBLE
             }
         }
+        PanelMaterial.extendIntoFooter(clipboardRecyclerView.parent as View, clipboardRecyclerView)
         clearButton = findViewById(R.id.clipboard_clear_button)
         titleView = findViewById(R.id.clipboard_title)
         undoBar = findViewById(R.id.clipboard_undo_bar)
@@ -157,7 +158,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private fun updateBottomLayerGeometry(rowHeight: Int) {
         if (rowHeight <= 0) return
         val extra = resources.getDimensionPixelSize(R.dimen.panel_content_bottom_extra)
-        val reserved = rowHeight + extra
+        val reserved = rowHeight + extra +
+            resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
         val topInset = resources.getDimensionPixelSize(R.dimen.panel_content_top_inset)
         if (clipboardRecyclerView.paddingTop != topInset || clipboardRecyclerView.paddingBottom != reserved) {
             clipboardRecyclerView.setPadding(
@@ -186,7 +188,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun setupGlassLayers(colors: Colors) {
         PanelMaterial.apply(context, colors, headerScrim,
-            findViewById(R.id.clipboard_bottom_glass))
+            findViewById(R.id.clipboard_bottom_glass), clipboardRecyclerView)
     }
 
     private fun setupUndoBar(colors: Colors) {

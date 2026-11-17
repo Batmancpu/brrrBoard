@@ -26,6 +26,8 @@ import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.keyboard.PanelGlassOverlayView
+import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -33,6 +35,7 @@ private const val DICTATION_RED = 0xFFFF3B30.toInt()
 private const val MIC_SWITCH_HOLD_TIMEOUT_MS = 300L
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
+    private val glass = PanelGlassOverlayView(context)
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
@@ -70,6 +73,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     )
 
     private data class Shortcut(val label: Int, val icon: Int, val action: FooterShortcutPolicy.Action)
+
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+        // Backdrop underlays the *existing* footer buttons; they never blur.
+        addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        glass.visibility = GONE
+    }
+
+    fun setPanelGlassSource(source: View?) {
+        glass.visibility = if (source == null) GONE else VISIBLE
+        if (source != null) {
+            PanelMaterial.apply(context, Settings.getValues().mColors, null, glass, source)
+        }
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     fun bind(owner: LatinIME) {

@@ -185,6 +185,9 @@ public final class InputView extends FrameLayout {
                     // the same bottom footer and IME window height as typing mode.
                     || toolbarActive;
             final boolean showFooter = typingFooter || panelFooter;
+            mFooter.setPanelGlassSource(emojiPanel ? findViewById(R.id.emoji_pager)
+                    : clipboardPanel ? findViewById(R.id.clipboard_list)
+                    : toolbarActive ? findViewById(R.id.access_point_scroll) : null);
             // All three internal panels expose the same direct ABC return route.
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
                     FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive));

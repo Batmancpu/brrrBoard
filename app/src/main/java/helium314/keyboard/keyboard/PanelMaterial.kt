@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
+import helium314.keyboard.latin.R
 import androidx.core.graphics.ColorUtils
 import helium314.keyboard.latin.common.Colors
 import helium314.keyboard.latin.common.ColorType
@@ -48,14 +49,45 @@ object PanelMaterial {
 
     @JvmStatic
     fun apply(context: Context, colors: Colors, header: View?, bottom: View?) {
+        apply(context, colors, header, bottom, null)
+    }
+
+    @JvmStatic
+    fun apply(context: Context, colors: Colors, header: View?, bottom: View?, content: View?) {
         val base = baseColor(context, colors)
-        header?.background = GradientDrawable(
+        if (header is PanelGlassOverlayView)
+            header.configure(content, PanelGlassOverlayView.Edge.TOP, base)
+        else header?.background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM, headerStops(base))
-        bottom?.background = GradientDrawable(
+        if (bottom is PanelGlassOverlayView)
+            bottom.configure(content, PanelGlassOverlayView.Edge.BOTTOM, base)
+        else bottom?.background = GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM, bottomStops(base))
-        header?.isClickable = false
+        header?.isClickable = header is PanelGlassOverlayView
         header?.isFocusable = false
-        bottom?.isClickable = false
+        bottom?.isClickable = bottom is PanelGlassOverlayView
         bottom?.isFocusable = false
+    }
+
+    /**
+     * Extend the real scroll viewport into the separate fixed IME footer, so
+     * the footer glass can sample the next genuine pixels at the same scroll
+     * offset. Fixed controls are still drawn later and own the touch region.
+     * An EXACTLY-measured panel body prevents this overflow from resizing the
+     * normal keyboard. All ancestors of these surfaces disable child clipping.
+     */
+    @JvmStatic
+    fun extendIntoFooter(host: View, source: View) {
+        host.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            val bodyHeight = bottom - top
+            if (bodyHeight <= 0) return@addOnLayoutChangeListener
+            val footer = host.resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
+            val target = bodyHeight + footer
+            val params = source.layoutParams ?: return@addOnLayoutChangeListener
+            if (params.height != target) {
+                params.height = target
+                source.layoutParams = params
+            }
+        }
     }
 }

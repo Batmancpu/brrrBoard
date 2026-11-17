@@ -8,6 +8,6 @@
     <dimen name="panel_content_top_inset">54dp</dimen>
     <dimen name="panel_content_bottom_extra">10dp</dimen>
     <dimen name="panel_toolbar_content_top_inset">50dp</dimen>
-    <dimen name="panel_toolbar_content_bottom_inset">66dp</dimen>
+    <dimen name="panel_toolbar_content_bottom_inset">114dp</dimen>
     <dimen name="panel_card_radius">13dp</dimen>
 </resources>

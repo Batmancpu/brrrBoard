@@ -7,13 +7,17 @@
     android:layout_gravity="bottom"
     android:orientation="vertical"
     android:visibility="gone"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:background="@android:color/transparent"
     style="?attr/clipboardHistoryViewStyle">
 
     <!-- One measured body: clips scroll behind the fixed header and bottom keys. -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <helium314.keyboard.keyboard.clipboard.ClipboardHistoryRecyclerView
             android:id="@+id/clipboard_list"
@@ -35,7 +39,7 @@
             android:visibility="invisible" />
 
         <!-- Scrim goes behind the title, above the clips, never over text controls. -->
-        <View
+        <helium314.keyboard.keyboard.PanelGlassOverlayView
             android:id="@+id/clipboard_header_scrim"
             android:layout_width="match_parent"
             android:layout_height="@dimen/panel_header_fade"
@@ -70,7 +74,7 @@
         </FrameLayout>
 
         <!-- Fixed translucent material under crisp ABC/space/Delete controls. -->
-        <View
+        <helium314.keyboard.keyboard.PanelGlassOverlayView
             android:id="@+id/clipboard_bottom_glass"
             android:layout_width="match_parent"
             android:layout_height="64dp"

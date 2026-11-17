@@ -11,6 +11,8 @@
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
     android:orientation="vertical"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:visibility="gone"
     android:background="@android:color/transparent"
     style="?attr/emojiPalettesViewStyle"
@@ -91,7 +93,7 @@
     <HorizontalScrollView
         android:id="@+id/emoji_search_results_scroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:fillViewport="false"
         android:overScrollMode="ifContentScrolls"
         android:scrollbars="none"
@@ -102,6 +104,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/emoji_search_empty"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center"
+        android:text="@string/emoji_search_no_results"
+        android:textSize="13sp"
+        android:visibility="gone" />
 
     <!-- Smart picks are a transient, separate row; user Recents remain in the
          existing virtualized grid below. Hidden entirely for weak/no context. -->
@@ -148,38 +159,39 @@
         android:id="@+id/emoji_grid_shell"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
-        <androidx.recyclerview.widget.RecyclerView
+        android:layout_weight="1"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+        <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/emoji_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="8dp"
-            android:paddingBottom="@dimen/panel_toolbar_content_bottom_inset"
-            android:clipToPadding="false"
-            android:scrollbars="none" />
+            android:orientation="horizontal" />
         <!-- Same shared material as Toolbar/Clipboard; crisp tabs stay above. -->
-        <View
+        <helium314.keyboard.keyboard.PanelGlassOverlayView
             android:id="@+id/emoji_header_scrim"
             android:layout_width="match_parent"
             android:layout_height="@dimen/panel_emoji_header_fade"
             android:layout_gravity="top"
             android:importantForAccessibility="no" />
-        <View
+        <helium314.keyboard.keyboard.PanelGlassOverlayView
             android:id="@+id/emoji_bottom_glass"
             android:layout_width="match_parent"
             android:layout_height="@dimen/panel_bottom_glass_height"
             android:layout_gravity="bottom"
             android:importantForAccessibility="no" />
+        <!-- Fixed action keys are composed ABOVE the live, scrolling glass.
+             The RecyclerView fills the whole shell underneath these keys. -->
+        <helium314.keyboard.keyboard.MainKeyboardView
+            android:id="@+id/bottom_row_keyboard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom" />
     </FrameLayout>
     <helium314.keyboard.keyboard.emoji.EmojiCategoryPageIndicatorView
         android:id="@+id/emoji_category_page_id_view"
         android:layout_width="match_parent"
         android:layout_height="2dip" />
-    <helium314.keyboard.keyboard.MainKeyboardView
-        android:id="@+id/bottom_row_keyboard"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
     <View
         android:id="@+id/emoji_search_keyboard_placeholder"
         android:layout_width="match_parent"

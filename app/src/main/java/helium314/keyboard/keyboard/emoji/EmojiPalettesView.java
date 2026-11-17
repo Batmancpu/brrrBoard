@@ -47,6 +47,7 @@ import androidx.core.graphics.ColorUtils;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import helium314.keyboard.event.HapticEvent;
 import helium314.keyboard.keyboard.Key;
@@ -119,7 +120,8 @@ public final class EmojiPalettesView extends LinearLayout
     private KeyboardActionListener mKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
     private KeyboardActionListener mMainKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
     private final EmojiCategory mEmojiCategory;
-    private RecyclerView mPager;
+    private ViewPager2 mPager;
+    private EmojiCategoryPagerAdapter mCategoryPagerAdapter;
     private MainKeyboardView mBottomRowKeyboard;
     private View mSearchBarContainer;
     private ImageButton mSearchBackButton;
@@ -127,6 +129,7 @@ public final class EmojiPalettesView extends LinearLayout
     private ImageButton mSearchClearButton;
     private HorizontalScrollView mSearchResultsScrollView;
     private EmojiPageKeyboardView mSearchResultsView;
+    private TextView mSearchEmptyView;
     private View mSearchKeyboardPlaceholder;
     private DynamicGridKeyboard mSearchResultsKeyboard;
     private KeyboardParams mSearchKeyboardParams;
@@ -183,9 +186,19 @@ public final class EmojiPalettesView extends LinearLayout
             case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec);
             default -> Integer.MAX_VALUE;
         };
-        final int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
+        int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
+        if (mSearchMode) {
+            // Search is a complete typing keyboard plus one result row and a
+            // search field. The fixed-height grid mode cannot accommodate it.
+            final View searchBar = findViewById(R.id.emoji_search_bar_container);
+            final View results = findViewById(R.id.emoji_search_results_scroll);
+            final int barHeight = searchBar == null ? 0 : searchBar.getLayoutParams().height;
+            final int resultHeight = results == null ? 0 : results.getLayoutParams().height;
+            finalHeight = helium314.keyboard.latin.SharedPanelGeometry.emojiSearchBodyHeight(
+                    abcHeight, barHeight, resultHeight, finalHeight, availableHeight);
+        }
         // The Smart row must not sacrifice the two visible Emoji rows in a
         // short landscape IME. The keyboard shell height itself never grows.
         final boolean compact = finalHeight < (int) (260 * res.getDisplayMetrics().density);
@@ -233,32 +246,31 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mPager = findViewById(R.id.emoji_pager);
-        mPager.setHasFixedSize(true);
-        mPager.setItemAnimator(null);
-        mPager.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
-        final LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
-        mPager.setLayoutManager(layoutManager);
-        final EmojiPalettesAdapter adapter = new EmojiPalettesAdapter(mEmojiCategory, this);
-        mPager.setAdapter(adapter);
-        installCategorySwipeGestures();
-
-        mPager.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
-                mEmojiGridScrollActive = newState != RecyclerView.SCROLL_STATE_IDLE;
-                if (!mEmojiGridScrollActive) updateContextSmartVisibility();
-            }
-
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                final int position = layoutManager.findFirstVisibleItemPosition();
-                if (position != RecyclerView.NO_POSITION) {
-                    final int pagePosition = adapter.getPagePositionForAdapterPosition(position);
-                    if (pagePosition >= 0 && pagePosition != mEmojiCategory.getCurrentCategoryPageId()) {
-                        mEmojiCategory.setCurrentCategoryPageId(pagePosition);
+        mPager.setOffscreenPageLimit(1);
+        mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(),
+                mEmojiCategory.getCurrentCategoryPageId() * Math.max(1, mEmojiCategory.getRowsPerPage()));
+        mCategoryPagerAdapter = new EmojiCategoryPagerAdapter(mEmojiCategory, this,
+                mCategoryScrollRows, new EmojiCategoryPagerAdapter.RowScrollCallback() {
+                    @Override public void onCategoryRowScrolled(final int categoryId, final int firstRow) {
+                        if (categoryId == mEmojiCategory.getCurrentCategoryId()) {
+                            final int page = firstRow / Math.max(1, mEmojiCategory.getRowsPerPage());
+                            if (page != mEmojiCategory.getCurrentCategoryPageId())
+                                mEmojiCategory.setCurrentCategoryPageId(page);
+                        }
                     }
-                    mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(), position);
-                }
+                    @Override public void onRowScrollStateChanged(final int categoryId, final int state) {
+                        if (categoryId != mEmojiCategory.getCurrentCategoryId()) return;
+                        mEmojiGridScrollActive = state != RecyclerView.SCROLL_STATE_IDLE;
+                        if (!mEmojiGridScrollActive) updateContextSmartVisibility();
+                    }
+                });
+        mPager.setAdapter(mCategoryPagerAdapter);
+        mPager.setCurrentItem(Math.max(0, mCategoryPagerAdapter.indexOf(
+                mEmojiCategory.getCurrentCategoryId())), false);
+        PanelMaterial.extendIntoFooter(findViewById(R.id.emoji_grid_shell), mPager);
+        mPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override public void onPageSelected(final int position) {
+                setCurrentCategoryId(mCategoryPagerAdapter.categoryAt(position), true);
             }
         });
 
@@ -267,6 +279,17 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
         mEmojiLayoutParams.setCategoryPageIdViewProperties(mEmojiCategoryPageIndicatorView);
         mBottomRowKeyboard = findViewById(R.id.bottom_row_keyboard);
+        mBottomRowKeyboard.addOnLayoutChangeListener((v, left, top, right, bottom,
+                oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom <= top) return;
+            final View glass = findViewById(R.id.emoji_bottom_glass);
+            final int height = bottom - top + (int) (8 * getResources().getDisplayMetrics().density);
+            final ViewGroup.LayoutParams params = glass.getLayoutParams();
+            if (params.height != height) {
+                params.height = height;
+                glass.setLayoutParams(params);
+            }
+        });
         mContextSmartSection = findViewById(R.id.emoji_context_smart_section);
         mContextSmartRow = findViewById(R.id.emoji_context_smart_row);
         final TextView smartTitle = findViewById(R.id.emoji_context_smart_title);
@@ -275,90 +298,8 @@ public final class EmojiPalettesView extends LinearLayout
         if (smartTitle != null) smartTitle.setTextColor(labelColor);
         if (recentLabel != null) recentLabel.setTextColor(labelColor);
         setupInlineSearchViews();
-        final int savedPosition = adapter.getAdapterPositionForCategoryPage(
-                mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
-        if (savedPosition >= 0) {
-            layoutManager.scrollToPositionWithOffset(savedPosition, 0);
-        }
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
         initialized = true;
-    }
-
-    private void installCategorySwipeGestures() {
-        final int slop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
-        mPager.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
-            private float downX;
-            private float downY;
-            private boolean captured;
-            private VelocityTracker velocity;
-
-            private void clear() {
-                if (velocity != null) velocity.recycle();
-                velocity = null;
-                captured = false;
-            }
-
-            @Override
-            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent event) {
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        clear();
-                        final AccessibilityManager accessibility = (AccessibilityManager)
-                                getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
-                        if (accessibility != null && accessibility.isTouchExplorationEnabled()) return false;
-                        downX = event.getX();
-                        downY = event.getY();
-                        velocity = VelocityTracker.obtain();
-                        velocity.addMovement(event);
-                        return false;
-                    case MotionEvent.ACTION_MOVE:
-                        if (velocity == null) return false;
-                        velocity.addMovement(event);
-                        if (EmojiAxisGesturePolicy.shouldCapture(event.getX() - downX,
-                                event.getY() - downY, slop)) {
-                            captured = true;
-                            return true;
-                        }
-                        return false;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        clear();
-                        return false;
-                    default:
-                        return false;
-                }
-            }
-
-            @Override
-            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent event) {
-                if (!captured || velocity == null) return;
-                velocity.addMovement(event);
-                final int action = event.getActionMasked();
-                if (action == MotionEvent.ACTION_UP) {
-                    velocity.computeCurrentVelocity(1000);
-                    final float dx = event.getX() - downX;
-                    final float dy = event.getY() - downY;
-                    if (EmojiAxisGesturePolicy.shouldSwitch(dx, dy,
-                            velocity.getXVelocity(), velocity.getYVelocity(), rv.getWidth(), slop)) {
-                        navigateCategory(dx < 0 ? 1 : -1);
-                    }
-                }
-                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL
-                        || action == MotionEvent.ACTION_POINTER_DOWN) clear();
-            }
-
-            @Override
-            public void onRequestDisallowInterceptTouchEvent(final boolean disallowIntercept) {}
-        });
-    }
-
-    private void navigateCategory(final int delta) {
-        final List<EmojiCategory.CategoryProperties> categories = mEmojiCategory.getShownCategories();
-        final int index = mEmojiCategory.getTabIdFromCategoryId(mEmojiCategory.getCurrentCategoryId());
-        final int targetIndex = index + delta;
-        if (targetIndex < 0 || targetIndex >= categories.size()) return;
-        setCurrentCategoryId(categories.get(targetIndex).mCategoryId, false);
     }
 
     private void setupInlineSearchViews() {
@@ -368,6 +309,7 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchClearButton = findViewById(R.id.emoji_search_clear_button);
         mSearchResultsScrollView = findViewById(R.id.emoji_search_results_scroll);
         mSearchResultsView = findViewById(R.id.emoji_search_results_view);
+        mSearchEmptyView = findViewById(R.id.emoji_search_empty);
         mSearchKeyboardPlaceholder = findViewById(R.id.emoji_search_keyboard_placeholder);
 
         setupSearchResultKeyboard();
@@ -392,7 +334,7 @@ public final class EmojiPalettesView extends LinearLayout
                 .setKeyboardGeometry(baseWidth, mEmojiLayoutParams.getEmojiKeyboardHeight())
                 .build();
         mSearchResultsKeyboard = DynamicGridKeyboard.ofPagedRowCount(KtxKt.prefs(getContext()),
-                layoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS), 2,
+                layoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS), 1,
                 KeyboardId.ELEMENT_EMOJI_CATEGORY16, keyboardWidth, baseWidth);
         if (keyboardWidth == baseWidth) {
             mSearchBaseResultsColumnCount = Math.max(1, mSearchResultsKeyboard.getOccupiedColumnCount());
@@ -409,7 +351,7 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchResultsView.setEmojiViewCallback(this);
         mSearchResultsView.setVisibility(mSearchMode ? View.VISIBLE : View.GONE);
         mColors.setBackground(mSearchResultsView, ColorType.MAIN_BACKGROUND);
-        mSearchResultsView.setPadding(0, 10, 0, 10);
+        mSearchResultsView.setPadding(0, 3, 0, 3);
     }
 
     private void setupSearchResultsScrolling() {
@@ -423,7 +365,7 @@ public final class EmojiPalettesView extends LinearLayout
     private int getSearchResultsKeyboardWidth(final int resultCount) {
         final int baseWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
         final int columnsPerScreen = Math.max(1, mSearchBaseResultsColumnCount);
-        final int maxResultsPerScreen = Math.max(1, columnsPerScreen * 2);
+        final int maxResultsPerScreen = columnsPerScreen;
         final int pages = Math.max(1, (resultCount + maxResultsPerScreen - 1) / maxResultsPerScreen);
         return baseWidth * pages;
     }
@@ -569,7 +511,7 @@ public final class EmojiPalettesView extends LinearLayout
         initialize();
         PanelMaterial.apply(getContext(), Settings.getValues().mColors,
                 findViewById(R.id.emoji_header_scrim),
-                findViewById(R.id.emoji_bottom_glass));
+                findViewById(R.id.emoji_bottom_glass), mPager);
         getRecentsKeyboard().flushPendingRecentKeys();
         updateAdaptiveEmojiOrder();
         mMainKeyboardActionListener = keyboardActionListener;
@@ -582,15 +524,7 @@ public final class EmojiPalettesView extends LinearLayout
 
         // Recents can grow between openings; rebuild the virtual columns after
         // flushing pending keys without discarding the saved category/page.
-        if (mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter adapter) {
-            adapter.updateItems();
-            final int savedPosition = adapter.getAdapterPositionForCategoryPage(
-                    mEmojiCategory.getCurrentCategoryId(), mEmojiCategory.getCurrentCategoryPageId());
-            if (savedPosition >= 0 && mPager.getLayoutManager() instanceof LinearLayoutManager manager) {
-                manager.scrollToPositionWithOffset(
-                        mCategoryScrollRows.get(mEmojiCategory.getCurrentCategoryId(), savedPosition), 0);
-            }
-        }
+        if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
 
         setupBottomRowKeyboard(editorInfo, keyboardActionListener);
@@ -629,6 +563,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsScrollView != null) {
             revealWithoutFlash(mSearchResultsScrollView);
         }
+        if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
         mSearchResultsView.setVisibility(View.VISIBLE);
 
         KeyboardSwitcher.getInstance().notifyEnteringSearchMode();
@@ -665,6 +600,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.setVisibility(View.GONE);
         }
+        if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
         if (mSearchResultsView != null) {
             mSearchResultsView.setVisibility(View.GONE);
         }
@@ -739,7 +675,8 @@ public final class EmojiPalettesView extends LinearLayout
         final ViewGroup wrapper = (ViewGroup) wrapperView;
         final ViewParent currentParent = keyboardView.getParent();
         if (enter) {
-            keyboardView.setAlpha(0f);
+            keyboardView.animate().cancel();
+            keyboardView.setAlpha(1f);
             if (currentParent != this) {
                 if (currentParent instanceof ViewGroup) {
                     ((ViewGroup) currentParent).removeView(keyboardView);
@@ -754,6 +691,7 @@ public final class EmojiPalettesView extends LinearLayout
         } else if (currentParent == this) {
             removeView(keyboardView);
             wrapper.addView(keyboardView, 0);
+            keyboardView.setAlpha(1f);
             if (hideKeyboard) {
                 keyboardView.setVisibility(View.GONE);
                 switcher.getStripContainer().setVisibility(View.GONE);
@@ -875,6 +813,12 @@ public final class EmojiPalettesView extends LinearLayout
             keyParams.mAbsoluteWidth = mSearchKeyWidth;
             keyParams.mAbsoluteHeight = mSearchKeyHeight;
             mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
+        }
+        if (mSearchEmptyView != null) {
+            final boolean noMatches = text != null && !text.isBlank() && emojis.isEmpty();
+            mSearchEmptyView.setVisibility(mSearchMode && noMatches ? View.VISIBLE : View.GONE);
+            if (mSearchResultsScrollView != null)
+                mSearchResultsScrollView.setVisibility(mSearchMode && noMatches ? View.GONE : View.VISIBLE);
         }
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.scrollTo(0, 0);
@@ -1365,9 +1309,7 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         getRecentsKeyboard().addKeyFirst(key);
-        if (initialized && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
-        }
+        if (initialized && mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
     }
 
     public void addRecentEmoji(final String emoji) {
@@ -1611,12 +1553,8 @@ public final class EmojiPalettesView extends LinearLayout
         final float rightPadding =  keyboardAttr.getFraction(R.styleable.Keyboard_keyboardRightPadding,
                 keyboardWidth, keyboardWidth, 0f) * sv.mSidePaddingScale;
         keyboardAttr.recycle();
-        mPager.setPadding(
-                (int) leftPadding,
-                mPager.getPaddingTop(),
-                (int) rightPadding,
-                mPager.getPaddingBottom()
-        );
+        if (mCategoryPagerAdapter != null)
+            mCategoryPagerAdapter.setHorizontalPadding((int) Math.max(leftPadding, rightPadding));
         mEmojiCategoryPageIndicatorView.setPadding(
                 (int) leftPadding,
                 mEmojiCategoryPageIndicatorView.getPaddingTop(),
@@ -1754,9 +1692,7 @@ public final class EmojiPalettesView extends LinearLayout
         recentsKeyboard.prioritizeKeys(
                 AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
                 maxRankedCount);
-        if (initialized && mPager != null && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
-        }
+        if (initialized && mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
     }
 
     public void setKeyboardActionListener(final KeyboardActionListener listener) {
@@ -1767,29 +1703,25 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void setCurrentCategoryId(final int categoryId, final boolean fromScroll) {
+        if (!fromScroll && mPager != null && mCategoryPagerAdapter != null) {
+            final int index = mCategoryPagerAdapter.indexOf(categoryId);
+            if (index >= 0 && index != mPager.getCurrentItem()) {
+                // ViewPager2 moves both complete category pages during drag;
+                // it handles incomplete gestures and always snaps at rest.
+                mPager.setCurrentItem(index, !isAnimationsDisabled());
+                return;
+            }
+        }
         final int oldCategoryId = mEmojiCategory.getCurrentCategoryId();
         if (fromScroll || oldCategoryId != categoryId) {
             if (oldCategoryId == EmojiCategory.ID_RECENTS && !fromScroll) {
                 getRecentsKeyboard().flushPendingRecentKeys();
-                if (mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                    ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
-                }
+                if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
             }
 
             mEmojiCategory.setCurrentCategoryId(categoryId);
-
-            if (!fromScroll && mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-                final EmojiPalettesAdapter adapter = (EmojiPalettesAdapter) mPager.getAdapter();
-                if (mPager.getLayoutManager() instanceof LinearLayoutManager manager) {
-                    final int firstRow = manager.findFirstVisibleItemPosition();
-                    if (firstRow != RecyclerView.NO_POSITION)
-                        mCategoryScrollRows.put(oldCategoryId, firstRow);
-                    adapter.setCategory(categoryId);
-                    final int targetRow = mCategoryScrollRows.get(categoryId, 0);
-                    manager.scrollToPositionWithOffset(Math.min(adapter.getItemCount() - 1, targetRow), 0);
-                    mEmojiCategory.setCurrentCategoryPageId(targetRow / Math.max(1, mEmojiCategory.getRowsPerPage()));
-                }
-            }
+            final int targetRow = mCategoryScrollRows.get(categoryId, 0);
+            mEmojiCategory.setCurrentCategoryPageId(targetRow / Math.max(1, mEmojiCategory.getRowsPerPage()));
 
             final View old = mTabStrip.findViewWithTag((long) oldCategoryId);
             final View current = mTabStrip.findViewWithTag((long) categoryId);
@@ -1826,9 +1758,7 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategory.clearKeyboardCache();
         setupSearchResultKeyboard();
         searchEmoji(mSearchQuery);
-        if (mPager.getAdapter() instanceof EmojiPalettesAdapter) {
-            ((EmojiPalettesAdapter) mPager.getAdapter()).updateItems();
-        }
+        if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
         closeDictionaryFacilitator();
     }
 
