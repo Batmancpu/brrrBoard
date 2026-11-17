@@ -116,8 +116,6 @@ public final class EmojiPalettesView extends LinearLayout
     private final Colors mColors;
     private final EmojiLayoutParams mEmojiLayoutParams;
     private LinearLayout mTabStrip;
-    private View mBrowseSearchBar;
-    private View mBottomCategoryStrip;
     private EmojiCategoryPageIndicatorView mEmojiCategoryPageIndicatorView;
     private KeyboardActionListener mKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
     private KeyboardActionListener mMainKeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER;
@@ -243,15 +241,9 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategory.initialize();
         final View tabStripView = KeyboardSwitcher.getInstance().getEmojiTabStrip();
         mTabStrip = (LinearLayout) tabStripView.findViewById(R.id.emoji_tab_strip);
-        // The historical categories lived in the typing suggestion strip. Move
-        // the actual tab views into a fixed bottom navigator, not a second copy.
-        final ViewGroup oldTabParent = (ViewGroup) mTabStrip.getParent();
-        oldTabParent.removeView(mTabStrip);
-        final LinearLayout categoryHost = findViewById(R.id.emoji_bottom_category_host);
-        categoryHost.addView(mTabStrip, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        mTabStrip.setPadding(0, (int) (3 * getResources().getDisplayMetrics().density),
-                0, (int) (3 * getResources().getDisplayMetrics().density));
+        // Categories are fixed at the very top in the shared IME strip.
+        // Do not reparent them into the scrolling emoji shell: that change
+        // made the search label and tabs overlap or disappear on some frames.
         for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
             addTab(mTabStrip, properties.mCategoryId);
         }
@@ -295,29 +287,15 @@ public final class EmojiPalettesView extends LinearLayout
         mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
         mEmojiLayoutParams.setCategoryPageIdViewProperties(mEmojiCategoryPageIndicatorView);
         mBottomRowKeyboard = findViewById(R.id.bottom_row_keyboard);
-        mBottomRowKeyboard.setVisibility(View.GONE);
-        mBrowseSearchBar = findViewById(R.id.emoji_browse_search_bar);
-        mBottomCategoryStrip = findViewById(R.id.emoji_bottom_category_strip);
-        mBrowseSearchBar.setOnClickListener(v -> {
-            performTapFeedback(v);
-            enterSearchMode();
-        });
-        final ImageButton categoryDelete = findViewById(R.id.emoji_category_backspace_button);
-        categoryDelete.setOnClickListener(v -> {
-            performTapFeedback(v);
-            mMainKeyboardActionListener.onCodeInput(KeyCode.DELETE,
-                    NOT_A_COORDINATE, NOT_A_COORDINATE, false);
-        });
-        mColors.setColor(categoryDelete, ColorType.TOOL_BAR_KEY);
-        mColors.setColor((ImageView) findViewById(R.id.emoji_browse_search_icon),
-                ColorType.TOOL_BAR_KEY);
-        ((TextView) findViewById(R.id.emoji_browse_search_label)).setTextColor(
-                ColorUtils.setAlphaComponent(mColors.get(ColorType.TOOL_BAR_KEY), 0xB0));
-        mBottomCategoryStrip.addOnLayoutChangeListener((v, left, top, right, bottom,
+        mBottomRowKeyboard.setVisibility(View.VISIBLE);
+        // Glass follows the full Search/Space/Delete row, not just the
+        // separate ABC and mic footer underneath it.
+        mBottomRowKeyboard.addOnLayoutChangeListener((v, left, top, right, bottom,
                 oldLeft, oldTop, oldRight, oldBottom) -> {
             if (bottom <= top) return;
             final View glass = findViewById(R.id.emoji_bottom_glass);
-            final int height = bottom - top + (int) (8 * getResources().getDisplayMetrics().density);
+            final int height = bottom - top
+                    + (int) (8 * getResources().getDisplayMetrics().density);
             final ViewGroup.LayoutParams params = glass.getLayoutParams();
             if (params.height != height) {
                 params.height = height;
@@ -594,8 +572,6 @@ public final class EmojiPalettesView extends LinearLayout
         mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
 
         mPager.setVisibility(View.GONE);
-        if (mBrowseSearchBar != null) mBrowseSearchBar.setVisibility(View.GONE);
-        if (mBottomCategoryStrip != null) mBottomCategoryStrip.setVisibility(View.GONE);
         findViewById(R.id.emoji_grid_shell).setVisibility(View.GONE);
         mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
         if (mBottomRowKeyboard != null) {
@@ -658,7 +634,7 @@ public final class EmojiPalettesView extends LinearLayout
             mEmojiCategoryPageIndicatorView.setVisibility(View.GONE);
         }
         if (mBottomRowKeyboard != null) {
-            mBottomRowKeyboard.setVisibility(View.GONE);
+            revealWithoutFlash(mBottomRowKeyboard);
         }
         swapKeyboardToEmojiSearch(false, restoreViews);
         if (restoreViews) {
@@ -686,12 +662,11 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void restoreEmojiCategoryStrip() {
-        // Search returns to the native browse search field and bottom tabs;
-        // never resurrect the obsolete upper strip or an opaque empty band.
-        if (mBrowseSearchBar != null) revealWithoutFlash(mBrowseSearchBar);
-        if (mBottomCategoryStrip != null) revealWithoutFlash(mBottomCategoryStrip);
-        final View stripContainer = KeyboardSwitcher.getInstance().getStripContainer();
-        if (stripContainer != null) stripContainer.setVisibility(View.GONE);
+        final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
+        final View stripContainer = switcher.getStripContainer();
+        final View tabStripView = switcher.getEmojiTabStrip();
+        if (stripContainer != null) revealWithoutFlash(stripContainer);
+        if (tabStripView != null) revealWithoutFlash(tabStripView);
     }
 
     private void revealWithoutFlash(final View view) {
