@@ -30,6 +30,11 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
             addColumnIfMissing(db, KlipyHistoryDao.TABLE_NAME, KlipyHistoryDao.COLUMN_PINNED, "INTEGER NOT NULL DEFAULT 0")
             addColumnIfMissing(db, KlipyHistoryDao.TABLE_NAME, KlipyHistoryDao.COLUMN_PINNED_TIMESTAMP, "INTEGER NOT NULL DEFAULT 0")
         }
+        if (oldVersion <= 5) {
+            // Delete obsolete gesture diagnostics from old installations.
+            // Keep the legacy table for downgraded/database-import compatibility.
+            db.execSQL("DELETE FROM GESTURE_DATA")
+        }
     }
 
     private fun addColumnIfMissing(db: SQLiteDatabase, table: String, column: String, definition: String) {
@@ -43,7 +48,7 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
 
     companion object {
         private val TAG = Database::class.java.simpleName
-        private const val VERSION = 5
+        private const val VERSION = 6
         const val NAME = "heliboard.db"
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
@@ -68,17 +73,8 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
                             clipDao.addClip(it.getLong(0), it.getInt(1) != 0, it.getString(2))
                     }
             }
-            val db = getInstance(context)
-            db.writableDatabase.execSQL("DELETE FROM GESTURE_DATA")
-            otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, WORD, EXPORTED, SOURCE_ACTIVE, DATA FROM GESTURE_DATA", null)
-                .use { c ->
-                    db.writableDatabase.transaction {
-                        while (c.moveToNext()) {
-                            execSQL("INSERT INTO GESTURE_DATA (TIMESTAMP, WORD, EXPORTED, SOURCE_ACTIVE, DATA) " +
-                                "VALUES (${c.getLong(0)},?,${c.getInt(2)},${c.getInt(3)},?)", arrayOf(c.getString(1), c.getString(4)))
-                        }
-                    }
-                }
+            // Do not import sensitive swipe coordinates/typed words from backups.
+            getInstance(context).writableDatabase.execSQL("DELETE FROM GESTURE_DATA")
             otherDb.close()
             file.delete()
         }

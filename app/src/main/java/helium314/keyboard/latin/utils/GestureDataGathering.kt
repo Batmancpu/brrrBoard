@@ -53,62 +53,9 @@ class WordData(
 
     private val timestamp = System.currentTimeMillis()
 
+    /** Gesture recognition remains active; recording swipe traces and words is retired. */
     fun save(context: Context) {
-        GestureDataGatheringSettings.onTrySaveData(context.prefs())
-        if (!isSavingOk(context))
-            return
-        val dao = GestureDataDao.getInstance(context) ?: return
-
-        val keyboardInfo = KeyboardInfo(
-            width, // baseHeight is without padding, but coordinates include padding
-            height,
-            keys.map {
-                KeyInfo(
-                    it.x, it.width, it.y, it.height,
-                    it.outputText ?: if (it.code > 0) StringUtils.newSingleCodePointString(it.code) else "",
-                    it.popupKeys.orEmpty().map { popup ->
-                        popup.mOutputText ?: if (popup.mCode > 0) StringUtils.newSingleCodePointString(popup.mCode) else ""
-                    }
-                )
-            }
-        )
-        val filteredSuggestions = mutableListOf<SuggestedWords.SuggestedWordInfo>()
-        for (word in suggestions) { // suggestions are sorted with highest score first
-            if (word.mWord == targetWord) {
-                // always add the targetWord if we have it
-                filteredSuggestions.add(word)
-                continue
-            }
-            if (word.mSourceDict.mDictType == Dictionary.TYPE_CONTACTS
-                || suggestions.any { it.mWord == word.mWord && it.mSourceDict.mDictType == Dictionary.TYPE_CONTACTS })
-                continue // never store contacts (might be in user history too)
-            // for the personal dictionary we rely on the ignore list
-            if (word.mScore < 0 && filteredSuggestions.size > 5)
-                continue // no need to add bad matches
-            if (filteredSuggestions.any { it.mWord == word.mWord })
-                continue // only one occurrence per word
-            if (filteredSuggestions.size > 18) // user sees 18 suggestions at most
-            // todo: some data contains more suggestions than allowed -> there is something broken here!
-                continue // should be enough
-            filteredSuggestions.add(word)
-        }
-        val data = GestureData(
-            context.getString(R.string.english_ime_name) + " " + BuildConfig.VERSION_NAME,
-            if (!context.protectedPrefs().contains(Settings.PREF_LIBRARY_CHECKSUM)) null
-                else context.protectedPrefs().getString(Settings.PREF_LIBRARY_CHECKSUM, "") == JniUtils.expectedDefaultChecksum(),
-            targetWord,
-            dictionariesInSuggestions.map {
-                val hash = (it as? BinaryDictionary)?.hash ?: (it as? ReadOnlyBinaryDictionary)?.hash
-                DictInfo(hash, it.mDictType, it.mLocale?.toLanguageTag())
-            },
-            filteredSuggestions.map { Suggestion(it.mWord, it.mScore) },
-            PointerData.fromPointers(composedData.mInputPointers),
-            keyboardInfo,
-            activeMode,
-            null
-        )
-        scope.launch { dao.add(data, timestamp) }
-        GestureDataGatheringSettings.informAboutTooManyPassiveModeWords(activeMode, context, dao)
+        // Intentionally no-op. No private-input audit records are collected.
     }
 
     // find when we should NOT save
