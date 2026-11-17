@@ -18,6 +18,20 @@ import org.robolectric.RobolectricTestRunner
 /** Source-hierarchy gates; real blur/drag still require GPU/device inspection. */
 @RunWith(RobolectricTestRunner::class)
 class EmojiPanelCompositionTest {
+    @Test fun browseUsesExactlyThreeKeysWithBalancedActionWidths() {
+        val ime = Robolectric.setupService(LatinIME::class.java)
+        val asset = ime.assets.open("layouts/emoji_bottom/emoji_bottom_row.json")
+            .bufferedReader().use { it.readText() }
+        val keys = org.json.JSONArray(asset).getJSONArray(0)
+        assertEquals(3, keys.length())
+        assertEquals("emoji_search", keys.getJSONObject(0).getString("label"))
+        assertEquals(0.22, keys.getJSONObject(0).getDouble("width"), 0.0001)
+        assertEquals("space", keys.getJSONObject(1).getString("label"))
+        assertEquals(-1.0, keys.getJSONObject(1).getDouble("width"), 0.0001)
+        assertEquals("delete", keys.getJSONObject(2).getString("label"))
+        assertEquals(0.22, keys.getJSONObject(2).getDouble("width"), 0.0001)
+    }
+
     @Test fun actionKeysOverlayFullWidthCategoryPagerAndSearchKeepsOneResultRow() {
         val ime = Robolectric.setupService(LatinIME::class.java)
         val panel = LayoutInflater.from(ime).inflate(R.layout.emoji_palettes_view, null)

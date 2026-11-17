@@ -196,13 +196,18 @@ public final class EmojiPalettesView extends LinearLayout
             // Match that established size, without moving the glass/footer or
             // changing a genuinely shorter window (landscape/floating IME).
             final View wrapper = getRootView().findViewById(R.id.keyboard_view_wrapper);
-            if (wrapper != null) {
-                final int maxGrowth = 2 * accessoryHeight
-                        + res.getDimensionPixelSize(R.dimen.config_board_footer_height);
-                finalHeight = helium314.keyboard.latin.SharedPanelGeometry
-                        .retainExistingPanelViewport(finalHeight, wrapper.getHeight(),
-                                availableHeight, maxGrowth);
-            }
+            final View alphabet = getRootView().findViewById(R.id.keyboard_view);
+            // The wrap-content wrapper shrinks when alphabet goes GONE; its
+            // earlier measured height is still available on the typing view.
+            final int establishedHeight = Math.max(
+                    wrapper == null ? 0 : wrapper.getHeight(),
+                    alphabet == null ? 0 : alphabet.getMeasuredHeight());
+            final int maxGrowth = 2 * res.getDimensionPixelSize(
+                    R.dimen.config_suggestions_strip_height)
+                    + res.getDimensionPixelSize(R.dimen.config_board_footer_height);
+            finalHeight = helium314.keyboard.latin.SharedPanelGeometry
+                    .retainExistingPanelViewport(finalHeight, establishedHeight,
+                            availableHeight, maxGrowth);
         }
         if (mSearchMode) {
             // Search is a complete typing keyboard plus one result row and a
@@ -1719,11 +1724,13 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void updateContextSmartVisibility() {
         if (mContextSmartSection == null) return;
-        // Never resize the scrolling viewport underneath an active finger.
-        if (mEmojiGridScrollActive && mHasContextSmartPicks && !mSearchMode) return;
         final boolean visible = mHasContextSmartPicks && !mSearchMode
                 && !mCompactContextPanel
                 && mEmojiCategory.getCurrentCategoryId() == EmojiCategory.ID_RECENTS;
+        // Never retain the 70dp Smart row after switching out of Recents
+        // mid-scroll. Only its introduction may wait for the gesture to end.
+        if (EmojiSmartRowVisibilityPolicy.deferAppearance(mEmojiGridScrollActive,
+                visible, mContextSmartSection.getVisibility() == View.VISIBLE)) return;
         mContextSmartSection.setVisibility(visible ? View.VISIBLE : View.GONE);
     }
 
