@@ -31,4 +31,14 @@ class SharedPanelGeometryTest {
         assertEquals(300, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 300))
         assertEquals(288, SharedPanelGeometry.emojiSearchBodyHeight(252, 0, 0, 288, 1000))
     }
+    @Test fun compactBrowseIsIndependentOfSearchHeightAndClampedToCurrentWindow() {
+        val compactBefore = SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 1100)
+        val search = SharedPanelGeometry.emojiSearchBodyHeight(642, 48, 56, compactBefore, 1100)
+        val compactAfter = SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 1100)
+        assertEquals(750, compactBefore)
+        assertEquals(746, search) // Search's independent geometry never feeds Browse.
+        assertEquals(compactBefore, compactAfter)
+        assertEquals(400, SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 400))
+    }
+
 }
