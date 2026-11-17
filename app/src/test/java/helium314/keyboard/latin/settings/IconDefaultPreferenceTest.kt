@@ -21,7 +21,7 @@ class IconDefaultPreferenceTest {
 
     @Test fun existingExplicitCustomIconSelectionSurvivesDefaultRefresh() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        val preferences = prefs(context)
+        val preferences = context.prefs()
         val before = preferences.getString(Settings.PREF_CUSTOM_ICON_NAMES, null)
         try {
             assertTrue(preferences.edit().putString(Settings.PREF_CUSTOM_ICON_NAMES,

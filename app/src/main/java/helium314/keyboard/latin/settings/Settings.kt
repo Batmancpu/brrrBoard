@@ -16,7 +16,7 @@ fun customIconNames(prefs: SharedPreferences) = runCatching {
 fun customIconIds(context: Context): Map<String, Int> {
     // Respect the user's persisted custom choices instead of mistakenly
     // reapplying baked-in legacy Material glyphs on every reload.
-    val names = customIconNames(prefs(context))
+    val names = customIconNames(context.prefs())
     return names.mapNotNull { entry ->
         val id = runCatching { context.resources.getIdentifier(entry.value, "drawable", context.packageName) }.getOrNull()
         id?.let { entry.key to it }
