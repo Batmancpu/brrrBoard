@@ -123,6 +123,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_ENABLE_SPLIT_KEYBOARD_FOLDED = "split_keyboard_folded";
     public static final String PREF_ENABLE_SPLIT_KEYBOARD_FOLDED_LANDSCAPE = "split_keyboard_folded_landscape";
     public static final String PREF_KEYBOARD_CORNER_RADIUS = "keyboard_corner_radius";
+    public static final String PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE = "keyboard_top_highlight_style";
     public static final int KEYBOARD_CORNER_RADIUS_MIN_DP = 0;
     public static final int KEYBOARD_CORNER_RADIUS_MAX_DP = 32;
     public static final String PREF_SPLIT_SPACER_SCALE_PREFIX = "split_spacer_scale";

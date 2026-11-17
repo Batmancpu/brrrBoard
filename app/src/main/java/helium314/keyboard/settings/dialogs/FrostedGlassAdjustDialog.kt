@@ -117,6 +117,21 @@ fun FrostedGlassAdjustDialog(
     // 2. The temporary live state for the sliders
     var snapshot by remember { mutableStateOf(initialSnapshot) }
     var isSaved by remember { mutableStateOf(false) }
+    // Edge reflection is previewed on the real open IME, and rolled back on Cancel.
+    val initialHighlightStyle = remember {
+        prefs.getInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+            Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE).coerceIn(0, 3)
+    }
+    var selectedHighlightStyle by remember { mutableIntStateOf(initialHighlightStyle) }
+
+    fun previewHighlightStyle(style: Int) {
+        selectedHighlightStyle = style.coerceIn(0, 3)
+        prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+            selectedHighlightStyle).apply()
+        // RoundedKeyboardFrameView observes this preference and redraws
+        // only its specular edge; the keyboard is never dismissed/recreated.
+    }
+
 
     fun applyLivePreview(
         profile: FrostedProfileSnapshot,
@@ -196,6 +211,8 @@ fun FrostedGlassAdjustDialog(
             if (!isSaved) {
                 // User cancelled or dismissed! Roll back preferences to the snapshot
                 writeSnapshotToPrefs(initialSnapshot)
+                prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+                    initialHighlightStyle).apply()
             }
             
             // Clear spoofing state
@@ -382,6 +399,11 @@ fun FrostedGlassAdjustDialog(
                         }
 
                         val focusRequester = remember { FocusRequester() }
+                        // Keep the actual keyboard onscreen while comparing reflections.
+                        LaunchedEffect(focusRequester) {
+                            kotlinx.coroutines.delay(180)
+                            focusRequester.requestFocus()
+                        }
                         OutlinedTextField(
                             state = testFieldState,
                             modifier = Modifier
@@ -391,6 +413,77 @@ fun FrostedGlassAdjustDialog(
                             placeholder = { Text(stringResource(R.string.frosted_glass_test_input_title)) },
                             lineLimits = TextFieldLineLimits.SingleLine,
                         )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.keyboard_highlight_style_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = stringResource(R.string.keyboard_highlight_style_summary),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 10.dp)
+                            )
+                            val highlightStyles = listOf(
+                                Triple(0, stringResource(R.string.keyboard_highlight_classic),
+                                    stringResource(R.string.keyboard_highlight_classic_detail)),
+                                Triple(1, stringResource(R.string.keyboard_highlight_soft),
+                                    stringResource(R.string.keyboard_highlight_soft_detail)),
+                                Triple(2, stringResource(R.string.keyboard_highlight_studio),
+                                    stringResource(R.string.keyboard_highlight_studio_detail)),
+                                Triple(3, stringResource(R.string.keyboard_highlight_quiet),
+                                    stringResource(R.string.keyboard_highlight_quiet_detail))
+                            )
+                            highlightStyles.chunked(2).forEach { rowStyles ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    rowStyles.forEach { style ->
+                                        val chosen = selectedHighlightStyle == style.first
+                                        OutlinedButton(
+                                            onClick = {
+                                                previewHighlightStyle(style.first)
+                                                focusRequester.requestFocus()
+                                            },
+                                            modifier = Modifier.weight(1f).height(74.dp),
+                                            shape = RoundedCornerShape(15.dp),
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                if (chosen) 2.dp else 1.dp,
+                                                if (chosen) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.outlineVariant
+                                            ),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = if (chosen)
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                else Color.Transparent
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 7.dp, vertical = 7.dp)
+                                        ) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    text = style.second,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    maxLines = 1
+                                                )
+                                                Text(
+                                                    text = style.third,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 2
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         // 1. Wallpaper Picker Row (styled like a slider row, placed first)
                         Row(
@@ -659,6 +752,7 @@ fun FrostedGlassAdjustDialog(
                                         resetProfile,
                                         Defaults.PREF_FROSTED_DUST_ENABLED
                                     )
+                                    previewHighlightStyle(Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE)
                                 },
                                 modifier = Modifier
                                     .weight(1f)

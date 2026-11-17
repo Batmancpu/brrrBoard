@@ -1320,4 +1320,16 @@ New dictionary:
     <string name="about_star_repo_description">Support this project with a star. No donations needed.</string>
     <string name="about_report_issue">Report an issue</string>
     <string name="about_report_issue_description">Bugs, suggestions and feature requests for brrBoard.</string>
+
+    <!-- Four optional specular edge treatments; default preserves the original floating slab illusion. -->
+    <string name="keyboard_highlight_style_title">Glass edge reflection</string>
+    <string name="keyboard_highlight_style_summary">Compare live on the keyboard below. Classic Lift is the default.</string>
+    <string name="keyboard_highlight_classic">Classic Lift</string>
+    <string name="keyboard_highlight_classic_detail">Rounded, softly trimmed</string>
+    <string name="keyboard_highlight_soft">Soft Horizon</string>
+    <string name="keyboard_highlight_soft_detail">Broad diffused sheen</string>
+    <string name="keyboard_highlight_studio">Studio Glints</string>
+    <string name="keyboard_highlight_studio_detail">Two delicate reflections</string>
+    <string name="keyboard_highlight_quiet">Quiet Edge</string>
+    <string name="keyboard_highlight_quiet_detail">Subtle centre highlight</string>
 </resources>

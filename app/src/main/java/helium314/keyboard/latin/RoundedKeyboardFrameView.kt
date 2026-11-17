@@ -6,6 +6,8 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Insets
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
@@ -50,7 +52,10 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         if (key == Settings.PREF_KEYBOARD_CORNER_RADIUS) {
             cachedRadiusPx = -1f
             invalidateOutline()
-            postInvalidate()
+            postInvalidateOnAnimation()
+        } else if (key == Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE) {
+            // The actual IME stays open: re-render only its edge reflection.
+            postInvalidateOnAnimation()
         }
     }
 
@@ -173,29 +178,79 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         if (!runCatching { Settings.getValues()?.mColors?.isFrosted == true }.getOrDefault(false)
             || width <= 0 || height <= 0) return
 
-        val stroke = topHighlightPaint.strokeWidth
         val radius = (if (cachedRadiusPx >= 0f) cachedRadiusPx else keyboardCornerRadiusPx())
             .coerceAtMost(width / 2f)
-        if (radius <= stroke) return
-        topHighlightPaint.color = ColorUtils.setAlphaComponent(
-            Color.WHITE,
-            if (KeyboardTheme.isDarkThemeActive(context)) 0x52 else 0x30
-        )
-        val edge = stroke / 2f
+        val density = resources.displayMetrics.density
+        if (radius <= density) return
+
+        val isDark = KeyboardTheme.isDarkThemeActive(context)
+        val baseAlpha = if (isDark) 0x52 else 0x30
+        val style = context.prefs().getInt(
+            Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+            Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE
+        ).coerceIn(0, 3)
+
+        // Every style is an OPEN reflection, never a border around the slab.
+        // Fade out before the very left/right edges so the specular reflection
+        // cannot form the former bright vertical corner streak.
+        fun reflection(path: Path, lineDp: Float, alpha: Int, softSides: Boolean = true) {
+            val a = alpha.coerceIn(0, 255)
+            val transparent = ColorUtils.setAlphaComponent(Color.WHITE, 0)
+            val peak = ColorUtils.setAlphaComponent(Color.WHITE, a)
+            val shoulder = ColorUtils.setAlphaComponent(Color.WHITE, (a * 0.7f).toInt())
+            topHighlightPaint.strokeWidth = lineDp * density
+            topHighlightPaint.strokeCap = Paint.Cap.BUTT
+            topHighlightPaint.color = peak
+            topHighlightPaint.shader = if (softSides) LinearGradient(
+                0f, 0f, width.toFloat(), 0f,
+                intArrayOf(transparent, shoulder, peak, peak, shoulder, transparent),
+                floatArrayOf(0f, 0.04f, 0.13f, 0.87f, 0.96f, 1f),
+                Shader.TileMode.CLAMP
+            ) else null
+            canvas.drawPath(path, topHighlightPaint)
+            topHighlightPaint.shader = null
+        }
+
+        val edge = density / 2f
         topHighlightPath.reset()
-        // A true quarter-circle matching clipPath.addRoundRect, not a quadratic
-        // curve that leaves a doubled specular streak at each corner.
-        topHighlightPath.moveTo(edge, radius)
-        topHighlightPath.arcTo(
-            RectF(edge, edge, 2f * radius - edge, 2f * radius - edge),
-            180f, 90f, false
-        )
-        topHighlightPath.lineTo(width - radius, edge)
-        topHighlightPath.arcTo(
-            RectF(width - 2f * radius + edge, edge, width - edge, 2f * radius - edge),
-            270f, 90f, false
-        )
-        canvas.drawPath(topHighlightPath, topHighlightPaint)
+        when (style) {
+            0 -> {
+                // Classic Lift (DEFAULT): original floating-glass top arc,
+                // carefully trimmed at both ends before it becomes an outline.
+                topHighlightPath.arcTo(
+                    RectF(edge, edge, 2f * radius - edge, 2f * radius - edge),
+                    214f, 56f, true
+                )
+                topHighlightPath.lineTo(width - radius, edge)
+                topHighlightPath.arcTo(
+                    RectF(width - 2f * radius + edge, edge, width - edge, 2f * radius - edge),
+                    270f, 56f, false
+                )
+                reflection(topHighlightPath, 1f, baseAlpha)
+            }
+            1 -> {
+                // Soft Horizon: a wide, low-energy top glint without side arcs.
+                topHighlightPath.moveTo(width * 0.10f, 1.4f * density)
+                topHighlightPath.lineTo(width * 0.90f, 1.4f * density)
+                reflection(topHighlightPath, 2.8f, (baseAlpha * 0.64f).toInt())
+            }
+            2 -> {
+                // Studio Glints: a quiet full sheen plus an offset specular stroke.
+                topHighlightPath.moveTo(width * 0.13f, edge)
+                topHighlightPath.lineTo(width * 0.87f, edge)
+                reflection(topHighlightPath, 0.85f, (baseAlpha * 0.75f).toInt())
+                topHighlightPath.reset()
+                topHighlightPath.moveTo(width * 0.29f, 2.2f * density)
+                topHighlightPath.lineTo(width * 0.68f, 2.2f * density)
+                reflection(topHighlightPath, 1.4f, (baseAlpha * 0.46f).toInt())
+            }
+            else -> {
+                // Quiet Edge: barely-there centered lift, no curved side streaks.
+                topHighlightPath.moveTo(width * 0.23f, edge)
+                topHighlightPath.lineTo(width * 0.77f, edge)
+                reflection(topHighlightPath, 0.8f, (baseAlpha * 0.65f).toInt())
+            }
+        }
     }
 
     private fun keyboardCornerRadiusPx(): Float {

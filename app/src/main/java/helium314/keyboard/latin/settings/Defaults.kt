@@ -89,6 +89,8 @@ object Defaults {
     @JvmField
     val PREF_SIDE_PADDING_SCALE = Array(8) { 0f }
     const val PREF_KEYBOARD_CORNER_RADIUS = 32
+    /** 0 = owner-approved floating top highlight; 1–3 are optional alternatives. */
+    const val PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE = 0
     const val PREF_FONT_SCALE = DEFAULT_SIZE_SCALE
     // Dense emoji cells target eight columns on a phone while retaining useful tap width.
     const val PREF_EMOJI_FONT_SCALE = 0.95f
