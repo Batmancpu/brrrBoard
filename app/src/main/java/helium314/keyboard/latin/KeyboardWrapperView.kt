@@ -30,6 +30,21 @@ class KeyboardWrapperView @JvmOverloads constructor(
 
     var keyboardActionListener: KeyboardActionListener? = null
 
+    // The alphabet view becomes GONE before Emoji measures. Its old
+    // measuredHeight is not guaranteed to survive the new FrameLayout pass.
+    private val typingHeightMemory = KeyboardViewportHeightMemory()
+
+    /** Height of the last truly visible alphabet body, excluding fixed strip/footer. */
+    fun getLastTypingKeyboardHeight(): Int = typingHeightMemory.lastTypingHeight
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val alphabet = findViewById<View>(R.id.keyboard_view)
+        if (alphabet != null) {
+            typingHeightMemory.observe(alphabet.measuredHeight, alphabet.visibility == View.VISIBLE)
+        }
+    }
+
     private lateinit var stopOneHandedModeBtn: ImageButton
     private lateinit var switchOneHandedModeBtn: ImageButton
     private lateinit var resizeOneHandedModeBtn: ImageButton

@@ -199,9 +199,16 @@ public final class EmojiPalettesView extends LinearLayout
             final View alphabet = getRootView().findViewById(R.id.keyboard_view);
             // The wrap-content wrapper shrinks when alphabet goes GONE; its
             // earlier measured height is still available on the typing view.
-            final int establishedHeight = Math.max(
-                    wrapper == null ? 0 : wrapper.getHeight(),
-                    alphabet == null ? 0 : alphabet.getMeasuredHeight());
+            final int rememberedAlphabetHeight =
+                    wrapper instanceof helium314.keyboard.latin.KeyboardWrapperView
+                        ? ((helium314.keyboard.latin.KeyboardWrapperView) wrapper)
+                                .getLastTypingKeyboardHeight() : 0;
+            // The just-hidden alphabet view can remeasure at zero before this
+            // body is measured; use its last *visible* height, not an empty
+            // wrapper left over from a previous frame.
+            final int establishedHeight = Math.max(rememberedAlphabetHeight,
+                    Math.max(wrapper == null ? 0 : wrapper.getHeight(),
+                            alphabet == null ? 0 : alphabet.getMeasuredHeight()));
             final int maxGrowth = 2 * res.getDimensionPixelSize(
                     R.dimen.config_suggestions_strip_height)
                     + res.getDimensionPixelSize(R.dimen.config_board_footer_height);
@@ -218,6 +225,14 @@ public final class EmojiPalettesView extends LinearLayout
             final int resultHeight = results == null ? 0 : results.getLayoutParams().height;
             finalHeight = helium314.keyboard.latin.SharedPanelGeometry.emojiSearchBodyHeight(
                     abcHeight, barHeight, resultHeight, finalHeight, availableHeight);
+        }
+        // Never retain a 70dp Recents-only context section above the grid
+        // after switching categories, including when a page change and measure
+        // happen in the same frame.
+        if (!mSearchMode && mContextSmartSection != null
+                && mEmojiCategory.getCurrentCategoryId() != EmojiCategory.ID_RECENTS
+                && mContextSmartSection.getVisibility() != View.GONE) {
+            mContextSmartSection.setVisibility(View.GONE);
         }
         // The Smart row must not sacrifice the two visible Emoji rows in a
         // short landscape IME. The keyboard shell height itself never grows.
