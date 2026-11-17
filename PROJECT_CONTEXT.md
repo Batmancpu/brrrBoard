@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-17 B14V failure diagnosis and active repair
+
+Starting remote `main` `c18441f15d22ccf1fa0b8ead6839b4f416c7aeb3`, visual source committed but no signed B14V release. Failures [debug 44020799521](https://github.com/Batmancpu/brrrBoard/actions/runs/44020799521), [production 44020799467](https://github.com/Batmancpu/brrrBoard/actions/runs/44020799467). Examined complete job logs: `ClipboardSurfacePolicyTest.kt:15,23` calls `zipWithNext()` on `IntArray`, which lacks that extension; Kotlin `:app:compileRunTestsUnitTestKotlin` fails before tests execute. Thus there is **no proven new Emoji classifier failure**. Debug report upload additionally fails on absent JUnit XML. Recovery keeps exact monotone gradient checks using index pairs and changes debug failed-report artifact policy to warn if no XML; explicit test gate still fails the workflow when test compilation or execution fails, and production signing still blocks on `testRunTests`. No production source or signing changes. Next: commit these fixes and persistent docs to GitHub, monitor fresh CI/debug and signer to completion, record source SHA, artifacts/cert/hash, then B10. Oppo Clipboard glass/appearance remains physically unaccepted, future footer status lane still deferred.
+
 ## 2026-11-17 current mission — B14V visual source checkpoint (CI not yet run)
 
 User authorized a single connected B14V, B10, B11, B12, conditional B13 and B07V group; no B16–B19 and no physical-test requests between batches. The earlier wider authorization is superseded. Verified starting `main` `d6354bfeace3ab47f3f1d9ae9da6ac971b06629d`, signed v1.0.67 SHA-256 `4810acadccfe594970b96f23432505593dae73b4e66253fa27a8838479dcf5ea`, full CI `43946082091` / signer `43946082132` success. No competing new head observed.

@@ -146,7 +146,9 @@ jobs:
         with:
           name: brrrBoard-test-reports-${{ github.sha }}
           path: app/build/test-results/testRunTestsUnitTest/*.xml
-          if-no-files-found: error
+          # Compiler failures may happen before JUnit XML exists; the explicit
+          # unit_tests gate below still fails the job with the original cause.
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Fail workflow when tests fail
