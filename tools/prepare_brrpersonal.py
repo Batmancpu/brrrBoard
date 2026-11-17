@@ -14,6 +14,7 @@ import time
 import urllib.request
 from collections import Counter
 from pathlib import Path
+from typing import Iterable
 
 PHINC_REVISION = "44b5471df75e508b9d6fcdbcc93df04bb1e84056"
 PHINC_URL = (
@@ -104,21 +105,24 @@ def read_rules(path: Path) -> dict[str, str]:
         raise ValueError("brrPersonal rules file is empty")
     return rules
 
-def main() -> None:
-    if len(sys.argv) != 3:
-        raise SystemExit("usage: prepare_brrpersonal.py OUTPUT_TSV RULES_TSV")
-    output_path = Path(sys.argv[1])
-    rules_path = Path(sys.argv[2])
-    rules = read_rules(rules_path)
-    reader = csv.DictReader(io.StringIO(download_csv(), newline=""))
-    if not reader.fieldnames:
-        raise ValueError("Pinned PHINC CSV has no header")
-    hinglish_column, english_column = find_columns(reader.fieldnames)
 
+def build_seed_entries(
+    rows: Iterable[dict[str, str]],
+    hinglish_column: str,
+    english_column: str,
+    rules: dict[str, str],
+    max_entries: int = MAX_TOTAL_ENTRIES,
+) -> tuple[dict[str, tuple[int, str]], int, int]:
+    """Pure, deterministic seed builder for disjoint synthetic quality fixtures.
+
+    Preserve existing production selection and frequencies exactly. The caller
+    supplies training rows only; this function never observes holdout examples
+    or persists a sentence. Candidate count is recorded for provenance.
+    """
     hinglish_counts: Counter[str] = Counter()
     english_counts: Counter[str] = Counter()
     row_count = 0
-    for row in reader:
+    for row in rows:
         row_count += 1
         hinglish_counts.update(TOKEN_RE.findall((row.get(hinglish_column) or "").casefold()))
         english_counts.update(TOKEN_RE.findall((row.get(english_column) or "").casefold()))
@@ -130,13 +134,28 @@ def main() -> None:
         and word not in ENGLISH_FUNCTION_WORDS
     ]
     candidates.sort(key=lambda item: (-item[1], item[0]))
-    corpus_limit = max(0, MAX_TOTAL_ENTRIES - len(rules))
+    corpus_limit = max(0, max_entries - len(rules))
     entries: dict[str, tuple[int, str]] = {
         word: (min(255, count), "") for word, count in candidates[:corpus_limit]
     }
     for word, emoji in rules.items():
         corpus_frequency = entries.get(word, (0, ""))[0]
         entries[word] = (max(MANUAL_RULE_FREQUENCY, corpus_frequency), emoji)
+    return entries, row_count, len(candidates)
+
+def main() -> None:
+    if len(sys.argv) != 3:
+        raise SystemExit("usage: prepare_brrpersonal.py OUTPUT_TSV RULES_TSV")
+    output_path = Path(sys.argv[1])
+    rules_path = Path(sys.argv[2])
+    rules = read_rules(rules_path)
+    reader = csv.DictReader(io.StringIO(download_csv(), newline=""))
+    if not reader.fieldnames:
+        raise ValueError("Pinned PHINC CSV has no header")
+    hinglish_column, english_column = find_columns(reader.fieldnames)
+
+    entries, row_count, candidate_count = build_seed_entries(
+        reader, hinglish_column, english_column, rules)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as output:
@@ -147,9 +166,9 @@ def main() -> None:
             frequency, emoji = entries[word]
             output.write(f"{word}\t{frequency}\t{emoji}\n")
 
-    if row_count < 1000 or len(candidates) < 100:
+    if row_count < 1000 or candidate_count < 100:
         raise ValueError(
-            f"Unexpectedly small PHINC result: rows={row_count}, candidates={len(candidates)}"
+            f"Unexpectedly small PHINC result: rows={row_count}, candidates={candidate_count}"
         )
     print(
         f"brrPersonal: {len(entries)} entries from {row_count} PHINC rows; "

@@ -124,6 +124,13 @@ jobs:
           set -euo pipefail
           ./gradlew --no-daemon --stacktrace testRunTests
 
+      - name: Validate deterministic brrPersonal seed generator (B16A)
+        if: steps.unit_tests.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
+
       - name: Print Emoji classifier failure detail
         if: always() && steps.unit_tests.outcome == 'failure'
         shell: bash

@@ -47,6 +47,8 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
       - name: Run complete Android unit test gate before publishing
         run: ./gradlew --no-daemon --stacktrace testRunTests
+      - name: Validate deterministic brrPersonal seed generator (B16A)
+        run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
       - name: Sign and verify APK
         shell: bash
         env:

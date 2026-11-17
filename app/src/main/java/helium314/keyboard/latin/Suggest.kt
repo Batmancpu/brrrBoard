@@ -116,8 +116,15 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             firstOccurrenceOfTypedWordInSuggestions,
             typedWordFirstOccurrenceWordInfo
         )
-        val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected && !noSuggestionTypedWord
-        val hasAutoCorrection = decoderHasAutoCorrection && !noSuggestionTypedWord
+        // Valid-only brrPersonal words may be intentionally typed and remain
+        // visible as manual choices, but never silently replace another word.
+        // No frequency/ranking changes: this is an isolated safety condition.
+        val firstCandidateIsValidOnly = BrrCorrectionSafety.blocksCandidate(
+            suggestionsContainer.firstOrNull()?.mWord)
+        val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected &&
+            !noSuggestionTypedWord && !firstCandidateIsValidOnly
+        val hasAutoCorrection = decoderHasAutoCorrection &&
+            !noSuggestionTypedWord && !firstCandidateIsValidOnly
         val typedWordInfo = SuggestedWordInfo(capitalizedTypedWord, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)

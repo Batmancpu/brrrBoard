@@ -1,5 +1,9 @@
 # P0 Clipboard crash and unified panels — 17 November 2026
 
+## Final automated checkpoint — production v1.0.76
+
+Corrective source [e7f12afda9980d205f672cd8159c942cef6f00f6](https://github.com/Batmancpu/brrrBoard/commit/e7f12afda9980d205f672cd8159c942cef6f00f6) was published on main; debug build/unit [44041419446](https://github.com/Batmancpu/brrrBoard/actions/runs/44041419446) and original production build/full unit/pinned-signature/[release 44041419448](https://github.com/Batmancpu/brrrBoard/actions/runs/44041419448) both ended **SUCCESS**. [v1.0.76 original-signed APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.76/brrBoard.apk), versionCode76, same package ID, SHA-256 `0eeaf4721fc84536f8345811f29af1ebb966700c3e42c45420ee8bab55353628`; tag targets exact source commit. Physical Clipboard crash recovery and visual acceptance are **pending owner Reno10 test**, not proven by CI. A real Oppo logcat is still needed if symptoms recur. User requested B16A next while testing; that new batch is independent and recorded at the top of AGENTS/PROJECT_CONTEXT. Historical candidate/pending CI text below precedes this final gate.
+
 ## Evidence and precedence
 
 Owner-supplied recording `VID_20261117_112839(1).mp4` (194.14 seconds) inspected locally. At approximately 00:00–00:30 the IME disappears on Clipboard selection and Android shows **“brrBoard keeps stopping”**; a text-field retap does not immediately restore the keyboard. At approximately 00:30–01:45 Toolbar has clipped first/last tiles, an unnecessary Back arrow and Emoji rather than ABC in the footer. At approximately 01:50–02:55 Emoji has two ABC controls and horizontal content movement. This is physical evidence of a crash, not a Java stack trace. Exact installed version is not visible; last verified signed baseline is v1.0.75/`fbbc6b1`, and the crash-producing B14V layout is present in that source.
