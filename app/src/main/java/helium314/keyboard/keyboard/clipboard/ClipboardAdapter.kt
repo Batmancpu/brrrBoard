@@ -40,6 +40,24 @@ class ClipboardAdapter(
 ) : RecyclerView.Adapter<ClipboardAdapter.ViewHolder>() {
 
     var clipboardHistoryManager: ClipboardHistoryManager? = null
+    private var filterQuery: String = ""
+    private var filteredIds: List<Long> = emptyList()
+
+    val isFiltered: Boolean get() = filterQuery.isNotEmpty()
+
+    /** Ephemeral in-memory IDs only; no extra clipboard text copies, no upload. */
+    fun setSearchQuery(query: String) {
+        filterQuery = query.trim().lowercase(java.util.Locale.ROOT)
+        refreshSearchResults()
+    }
+
+    fun refreshSearchResults() {
+        val manager = clipboardHistoryManager
+        filteredIds = if (filterQuery.isEmpty() || manager == null) emptyList() else
+            ClipboardSearchPolicy.matchingIds(filterQuery,
+                (0 until manager.getHistorySize()).mapNotNull { manager.getHistoryEntry(it) })
+        notifyDataSetChanged()
+    }
 
     var pinnedIconResId = 0
     var itemBackgroundId = 0
@@ -80,9 +98,14 @@ class ClipboardAdapter(
         super.onViewRecycled(holder)
     }
 
-    private fun getItem(position: Int) = clipboardHistoryManager?.getHistoryEntry(position)
+    private fun getItem(position: Int): ClipboardHistoryEntry? {
+        val manager = clipboardHistoryManager ?: return null
+        return if (isFiltered) filteredIds.getOrNull(position)?.let(manager::getHistoryEntryContent)
+               else manager.getHistoryEntry(position)
+    }
 
-    override fun getItemCount() = clipboardHistoryManager?.getHistorySize() ?: 0
+    override fun getItemCount() = if (isFiltered) filteredIds.size
+                                  else clipboardHistoryManager?.getHistorySize() ?: 0
 
     inner class ViewHolder(
             val parent: ViewGroup,

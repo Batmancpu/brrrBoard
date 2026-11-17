@@ -1,7 +1,8 @@
 [
   [
+    { "label": "emoji_search", "width": 0.18 },
     { "label": "space", "width": -1 },
-    { "label": "delete", "width": 0.15 },
-    { "label": "action", "width": 0.15 }
+    { "label": "delete", "width": 0.18 },
+    { "label": "action", "width": 0.18 }
   ]
 ]

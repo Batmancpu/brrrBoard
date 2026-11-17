@@ -379,7 +379,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
         final View currentPanel = getVisibleKeyboardView();
         final boolean searchPanelActive = (mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode())
-                || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode());
+                || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode())
+                || (mClipboardHistoryView != null && mClipboardHistoryView.isSearchMode());
         final boolean isEnteringSearch = mSearchModeTransitionPending;
         mSearchModeTransitionPending = false;
         final boolean animate = (currentPanel != mKeyboardView && !searchPanelActive) || isEnteringSearch;
@@ -403,7 +404,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     keyboardView.setKeyboard(newKeyboard);
                     mCurrentInputView.setKeyboardTopPadding(newKeyboard.mTopPadding);
                     final boolean searchPanelActive = (mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode())
-                            || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode());
+                            || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode())
+                || (mClipboardHistoryView != null && mClipboardHistoryView.isSearchMode());
                     setKeyboardPanelOffsets(searchPanelActive
                             || (newKeyboard.mId.mElementId >= KeyboardId.ELEMENT_EMOJI_RECENTS
                                     && newKeyboard.mId.mElementId != KeyboardId.ELEMENT_NUMPAD));
@@ -1105,7 +1107,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 : View.VISIBLE;
         final boolean klipySearchActive = mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode();
         final boolean emojiSearchActive = mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode();
-        final int stripVisibility = (klipySearchActive || emojiSearchActive) ? View.GONE
+        final boolean clipboardSearchActive = mClipboardHistoryView != null && mClipboardHistoryView.isSearchMode();
+        final int stripVisibility = (klipySearchActive || emojiSearchActive || clipboardSearchActive) ? View.GONE
                 : (mLatinIME.hasSuggestionStripView() ? View.VISIBLE : View.GONE);
         mStripContainer.setVisibility(stripVisibility);
         PointerTracker.switchTo(mKeyboardView);
@@ -1131,8 +1134,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         mClipboardStripScrollView.setVisibility(View.GONE);
         mSuggestionStripView.setVisibility(stripVisibility);
-        mClipboardHistoryView.setVisibility(View.GONE);
-        mClipboardHistoryView.stopClipboardHistory();
+        if (!clipboardSearchActive) {
+            mClipboardHistoryView.setVisibility(View.GONE);
+            mClipboardHistoryView.stopClipboardHistory();
+        }
         if (mAiWritingToolsView != null) {
             mAiWritingToolsView.setVisibility(View.GONE);
             mAiWritingToolsView.onClose();
@@ -1143,7 +1148,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mSuggestionStripView != null && !klipySearchActive && !emojiSearchActive) {
             mSuggestionStripView.setAccessPointMenuOpen(false);
         }
-        setKeyboardPanelOffsets(klipySearchActive || emojiSearchActive);
+        setKeyboardPanelOffsets(klipySearchActive || emojiSearchActive || clipboardSearchActive);
         updatePersistentEmojiRow();
         logTypingListenerInvariant("KeyboardSwitcher.setMainKeyboardFrame", false /* logWhenOk */);
     }
