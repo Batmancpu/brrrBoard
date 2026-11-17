@@ -13,7 +13,7 @@
     style="?attr/clipboardHistoryViewStyle">
 
     <!-- One measured body: clips scroll behind the fixed header and bottom keys. -->
-    <FrameLayout
+    <helium314.keyboard.keyboard.clipboard.ClipboardGlassFrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipChildren="false"
@@ -124,6 +124,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-    </FrameLayout>
+    </helium314.keyboard.keyboard.clipboard.ClipboardGlassFrameLayout>
 
 </helium314.keyboard.keyboard.clipboard.ClipboardHistoryView>
