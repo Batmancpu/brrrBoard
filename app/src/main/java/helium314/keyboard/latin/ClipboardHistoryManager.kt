@@ -62,6 +62,8 @@ class ClipboardHistoryManager(
     private val inaccessibleImageClipUris = mutableSetOf<String>()
     @Volatile
     private var latestImageSuggestion: RecentClip.Image? = null
+    @Volatile
+    private var latestScreenshotSuggestion: RecentClip.Image? = null
 
     fun onCreate() {
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -179,7 +181,10 @@ class ClipboardHistoryManager(
 
                     var processed = false
                     try {
-                        val timeStamp = System.currentTimeMillis()
+                        val timeStamp = screenshot.dateAdded * 1000L
+                        if (!ScreenshotSuggestionPolicy.isRecent(timeStamp, System.currentTimeMillis())) {
+                            continue
+                        }
                         val imageClip = RecentClip.Image(
                             uri = screenshot.uri,
                             mimeType = normalizeImageMimeType(screenshot.mimeType).mimeType,
@@ -194,7 +199,9 @@ class ClipboardHistoryManager(
                                 false,
                                 encodeImageHistoryClip(cachedUri, imageClip.mimeType, imageClip.label)
                             )
-                            rememberImageSuggestion(imageClip.copy(uri = cachedUri))
+                            val localScreenshot = imageClip.copy(uri = cachedUri)
+                            latestScreenshotSuggestion = localScreenshot
+                            rememberImageSuggestion(localScreenshot)
                             processed = true
                             processedAny = true
                         }
@@ -682,7 +689,23 @@ class ClipboardHistoryManager(
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
 
-    private data class RichPaste(val uri: Uri, val mimeType: String, val timestamp: Long)
+    private data class RichPaste(
+        val uri: Uri, val mimeType: String, val timestamp: Long,
+        val isScreenshot: Boolean = false,
+    )
+
+    /** Suggested only for locally accessible screenshots, only in image-capable editors. */
+    private fun recentScreenshotPaste(editor: EditorInfo?): RichPaste? {
+        if (editor == null || !shouldObserveScreenshots()) return null
+        val inputType = editor.inputType
+        if ((inputType and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT) return null
+        val recent = latestScreenshotSuggestion ?: return null
+        if (!ScreenshotSuggestionPolicy.isRecent(recent.timeStamp, System.currentTimeMillis())) return null
+        if (recent.uri.scheme != "content") return null
+        val supportedTypes = androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(editor)
+        if (supportedTypes.none { ClipDescription.compareMimeTypes(recent.mimeType, it) }) return null
+        return RichPaste(recent.uri, recent.mimeType, recent.timeStamp, isScreenshot = true)
+    }
 
     private fun recentRichPaste(editor: EditorInfo?): RichPaste? {
         editor ?: return null
@@ -710,8 +733,11 @@ class ClipboardHistoryManager(
         if (!latinIME.mSettings.current.mSuggestClipboardContent) return null
         if (dontShowCurrentSuggestion) return null
         if (parent == null) return null
-        val clip = recentTextClip(editorInfo)
-        val rich = if (clip == null) recentRichPaste(editorInfo) else null
+        val screenshot = recentScreenshotPaste(editorInfo)
+        val recentText = recentTextClip(editorInfo)
+        // Never displace a newer copied text item with an older screenshot.
+        val clip = recentText?.takeUnless { screenshot != null && screenshot.timestamp >= it.timeStamp }
+        val rich = if (clip == null) screenshot ?: recentRichPaste(editorInfo) else null
         if (clip == null && rich == null) return null
         val connection = latinIME.currentInputConnection ?: return null
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
@@ -736,13 +762,16 @@ class ClipboardHistoryManager(
         KeyboardTypeface.applyToTextView(textView)
         val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
         textView.text = clip?.content?.take(40) ?: latinIME.getString(
-            if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image else R.string.board_paste_file,
+            if (rich?.isScreenshot == true) R.string.board_paste_from_screenshots
+            else if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image
+            else R.string.board_paste_file,
         )
         textView.setCompoundDrawablesRelativeWithIntrinsicBounds(if (isImageChip) null else clipIcon, null, null, null)
         textView.setOnClickListener {
             if (latinIME.currentInputConnection !== connection ||
                 (if (clip != null) currentTextSuggestionChanged(clip)
-                else recentRichPaste(latinIME.currentInputEditorInfo) != rich)) {
+                else (if (rich?.isScreenshot == true) recentScreenshotPaste(latinIME.currentInputEditorInfo)
+                      else recentRichPaste(latinIME.currentInputEditorInfo)) != rich)) {
                 binding.root.isGone = true
                 return@setOnClickListener
             }
@@ -877,7 +906,7 @@ class ClipboardHistoryManager(
         private const val PREF_PROCESSED_SCREENSHOT_MEDIA_URIS = "clipboard_processed_screenshot_media_uris"
         private const val PREF_LAST_SCREENSHOT_MEDIA_URI = "clipboard_last_screenshot_media_uri"
         private const val PREF_LAST_SCREENSHOT_DATE_ADDED = "clipboard_last_screenshot_date_added"
-        private const val SCREENSHOT_RECENT_WINDOW_SECONDS = 30L
+        private const val SCREENSHOT_RECENT_WINDOW_SECONDS = 60L
         private const val MAX_SCREENSHOT_ROWS_TO_CHECK = 10
         private const val MAX_PROCESSED_SCREENSHOT_URIS = 20
         private val SCREENSHOT_RELATIVE_PATHS = listOf(

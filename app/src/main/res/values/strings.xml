@@ -491,6 +491,7 @@
     <string name="board_dictation_processing">Dictation is processing</string>
     <string name="board_cancel_dictation">Cancel dictation</string>
     <string name="board_paste_image">Paste image</string>
+    <string name="board_paste_from_screenshots">Paste from screenshots</string>
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="emoji_search_no_results">No matching emoji</string>
