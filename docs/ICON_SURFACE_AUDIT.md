@@ -1,6 +1,11 @@
 # brrBoard B07V — Apple-inspired icon surface audit (2026-11-17)
 
-Status: **source implementation, pending full Android CI and real Oppo visual acceptance**. This document is not a claim of exact Apple icon or Liquid Glass parity.
+## 2026-11-17 CI and visual evidence checkpoint
+
+Original source `ab21a07f` failed debug `44034065255` and prod `44034065241` due Kotlin `prefs(context)` instead of the imported `Context.prefs()` extension. Fixed app+Robolectric invocation in `fbbc6b1`; [debug 44034657924](https://github.com/Batmancpu/brrrBoard/actions/runs/44034657924) and [production 44034657851](https://github.com/Batmancpu/brrrBoard/actions/runs/44034657851) succeeded with original signer; [signed v1.0.75](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.75/brrBoard.apk) (SHA-256 `916c16a91f870d54b7b8aba0ada3e445eaf4399baf50289853bbb0d5d7d11616`). [Before vs after seven glyph vectors](B07V_BEFORE_AFTER.svg) shows XML-path-derived static art from v1.0.73 vs v1.0.75; **not an Android screen render or real Oppo visual validation**. UI geometry, contrast, Tap/hold/TalkBack behavior and exact Apple-inspired similarity remain owner checks.
+
+
+Status: **source and full Android CI/original-signer release verified as v1.0.75; real Oppo visual acceptance pending**. This document is not a claim of exact Apple icon or Liquid Glass parity.
 
 ## Rights and sources
 
