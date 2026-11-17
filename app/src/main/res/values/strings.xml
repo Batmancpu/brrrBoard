@@ -243,7 +243,8 @@
     <!-- Preferences item and dialog title for backup and restore -->
     <string name="backup_restore_title">Backup and restore</string>
     <!-- Message for backup and restore dialog -->
-    <string name="backup_restore_message">Save or load from file. Warning: restore will overwrite existing data</string>
+    <string name="backup_restore_message">Backup saves a private ZIP in Downloads/brrBoard on this device, including settings, learned words, imported swipe library and clipboard history. brrBoard never uploads it. The ZIP is not encrypted; keep it private. Restore can overwrite data.</string>
+    <string name="backup_saved_local">Backup saved to Downloads/brrBoard on this device</string>
     <!-- Error message for backup -->
     <string name="backup_error">Backup error: %s</string>
     <!-- Error message for restore, %s is replaced by the error message -->

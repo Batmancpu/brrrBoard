@@ -1371,13 +1371,15 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     mAccessPointMenuView.populateMenu();
                     mAccessPointMenuView.setVisibility(View.VISIBLE);
                 }
-                mStripContainer.setVisibility(View.VISIBLE);
+                // Toolbar owns the same full-height panel as Clipboard. Do
+                // not leave the normal suggestion strip above its fixed title.
+                mStripContainer.setVisibility(View.GONE);
                 if (mSuggestionStripView != null) {
-                    mSuggestionStripView.setVisibility(View.VISIBLE);
-                    mSuggestionStripView.showPinnedToolbarKeys();
+                    mSuggestionStripView.setVisibility(View.GONE);
+                    mSuggestionStripView.setAccessPointMenuOpen(false);
                 }
                 updatePersistentEmojiRow();
-                setKeyboardPanelOffsets(false);
+                setKeyboardPanelOffsets(true);
                 if (mCurrentInputView != null)
                     mCurrentInputView.requestLayout();
             }

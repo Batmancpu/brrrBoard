@@ -3,6 +3,14 @@ package helium314.keyboard.settings.preferences
 
 import android.content.Context
 import android.content.Intent
+import android.content.ContentValues
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.os.Handler
+import android.provider.MediaStore
+import helium314.keyboard.latin.utils.JniUtils
+import java.io.IOException
 import android.content.SharedPreferences
 import java.io.InputStream
 import android.os.Looper
@@ -40,6 +48,7 @@ import helium314.keyboard.settings.filePicker
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -75,16 +84,18 @@ fun BackupRestorePreference(setting: Setting) {
                 restoreLauncher.launch(intent)
             },
             onConfirmed = {
-                val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
-                val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
-                    .addCategory(Intent.CATEGORY_OPENABLE)
-                    .putExtra(
-                        Intent.EXTRA_TITLE,
-                        ctx.getString(R.string.english_ime_name)
-                            .replace(" ", "_") + "_backup_$currentDate.zip"
-                    )
-                    .setType("application/zip")
-                backupLauncher.launch(intent)
+                // Local Downloads export: no cloud picker, network or background upload.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    backupToLocalDownloads(ctx) { error = it }
+                } else {
+                    val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                        .format(Calendar.getInstance().time)
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                        .addCategory(Intent.CATEGORY_OPENABLE)
+                        .putExtra(Intent.EXTRA_TITLE, "brrBoard_backup_$currentDate.zip")
+                        .setType("application/zip")
+                    backupLauncher.launch(intent)
+                }
             }
         )
     }
@@ -101,68 +112,94 @@ fun BackupRestorePreference(setting: Setting) {
 private fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
     val ctx = LocalContext.current
     return filePicker { uri ->
-        // zip all files matching the backup patterns
-        // essentially this is the typed words information, and user-added dictionaries
-        val filesDir = ctx.filesDir ?: return@filePicker
-        val filesPath = filesDir.path + File.separator
-        val files = mutableListOf<File>()
-        filesDir.walk().forEach { file ->
-            val path = file.path.replace(filesPath, "")
-            if (file.isFile && backupFilePatterns.any { path.matches(it) })
-                files.add(file)
-        }
-        val protectedFilesDir = DeviceProtectedUtils.getFilesDir(ctx)
-        val protectedFilesPath = protectedFilesDir.path + File.separator
-        val protectedFiles = mutableListOf<File>()
-        protectedFilesDir.walk().forEach { file ->
-            val path = file.path.replace(protectedFilesPath, "")
-            if (file.isFile && backupFilePatterns.any { path.matches(it) })
-                protectedFiles.add(file)
-        }
-        val wait = CountDownLatch(1)
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
-                ctx.getActivity()?.contentResolver?.openOutputStream(uri)?.use { os ->
-                    // write files to zip
-                    val zipStream = ZipOutputStream(os)
-                    files.forEach {
-                        val fileStream = FileInputStream(it).buffered()
-                        zipStream.putNextEntry(ZipEntry(it.path.replace(filesPath, "")))
-                        fileStream.copyTo(zipStream, 1024)
-                        fileStream.close()
-                        zipStream.closeEntry()
-                    }
-                    protectedFiles.forEach {
-                        val fileStream = FileInputStream(it).buffered()
-                        zipStream.putNextEntry(ZipEntry(it.path.replace(protectedFilesDir.path, "unprotected")))
-                        fileStream.copyTo(zipStream, 1024)
-                        fileStream.close()
-                        zipStream.closeEntry()
-                    }
-                    val dbFile = ctx.getDatabasePath(Database.NAME)
-                    if (dbFile.exists()) {
-                        val fileStream = FileInputStream(dbFile).buffered()
-                        zipStream.putNextEntry(ZipEntry(Database.NAME))
-                        fileStream.copyTo(zipStream, 1024)
-                        fileStream.close()
-                        zipStream.closeEntry()
-                    }
-                    zipStream.putNextEntry(ZipEntry(PREFS_FILE_NAME))
-                    settingsToJsonStream(ctx.prefs().all, zipStream)
-                    zipStream.closeEntry()
-                    zipStream.putNextEntry(ZipEntry(PROTECTED_PREFS_FILE_NAME))
-                    settingsToJsonStream(ctx.protectedPrefs().all, zipStream)
-                    zipStream.closeEntry()
-                    zipStream.close()
+                writeBackupArchive(ctx, uri)
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(ctx, R.string.backup_saved_local, Toast.LENGTH_LONG).show()
                 }
             } catch (t: Throwable) {
-                onError("b" + t.message)
-                Log.w("AdvancedScreen", "error during backup", t)
-            } finally {
-                wait.countDown()
+                Log.w("BackupRestorePreference", "Backup failed", t)
+                Handler(Looper.getMainLooper()).post { onError("b" + t.message) }
             }
         }
-        wait.await()
+    }
+}
+
+/**
+ * Writes a brrBoard-only portable ZIP to Android's LOCAL Downloads provider.
+ * Clipboard/database and learned words can be private, so the user keeps the
+ * ZIP; brrBoard never transfers it to a server.
+ */
+@android.annotation.SuppressLint("NewApi")
+private fun backupToLocalDownloads(ctx: Context, onError: (String) -> Unit) {
+    ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
+        val resolver = ctx.contentResolver
+        var uri: Uri? = null
+        try {
+            val date = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.US)
+                .format(Calendar.getInstance().time)
+            val details = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "brrBoard_full_backup_$date.zip")
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/brrBoard")
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, details)
+                ?: throw IOException("Could not create local Downloads backup")
+            writeBackupArchive(ctx, uri)
+            val published = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
+            resolver.update(uri, published, null, null)
+            Handler(Looper.getMainLooper()).post {
+                Toast.makeText(ctx, R.string.backup_saved_local, Toast.LENGTH_LONG).show()
+            }
+        } catch (t: Throwable) {
+            uri?.let { runCatching { resolver.delete(it, null, null) } }
+            Log.w("BackupRestorePreference", "Local backup failed", t)
+            Handler(Looper.getMainLooper()).post { onError("b" + t.message) }
+        }
+    }
+}
+
+private fun writeBackupArchive(ctx: Context, uri: Uri) {
+    val filesDir = ctx.filesDir ?: throw IOException("App data directory unavailable")
+    val filesPath = filesDir.absolutePath + File.separator
+    val files = filesDir.walkTopDown().filter { file ->
+        val path = file.absolutePath.removePrefix(filesPath)
+        file.isFile && backupFilePatterns.any { path.matches(it) }
+    }.toList()
+    val protectedDir = DeviceProtectedUtils.getFilesDir(ctx)
+    val protectedPath = protectedDir.absolutePath + File.separator
+    val protectedFiles = protectedDir.walkTopDown().filter { file ->
+        val path = file.absolutePath.removePrefix(protectedPath)
+        file.isFile && backupFilePatterns.any { path.matches(it) }
+    }.toList()
+
+    val output = ctx.contentResolver.openOutputStream(uri)
+        ?: throw IOException("Could not open backup destination")
+    ZipOutputStream(output.buffered()).use { zip ->
+        for (file in files) {
+            zip.putNextEntry(ZipEntry(file.absolutePath.removePrefix(filesPath)))
+            file.inputStream().buffered().use { it.copyTo(zip, 8192) }
+            zip.closeEntry()
+        }
+        for (file in protectedFiles) {
+            zip.putNextEntry(ZipEntry("unprotected/" + file.absolutePath.removePrefix(protectedPath)))
+            file.inputStream().buffered().use { it.copyTo(zip, 8192) }
+            zip.closeEntry()
+        }
+        val dbFile = ctx.getDatabasePath(Database.NAME)
+        if (dbFile.exists()) {
+            zip.putNextEntry(ZipEntry(Database.NAME))
+            dbFile.inputStream().buffered().use { it.copyTo(zip, 8192) }
+            zip.closeEntry()
+        }
+        zip.putNextEntry(ZipEntry(PREFS_FILE_NAME))
+        settingsToJsonStream(ctx.prefs().all, zip)
+        zip.closeEntry()
+        zip.putNextEntry(ZipEntry(PROTECTED_PREFS_FILE_NAME))
+        settingsToJsonStream(ctx.protectedPrefs().all, zip)
+        zip.closeEntry()
     }
 }
 
@@ -174,13 +211,15 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
         val restoredDb = ctx.getDatabasePath(Database.NAME + "_restored")
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
-                ctx.getActivity()?.contentResolver?.openInputStream(uri)?.use { inputStream ->
+                val input = ctx.contentResolver.openInputStream(uri)
+                    ?: throw IOException("Could not open backup file")
+                input.use { inputStream ->
                     ZipInputStream(inputStream).use { zip ->
                         var entry: ZipEntry? = zip.nextEntry
                         val filesDir = ctx.filesDir ?: return@execute
                         val deviceProtectedFilesDir = DeviceProtectedUtils.getFilesDir(ctx)
-                        filesDir.deleteRecursively()
-                        deviceProtectedFilesDir.deleteRecursively()
+                        filesDir.mkdirs()
+                        deviceProtectedFilesDir.mkdirs()
                         LayoutUtilsCustom.onLayoutFileChanged()
                         Settings.getInstance().stopListener()
                         while (entry != null) {
@@ -200,13 +239,13 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
                             } else if (entry.name == PREFS_FILE_NAME) {
                                 val prefLines = String(zip.readBytes()).split("\n")
                                 val prefs = ctx.prefs()
-                                prefs.edit { clear() }
-                                readJsonLinesToSettings(prefLines, prefs)
+                                if (!readJsonLinesToSettings(prefLines, prefs))
+                                    throw IOException("Invalid preference backup")
                             } else if (entry.name == PROTECTED_PREFS_FILE_NAME) {
                                 val prefLines = String(zip.readBytes()).split("\n")
                                 val protectedPrefs = ctx.protectedPrefs()
-                                protectedPrefs.edit { clear() }
-                                readJsonLinesToSettings(prefLines, protectedPrefs)
+                                if (!readJsonLinesToSettings(prefLines, protectedPrefs))
+                                    throw IOException("Invalid protected preferences")
                             }
                             zip.closeEntry()
                             entry = zip.nextEntry
@@ -214,7 +253,7 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
                     }
                 }
 
-                Database.copyFromDb(restoredDb, ctx)
+                if (restoredDb.exists()) Database.copyFromDb(restoredDb, ctx)
                 Looper.prepare()
                 Toast.makeText(ctx, ctx.getString(R.string.backup_restored), Toast.LENGTH_LONG).show()
             } catch (t: Throwable) {
@@ -290,7 +329,26 @@ private fun restoreEntryToDir(zip: ZipInputStream, baseDir: File, entryName: Str
     if (canonicalTarget.path != canonicalBase.path
         && !canonicalTarget.path.startsWith(canonicalBase.path + File.separator)
     ) return false
-    FileUtils.copyStreamToNewFile(zip, file)
+    if (entryName == JniUtils.JNI_LIB_IMPORT_FILE_NAME) {
+        // A portable gesture library is executable native code. Keep the
+        // imported module bounded and read-only, as the normal import flow does.
+        val maximum = 8L * 1024 * 1024
+        if (file.exists() && !file.delete()) throw IOException("Cannot replace gesture library")
+        var copied = 0L
+        FileOutputStream(file).use { out ->
+            val buffer = ByteArray(8192)
+            while (true) {
+                val count = zip.read(buffer)
+                if (count < 0) break
+                copied += count
+                if (copied > maximum) throw IOException("Gesture library backup is too large")
+                out.write(buffer, 0, count)
+            }
+        }
+        if (!file.setReadOnly()) throw IOException("Cannot protect gesture library")
+    } else {
+        FileUtils.copyStreamToNewFile(zip, file)
+    }
     return true
 }
 
@@ -305,6 +363,9 @@ private val backupFilePatterns by lazy { listOf(
     "custom_background_image.*".toRegex(),
     "custom_font".toRegex(),
     "custom_emoji_font".toRegex(),
+    // Preserve the user's opted-in swipe/glide native module across package-ID
+    // migration; the recorded protected checksum is also in this local ZIP.
+    Regex(Regex.escape(JniUtils.JNI_LIB_IMPORT_FILE_NAME)),
 ) }
 
 fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
@@ -314,8 +375,8 @@ fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
             var entry: ZipEntry? = zip.nextEntry
             val filesDir = ctx.filesDir ?: return false
             val deviceProtectedFilesDir = DeviceProtectedUtils.getFilesDir(ctx)
-            filesDir.deleteRecursively()
-            deviceProtectedFilesDir.deleteRecursively()
+            filesDir.mkdirs()
+            deviceProtectedFilesDir.mkdirs()
             filesDir.mkdirs()
             deviceProtectedFilesDir.mkdirs()
             LayoutUtilsCustom.onLayoutFileChanged()
@@ -337,20 +398,18 @@ fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
                 } else if (entry.name == PREFS_FILE_NAME) {
                     val prefLines = String(zip.readBytes()).split("\n")
                     val prefs = ctx.prefs()
-                    prefs.edit { clear() }
-                    readJsonLinesToSettings(prefLines, prefs)
+                    if (!readJsonLinesToSettings(prefLines, prefs)) return false
                 } else if (entry.name == PROTECTED_PREFS_FILE_NAME) {
                     val prefLines = String(zip.readBytes()).split("\n")
                     val protectedPrefs = ctx.protectedPrefs()
-                    protectedPrefs.edit { clear() }
-                    readJsonLinesToSettings(prefLines, protectedPrefs)
+                    if (!readJsonLinesToSettings(prefLines, protectedPrefs)) return false
                 }
                 zip.closeEntry()
                 entry = zip.nextEntry
             }
         }
         
-        Database.copyFromDb(restoredDb, ctx)
+        if (restoredDb.exists()) Database.copyFromDb(restoredDb, ctx)
         runCatching { transferOldPinnedClips(ctx) }
         runCatching { Settings.getInstance().startListener() }
         runCatching { SubtypeSettings.reloadEnabledSubtypes(ctx) }

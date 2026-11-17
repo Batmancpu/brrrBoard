@@ -1284,7 +1284,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val colors = Settings.getValues().mColors
         // Keep the existing functional pinned tools but remove the redundant
         // top-right arrow; footer ABC is the sole direct return action.
-        accessPointTriggerBtn.visibility = if (isMenuOpen) GONE else VISIBLE
+        // Toolbar access remains in the footer long-press shortcuts.
+        // Do not displace predictions with an extra top-right icon.
+        accessPointTriggerBtn.visibility = GONE
         val drawable = androidx.core.content.ContextCompat.getDrawable(
             context, R.drawable.ic_board_toolbar)?.mutate() ?: return
         accessPointTriggerBtn.setImageDrawable(drawable)

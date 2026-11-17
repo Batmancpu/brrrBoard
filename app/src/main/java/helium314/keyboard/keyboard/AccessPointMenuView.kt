@@ -112,11 +112,10 @@ class AccessPointMenuView @JvmOverloads constructor(
             it.setTextColor(colors.get(ColorType.KEY_TEXT))
         }
         val prefs = context.prefs()
-        val persistentKey = getPersistentToolbarKey(prefs)
-        val pinnedRowEnabled = Settings.getValues().mToolbarMode != ToolbarMode.HIDDEN
-        val pinnedKeys = if (pinnedRowEnabled) getPinnedToolbarKeys(prefs, persistentKey).toSet() else emptySet()
+        // The full panel replaces the pinned suggestion strip; show all tools
+        // here, including entries previously omitted as pinned/persistent.
         val enabledKeys = getEnabledToolbarKeys(prefs).filter {
-            it.isAvailableInToolbarUi() && it != persistentKey && it !in pinnedKeys
+            it.isAvailableInToolbarUi()
         }
 
         val inflater = LayoutInflater.from(context)

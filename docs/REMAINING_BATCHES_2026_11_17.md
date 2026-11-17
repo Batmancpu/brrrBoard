@@ -54,3 +54,10 @@ State: Source commit `93a437ac`, released original-signed as v1.0.83; physical a
 
 ## Current acceptance truth
 Automated compilation, local tests and release signing cannot prove glass quality, Apple-like optical balance, microphone access on ColorOS, or actual swiping behavior. Those are physical-device gates. Do not close these batches based solely on a green CI badge.
+
+## November 17 changes after physical-device comparison
+- P0.B icon set was released v1.0.84 after both CI gates completed; await Oppo icon acceptance.
+- P0.C source patch: no extra tint when internal content is absent; local 18dp live blur of in-panel source, top alpha-masked fade; Toolbar's title moves to Clipboard's top-header position and the original suggestion strip disappears; pinned tools move into Toolbar grid. Await CI and phone proof.
+- P0.D local-only full brrBoard backup: MediaStore Downloads/brrBoard export and import of custom swipe native module with stored checksum, learned dictionaries, settings, layout and database, plus safe non-recursive restore. This must be physically verified BEFORE app ID changes.
+- P1.D new iPad image requirements: default visible Search Emoji field at top, Emoji category row near bottom, higher keycap contrast only, contextual 'Paste' or 'Paste image' without unverified source attribution. Plan an explicit structural repositioning, not an overlay.
+- Package-ID identity rename: BLOCKED until user has a verified local backup/restore. Changing `com.orion.frostkeys.brrrboard` will break in-place update and Android will isolate the old data; give a migration procedure and require explicit phone acceptance. Clean Frost/Orion UI branding independently where safe; code package renames only when compilation and manifests are checked.

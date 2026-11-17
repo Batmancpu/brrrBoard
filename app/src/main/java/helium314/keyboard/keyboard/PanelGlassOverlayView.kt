@@ -6,6 +6,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.RenderEffect
 import android.graphics.RenderNode
 import android.graphics.Shader
@@ -32,14 +34,16 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private var source: View? = null
     private var edge = Edge.BOTTOM
     private var baseColor: Int = Color.rgb(35, 36, 42)
-    private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val veil = Paint(Paint.ANTI_ALIAS_FLAG)
+    // Mask only the in-IME content; do not tint the host-app backdrop.
+    private val fadeMask = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
+    }
     private val sourcePosition = IntArray(2)
     private val overlayPosition = IntArray(2)
     private var node: RenderNode? = null
     private var blurWidth = 0
     private var blurHeight = 0
-    private var headerShader: LinearGradient? = null
+    private var headerMaskShader: LinearGradient? = null
     private var registeredObserver: ViewTreeObserver? = null
     private val scrollObserver = ViewTreeObserver.OnScrollChangedListener { postInvalidateOnAnimation() }
 
@@ -64,14 +68,14 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         }
         this.edge = edge
         val newBase = ColorUtils.setAlphaComponent(color, 255)
-        if (newBase != baseColor) headerShader = null
+        if (newBase != baseColor) headerMaskShader = null
         baseColor = newBase
         invalidate()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        headerShader = null
+        headerMaskShader = null
     }
 
     override fun onAttachedToWindow() {
@@ -103,30 +107,36 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (width <= 0 || height <= 0) return
 
-        // This is the SECOND material layer, above the single native IME-window
-        // backdrop. Never paint an opaque rectangle here: doing so creates the
-        // detached grey slabs and erases the app's native frosted backdrop.
-        // The top fades to the sharp viewport. The lower controls use one
-        // constant-strength tint with live scroll pixels beneath it.
-        val content = source
-        val live = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            canvas.isHardwareAccelerated && content != null &&
-            content.isAttachedToWindow && content.width > 0 && content.height > 0
+        // IME-window glass blurs the host. This second layer blurs ONLY our own
+        // Emoji/Clipboard/Toolbar scroll pixels. Empty regions remain identical
+        // to the rest of the keyboard: no gray fill or double-tint slab.
+        val content = source ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            !canvas.isHardwareAccelerated || !content.isAttachedToWindow ||
+            content.width <= 0 || content.height <= 0) return
+
         if (edge == Edge.BOTTOM) {
-            fill.color = ColorUtils.setAlphaComponent(baseColor, if (live) 112 else 188)
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fill)
+            // No background/tint: only moving, truly blurred list content.
+            drawBlurredSource(canvas, content)
+            return
         }
-        if (live) drawBlurredSource(canvas, content!!)
-        if (edge == Edge.TOP) {
-            veil.shader = headerShader ?: LinearGradient(0f, 0f, 0f, height.toFloat(),
-                PanelMaterial.headerStops(baseColor), null, Shader.TileMode.CLAMP)
-                .also { headerShader = it }
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), veil)
-            veil.shader = null
-        } else {
-            // One clean boundary: no gray opacity ramp above the control row.
-            veil.color = ColorUtils.setAlphaComponent(baseColor, 72)
-            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), veil)
+
+        // The top progressively softens underneath the fixed sharp title.
+        // DST_IN masks only the blurred content layer, not the host backdrop.
+        val saved = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
+        try {
+            drawBlurredSource(canvas, content)
+            fadeMask.shader = headerMaskShader ?: LinearGradient(
+                0f, 0f, 0f, height.toFloat(),
+                intArrayOf(Color.WHITE, Color.WHITE, 0xDFFFFFFF.toInt(),
+                    0x78FFFFFF, Color.TRANSPARENT),
+                floatArrayOf(0f, 0.20f, 0.48f, 0.78f, 1f),
+                Shader.TileMode.CLAMP
+            ).also { headerMaskShader = it }
+            canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fadeMask)
+            fadeMask.shader = null
+        } finally {
+            canvas.restoreToCount(saved)
         }
     }
 
@@ -137,7 +147,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
             blurWidth = width
             blurHeight = height
             renderNode.setPosition(0, 0, width, height)
-            val blur = 12f * resources.displayMetrics.density
+            val blur = 18f * resources.displayMetrics.density
             renderNode.setRenderEffect(RenderEffect.createBlurEffect(
                 blur, blur, Shader.TileMode.CLAMP))
         }
