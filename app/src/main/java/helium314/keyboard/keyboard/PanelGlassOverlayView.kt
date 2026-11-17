@@ -149,7 +149,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
             renderNode.setPosition(0, 0, width, height)
             val blur = 18f * resources.displayMetrics.density
             renderNode.setRenderEffect(RenderEffect.createBlurEffect(
-                blur, blur, Shader.TileMode.CLAMP))
+                blur, blur, Shader.TileMode.DECAL))
         }
         content.getLocationInWindow(sourcePosition)
         getLocationInWindow(overlayPosition)
