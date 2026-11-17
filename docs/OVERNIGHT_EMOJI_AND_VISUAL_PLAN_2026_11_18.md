@@ -1,0 +1,53 @@
+# brrBoard — bounded overnight engineering plan (2026-11-18 to 2026-11-19)
+
+Status: **planning and execution handoff, NOT evidence that bugs are fixed**. The user requests autonomous progress toward a better original-signed, Obtainium-installable APK by **09:30-10:00 IST Thursday 2026-11-19**. All development on `main`. Keep package `com.mangoloads.board`, Mangoloads identity and original signing certificate. Oppo Reno 10 5G physical QA cannot be performed remotely.
+
+## User's 27-second video: the strongest new evidence
+
+The owner-supplied `6504022771152708461.mp4` was directly reviewed in the task conversation at one-second intervals on 2026-11-18 (Asia/Kolkata). DO NOT copy personal note content from it into code, test fixtures or GitHub.
+
+- 0-1 seconds: typing keyboard.
+- 2-4 seconds: tap Emoji; compact Browse shows category strip then unwanted blank/black region and clipped initial Emoji row. Bottom approved two-strip live blur exists.
+- 5-11 seconds: tap left Emoji Search, type/filter, clear. Search's dedicated alphabet layout appears.
+- About 12 seconds: back from Emoji Search; the Emoji Browse viewport grows substantially, now showing more grid rows and **no large empty black region**. This is an accidental resize, not proof that Compact is repaired.
+- 13-24 seconds: scroll vertically/change emoji categories; larger Browse looks functionally useful. Category icons remain on an opaque/dark dedicated upper strip.
+- 25-27 seconds: return to normal typing.
+
+**Causal source hypotheses requiring live testing, not conclusively proven:** `EmojiPalettesView.onMeasure` computes Browse height from `SharedPanelGeometry.panelBodyHeight`, then opportunistically retains `KeyboardWrapperView.getLastTypingKeyboardHeight()` or wrapper measured height; Search instead computes `emojiSearchBodyHeight` and `swapKeyboardToEmojiSearch` reparents `keyboard_view`, toggles strip/pager and asynchronously restores categories. This can introduce a stale nominal height or remeasure discrepancy when Search exits. `emoji_palettes_view.xml` uses bottom-gravity + weight 1 for `emoji_grid_shell`; `strip_container.xml` holds category icons in a separate upper 1-row container with its own styled/opaque surface. A successful back navigation changes visible geometry; no evidence of corrupted emoji content/asset data. Diagnose hierarchy + measure logs with privacy-safe geometry only (numbers, no user text or screenshots) and unit/snapshot tests.
+
+## Non-negotiable preserved baseline
+
+- Keep the **accepted live** Emoji bottom glass blending across Search/Space/Delete and fixed ABC/mic footer; do not modify `PanelGlassOverlayView`, `PanelMaterial`, `BoardFooterView`, blur strength/radius/compositing, hue, source bleeding, or sampled layers without isolated proof and owner comparison.
+- Keep normal swipe typing recognition library, dictionaries, learned words, original-signed in-place update path and keyboard panel routing.
+- Don't copy original Apple proprietary SF Symbol/font/emoji assets into Android. Author a visually coherent, legally original Apple-inspired vector family, with high contrast, accessible tap targets, and matching optical alignment.
+- No remote telemetry, persistent typed/screenshot capture, clipboard-content logging or secrets.
+- Append to `AGENTS.md` and `PROJECT_CONTEXT.md` on every meaningful batch, never erase history. Stop shipping if tests, signature, privacy or critical input behavior regress. CI and original-signature success are NOT Oppo physical validation.
+
+## Small, testable batches in priority order
+
+### Gate 0 — CI + clean baseline
+On each run, compare main HEAD, pending debug and original-signed workflows, release tags and prior docs. At plan creation, main `c27ab9cb2c8eeb0d05d9507250697d3678e8fd93`, newest released `v1.0.103`; debug run #194 and original-signed run #104 for Clipboard search are pending. Keep running builds unmodified until their result; if failed, retrieve error details and repair same batch, not start an unrelated feature. Preserve exact owner-signed fingerprint and correct version monotonicity.
+
+### Batch 1 — Compact Emoji geometry / black bar (small, high priority)
+Implement a deterministic **compact Browse body-height contract** with a stable measurement independent of prior Emoji Search measured children or `GONE` reparenting. Compact starts at the SAME height before Search and after Back, with categories followed immediately by the correctly clipped first *whole* emoji row (allow intentional 4-8dp breathing room, not a full black band). Explicit compact state at normal open, when returning from Search, and on reopening IME; if retaining prior viewport is needed, cache structural height safely instead of a stale wrapper measured value. No stretching in landscape, one-handed mode or short app windows. Unit tests for Compact→Search→Back repeated, category changes, recents Smart row toggles, scroll positions, window shrink, translucent theme. No changes to lower glass.
+
+### Batch 2 — Genuine expanded Emoji view (medium)
+Create explicit Emoji mode transitions: `COMPACT_BROWSE`, `SEARCH(origin = COMPACT/EXPANDED)`, `EXPANDED_BROWSE`. In Search row, place **Expand** tappable text RIGHT of the rounded search input; avoid overlapping Back, query and clear. Tapping Expand exits Search, returns main keyboard view to wrapper safely, and switches to expanded Browse with a **larger bounded viewport** using available IME space. Expanded Browse has a discoverable **Collapse** / back action; normal Back from Search must restore origin size (never invoke accidental expansion). Expanded Browse preserves category and scroll position and full approved lower glass. Expanded mode is an intentional alternative; not default. Unit/Robolectric tests for rapid toggles, focus, Back, Enter, IME show/hide, min viewport, screenshot comparisons.
+
+### Batch 3 — Category strip live-blur and top gap (medium, dependent on Batch 2)
+User wants category icons on glass, **not an opaque black bar**, particularly in Expanded mode. Design category fixed strip with crisp original icons, behind them a genuine moving/live internal Emoji-grid blur sampled from the SAME scroll source as the approved bottom glass. Existing `emoji_header_scrim` is `GONE` and lives in the grid shell below the external fixed strip; merely making the strip transparent makes host backdrop show, not live emoji pixels. Must establish a real scroll source behind the strip or clip/reparent top overlay carefully, then use the same small GPU blur on only actual emoji content with progressive opacity, not a second host-app blur or a constant still bitmap. Zero-colour area must look like rest of keyboard, no extra gray tint. Keep category tap hit areas, scroll axes, offscreen pages, and no clipped first row. Start with Expanded; only apply to Compact if no regression.
+
+### Batch 4 — Clipboard and recent screenshot integration (medium)
+Complete verification of previous Clipboard live glass and latest offline newest-first Clipboard Search batch. Preserve new image thumbnail cards, no double blur; query local and private. Add screenshot chip only when a screenshot exists locally from last **60 seconds**, the user has granted appropriate access, and focused EditorInfo advertises accepted image MIME type AND receiver supports `InputConnection.commitContent`. Label **Paste from screenshots** and show tiny cropped thumbnail; never show chip in password, incognito, private or text-only editors. If screenshot access is absent, no suggestion; no broad media-scan permission without consent. Do not infer image support from a mere text field. Do not promise every app accepts commitContent. Tests: single/duplicate images, 61s expires, URI revoked, focus change, app switch, typing latency; no background network.
+
+### Batch 5 — Custom Emoji and gesture-collection privacy (separate subcommits)
+Settings file-picker flow imports a *documented compatible, safely parseable on-device custom Emoji mapping file*; validate size/encoding/schema before modifying existing emoji sets; do not accept arbitrary executable/plugin libraries or proprietary Apple emoji fonts without rights. Undo/reset and backups preserved. Separately retire any unused legacy NLNet gesture **research data gathering** and prompting; do not remove the `GestureConsumer` native swipe recognizer or user-imported gesture library. Audit `GestureDataGathering.kt`, `GestureDataDao.kt`, settings/nav and call sites; historical data should not be silently deleted without migration/owner instruction.
+
+### Batch 6 — Premium icon language, deliberately split (large; at least two source commits)
+First audit every user-facing keyboard, Emoji/category, clipboard, toolbar and settings symbol, track source paths and rendering code (vector XML, drawable, icon font, text glyph). Read Apple public design guidance for optical centering, coherent weight, corner/caps, size classes and semantic outline/fill states. Write a shared original brrBoard `icon_spec` plus inventory; avoid SF Symbols redistribution. Prioritize emoji face, ABC, mic, backspace, shift, action key, search, paste, one-handed, undo/redo, copy, selection, settings; then toolbar/settings and category strips. Write original vector assets at consistent viewport size, stroke and cap widths; tint via existing theme tokens, no inconsistent white glows, no loss of contrast in three approved themes. Validate geometry/hit boxes/legibility on Oppo density, RTL, light/dark, pressed/disabled and in inline keyboard search. Do NOT attempt all icons in one untestable commit.
+
+### Buffer / validation (mandatory)
+Reserve at least **one clean interval** for CI-failure repair and at least one for final original-signed release audit & QA. CI must run unit tests, build, check package ID/signing fingerprint, verify no secret leaks and exact direct APK URL. No one may claim an unobserved Oppo screenshot comparison. Allow an incomplete cosmetic overhaul if core typing and Emoji are stable. 09:30 IST Nov19 report must plainly mark each shipped, unshipped and device-pending item.
+
+## Automation operating rules
+Two tasks were created from this conversation: a bounded engineering checker/committer recurring every two hours from 2026-11-18 01:00 IST through 2026-11-19 09:00 IST, and one 2026-11-19 09:30 IST release report. Automatic execution depends on available environment and account credentials, not a guaranteed uninterrupted coding session. This plan is authoritative backlog/hand-off, not fabricated progress. No edits to GitHub secrets, signing key or workflow release identity. Preserve all existing docs and old code decision context.
