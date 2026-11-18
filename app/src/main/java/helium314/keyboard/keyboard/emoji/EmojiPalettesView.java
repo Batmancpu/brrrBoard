@@ -29,9 +29,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.Gravity;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -198,8 +200,8 @@ public final class EmojiPalettesView extends LinearLayout
         // Keep the existing grid, fixed tabs, footer and glass unchanged.
         if (mExpandedMode && !mSearchMode) {
             // Real Expanded Browse, never a lingering Search measurement.
-            // 160dp includes its own 48dp search bar; the rest shows extra
-            // emoji rows while retaining the fixed category strip/footer.
+            // The expanded browser contains categories + more emoji rows only.
+            // Search is a distinct typing state and never consumes browse height.
             final int growth = (int) (160 * res.getDisplayMetrics().density);
             finalHeight = helium314.keyboard.latin.SharedPanelGeometry.emojiExpandedBodyHeight(
                     finalHeight, growth, availableHeight);
@@ -244,7 +246,9 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void addTab(final LinearLayout host, final int categoryId) {
         final TabImageView iconView = new TabImageView(getContext());
-        mColors.setBackground(iconView, ColorType.STRIP_BACKGROUND);
+        // A solid STRIP_BACKGROUND on every icon hides the real scrolling
+        // emojis beneath the fixed category glass. The selection circle is
+        // painted by TabImageView; the rest must stay transparent.
         mColors.setColor(iconView, ColorType.EMOJI_CATEGORY);
         iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         final int iconPadding = (int) (3 * getContext().getResources().getDisplayMetrics().density);
@@ -258,14 +262,21 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    public void initialize() { // needs to be delayed for access to EmojiTabStrip, which is not a child of this view
+    public void initialize() { // delayed until the switcher's shared strip has been inflated
         if (initialized) return;
         mEmojiCategory.initialize();
         final View tabStripView = KeyboardSwitcher.getInstance().getEmojiTabStrip();
         mTabStrip = (LinearLayout) tabStripView.findViewById(R.id.emoji_tab_strip);
-        // Categories are fixed at the very top in the shared IME strip.
-        // Do not reparent them into the scrolling emoji shell: that change
-        // made the search label and tabs overlap or disappear on some frames.
+        // Move the *existing* fixed category strip into the same FrameLayout
+        // as the scrolling pager. Previously the external strip and the
+        // bottom-gravity Emoji view had independent vertical origins: on the
+        // compact Oppo viewport, this left a transparent band before the
+        // first row. The fixed header now overlays the pager in one viewport;
+        // unlike the old experiment, there is NO browsing Search pill, and
+        // the native Search/Space/Delete bottom row remains untouched.
+        final ViewGroup shell = findViewById(R.id.emoji_grid_shell);
+        attachFixedCategoryStrip(shell, tabStripView, getResources().getDimensionPixelSize(
+                R.dimen.config_suggestions_strip_height));
         for (final EmojiCategory.CategoryProperties properties : mEmojiCategory.getShownCategories()) {
             addTab(mTabStrip, properties.mCategoryId);
         }
@@ -293,7 +304,7 @@ public final class EmojiPalettesView extends LinearLayout
         mPager.setAdapter(mCategoryPagerAdapter);
         mPager.setCurrentItem(Math.max(0, mCategoryPagerAdapter.indexOf(
                 mEmojiCategory.getCurrentCategoryId())), false);
-        PanelMaterial.extendIntoFooter(findViewById(R.id.emoji_grid_shell), mPager);
+        PanelMaterial.extendIntoFooter(shell, mPager);
         mPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageScrolled(final int position, final float positionOffset,
                     final int positionOffsetPixels) {
@@ -334,6 +345,20 @@ public final class EmojiPalettesView extends LinearLayout
         setupInlineSearchViews();
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
         initialized = true;
+    }
+
+    /** One header in one viewport. Does not introduce a Browse Search overlay. */
+    static void attachFixedCategoryStrip(final ViewGroup shell, final View tabStrip,
+            final int heightPx) {
+        if (tabStrip.getParent() != shell) {
+            final ViewParent parent = tabStrip.getParent();
+            if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(tabStrip);
+            final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, heightPx, Gravity.TOP);
+            shell.addView(tabStrip, params);
+        }
+        tabStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        tabStrip.setVisibility(View.VISIBLE);
     }
 
     private void invalidatePanelGlass() {
@@ -578,6 +603,7 @@ public final class EmojiPalettesView extends LinearLayout
         initialize();
         // A new Emoji session always starts compact; expansion is user-driven.
         mExpandedMode = false;
+        updateContextSmartVisibility();
         if (!mSearchMode && mSearchBarContainer != null) {
             mSearchBarContainer.setVisibility(View.GONE);
         }
@@ -594,6 +620,7 @@ public final class EmojiPalettesView extends LinearLayout
                 findViewById(R.id.emoji_bottom_glass);
         if (headerGlass != null) headerGlass.setEmojiContentTone(toneEnabled, dark);
         if (bottomGlass != null) bottomGlass.setEmojiContentTone(toneEnabled, dark);
+        if (headerGlass != null) headerGlass.setVisibility(View.VISIBLE);
         getRecentsKeyboard().flushPendingRecentKeys();
         updateAdaptiveEmojiOrder();
         mMainKeyboardActionListener = keyboardActionListener;
@@ -680,7 +707,9 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchEditText.setFocusable(false);
         }
         if (mSearchBarContainer != null) {
-            mSearchBarContainer.setVisibility(mExpandedMode ? View.VISIBLE : View.GONE);
+            // Expanded Browse is only fixed categories and the emoji grid.
+            // Search/Expand controls belong exclusively to Search typing.
+            mSearchBarContainer.setVisibility(View.GONE);
         }
         updateExpandButton();
         if (mSearchResultsScrollView != null) {
@@ -741,6 +770,7 @@ public final class EmojiPalettesView extends LinearLayout
     private void collapseExpandedBrowse() {
         if (!mExpandedMode || mSearchMode) return;
         mExpandedMode = false;
+        updateContextSmartVisibility();
         if (mSearchBarContainer != null) mSearchBarContainer.setVisibility(View.GONE);
         updateExpandButton();
         requestLayout();
@@ -748,9 +778,11 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void restoreEmojiCategoryStrip() {
         final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
-        final View stripContainer = switcher.getStripContainer();
         final View tabStripView = switcher.getEmojiTabStrip();
-        if (stripContainer != null) revealWithoutFlash(stripContainer);
+        // The shared suggestion strip stays GONE during Browse. Re-showing it
+        // would reserve a second, empty header above the in-panel categories.
+        final View stripContainer = switcher.getStripContainer();
+        if (stripContainer != null) stripContainer.setVisibility(View.GONE);
         if (tabStripView != null) revealWithoutFlash(tabStripView);
     }
 
@@ -1790,7 +1822,7 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void updateContextSmartVisibility() {
         if (mContextSmartSection == null) return;
-        final boolean visible = mHasContextSmartPicks && !mSearchMode
+        final boolean visible = mHasContextSmartPicks && !mSearchMode && !mExpandedMode
                 && !mCompactContextPanel
                 && mEmojiCategory.getCurrentCategoryId() == EmojiCategory.ID_RECENTS;
         // Never retain the 70dp Smart row after switching out of Recents

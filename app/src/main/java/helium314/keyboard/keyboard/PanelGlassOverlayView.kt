@@ -138,6 +138,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         val content = source ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             !canvas.isHardwareAccelerated || !content.isAttachedToWindow ||
+            !content.isShown ||
             content.width <= 0 || content.height <= 0) return
 
         if (edge == Edge.BOTTOM) {

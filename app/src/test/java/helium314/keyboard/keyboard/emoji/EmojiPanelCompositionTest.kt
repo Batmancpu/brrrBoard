@@ -42,6 +42,11 @@ class EmojiPanelCompositionTest {
         assertEquals(shell, keys.parent)
         assertTrue(panel.findViewById<View>(R.id.emoji_header_scrim) is PanelGlassOverlayView)
         assertTrue(panel.findViewById<View>(R.id.emoji_bottom_glass) is PanelGlassOverlayView)
+        assertEquals(
+            ime.resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height),
+            panel.findViewById<View>(R.id.emoji_header_scrim).layoutParams.height
+        )
+        assertEquals(View.GONE, panel.findViewById<View>(R.id.emoji_search_bar_container).visibility)
         assertNotNull(panel.findViewById<View>(R.id.emoji_search_empty))
         val results = panel.findViewById<View>(R.id.emoji_search_results_scroll)
         assertEquals((56 * ime.resources.displayMetrics.density).toInt(), results.layoutParams.height)

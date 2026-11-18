@@ -178,11 +178,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal" />
-        <!-- Same shared material as Toolbar/Clipboard; crisp tabs stay above. -->
+        <!-- Full category-height LIVE internal glass, beneath fixed tab icons.
+             No opaque top slab or second tint over the host IME backdrop. -->
         <helium314.keyboard.keyboard.PanelGlassOverlayView
             android:id="@+id/emoji_header_scrim"
             android:layout_width="match_parent"
-            android:layout_height="@dimen/panel_emoji_header_fade"
+            android:layout_height="@dimen/config_suggestions_strip_height"
             android:layout_gravity="top"
             android:visibility="gone"
             android:importantForAccessibility="no" />

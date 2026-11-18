@@ -1176,10 +1176,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 mEmojiPalettesView.startEmojiPalettes(mKeyboardView.getKeyVisualAttribute(),
                         mLatinIME.getCurrentInputEditorInfo(), mLatinIME.mKeyboardActionListener);
                 mEmojiPalettesView.setVisibility(View.VISIBLE);
-                // The category strip is fixed above the Emoji scroll viewport.
-                // Keep typing suggestions hidden, and show only Emoji tabs.
+                // Emoji's fixed categories are now an overlay INSIDE its
+                // scrolling shell. Never reserve the separate suggestions
+                // strip above it: that was the compact-mode blank band.
                 mEmojiTabStripView.setVisibility(View.VISIBLE);
-                mStripContainer.setVisibility(View.VISIBLE);
+                mStripContainer.setVisibility(View.GONE);
                 setKeyboardPanelOffsets(true);
 
                 mClipboardStripScrollView.setVisibility(View.GONE);

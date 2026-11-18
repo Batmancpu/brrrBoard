@@ -42,15 +42,19 @@ public final class EmojiGlassFrameLayout extends FrameLayout {
             return super.drawChild(canvas, child, drawingTime);
         }
         final View bottomGlass = findViewById(R.id.emoji_bottom_glass);
+        final View topGlass = findViewById(R.id.emoji_header_scrim);
         if (bottomGlass == null || bottomGlass.getVisibility() != View.VISIBLE ||
                 bottomGlass.getTop() <= 0) {
             return super.drawChild(canvas, child, drawingTime);
         }
         final int saved = canvas.save();
         try {
-            // The underlying emoji source remains fully scrollable, including
-            // its hidden pixels beneath Search/Space/Delete and ABC/mic.
-            canvas.clipRect(0, 0, getWidth(), bottomGlass.getTop());
+            // Only the SHARP pager is clipped. The TWO live glass views record
+            // the full moving pager separately, so rows fade behind fixed
+            // categories above and Search/Space/Delete below without ghosts.
+            final int top = topGlass != null && topGlass.getVisibility() == View.VISIBLE
+                    ? topGlass.getBottom() : 0;
+            canvas.clipRect(0, top, getWidth(), Math.max(top, bottomGlass.getTop()));
             return super.drawChild(canvas, child, drawingTime);
         } finally {
             canvas.restoreToCount(saved);

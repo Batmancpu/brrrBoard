@@ -177,6 +177,11 @@ public final class InputView extends FrameLayout {
             final View clipboard = findViewById(R.id.clipboard_history_view);
             final View toolbarPanel = findViewById(R.id.access_point_menu_view);
             final boolean emojiPanel = emoji != null && emoji.getVisibility() == VISIBLE;
+            // Search hides the emoji pager but leaves the EmojiPalettesView
+            // visible while hosting its alphabet keyboard. Never manually
+            // record that GONE pager into the ABC/mic footer's live blur.
+            final boolean emojiBrowse = emojiPanel
+                    && !((helium314.keyboard.keyboard.emoji.EmojiPalettesView) emoji).isSearchMode();
             final boolean clipboardPanel = clipboard != null && clipboard.getVisibility() == VISIBLE;
             final boolean toolbarActive = toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE;
             final boolean panelFooter = emojiPanel
@@ -185,10 +190,10 @@ public final class InputView extends FrameLayout {
                     // the same bottom footer and IME window height as typing mode.
                     || toolbarActive;
             final boolean showFooter = typingFooter || panelFooter;
-            mFooter.setPanelGlassSource(emojiPanel ? findViewById(R.id.emoji_pager)
+            mFooter.setPanelGlassSource(emojiBrowse ? findViewById(R.id.emoji_pager)
                     : clipboardPanel ? findViewById(R.id.clipboard_list)
                     : toolbarActive ? findViewById(R.id.access_point_scroll) : null,
-                    emojiPanel);
+                    emojiBrowse);
             // All three internal panels expose the same direct ABC return route.
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
                     FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive));
