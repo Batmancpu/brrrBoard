@@ -3,6 +3,10 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-18 — Continuing all-symbol icon overhaul during the Stage 1 build
+
+To honor the owner's instruction not to wait idle during CI, while Stage 1 `f74b9037` ran independent debug #213 and original-signer #118, work proceeded in a separate unpushed Stage 2 local candidate: reauthor all remaining 16 Material-path resources used by the rounded keyboard defaults, add seven original round-line Settings/Clipboard vectors, redirect old direct Compose and Clipboard Search resources, and cover all 23 with Robolectric inflation smoke test. Physical 1:1 likeness and both release gates remain unverified at this source note. Handoff and acceptance `docs/APPLE_INSPIRED_ICON_STAGE2_2026_11_18.md`; do not push Stage 2 before v118 publication or alter approved glass/footer/typing permissions.
+
 ## 2026-11-18 — Owner broadens priority to entire Apple-like icon/symbol family
 
 Owner: “Ig now we need a full apple like 1:1 visial over halu for every icon, symbole etc ohkey?” In light of earlier explicit preferences, this requests the closest practical iPad/iOS-inspired visual consistency for **every active** keyboard, Emoji category, Toolbar, Settings, Clipboard and footer symbol; protect stronger contrast as keycap-only and preserve approved glass and Emoji/mic dimensions. It does not authorize copying Apple-owned SF Symbols. After verified v117 (debug `44263321481`, original signer `44263321433`, signed release), the first source patch fixes five mismatched rounded default mappings, redraws six additional core action glyphs and harmonizes Emoji Expand/Collapse. `IconDefaultPreferenceTest` guards actual mapped drawable loading and saved overrides. Current release/CI/device gates PENDING; full map, requirements and Stage 2 in `docs/APPLE_INSPIRED_ICON_STAGE1_2026_11_18.md`. Physical 1:1 comparison must use owner's Oppo images; do not claim it from code.

@@ -148,7 +148,7 @@ private fun PreferencePreview() {
                     onClick = {},
                     description = "A long description which may actually be several lines long, so it should wrap."
                 ) {
-                    Icon(painterResource(R.drawable.ic_arrow_left), null)
+                    Icon(painterResource(R.drawable.ic_arrow_left_rounded), null)
                 }
                 Preference(
                     name = "Long preference name that wraps",

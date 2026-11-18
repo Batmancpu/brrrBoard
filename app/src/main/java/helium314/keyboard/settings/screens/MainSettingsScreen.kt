@@ -177,7 +177,7 @@ fun MainSettingsScreen(
                 onClick = onClickAppearance
             )
             Md3ePreference(
-                icon = R.drawable.ic_access_point_grid,
+                icon = R.drawable.ic_board_toolbar,
                 title = stringResource(R.string.settings_screen_toolbar),
                 description = "Customize the toolbar layout and pinned buttons",
                 onClick = onClickToolbar,

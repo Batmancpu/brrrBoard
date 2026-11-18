@@ -236,7 +236,7 @@ fun GestureLibrarySetupGuide() {
                     )
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_plus),
+                        painter = painterResource(R.drawable.ic_plus_rounded),
                         contentDescription = null,
                         modifier = Modifier.padding(end = 8.dp).size(20.dp)
                     )

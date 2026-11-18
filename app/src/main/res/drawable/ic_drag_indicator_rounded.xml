@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard rounded Reorder grip; SPDX-License-Identifier: GPL-3.0-only -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M9,5.3 A1.35,1.35 0,1 0,9,8 A1.35,1.35 0,1 0,9,5.3 M15,5.3 A1.35,1.35 0,1 0,15,8 A1.35,1.35 0,1 0,15,5.3 M9,10.65 A1.35,1.35 0,1 0,9,13.35 A1.35,1.35 0,1 0,9,10.65 M15,10.65 A1.35,1.35 0,1 0,15,13.35 A1.35,1.35 0,1 0,15,10.65 M9,16 A1.35,1.35 0,1 0,9,18.7 A1.35,1.35 0,1 0,9,16 M15,16 A1.35,1.35 0,1 0,15,18.7 A1.35,1.35 0,1 0,15,16" />
+</vector>

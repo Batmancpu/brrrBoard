@@ -462,7 +462,7 @@ fun GestureDataScreen(
         ExtendedFloatingActionButton(
             onClick = { nextWord(false) },
             text = { Text(stringResource(R.string.gesture_data_next)) },
-            icon = { Icon(painter = painterResource(R.drawable.ic_ime_switcher), stringResource(R.string.gesture_data_next)) },
+            icon = { Icon(painter = painterResource(R.drawable.ic_ime_switcher_rounded), stringResource(R.string.gesture_data_next)) },
             modifier = Modifier
                 .wrapContentSize(Alignment.BottomStart)
                 .padding(all = 12.dp)
@@ -497,14 +497,14 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
                     enabled = hasWords
                 ) {
                     Icon(
-                        painterResource(R.drawable.ic_share),
+                        painterResource(R.drawable.ic_share_rounded),
                         "share",
                         Modifier.size(30.dp)
                     )
                 }
                 IconButton(onClick = { showLinks = true}) {
                     Icon(
-                        painterResource(R.drawable.ic_link),
+                        painterResource(R.drawable.ic_link_rounded),
                         "links",
                         Modifier.size(30.dp)
                     )

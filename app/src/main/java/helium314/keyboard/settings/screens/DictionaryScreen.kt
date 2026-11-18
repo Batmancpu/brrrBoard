@@ -85,7 +85,7 @@ fun DictionaryScreen(
                 Text(
                     stringResource(R.string.add_new_dictionary_title),
                 )
-                Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add_new_dictionary_title))
+                Icon(painterResource(R.drawable.ic_plus_rounded), stringResource(R.string.add_new_dictionary_title))
             }
         } else {
             Column(

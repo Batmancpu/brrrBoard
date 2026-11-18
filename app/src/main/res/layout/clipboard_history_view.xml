@@ -91,7 +91,7 @@
                 android:contentDescription="@string/abc_action_bar_up_description"
                 android:padding="0dp"
                 android:scaleType="center"
-                android:src="@drawable/ic_arrow_back"/>
+                android:src="@drawable/ic_arrow_back_rounded"/>
             <EditText
                 android:id="@+id/clipboard_search_text"
                 android:layout_width="0dp"
@@ -110,7 +110,7 @@
                 android:layout_height="38dp"
                 android:contentDescription="@string/clipboard_search_clear"
                 android:scaleType="center"
-                android:src="@drawable/ic_close"/>
+                android:src="@drawable/ic_close_rounded"/>
         </LinearLayout>
 
         <!-- Normal alphabet keyboard occupies lower area only in search mode. -->

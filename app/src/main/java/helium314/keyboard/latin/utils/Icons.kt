@@ -21,29 +21,29 @@ import helium314.keyboard.latin.R
 @Composable
 fun NextScreenIcon() {
     Icon(
-        painterResource(R.drawable.ic_arrow_left), null,
+        painterResource(R.drawable.ic_arrow_left_rounded), null,
         if (LocalLayoutDirection.current == LayoutDirection.Ltr) Modifier.scale(-1f, 1f) else Modifier
     )
 }
 
 @Composable
 fun EditButton(enabled: Boolean = true, onClick: () -> Unit) {
-    IconButton(onClick, enabled = enabled)  { Icon(painterResource(R.drawable.ic_edit), "edit") }
+    IconButton(onClick, enabled = enabled)  { Icon(painterResource(R.drawable.ic_edit_rounded), "edit") }
 }
 
 @Composable
 fun DeleteButton(onClick: () -> Unit) {
-    IconButton(onClick)  { Icon(painterResource(R.drawable.ic_bin), stringResource(R.string.delete)) }
+    IconButton(onClick)  { Icon(painterResource(R.drawable.ic_bin_rounded), stringResource(R.string.delete)) }
 }
 
 @Composable
 fun SearchIcon() {
-    Icon(painterResource(R.drawable.sym_keyboard_search_lxx), stringResource(R.string.label_search_key))
+    Icon(painterResource(R.drawable.ic_brr_search), stringResource(R.string.label_search_key))
 }
 
 @Composable
 fun CloseIcon(@StringRes resId: Int) {
-    Icon(painterResource(R.drawable.ic_close), stringResource(resId))
+    Icon(painterResource(R.drawable.ic_close_rounded), stringResource(resId))
 }
 
 @Composable
@@ -57,7 +57,7 @@ fun DefaultButton(isDefault: Boolean, onClick: () -> Unit) {
 fun ExpandButton(enabled: Boolean = true, onClick: () -> Unit) {
     IconButton(onClick = onClick, enabled = enabled) {
         Icon(
-            painterResource(R.drawable.ic_arrow_left),
+            painterResource(R.drawable.ic_arrow_left_rounded),
             "expand",
             Modifier.rotate(-90f)
         )
@@ -68,7 +68,7 @@ fun ExpandButton(enabled: Boolean = true, onClick: () -> Unit) {
 fun BackButton(onClick: () -> Unit) {
     IconButton(onClick = onClick) {
         Icon(
-            painterResource(R.drawable.ic_arrow_back),
+            painterResource(R.drawable.ic_arrow_back_rounded),
             stringResource(R.string.spoken_description_action_previous)
         )
     }

@@ -1,5 +1,9 @@
 # Post-v1.0.19 Reno10 keyboard plan
 
+## 2026-11-18 — Icon Stage 2 follows the signed v118 gate
+
+Source Stage 2 reauthors 16 still-Material live rounded icon vectors, adds 7 original direct Settings/Clipboard icons, and redirects old resource references in Settings/Clipboard/Compose while preserving hit targets, theme tint, explicit icon preferences and owner-approved mic/Emoji footer/live glass. Robolectric inflates all 23. `docs/APPLE_INSPIRED_ICON_STAGE2_2026_11_18.md` lists exact assets/callsites/manual acceptance. Gate dependency: finish source `f74b903` / v1.0.118 debug and original-signer release before publishing Stage 2 to prevent GitHub Actions cancellation. Further work is screenshot-driven contrast/alignment QA, plus persistent Emoji top-gap triage if Oppo still shows it. No Apple SF Symbols imported.
+
 ## 2026-11-18 — New owner priority: Apple-inspired all-active-icon visual pass
 
 From verified v1.0.117 `d6c310a6`, proceed in two adjacent original-signed source batches, not one sweeping replacement of legacy custom icons. Stage 1 source candidate fixes five live rounded-default fallback errors, redraws six other active Material-source action icons and harmonizes Emoji Expand/Collapse (13 original resources). It preserves custom icon overrides, key hit targets, accepted footer mic/Emoji dimensions, native/live glass, keycap-only contrast policy and privacy. Stage 2 must cover the remaining 16 active legacy-source rounded symbols, then actual Emoji categories, Settings, Clipboard and Toolbar visual parity review. Full source paths/testing/on-Oppo acceptance: `docs/APPLE_INSPIRED_ICON_STAGE1_2026_11_18.md`. Stage 1 CI/release and real screenshots PENDING; user explicitly says proceed without sitting idle while CI runs. No Apple proprietary SF Symbols shipped.

@@ -136,7 +136,7 @@ private fun AddLayoutRow(onNewLayout: (String) -> Unit, layoutType: LayoutType, 
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(start = 10.dp)
     ) {
-        Icon(painterResource(R.drawable.ic_plus), stringResource(R.string.add))
+        Icon(painterResource(R.drawable.ic_plus_rounded), stringResource(R.string.add))
         TextField(
             value = textValue,
             onValueChange = { textValue = it },

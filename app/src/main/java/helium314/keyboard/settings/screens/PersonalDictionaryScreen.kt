@@ -80,7 +80,7 @@ fun PersonalDictionaryScreen(
                     val details = if (it.shortcut == null) it.weight.toString() else "${it.weight}  |  ${it.shortcut}"
                     Text(details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(painterResource(R.drawable.ic_edit), stringResource(R.string.user_dict_settings_edit_dialog_title))
+                Icon(painterResource(R.drawable.ic_edit_rounded), stringResource(R.string.user_dict_settings_edit_dialog_title))
             }
         }
     )
@@ -90,7 +90,7 @@ fun PersonalDictionaryScreen(
     ExtendedFloatingActionButton(
         onClick = { selectedWord = Word("", null, null) },
         text = { Text(stringResource(R.string.user_dict_add_word_button)) },
-        icon = { Icon(painter = painterResource(R.drawable.ic_edit), stringResource(R.string.user_dict_add_word_button)) },
+        icon = { Icon(painter = painterResource(R.drawable.ic_edit_rounded), stringResource(R.string.user_dict_add_word_button)) },
         modifier = Modifier.wrapContentSize(Alignment.BottomEnd).padding(all = 12.dp)
             .then(Modifier.safeDrawingPadding())
     )

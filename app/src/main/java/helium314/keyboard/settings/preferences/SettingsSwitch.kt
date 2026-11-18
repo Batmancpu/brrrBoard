@@ -26,13 +26,13 @@ fun SettingsSwitch(
         thumbContent = {
             if (checked) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_setup_check),
+                    painter = painterResource(R.drawable.sym_keyboard_done_rounded),
                     contentDescription = null,
                     modifier = Modifier.size(SwitchDefaults.IconSize)
                 )
             } else {
                 Icon(
-                    painter = painterResource(R.drawable.ic_close),
+                    painter = painterResource(R.drawable.ic_close_rounded),
                     contentDescription = null,
                     modifier = Modifier.size(SwitchDefaults.IconSize * 1.18f)
                 )

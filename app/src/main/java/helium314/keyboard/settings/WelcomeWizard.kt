@@ -797,7 +797,7 @@ fun SetupScreenView(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            painter = painterResource(id = R.drawable.ic_chevron_down),
+                                            painter = painterResource(id = R.drawable.ic_chevron_down_rounded),
                                             contentDescription = null,
                                             tint = if (isCurrent) MaterialTheme.colorScheme.onSurface
                                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),

@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    SPDX-FileCopyrightText: Material Design Authors / Google LLC
-    modified
-    SPDX-License-Identifier: Apache-2.0
--->
+<!-- Original brrBoard rounded Paste glyph; SPDX-License-Identifier: GPL-3.0-only -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="960"
-    android:viewportHeight="960">
-    <path android:fillColor="#FFF"
-        android:pathData="M200,840Q167,840 143.5,816.5Q120,793 120,760L120,200Q120,167 143.5,143.5Q167,120 200,120L367,120Q378,85 410,62.5Q442,40 480,40Q520,40 551.5,62.5Q583,85 594,120L760,120Q793,120 816.5,143.5Q840,167 840,200L840,760Q840,793 816.5,816.5Q793,840 760,840L200,840ZM200,760L760,760Q760,760 760,760Q760,760 760,760L760,200Q760,200 760,200Q760,200 760,200L680,200L680,280Q680,297 668.5,308.5Q657,320 640,320L320,320Q303,320 291.5,308.5Q280,297 280,280L280,200L200,200Q200,200 200,200Q200,200 200,200L200,760Q200,760 200,760Q200,760 200,760ZM480,200Q497,200 508.5,188.5Q520,177 520,160Q520,143 508.5,131.5Q497,120 480,120Q463,120 451.5,131.5Q440,143 440,160Q440,177 451.5,188.5Q463,200 480,200Z"/>
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.85" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M8.3,4.2 H5.8 Q4.2,4.2 4.2,5.8 V19.4 Q4.2,21 5.8,21 H18.2 Q19.8,21 19.8,19.4 V5.8 Q19.8,4.2 18.2,4.2 H15.7 M9.45,3.1 H14.55 Q15.7,3.1 15.7,4.25 V6 H8.3 V4.25 Q8.3,3.1 9.45,3.1 Z M8.7,11.1 H15.4 M8.7,14.8 H15.4 M8.7,18.3 H13.1" />
 </vector>
