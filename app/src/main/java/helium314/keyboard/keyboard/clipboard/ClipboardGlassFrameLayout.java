@@ -25,6 +25,11 @@ public final class ClipboardGlassFrameLayout extends FrameLayout {
         super(context, attrs, defStyle);
     }
 
+    static int searchViewportBottom(int hostHeight, int keyboardTop, int keyboardHeight) {
+        final int fallback = hostHeight - Math.max(0, keyboardHeight);
+        return Math.max(0, Math.min(hostHeight, keyboardTop > 0 ? keyboardTop : fallback));
+    }
+
     static int sharpViewportBottom(int overlayTop, int hostHeight) {
         return overlayTop > 0 ? Math.min(hostHeight, overlayTop) : hostHeight;
     }
@@ -39,11 +44,12 @@ public final class ClipboardGlassFrameLayout extends FrameLayout {
         // disabled its ONLY sharp-list clip and let long clips paint onto keys.
         // Protect the alphabet on every Android version; it is not glass.
         final View searchKeyboard = findViewById(R.id.clipboard_search_keyboard_host);
-        if (searchKeyboard != null && searchKeyboard.getVisibility() == VISIBLE
-                && searchKeyboard.getTop() > 0) {
+        if (searchKeyboard != null && searchKeyboard.getVisibility() == VISIBLE) {
+            final int bottom = searchViewportBottom(getHeight(),
+                    searchKeyboard.getTop(), searchKeyboard.getMeasuredHeight());
             final int saved = canvas.save();
             try {
-                canvas.clipRect(0, 0, getWidth(), searchKeyboard.getTop());
+                canvas.clipRect(0, 0, getWidth(), bottom);
                 return super.drawChild(canvas, child, drawingTime);
             } finally {
                 canvas.restoreToCount(saved);

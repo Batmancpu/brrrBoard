@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
+import android.view.ViewGroup
 import helium314.keyboard.latin.R
 import androidx.core.graphics.ColorUtils
 import helium314.keyboard.latin.common.Colors
@@ -77,12 +78,15 @@ object PanelMaterial {
      * normal keyboard. All ancestors of these surfaces disable child clipping.
      */
     @JvmStatic
-    fun extendIntoFooter(host: View, source: View) {
+    fun extendIntoFooter(host: View, source: View) = extendIntoFooterUnless(host, source) { false }
+
+    /** Clipboard Search must never extend readable card pixels beneath ABC/mic. */
+    fun extendIntoFooterUnless(host: View, source: View, isSearchMode: () -> Boolean) {
         host.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
             val bodyHeight = bottom - top
             if (bodyHeight <= 0) return@addOnLayoutChangeListener
             val footer = host.resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
-            val target = bodyHeight + footer
+            val target = if (isSearchMode()) ViewGroup.LayoutParams.MATCH_PARENT else bodyHeight + footer
             val params = source.layoutParams ?: return@addOnLayoutChangeListener
             if (params.height != target) {
                 params.height = target

@@ -291,7 +291,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 }
             })
         }
-        PanelMaterial.extendIntoFooter(clipboardRecyclerView.parent as View, clipboardRecyclerView)
+        PanelMaterial.extendIntoFooterUnless(clipboardRecyclerView.parent as View,
+            clipboardRecyclerView) { searchMode }
         clearButton = findViewById(R.id.clipboard_clear_button)
         titleView = findViewById(R.id.clipboard_title)
         undoBar = findViewById(R.id.clipboard_undo_bar)
@@ -478,13 +479,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchClearButton.background = RippleDrawable(ColorStateList.valueOf(
             ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x35)),
             null, null)
-        searchMatchHaze.background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            intArrayOf(ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x00),
-                ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x54),
-                ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x00))).apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = 24.dpToPx(resources).toFloat()
-        }
+        // A fixed original rainbow edge highlight replaces wallpaper gray.
+        searchMatchHaze.background = ClipboardRainbowGlowDrawable(
+            resources.displayMetrics.density, true)
     }
 
     private fun searchControlBackground(colors: Colors): RippleDrawable {
@@ -725,7 +722,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchMatchHaze.animate().cancel()
         val colors = Settings.getValues().mColors
         val accent = colors.get(ColorType.ACTION_KEY_BACKGROUND)
-        searchInput.setTextColor(if (found) accent else colors.get(ColorType.TOOL_BAR_KEY))
+        searchInput.setTextColor(if (found) Color.WHITE else colors.get(ColorType.TOOL_BAR_KEY))
         if (!found) {
             searchInput.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
             searchMatchHaze.alpha = 0f
@@ -740,7 +737,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchMatchHaze.scaleX = (textWidth.coerceAtMost(maxWidth.toFloat()) /
             140.dpToPx(resources).toFloat()).coerceIn(0.20f, 1.25f)
         if (!heightMotionEnabled()) {
-            searchMatchHaze.alpha = 0.38f
+            searchMatchHaze.alpha = 0.94f
             return
         }
         searchMatchHaze.alpha = 0.16f

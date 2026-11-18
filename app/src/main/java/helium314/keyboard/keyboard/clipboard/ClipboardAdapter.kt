@@ -4,6 +4,11 @@ package helium314.keyboard.keyboard.clipboard
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -11,10 +16,7 @@ import android.graphics.drawable.StateListDrawable
 import android.content.res.ColorStateList
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.TextPaint
-import android.text.style.BackgroundColorSpan
-import android.text.style.CharacterStyle
-import android.text.style.UpdateAppearance
+import android.text.style.ReplacementSpan
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -78,27 +80,55 @@ class ClipboardAdapter(
         private const val ROUNDED_ENTRY_RADIUS_DP = 16f
     }
 
-    /** Only selected glyphs receive the accent and small static text haze. */
-    private class MatchedWordHazeSpan(private val accent: Int, private val density: Float) :
-        CharacterStyle(), UpdateAppearance {
-        override fun updateDrawState(tp: TextPaint) {
-            tp.color = accent
-            tp.isFakeBoldText = true
-            tp.setShadowLayer(3f * density, 0f, 0f,
-                ColorUtils.setAlphaComponent(accent, 0xA0))
+    /** Match has a fixed rainbow background and readable white glyphs. */
+    private class RainbowMatchSpan(private val density: Float) : ReplacementSpan() {
+        private val inset = 3f * density
+        override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int,
+                fm: Paint.FontMetricsInt?): Int =
+            kotlin.math.ceil(paint.measureText(text, start, end) + 2f * inset).toInt()
+
+        override fun draw(canvas: Canvas, text: CharSequence, start: Int, end: Int,
+                x: Float, top: Int, y: Int, bottom: Int, paint: Paint) {
+            val width = paint.measureText(text, start, end) + 2f * inset
+            val rect = RectF(x + density,
+                y + paint.fontMetrics.ascent - 2f * density,
+                x + width - density, y + paint.fontMetrics.descent + 2f * density)
+            val oldColor = paint.color
+            val oldShader = paint.shader
+            val oldStyle = paint.style
+            val oldStroke = paint.strokeWidth
+            val oldBold = paint.isFakeBoldText
+            try {
+                paint.shader = null
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 4f * density
+                paint.color = 0x667C59D8
+                canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
+                paint.style = Paint.Style.FILL
+                paint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.top,
+                    intArrayOf(0xFF6037B0.toInt(), 0xFF9835AC.toInt(),
+                        0xFF1D699A.toInt(), 0xFF493EAA.toInt()),
+                    null, Shader.TileMode.CLAMP)
+                canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
+                paint.shader = null
+                paint.color = Color.WHITE
+                paint.isFakeBoldText = true
+                canvas.drawText(text, start, end, x + inset, y.toFloat(), paint)
+            } finally {
+                paint.color = oldColor
+                paint.shader = oldShader
+                paint.style = oldStyle
+                paint.strokeWidth = oldStroke
+                paint.isFakeBoldText = oldBold
+            }
         }
     }
 
     private fun emphasizedPreview(text: String, query: String, density: Float): CharSequence {
         val window = ClipboardSearchPreview.window(text, query)
         if (!window.hasMatch) return window.text
-        // ACTION_KEY_BACKGROUND is the user's actual keyboard accent. The
-        // SPECIAL_KEY_BACKGROUND role is a neutral modifier in stock themes.
-        val accent = Settings.getValues().mColors.get(ColorType.ACTION_KEY_BACKGROUND)
         return SpannableStringBuilder(window.text).apply {
-            setSpan(BackgroundColorSpan(ColorUtils.setAlphaComponent(accent, 0x30)),
-                window.matchStart, window.matchEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(MatchedWordHazeSpan(accent, density),
+            setSpan(RainbowMatchSpan(density),
                 window.matchStart, window.matchEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
@@ -227,6 +257,10 @@ class ClipboardAdapter(
             itemView.isEnabled = historyEntry != null
             val imageClip = historyEntry?.text?.let { ClipboardHistoryManager.decodeImageHistoryClip(it) }
                 ?.takeIf { it.uri.scheme == "content" }
+
+            itemView.foreground = if (horizontalSearchRow && filterQuery.isNotBlank()
+                    && historyEntry != null && imageClip == null)
+                ClipboardRainbowGlowDrawable(itemView.resources.displayMetrics.density, false) else null
 
             // Adjust StaggeredGridLayoutManager parameters so it stays in one column
             val lp = itemView.layoutParams
