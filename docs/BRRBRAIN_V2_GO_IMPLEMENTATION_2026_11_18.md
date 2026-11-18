@@ -30,3 +30,7 @@
 5. Rapid Emoji Search/Expanded/Clipboard Search → ABC: no spring, 260ms pause or dead footer. ColorOS/Oppo acceptance remains open.
 
 **Preserve** `com.mangoloads.board`, the original Obtainium signing certificate, all four ABIs/16 KB checks, the imported user-supplied gesture library, and concurrent Dictate changes.
+
+
+## 2026-11-19 — exact signed/CI result
+GO source `dc248592` initially FAILED both workflows due Java AtomicFile `OutputStream` declaration at `SwipeCorrectionLearner.java:151/153`; only that declaration/import changed in `2551c261`. Replacement debug [44372117753](https://github.com/Batmancpu/brrrBoard/actions/runs/44372117753) and original-signing production [44372117880](https://github.com/Batmancpu/brrrBoard/actions/runs/44372117880) both **completed SUCCESS** (Android unit tests; seed and next-word safety checks; original signer verify/sign/publish). Signed [v1.0.131](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.131/brrBoard.apk) exactly source-matched, 38,143,159 bytes, SHA-256 `f5e4bd8746f0b7c85896cb73b71fdea47d79e0ff38c1669035414946b48d0e39`. Real Reno10 recall, latency, UI transitions and context-Emoji acceptance are NOT measured and remain open; optional license-cleared CTC and per-app model remain deferred, not silently shipped.

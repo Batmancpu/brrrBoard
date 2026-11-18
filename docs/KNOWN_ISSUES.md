@@ -1,5 +1,10 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-19 — brrBrain v2 source/CI signed, hardware accuracy still OPEN
+
+Original-signed v1.0.131 from main `2551c261` passed full debug `44372117753` and full production unit/sign/release `44372117880`; first `dc248592` failed compile and was corrected without disabling any test. The `happy` swipe recall, actual on-device top-3 and p95, post-Space emoji relevance, private-editor learning exclusion and immediate panel transitions are **not physically verified**. Current brrBrain rescue adds only one bounded lexical alternative and does not claim to replace imported native gesture decoder. Review `docs/BRRBRAIN_V2_GO_IMPLEMENTATION_2026_11_18.md` and ask for user Oppo observations before any quality-claim or model upgrade. Dictate recognition remains independent.
+
+
 ## 2026-11-18 — brrBrain v2 candidate, swipe recall and Oppo motion unresolved
 
 The approved GO source adds independent geometric typed-dictionary *candidate
