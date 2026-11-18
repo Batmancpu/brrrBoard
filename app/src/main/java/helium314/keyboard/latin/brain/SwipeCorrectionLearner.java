@@ -13,8 +13,8 @@ import helium314.keyboard.latin.utils.KtxKt;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -140,7 +140,7 @@ public final class SwipeCorrectionLearner {
             synchronized (SwipeCorrectionLearner.this) {
                 // A later write/reset supersedes this snapshot.
                 if (revision != version) return;
-                OutputStream out = null;
+                FileOutputStream out = null;
                 try {
                     out = file.startWrite();
                     for (final Entry entry : snapshot) {
