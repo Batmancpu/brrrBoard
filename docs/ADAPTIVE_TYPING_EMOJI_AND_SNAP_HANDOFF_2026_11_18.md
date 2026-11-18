@@ -1,5 +1,7 @@
 # brrBoard — adaptive text/swipe/Emoji + instant panel switch: implementation handoff
 
+> **Superseded for the next GO:** The owner subsequently reported that an intended swipe word can be **absent from every suggestion** and authorized a ≤20 MB offline encoder plus optional app-specific context. See [brrBrain v2 — independent decoder and context handoff](BRRBRAIN_V2_DECODER_AND_CONTEXT_HANDOFF_2026_11_18.md), whose architecture and revised T0–T6 now govern. Retain this old document only for historical source analysis and detailed Emoji/height semantics; its native-top-three-only learning limit is no longer sufficient.
+
 Status: **DESIGN ONLY — NO RUNTIME CODE CHANGED BY THIS DOCUMENT.** Prepared 18 November 2026 (India). The next request "GO — implement the adaptive typing/Emoji/snap handoff" authorizes this implementation, tests and one original-signed release on main. Do not publish or claim a runtime fix merely because this plan exists.
 
 ## 0. Owner request, exact visible failures, and acceptance goal
