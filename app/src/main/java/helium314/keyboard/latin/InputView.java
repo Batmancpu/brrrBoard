@@ -183,6 +183,8 @@ public final class InputView extends FrameLayout {
             final boolean emojiBrowse = emojiPanel
                     && !((helium314.keyboard.keyboard.emoji.EmojiPalettesView) emoji).isSearchMode();
             final boolean clipboardPanel = clipboard != null && clipboard.getVisibility() == VISIBLE;
+            final boolean clipboardBrowse = FooterGlassSourcePolicy.shouldSampleClipboard(
+                    clipboardPanel, clipboardPanel && ((helium314.keyboard.keyboard.clipboard.ClipboardHistoryView) clipboard).isSearchMode());
             final boolean toolbarActive = toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE;
             final boolean panelFooter = emojiPanel
                     || clipboardPanel
@@ -191,7 +193,7 @@ public final class InputView extends FrameLayout {
                     || toolbarActive;
             final boolean showFooter = typingFooter || panelFooter;
             mFooter.setPanelGlassSource(emojiBrowse ? findViewById(R.id.emoji_pager)
-                    : clipboardPanel ? findViewById(R.id.clipboard_list)
+                    : clipboardBrowse ? findViewById(R.id.clipboard_list)
                     : toolbarActive ? findViewById(R.id.access_point_scroll) : null,
                     emojiBrowse);
             // All three internal panels expose the same direct ABC return route.

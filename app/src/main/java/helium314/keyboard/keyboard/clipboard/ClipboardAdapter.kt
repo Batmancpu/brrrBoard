@@ -105,9 +105,13 @@ class ClipboardAdapter(
                 paint.color = 0x667C59D8
                 canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
                 paint.style = Paint.Style.FILL
+                // Shader output is multiplied by Paint alpha. The previous
+                // translucent border color (0x66 alpha) had made the rainbow
+                // highlighter look like a faint gray wash. Restore full alpha.
+                paint.color = Color.WHITE
                 paint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.top,
-                    intArrayOf(0xFF6037B0.toInt(), 0xFF9835AC.toInt(),
-                        0xFF1D699A.toInt(), 0xFF493EAA.toInt()),
+                    intArrayOf(0xFF8233CB.toInt(), 0xFFAC278C.toInt(),
+                        0xFF116B94.toInt(), 0xFF6237B7.toInt()),
                     null, Shader.TileMode.CLAMP)
                 canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
                 paint.shader = null

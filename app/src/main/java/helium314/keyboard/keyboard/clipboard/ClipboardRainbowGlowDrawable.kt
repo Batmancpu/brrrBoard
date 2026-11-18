@@ -24,12 +24,12 @@ internal class ClipboardRainbowGlowDrawable(
 
     override fun onBoundsChange(bounds: Rect) {
         super.onBoundsChange(bounds)
-        val pad = 4f * density
+        val pad = 6f * density
         area.set(bounds.left + pad, bounds.top + pad, bounds.right - pad, bounds.bottom - pad)
         gradient = if (area.width() > 0f && area.height() > 0f)
             LinearGradient(area.left, area.top, area.right, area.bottom,
-                intArrayOf(0xFFB345F2.toInt(), 0xFF653DDA.toInt(),
-                    0xFF0FBFDD.toInt(), 0xFF7047DF.toInt(), 0xFFD14CAA.toInt()),
+                intArrayOf(0xFFFF53C5.toInt(), 0xFFAD5BFF.toInt(),
+                    0xFF27CBE8.toInt(), 0xFF65D9C2.toInt(), 0xFFFF51B3.toInt()),
                 null, Shader.TileMode.CLAMP) else null
     }
 
@@ -39,13 +39,13 @@ internal class ClipboardRainbowGlowDrawable(
         paint.shader = shader
         paint.style = Paint.Style.FILL
         if (fill) {
-            paint.alpha = (opacity * 0.65f).toInt()
+            paint.alpha = (opacity * 0.82f).toInt()
             canvas.drawRoundRect(area, radius, radius, paint)
         }
         paint.style = Paint.Style.STROKE
-        drawHalo(canvas, radius, 7f, 0.17f)
-        drawHalo(canvas, radius, 3f, 0.45f)
-        drawHalo(canvas, radius, 1.5f, 0.88f)
+        drawHalo(canvas, radius, 10f, 0.25f)
+        drawHalo(canvas, radius, 5f, 0.74f)
+        drawHalo(canvas, radius, 2f, 1f)
         paint.shader = null
         paint.style = Paint.Style.FILL
     }
