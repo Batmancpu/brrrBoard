@@ -9,6 +9,12 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.content.res.ColorStateList
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.style.BackgroundColorSpan
+import android.text.style.CharacterStyle
+import android.text.style.UpdateAppearance
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -70,6 +76,29 @@ class ClipboardAdapter(
         private const val VIEW_TYPE_TEXT = 0
         private const val VIEW_TYPE_IMAGE = 1
         private const val ROUNDED_ENTRY_RADIUS_DP = 16f
+    }
+
+    /** Only selected glyphs receive the accent and small static text haze. */
+    private class MatchedWordHazeSpan(private val accent: Int, private val density: Float) :
+        CharacterStyle(), UpdateAppearance {
+        override fun updateDrawState(tp: TextPaint) {
+            tp.color = accent
+            tp.isFakeBoldText = true
+            tp.setShadowLayer(3f * density, 0f, 0f,
+                ColorUtils.setAlphaComponent(accent, 0xA0))
+        }
+    }
+
+    private fun emphasizedPreview(text: String, query: String, density: Float): CharSequence {
+        val window = ClipboardSearchPreview.window(text, query)
+        if (!window.hasMatch) return window.text
+        val accent = Settings.getValues().mColors.get(ColorType.SPECIAL_KEY_BACKGROUND)
+        return SpannableStringBuilder(window.text).apply {
+            setSpan(BackgroundColorSpan(ColorUtils.setAlphaComponent(accent, 0x30)),
+                window.matchStart, window.matchEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(MatchedWordHazeSpan(accent, density),
+                window.matchStart, window.matchEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -251,12 +280,24 @@ class ClipboardAdapter(
                     // A damaged legacy image marker must never be shown as raw serialized data.
                     if (ClipboardImageHistoryClip.hasImageHistoryPrefix(it))
                         itemView.context.getString(R.string.clipboard_image_unavailable)
-                    else it.take(1000) // bound binding work for long copied text
+                    else if (horizontalSearchRow && filterQuery.isNotBlank())
+                        // Build the visible window around the actual hit, not
+                        // the first 1,000 characters of a long copied note.
+                        it
+                    else it.take(1000)
                 }
-                contentView?.text = text
-                contentView?.let { KeyboardTypeface.applyToTextView(it, text, itemTypeFace ?: android.graphics.Typeface.DEFAULT) }
+                val visibleText = if (horizontalSearchRow && text != null
+                        && filterQuery.isNotBlank())
+                    emphasizedPreview(text, filterQuery, itemView.resources.displayMetrics.density)
+                    else text
+                contentView?.text = visibleText
+                contentView?.let { KeyboardTypeface.applyToTextView(it, visibleText,
+                    itemTypeFace ?: android.graphics.Typeface.DEFAULT) }
 
-                contentView?.maxLines = if (horizontalSearchRow) 3 else 4
+                contentView?.setTextSize(TypedValue.COMPLEX_UNIT_PX,
+                    if (horizontalSearchRow) itemTextSize * 1.07f else itemTextSize)
+
+                contentView?.maxLines = if (horizontalSearchRow) 6 else 4
                 // Search shows one horizontally scrollable row of bounded
                 // cards; full original clip text is retained for insertion.
                 if (lp != null) {
@@ -288,8 +329,9 @@ class ClipboardAdapter(
             return (screen * 0.55f).toInt().coerceIn((120 * density).toInt(), (220 * density).toInt())
         }
 
-        private fun searchCardHeight(): Int =
-            (80 * itemView.resources.displayMetrics.density).toInt()
+        // Horizontal cards flex with the Search viewport instead of fixing a
+        // tiny 80dp island above the alphabet. The source clip is unmodified.
+        private fun searchCardHeight(): Int = ViewGroup.LayoutParams.MATCH_PARENT
 
         fun clearImage() {
             imageView.load(null)

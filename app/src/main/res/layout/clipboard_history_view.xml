@@ -94,28 +94,52 @@
                 android:padding="0dp"
                 android:scaleType="center"
                 android:src="@drawable/ic_arrow_back"/>
-            <EditText
-                android:id="@+id/clipboard_search_text"
+            <!-- The clear glyph lives INSIDE the same glass capsule. Its
+                 transform appearance never changes the header's measured width. -->
+            <FrameLayout
+                android:id="@+id/clipboard_search_field"
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_weight="1"
                 android:background="@drawable/klipy_search_bar_ripple_bg"
-                android:hint="@string/clipboard_search_hint"
-                android:inputType="text|textNoSuggestions"
-                android:imeOptions="actionSearch|flagNoExtractUi"
-                android:singleLine="true"
-                android:paddingHorizontal="15dp"
-                android:textSize="14sp"/>
-            <ImageButton
-                android:id="@+id/clipboard_search_clear"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
-                android:layout_marginStart="6dp"
-                android:contentDescription="@string/clipboard_search_clear"
-                android:scaleType="center"
-                android:padding="0dp"
-                android:src="@drawable/ic_close"
-                android:visibility="gone"/>
+                android:clipChildren="false">
+                <View
+                    android:id="@+id/clipboard_search_match_haze"
+                    android:layout_width="140dp"
+                    android:layout_height="28dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="11dp"
+                    android:alpha="0"
+                    android:clickable="false"
+                    android:importantForAccessibility="no"/>
+                <EditText
+                    android:id="@+id/clipboard_search_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/clipboard_search_hint"
+                    android:inputType="text|textNoSuggestions"
+                    android:imeOptions="actionSearch|flagNoExtractUi"
+                    android:singleLine="true"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="42dp"
+                    android:textSize="14sp"/>
+                <ImageButton
+                    android:id="@+id/clipboard_search_clear"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="4dp"
+                    android:contentDescription="@string/clipboard_search_clear"
+                    android:background="@android:color/transparent"
+                    android:scaleType="center"
+                    android:padding="0dp"
+                    android:alpha="0"
+                    android:scaleX="0.55"
+                    android:scaleY="0.55"
+                    android:src="@drawable/ic_close"
+                    android:visibility="invisible"/>
+            </FrameLayout>
         </LinearLayout>
 
         <!-- Normal alphabet keyboard occupies lower area only in search mode. -->

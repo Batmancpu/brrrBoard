@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.EditText
+import android.widget.ImageButton
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
@@ -51,7 +53,7 @@ class ClipboardPanelLifecycleTest {
         }
     }
 
-    @Test fun searchUsesOneBoundedHorizontalRowAndRestoresBrowseGrid() {
+    @Test fun searchUsesKeyboardAnchoredHorizontalRowAndRestoresBrowseGrid() {
         val ime = Robolectric.setupService(LatinIME::class.java)
         val panel = LayoutInflater.from(ime).inflate(R.layout.clipboard_history_view, null)
             as ClipboardHistoryView
@@ -65,7 +67,7 @@ class ClipboardPanelLifecycleTest {
         layout.invoke(panel, true)
         assertTrue(list.horizontalSearchMode)
         assertEquals(RecyclerView.HORIZONTAL, (list.layoutManager as LinearLayoutManager).orientation)
-        assertEquals((96 * ime.resources.displayMetrics.density).toInt(), list.layoutParams.height)
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, list.layoutParams.height)
         assertEquals((48 * ime.resources.displayMetrics.density).toInt(),
             (list.layoutParams as FrameLayout.LayoutParams).topMargin)
         layout.invoke(panel, false)
@@ -73,6 +75,25 @@ class ClipboardPanelLifecycleTest {
         assertEquals(StaggeredGridLayoutManager.VERTICAL,
             (list.layoutManager as StaggeredGridLayoutManager).orientation)
         assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, list.layoutParams.height)
+    }
+
+    @Test fun searchClearMorphLivesInsideFixedWidthGlassField() {
+        val ime = Robolectric.setupService(LatinIME::class.java)
+        val panel = LayoutInflater.from(ime).inflate(R.layout.clipboard_history_view, null)
+            as ClipboardHistoryView
+        val initialize = ClipboardHistoryView::class.java.getDeclaredMethod("initialize")
+        initialize.isAccessible = true
+        initialize.invoke(panel)
+        val field = panel.findViewById<FrameLayout>(R.id.clipboard_search_field)
+        val clear = panel.findViewById<ImageButton>(R.id.clipboard_search_clear)
+        val input = panel.findViewById<EditText>(R.id.clipboard_search_text)
+        assertEquals(field, clear.parent)
+        val originalWeight = (field.layoutParams as android.widget.LinearLayout.LayoutParams).weight
+        input.setText("test")
+        assertEquals(View.VISIBLE, clear.visibility)
+        assertEquals(originalWeight,
+            (field.layoutParams as android.widget.LinearLayout.LayoutParams).weight)
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, input.layoutParams.width)
     }
 
     private class MutableRows : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
