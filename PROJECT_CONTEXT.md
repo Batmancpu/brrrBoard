@@ -1,5 +1,23 @@
 # brrBoard project context
 
+## 2026-11-18 — New owner priority: invisible Dictate mic, source implementation pending CI
+
+User authorizes a targeted rebuild so tapping brrBoard's mic never opens
+Dictate's UI or switches keyboard; first tap starts, second tap stops, Dictate
+transcribes behind Android's standard `RecognitionService`, brrBoard inserts.
+Checked actual Dictate source and maintainer response in issue #359, brrBoard
+`InlineDictation`, B05 history and official Android permission attribution.
+Code candidate now has a pure testable state-machine seam, queues early stop
+instead of sending it before Dictate opens AudioRecord, rejects stale callbacks,
+preserves user English/privacy/provider restrictions and uses the existing
+center footer for truthful lifecycle labels. Prior granted-permission/recognizer
+error remains unproven physically; candidate alone may not fix provider/ColorOS
+AppOps. Original signer, package, main-only route, no brrBoard INTERNET and three
+themes preserved. Local Gradle wrapper unavailable due restricted network.
+Details, exact changed files, upstream risks and validation:
+`docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`.
+
+
 ## 2026-11-18 — signed v123; owner video inspection and next Emoji-only geometry/motion patch
 
 Verified `main` `e0676c94c34d2663505374fa4b38a2943603e855`: [v1.0.123 original-signed APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.123/brrBoard.apk) SHA256 `50cba9ae28d0a184edf4de580749cd2c219d2fa7b322db0b0e9aca73099c490b`, debug `44285278898` SUCCESS and signer `44285278884` SUCCESS. User's attached 70.4s video covers alphabet→Compact Emoji→Describe Search→Expanded/category pages→Search→Clipboard→Search Clipboard→ABC. Four code-level risks are targeted in a **separate unreleased Emoji-only candidate**: (1) old outer row measured BEFORE its visibility is changed inside the Emoji child's measurement, causing a stale 40/48dp blank header; parent `RoundedKeyboardFrameView` now hides both legacy rows before the parent measures; (2) nonblank Emoji Search synchronously cleared every old result key while the offline worker was pending; retain dimmed non-selectable row until final guarded answer, fallback after no-match, and eliminate duplicate TextWatcher dispatch; (3) `ValueAnimator` requested full Emoji/IME remeasurement each height-animation frame; clip a single maximum viewport, finalize shrink once; (4) ViewPager2 distance-category button jumps and small offscreen cache; bounded two-neighbor reuse and direct long jumps. New parent geometry Robolectric test, full CI/original signer and actual Oppo visual/FrameTimeline still required. Evidence/verification/remaining risks: `docs/EMOJI_CLIPBOARD_VIDEO_AUDIT_2026_11_18.md`. Older uncommitted Describe semantic #9/#8/#12 work is deliberately not staged with this user-video patch. Keep commit and signed release together; do not switch tasks before publication.

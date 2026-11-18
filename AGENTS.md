@@ -1,5 +1,25 @@
 # brrBoard agent instructions
 
+## 2026-11-18 — Owner-authorized invisible Dictate voice rebuild (source candidate)
+
+The owner explicitly requests implementation of the best no-popup/no-IME-switch
+voice path after research, superseding the previous research-only pause.
+`DictateKeyboard#359` and current upstream source establish that
+`DictateRecognitionService` is the only invisible route; audio stays owned by
+Dictate, brrBoard owns the mic button and final text insertion. The old brrBoard
+mic error `ERROR_INSUFFICIENT_PERMISSIONS` after local grant is still physically
+open; Android permission/AppOps attribution and Dictate early-ready/early-stop
+behavior are source-backed hypotheses, not proven device causes. Focused local
+source candidate replaces brrBoard's caller-side two-tap lifecycle with
+`InlineVoiceSessionState` and guarded callback transitions, keeps the existing
+editor/English/Dictate-only/privacy boundary and footer geometry, adds three
+state-machine tests and stable voice status text. No Dictate code, HTTP endpoint,
+package, signer or network permission changed. Local Gradle 8.14.4 download
+failed due restricted network; GitHub CI, release, Oppo audio test pending.
+Full analysis and next exact gates: `docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`.
+Do not call this fixed until a real Oppo session successfully inserts text.
+
+
 ## 2026-11-18 — owner 70-second video audit; focused next Emoji release candidate
 
 Confirmed v1.0.123 `e0676c94c34d2663505374fa4b38a2943603e855` is **original-signed and green in BOTH workflows** (debug `44285278898`, signer `44285278884`), [APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.123/brrBoard.apk), SHA256 `50cba9ae28d0a184edf4de580749cd2c219d2fa7b322db0b0e9aca73099c490b`. Owner supplied a 70.4-second keyboard recording of Compact Emoji's detached top band, Search's fleeting blank result row, rapid Expanded category swipes and Clipboard Search. New focused Emoji candidate moves the **hide legacy strip/persistent-row invariant into `RoundedKeyboardFrameView.onMeasure` BEFORE its earlier siblings are measured** (previous child-onMeasure hide came too late), retains a dimmed/non-interactive prior Emoji Search row while offline async matching completes, avoids re-queuing the same TextWatcher query, replaces **per-frame full-IME Emoji height `requestLayout`** with one measured clipping reveal and endpoint shrink, and caches two adjacent categories/directly jumps distant tab selections. New `RoundedKeyboardFrameEmojiHeaderTest` asserts Emoji/Alphabet geometry. **New release not yet committed/CI-green/original-signed or physically accepted at source checkpoint.** Full timestamps, files, privacy, pitfalls and phone checklist: `docs/EMOJI_CLIPBOARD_VIDEO_AUDIT_2026_11_18.md`. Preserve the unrelated five pre-existing unstaged #9/#8/#12 semantic Emoji source/test files; keep original app ID, signing key, live host backdrop, Emoji-only glass, ABC/mic footer. Continue through two CI gates, source-matched GitHub release, then request owner Oppo repeat video; never claim measured FPS or completed physical top-gap acceptance from source alone.

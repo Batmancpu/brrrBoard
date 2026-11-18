@@ -527,6 +527,10 @@
     <string name="board_voice_failed">Dictation unavailable — try again</string>
     <string name="inline_voice_provider_audio_failure">Dictate could not start audio capture. brrBoard microphone permission may already be granted; the recognition service or Android audio access rejected the request.</string>
     <string name="board_voice_provider_audio_failure">Dictate could not access audio</string>
+    <string name="board_voice_starting">Starting…</string>
+    <string name="board_voice_listening">Listening…</string>
+    <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
+    <string name="board_voice_transcribing">Transcribing…</string>
     <string name="board_show_more_suggestions">Show more suggestions</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>

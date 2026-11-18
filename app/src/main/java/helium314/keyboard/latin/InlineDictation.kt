@@ -31,21 +31,24 @@ private const val TRANSCRIPTION_RESULT_TIMEOUT_MS = 30_000L
 /** Dictation uses Android's selected RecognitionService in the current IME and commits final results only. */
 internal class InlineDictation(private val ime: LatinIME) {
     private val handler = Handler(Looper.getMainLooper())
+    private val state = InlineVoiceSessionState()
     private var recognizer: SpeechRecognizer? = null
     private var footer: BoardFooterView? = null
     private var deadline: Runnable? = null
-    private var recognitionStarted = false
-    private var stopRequested = false
+    private var generation = 0L
     private var detectedSpeechLanguage: String? = null
 
     fun toggle(root: View?, locale: Locale) {
-        if (recognizer != null) {
-            // First tap starts, the next tap stops, and a tap while the result is
-            // processing cancels it. This keeps the footer as the only visible control.
-            if (stopRequested || !recognitionStarted) cancel() else stop()
-            return
+        when (state.tap()) {
+            InlineVoiceSessionState.Action.START -> start(root, locale)
+            InlineVoiceSessionState.Action.STOP -> sendStop()
+            InlineVoiceSessionState.Action.CANCEL -> cancel()
+            InlineVoiceSessionState.Action.NONE -> {
+                // A second tap during startup must not call stopListening yet.
+                // Dictate may announce readiness before opening its microphone.
+                footer?.showDictationStatus(R.string.board_voice_waiting_for_audio)
+            }
         }
-        start(root, locale)
     }
 
     fun start(root: View?, locale: Locale) {
@@ -87,11 +90,11 @@ internal class InlineDictation(private val ime: LatinIME) {
             // keeps Dictate's configured provider in control without opening its voice-input IME.
             // Bind to Dictate explicitly so Android/OEM resolution cannot fall back to another recognizer.
             val session = SpeechRecognizer.createSpeechRecognizer(ime, dictateService)
+            state.begin()
+            generation++
             recognizer = session
             detectedSpeechLanguage = null
-            recognitionStarted = false
-            stopRequested = false
-            footer?.showDictationActive(true)
+            footer?.showDictationStatus(R.string.board_voice_starting)
             footer?.setDictationCancelAvailable(true)
             listen(session, intent, connection)
         } catch (_: RuntimeException) {
@@ -104,19 +107,43 @@ internal class InlineDictation(private val ime: LatinIME) {
         intent: Intent,
         connection: InputConnection,
     ) {
+        val sessionGeneration = generation
+        fun isCurrent(): Boolean = recognizer === session && generation == sessionGeneration
         try {
             session.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    if (recognizer !== session) return
+                    if (!isCurrent()) return
                     if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
                         cancel()
                         return
                     }
-                    clearDeadline()
+                    // Dictate currently emits readyForSpeech before AudioRecord is initialized.
+                    // Keep the startup watchdog until there is evidence of speech so a stalled
+                    // recorder cannot leave a fake recording indicator indefinitely.
+                    // Keep the truthful Starting label: this callback is sent before
+                    // Dictate's AudioRecord starts, not evidence of microphone capture.
                 }
-                override fun onBeginningOfSpeech() = Unit
+                override fun onBeginningOfSpeech() {
+                    if (!isCurrent()) return
+                    if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
+                        cancel()
+                        return
+                    }
+                    val wasStarting = state.phase == InlineVoiceSessionState.Phase.STARTING
+                    val action = state.onBeginningOfSpeech()
+                    if (wasStarting) clearDeadline()
+                    when (action) {
+                        InlineVoiceSessionState.Action.STOP -> sendStop()
+                        else -> {
+                            if (state.phase == InlineVoiceSessionState.Phase.LISTENING) {
+                                footer?.showDictationActive(true)
+                                footer?.showDictationStatus(R.string.board_voice_listening)
+                            }
+                        }
+                    }
+                }
                 override fun onLanguageDetection(results: Bundle) {
-                    if (recognizer !== session) return
+                    if (!isCurrent()) return
                     val language = results.getString(SpeechRecognizer.DETECTED_LANGUAGE) ?: return
                     val confidence = results.getInt(
                         SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL,
@@ -132,13 +159,20 @@ internal class InlineDictation(private val ime: LatinIME) {
                 override fun onPartialResults(partialResults: Bundle?) = Unit
                 override fun onEvent(eventType: Int, params: Bundle?) = Unit
                 override fun onEndOfSpeech() {
-                    if (recognizer !== session) return
-                    stopRequested = true
+                    if (!isCurrent()) return
+                    if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
+                        cancel()
+                        return
+                    }
+                    state.onEndOfSpeech()
                     footer?.showDictationProcessing()
-                    scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
+                    footer?.showDictationStatus(R.string.board_voice_transcribing)
+                    scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS, sessionGeneration) {
+                        fail(R.string.inline_voice_failure)
+                    }
                 }
                 override fun onError(error: Int) {
-                    if (recognizer !== session) return
+                    if (!isCurrent()) return
                     // An ERROR_INSUFFICIENT_PERMISSIONS callback comes from Android's
                     // recognizer/provider, after brrBoard passed its own permission gate.
                     // It is not proof that the user denied brrBoard's runtime permission.
@@ -148,7 +182,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                     fail(recognitionFailureMessage(error, locallyGranted))
                 }
                 override fun onResults(results: Bundle?) {
-                    if (recognizer !== session) return
+                    if (!isCurrent()) return
                     val candidates = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                         .orEmpty()
                     val resultLanguage = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -174,24 +208,23 @@ internal class InlineDictation(private val ime: LatinIME) {
                     }
                 }
             })
-            scheduleDeadline(SPEECH_SERVICE_START_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
-            recognitionStarted = true
+            scheduleDeadline(SPEECH_SERVICE_START_TIMEOUT_MS, sessionGeneration) {
+                fail(R.string.inline_voice_no_speech)
+            }
             session.startListening(intent)
         } catch (_: RuntimeException) {
             fail(R.string.inline_voice_failure)
         }
     }
 
-    fun stop() {
+    private fun sendStop() {
         val session = recognizer ?: return
-        if (stopRequested) return
-        if (!recognitionStarted) {
-            cancel()
-            return
-        }
-        stopRequested = true
+        val sessionGeneration = generation
         footer?.showDictationProcessing()
-        scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS) { fail(R.string.inline_voice_failure) }
+        footer?.showDictationStatus(R.string.board_voice_transcribing)
+        scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS, sessionGeneration) {
+            fail(R.string.inline_voice_failure)
+        }
         runCatching { session.stopListening() }.onFailure {
             fail(R.string.inline_voice_failure)
         }
@@ -201,19 +234,25 @@ internal class InlineDictation(private val ime: LatinIME) {
         clearDeadline()
         val session = recognizer
         recognizer = null
-        recognitionStarted = false
-        stopRequested = false
+        generation++
+        state.reset()
         detectedSpeechLanguage = null
         footer?.showDictationActive(false)
         footer?.showDictationProcessing(false)
         footer?.setDictationCancelAvailable(false)
+        footer?.clearDictationError()
         footer = null
-        if (session != null) runCatching { session.destroy() }
+        if (session != null) {
+            runCatching { session.cancel() }
+            runCatching { session.destroy() }
+        }
     }
 
-    private fun scheduleDeadline(delayMillis: Long, action: () -> Unit) {
+    private fun scheduleDeadline(delayMillis: Long, sessionGeneration: Long, action: () -> Unit) {
         clearDeadline()
-        deadline = Runnable(action).also { handler.postDelayed(it, delayMillis) }
+        deadline = Runnable {
+            if (recognizer != null && generation == sessionGeneration) action()
+        }.also { handler.postDelayed(it, delayMillis) }
     }
 
     private fun clearDeadline() {

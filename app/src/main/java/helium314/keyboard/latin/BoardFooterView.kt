@@ -224,7 +224,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun showDictationActive(active: Boolean) {
-        if (active) clearDictationError()
+        // A layout/theme re-render must not erase the live voice status.
+        if (active && !dictationActive) clearDictationError()
         dictationActive = active
         dictationProcessing = false
         val colors = Settings.getValues().mColors
@@ -267,6 +268,16 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         voiceError.visibility = VISIBLE
         voiceError.announceForAccessibility(resources.getString(message))
         postDelayed(clearVoiceError, 4_000L)
+    }
+
+    /** Stable footer status; changing state never changes the keyboard's measured height. */
+    fun showDictationStatus(message: Int) {
+        removeCallbacks(clearVoiceError)
+        val label = resources.getString(message)
+        val changed = voiceError.text.toString() != label || voiceError.visibility != VISIBLE
+        voiceError.setText(message)
+        voiceError.visibility = VISIBLE
+        if (changed) voiceError.announceForAccessibility(label)
     }
 
     fun clearDictationError() {

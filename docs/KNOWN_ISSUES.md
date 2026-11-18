@@ -1,5 +1,19 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — Invisible Dictate voice remains an Oppo acceptance blocker
+
+Owner previously observed `ERROR_INSUFFICIENT_PERMISSIONS` from the selected
+recognizer despite brrBoard `RECORD_AUDIO` locally granted. Source inspection
+identifies Dictate's premature `readyForSpeech`, its stop-during-start gap,
+and non-attributed `AudioRecord` construction. Android's own RecognitionService
+can emit this error during caller AppOps/data-delivery verification. These are
+plausible but device-unproven contributors. New brrBoard-only state-machine
+candidate improves early-stop, exact-once and editor lifecycle while preserving
+invisible Dictate service; upstream attribution fix may be separately needed.
+No new APK or physical success claimed. See
+`docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`.
+
+
 ## 2026-11-18 — user video: Emoji compact unused header, Search result flash, height and horizontal paging
 
 The video at ~9–13s visibly repeats the Compact-only blank 40/48dp-looking upper band; ~14–22s shows intermediate Emoji Search result clearing; ~22–38s shows rapid partial horizontal page transitions; Clipboard Search is also shown, without a controlled match query or proof of its accent highlights. The shared frame's prior parent/child measurement order could measure a legacy `strip_container`/persistent-row slot **before** `EmojiPalettesView.onMeasure` hid it. A new parent-level early visibility invariant and Robolectric geometry test address this path. A separate exact Search source defect (`removeAllKeys()` at each nonblank keystroke before async CLDR result) and per-frame `requestLayout()` in `launchBodyHeightMotion()` are now replaced by gated interim Emoji, constant-size GPU clipping and one endpoint layout. Expanded page cache is bounded at two neighbors; distant tab taps skip ViewPager2's multi-page jump animation. **Source candidate, not yet physically validated or signed**; see `docs/EMOJI_CLIPBOARD_VIDEO_AUDIT_2026_11_18.md`. v1.0.123 preceding Clipboard accent/CI fix is source-matched, original-signed and BOTH workflows SUCCESS. Phone FPS, dark/light contrast, transient scroll gaps and true compact first-row top are still OPEN until the next Oppo video; do not close them from Robolectric alone.
