@@ -594,7 +594,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             // The deterministic scorer only prioritizes already emitted Emoji;
             // all ordinary text candidates retain their visible slots.
             val contextual = EmojiContextScorer.rankEmojiSideCandidates(
-                suggestions.mTypedWordInfo?.mWord, false)
+                suggestions.mEmojiContextHint.ifEmpty {
+                    suggestions.mTypedWordInfo?.mWord.orEmpty()
+                }, false)
             val adaptive = EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(context, 48)
             val rankedEmojis = (contextual + adaptive).distinct()
             layoutHelper.prioritizeEmojiSideSuggestions(suggestions, rankedEmojis)

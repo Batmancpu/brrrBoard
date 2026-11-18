@@ -79,5 +79,13 @@ public class EmojiContextScorerTest {
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("happy birthday", true).isEmpty());
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("mail@example.com", false).isEmpty());
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthdayparty", false).isEmpty());
+        // A previous-word context unlocks reviewed multiword intent without
+        // adding any new word/Emoji candidate to the strip.
+        assertEquals(List.of("🎂", "🎉"),
+                EmojiContextScorer.rankEmojiSideCandidates("happy birthday", false));
+        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthday", false).isEmpty());
+        assertEquals(List.of("🍀"),
+                EmojiContextScorer.rankSearchCandidates("good luck", 8));
+        assertTrue(EmojiContextScorer.rankSearchCandidates("good luck", 0).isEmpty());
     }
 }

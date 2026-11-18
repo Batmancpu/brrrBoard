@@ -129,6 +129,29 @@ final class EmojiDescribeIndex {
     }
 
     List<String> search(final String input, final int maxResults) {
+        if (input == null || maxResults <= 0) return List.of();
+        // A single offline knowledge base: CLDR names/keywords for broad
+        // discovery plus the SAME reviewed phrase rules used by Smart Emoji
+        // and the native suggestion strip. No second corpus or duplicated
+        // trigger list. Explicit user aliases are still promoted by the
+        // surrounding EmojiDescribeEngine after this lookup.
+        final List<String> reviewed = EmojiContextScorer.rankSearchCandidates(
+                EmojiDescribeNormalizer.clampQuery(input), maxResults);
+        final List<String> indexed = searchIndexed(input, maxResults);
+        if (reviewed.isEmpty()) return indexed;
+        final LinkedHashSet<String> merged = new LinkedHashSet<>();
+        for (final String candidate : reviewed) {
+            if (emojiId.containsKey(candidate)) merged.add(candidate);
+            if (merged.size() == maxResults) break;
+        }
+        for (final String candidate : indexed) {
+            if (merged.size() == maxResults) break;
+            merged.add(candidate);
+        }
+        return Collections.unmodifiableList(new ArrayList<>(merged));
+    }
+
+    private List<String> searchIndexed(final String input, final int maxResults) {
         if (maxResults <= 0) return List.of();
         final String phrase = EmojiDescribeNormalizer.normalizePhrase(
                 EmojiDescribeNormalizer.clampQuery(input));

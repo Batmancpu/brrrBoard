@@ -62,6 +62,11 @@ public class SuggestedWords {
     // INPUT_STYLE_* constants above.
     public final int mInputStyle;
     public final int mSequenceNumber; // Sequence number for auto-commit.
+    // Optional, bounded, ephemeral previous-token hint for ranking only the
+    // Emoji candidates already produced by the native decoder. Never logged,
+    // persisted, or used as a source of automatic text replacements.
+    @NonNull
+    public final String mEmojiContextHint;
     @NonNull
     protected final ArrayList<SuggestedWordInfo> mSuggestedWordInfoList;
     @Nullable
@@ -75,6 +80,19 @@ public class SuggestedWords {
             final boolean isObsoleteSuggestions,
             final int inputStyle,
             final int sequenceNumber) {
+        this(suggestedWordInfoList, rawSuggestions, typedWordInfo, typedWordValid,
+                willAutoCorrect, isObsoleteSuggestions, inputStyle, sequenceNumber, "");
+    }
+
+    public SuggestedWords(@NonNull final ArrayList<SuggestedWordInfo> suggestedWordInfoList,
+            @Nullable final ArrayList<SuggestedWordInfo> rawSuggestions,
+            @Nullable final SuggestedWordInfo typedWordInfo,
+            final boolean typedWordValid,
+            final boolean willAutoCorrect,
+            final boolean isObsoleteSuggestions,
+            final int inputStyle,
+            final int sequenceNumber,
+            @NonNull final String emojiContextHint) {
         mSuggestedWordInfoList = suggestedWordInfoList;
         mRawSuggestions = rawSuggestions;
         mTypedWordValid = typedWordValid;
@@ -83,6 +101,7 @@ public class SuggestedWords {
         mInputStyle = inputStyle;
         mSequenceNumber = sequenceNumber;
         mTypedWordInfo = typedWordInfo;
+        mEmojiContextHint = emojiContextHint;
     }
 
     public boolean isEmpty() {

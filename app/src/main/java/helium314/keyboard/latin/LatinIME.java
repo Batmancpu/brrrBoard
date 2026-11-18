@@ -951,6 +951,11 @@ public class LatinIME extends InputMethodService implements
     // Note that this method is called from a non-UI thread.
     @Override
     public void onUpdateMainDictionaryAvailability(final boolean isMainDictionaryAvailable) {
+        // Next-word predictions are cached by previous-word context. A result
+        // computed before the main dictionary was ready must not survive the
+        // transition and mask the newly available lexical candidates. This
+        // callback may run off the UI thread; LruCache.evictAll is synchronized.
+        mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         if (mainKeyboardView != null) {
             mainKeyboardView.setMainDictionaryAvailability(isMainDictionaryAvailable);
@@ -1017,6 +1022,7 @@ public class LatinIME extends InputMethodService implements
      */
     /* package private */ void resetSuggestMainDict() {
         final SettingsValues settingsValues = mSettings.getCurrent();
+        mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         mDictionaryFacilitator.resetDictionaries(this, mDictionaryFacilitator.getMainLocale(),
                 settingsValues.mUseContactsDictionary, settingsValues.mUseAppsDictionary,
                 settingsValues.mUsePersonalizedDicts, true, "", this);

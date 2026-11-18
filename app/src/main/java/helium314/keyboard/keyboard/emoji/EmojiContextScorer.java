@@ -153,6 +153,22 @@ public final class EmojiContextScorer {
         return Collections.unmodifiableList(outputs);
     }
 
+    /**
+     * Search and the suggestion strip use this SAME reviewed context rule
+     * table. Search may show lower-confidence, explicitly requested subjects;
+     * typing still requires STRIP_MIN_SCORE and an existing decoder Emoji.
+     * The caller must check that each sequence belongs to its bundled index.
+     */
+    static List<String> rankSearchCandidates(final String description, final int limit) {
+        if (limit <= 0) return List.of();
+        final List<String> outputs = new ArrayList<>();
+        for (final Candidate candidate : rank(description, false)) {
+            outputs.add(candidate.emoji);
+            if (outputs.size() == limit) break;
+        }
+        return Collections.unmodifiableList(outputs);
+    }
+
     private static String normalizeSuffix(final String input) {
         final int start = Math.max(0, input.length() - MAX_CONTEXT_CHARS);
         final StringBuilder result = new StringBuilder(MAX_CONTEXT_CHARS);

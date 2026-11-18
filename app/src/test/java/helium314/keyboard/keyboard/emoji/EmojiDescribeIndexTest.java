@@ -43,6 +43,10 @@ public class EmojiDescribeIndexTest {
         assertEquals("❤️‍🔥", search.search("burning heart", 24).get(0));
         assertEquals("🎂", search.search("bday cake", 24).get(0));
         assertEquals("🚽", search.search("loo", 24).get(0));
+        // The same reviewed contextual rules now support explicit Emoji
+        // Search, but only if the Emoji is actually in the bundled CLDR index.
+        assertEquals("🎂", search.search("happy birthday", 24).get(0));
+        assertTrue(search.search("good luck", 24).isEmpty()); // 🍀 absent from tiny fixture
     }
 
     @Test public void typosAndAdjacentTranspositionsAreBounded() throws Exception {

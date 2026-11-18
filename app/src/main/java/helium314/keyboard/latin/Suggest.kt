@@ -121,10 +121,11 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // No frequency/ranking changes: this is an isolated safety condition.
         val firstCandidateIsValidOnly = BrrCorrectionSafety.blocksCandidate(
             suggestionsContainer.firstOrNull()?.mWord)
+        val intentionalToken = !SmartCorrectionSafety.permitsAutomaticReplacement(capitalizedTypedWord)
         val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected &&
-            !noSuggestionTypedWord && !firstCandidateIsValidOnly
+            !noSuggestionTypedWord && !firstCandidateIsValidOnly && !intentionalToken
         val hasAutoCorrection = decoderHasAutoCorrection &&
-            !noSuggestionTypedWord && !firstCandidateIsValidOnly
+            !noSuggestionTypedWord && !firstCandidateIsValidOnly && !intentionalToken
         val typedWordInfo = SuggestedWordInfo(capitalizedTypedWord, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
@@ -162,8 +163,21 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
         val isTypedWordValid = firstOccurrenceOfTypedWordInSuggestions > -1 || (!resultsArePredictions && !allowsToBeAutoCorrected)
+        // Reuse the decoder's already-available previous-word context for
+        // ranking existing Emoji side slots. No extra editor Binder read, saved
+        // history, model or persistent context. The normal tap path does not
+        // allocate a snapshot unless multiple Emoji are actually present.
+        val currentSettings = Settings.getValues()
+        val emojiContext = if (!currentSettings.mIncognitoModeEnabled
+            && currentSettings.mInputAttributes.mIsGeneralTextInput
+            && currentSettings.mInputAttributes.mShouldShowSuggestions
+            && !resultsArePredictions && suggestionsList.count { it.isEmoji } > 1) {
+            val previous = ngramContext.extractPrevWordsContext()
+            (previous + " " + capitalizedTypedWord).takeLast(160)
+        } else ""
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions,
-            typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber)
+            typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
+            emojiContext)
     }
 
     // returns [allowsToBeAutoCorrected, hasAutoCorrection]
