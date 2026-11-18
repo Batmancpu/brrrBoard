@@ -87,6 +87,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_FROSTED_GLASS_TRIGGER = "frosted_glass_trigger";
     public static final String PREF_BLUR_RENDER_OVERRIDE = "blur_render_override";
     public static final String PREF_NATIVE_BACKGROUND_BLUR_ONLY = "native_background_blur_only";
+    public static final String PREF_EMOJI_GLASS_TONE = "emoji_glass_tone";
 
     public static final String PREF_CUSTOM_ICON_NAMES = "custom_icon_names";
     public static final String PREF_TOOLBAR_CUSTOM_KEY_CODES = "toolbar_custom_key_codes";

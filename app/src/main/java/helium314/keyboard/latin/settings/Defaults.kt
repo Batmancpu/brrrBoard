@@ -212,4 +212,5 @@ object Defaults {
     const val LIMIT_EXPENSIVE_RENDERING = false
     const val PREF_BLUR_RENDER_OVERRIDE = "auto"
     const val PREF_NATIVE_BACKGROUND_BLUR_ONLY = false
+    const val PREF_EMOJI_GLASS_TONE = true
 }

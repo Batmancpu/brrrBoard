@@ -187,7 +187,8 @@ public final class InputView extends FrameLayout {
             final boolean showFooter = typingFooter || panelFooter;
             mFooter.setPanelGlassSource(emojiPanel ? findViewById(R.id.emoji_pager)
                     : clipboardPanel ? findViewById(R.id.clipboard_list)
-                    : toolbarActive ? findViewById(R.id.access_point_scroll) : null);
+                    : toolbarActive ? findViewById(R.id.access_point_scroll) : null,
+                    emojiPanel);
             // All three internal panels expose the same direct ABC return route.
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
                     FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive));

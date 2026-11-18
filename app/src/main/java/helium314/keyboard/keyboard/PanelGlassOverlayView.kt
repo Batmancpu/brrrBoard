@@ -4,6 +4,7 @@ package helium314.keyboard.keyboard
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -35,6 +36,9 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private var source: View? = null
     private var edge = Edge.BOTTOM
     private var baseColor: Int = Color.rgb(35, 36, 42)
+    private var emojiToneEnabled = false
+    private var emojiToneDark = false
+    private var emojiTonePaint: Paint? = null
     // Mask only the in-IME content; do not tint the host-app backdrop.
     private val fadeMask = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
@@ -73,6 +77,24 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         val newBase = ColorUtils.setAlphaComponent(color, 255)
         if (newBase != baseColor) headerMaskShader = null
         baseColor = newBase
+        invalidate()
+    }
+
+    /**
+     * Emoji panel/footer opt-in only. A GPU layer with a color filter modifies
+     * the RenderNode's own blurred pixels (including their existing alpha),
+     * rather than drawing a second dark/white overlay over the host backdrop.
+     * Other panels never call this with enabled=true.
+     */
+    fun setEmojiContentTone(enabled: Boolean, dark: Boolean) {
+        if (emojiToneEnabled == enabled && emojiToneDark == dark) return
+        emojiToneEnabled = enabled
+        emojiToneDark = dark
+        emojiTonePaint = EmojiGlassTonePolicy.matrix(enabled, dark)?.let { matrix ->
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                colorFilter = ColorMatrixColorFilter(matrix)
+            }
+        }
         invalidate()
     }
 
@@ -181,7 +203,13 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         } finally {
             renderNode.endRecording()
         }
-        val saved = canvas.save()
+        // saveLayer's filter is applied only to nontransparent RenderNode
+        // samples. In particular, alpha-zero areas remain alpha-zero so the
+        // IME's existing host wallpaper blur is never tinted a second time.
+        val tonePaint = emojiTonePaint
+        val saved = if (tonePaint != null)
+            canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), tonePaint)
+        else canvas.save()
         try {
             canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
             canvas.translate(0f, -bleed.toFloat())

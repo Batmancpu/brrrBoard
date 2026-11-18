@@ -584,6 +584,16 @@ public final class EmojiPalettesView extends LinearLayout
         PanelMaterial.apply(getContext(), Settings.getValues().mColors,
                 findViewById(R.id.emoji_header_scrim),
                 findViewById(R.id.emoji_bottom_glass), mPager);
+        final boolean toneEnabled = KtxKt.prefs(getContext()).getBoolean(
+                Settings.PREF_EMOJI_GLASS_TONE,
+                helium314.keyboard.latin.settings.Defaults.PREF_EMOJI_GLASS_TONE);
+        final boolean dark = KeyboardTheme.isDarkThemeActive(getContext());
+        final helium314.keyboard.keyboard.PanelGlassOverlayView headerGlass =
+                findViewById(R.id.emoji_header_scrim);
+        final helium314.keyboard.keyboard.PanelGlassOverlayView bottomGlass =
+                findViewById(R.id.emoji_bottom_glass);
+        if (headerGlass != null) headerGlass.setEmojiContentTone(toneEnabled, dark);
+        if (bottomGlass != null) bottomGlass.setEmojiContentTone(toneEnabled, dark);
         getRecentsKeyboard().flushPendingRecentKeys();
         updateAdaptiveEmojiOrder();
         mMainKeyboardActionListener = keyboardActionListener;

@@ -26,6 +26,9 @@ import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.settings.Defaults
+import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.PanelGlassOverlayView
 import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
@@ -81,13 +84,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         glass.visibility = GONE
     }
 
-    fun setPanelGlassSource(source: View?) {
+    fun setPanelGlassSource(source: View?, emojiSource: Boolean = false) {
         glass.visibility = if (source == null) GONE else VISIBLE
         if (source != null) {
             PanelMaterial.apply(context, Settings.getValues().mColors, null, glass, source)
         } else {
             glass.configure(null, PanelGlassOverlayView.Edge.BOTTOM, Color.TRANSPARENT)
         }
+        // The footer continues the *same* Emoji scroll source beneath ABC/mic.
+        // Apply identical source-only tone to avoid a colored seam, and always
+        // turn it off for Clipboard/Toolbar/typing content.
+        glass.setEmojiContentTone(source != null && emojiSource && context.prefs().getBoolean(
+            Settings.PREF_EMOJI_GLASS_TONE, Defaults.PREF_EMOJI_GLASS_TONE),
+            KeyboardTheme.isDarkThemeActive(context))
     }
 
     /** The source may move child views without changing its own scrollX/Y. */

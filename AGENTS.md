@@ -1,5 +1,15 @@
 # brrBoard agent instructions
 
+## 2026-11-18 — owner priority switch: A3 glass tint FIRST, Describe Emoji PLAN only
+
+Owner confirmed the handoff requirement is mandatory for every meaningful batch. A1 `f01e20a3` signed v1.0.109 and A2 `74f07d1` signed v1.0.110 were published and CI-green; physical Oppo acceptance remains open. A3 has been prepared in the worktree, **not yet committed at this handoff**: alpha-preserving ColorMatrix modifies only the internally blurred Emoji pager samples (including the matching ABC/mic footer continuation) and never adds a wash over the keyboard/host backdrop. Appearance switch defaults on and off fully disables the filter. Commit/release A3 independently on `main`, verify both GitHub Actions and the original-signed APK, then request real dark/light device comparison. Source ledger `docs/EMOJI_GLASS_TONE_2026_11_18.md`.
+
+The user then asked to research a "Describe an Emoji" engine, **no implementation yet**. Prior backlog names it "offline CLDR/typo-tolerant Describe an emoji engine". We inspected existing 3,944-entry/450,626-byte CLDR48.2 English asset, `EmojiContextIndex` linear search and current synchronous `EmojiPalettesView.searchEmoji`, and researched official Unicode/Android/SQLite sources. Proposed exact class structure, indexing/tokenization, bounded fuzzy matching, ranking, threading, privacy, tests and risk gates are documented in `docs/DESCRIBE_EMOJI_ENGINE_PLAN_2026_11_18.md`. **Do not implement Describe Emoji until owner confirms the phrase-to-Emoji UX and approves the plan.** No AI inference model or remote API.
+
+## 2026-11-18 — A3 prepared: Emoji-only blurred-pixel tone, NOT a host overlay
+
+Owner explicitly warned against *double-darkening the area behind the keyboard*. A3 source candidate applies alpha-preserving dark/light ColorMatrix **only to Emoji pager samples** within lower Emoji glass and its continuation in the shared footer. No fill/tint is added over host-app/backdrop or Clipboard/Toolbar. Appearance toggle defaults On, Off uses the original unfiltered draw path. Initial dark gain 0.72; light gain 0.88 + 30.6/255. This is not iPad pixel-parity evidence; Oppo screenshots + CI pending. Keep A3 **separate** from A2 (`74f07d1`, Expanded Emoji, original signer workflow #110 underway). Details: `docs/EMOJI_GLASS_TONE_2026_11_18.md`.
+
 ## 2026-11-18 — owner A2: deliberate Expanded Emoji Browse after v1.0.109
 
 v1.0.109 `f01e20a3` published original-signed after both CI workflows passed; **Oppo first-row acceptance is pending**. Owner's 27-second recording demonstrates Search→Back accidentally producing a taller multi-row Emoji grid. A2 now implements deliberate Expand control beside Emoji Search, a separate reversible expanded Browse state and viewport cap. See `docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`. Do not mix with A1 or change the approved lower Emoji/footer glass. CI/release and Oppo acceptance for A2 pending. Next separate request: darken internal blurred Emoji pixels in dark mode, lighten in light mode, toggle in Appearance; **never darken the existing host-app blur again**. Do not touch Clipboard/Toolbar or the keyboard's backdrop.

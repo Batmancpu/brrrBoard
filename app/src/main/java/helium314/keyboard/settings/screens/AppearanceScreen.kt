@@ -56,6 +56,7 @@ fun AppearanceScreen(
         Settings.PREF_NAVBAR_COLOR,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
         if (isFrostedActive) "keyboard_glass_highlight_dialog" else null,
+        Settings.PREF_EMOJI_GLASS_TONE,
         SettingsWithoutKey.BACKGROUND_IMAGE,
         SettingsWithoutKey.BACKGROUND_IMAGE_LANDSCAPE,
         Settings.PREF_KEYBOARD_CORNER_RADIUS,
@@ -98,6 +99,12 @@ fun AppearanceScreen(
 }
 
 fun createAppearanceSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_EMOJI_GLASS_TONE,
+        R.string.emoji_glass_tone_title, R.string.emoji_glass_tone_summary) {
+        SwitchPreference(it, Defaults.PREF_EMOJI_GLASS_TONE) {
+            KeyboardSwitcher.getInstance().setThemeNeedsReload()
+        }
+    },
     Setting(context, Settings.PREF_THEME_ACTION_TINT, R.string.theme_action_tint, R.string.theme_action_tint_summary) {
         SwitchPreference(it, Defaults.PREF_THEME_ACTION_TINT) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },

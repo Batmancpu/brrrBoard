@@ -1,5 +1,15 @@
 # brrBoard project context
 
+## 2026-11-18 — current priority: finish Emoji glass tone, then review offline Describe Emoji plan
+
+v1.0.109 (`f01e20a3`) and v1.0.110 (`74f07d1`) are original-signed/automated CI-green; Oppo visual acceptance awaits owner feedback. The user explicitly asked to resume the A3 Emoji-only dark/light tint release before implementing anything else. Code prepared locally: `EmojiGlassTonePolicy.kt`, `PanelGlassOverlayView`, Emoji panel and `BoardFooterView` source-only tint path; Settings toggle On/Off; tests. No double-darkening of host/backdrop, no Clipboard/Toolbar tint. Commit on `main` and run independent debug/unit and signer gates before calling release. A3 ledger `docs/EMOJI_GLASS_TONE_2026_11_18.md`.
+
+Separately, original user backlog specifically calls for "offline CLDR/typo-tolerant Describe an emoji engine". The complete prior dialogue was not recoverable, so we must not invent more user commitments. Code-level **design only**, with official-source references, is in `docs/DESCRIBE_EMOJI_ENGINE_PLAN_2026_11_18.md`: deterministic local inverted index from bundled 3,944 English CLDR entries, bounded typo search, reviewed synonyms, weighted ranking, main-thread-safe async Search integration, performance/privacy/variant tests and a two-stage release gate. No Describe feature source was implemented, and **owner confirmation of description→Emoji Search intent is outstanding**.
+
+## 2026-11-18 — prepared A3 after Expand
+
+The owner requires darkening in dark mode and lightening in light mode exclusively on live blurred *Emoji content*, with an Appearance switch; no second overlay over the host backdrop or other panels. Source candidate uses alpha-preserving RenderNode color filter with default On; Off is the prior draw path; footer applies it only for the Emoji pager to avoid a seam. See `docs/EMOJI_GLASS_TONE_2026_11_18.md`. Candidate not yet released/CI validated. A2 `74f07d1` build/signing workflow #110 remains independent and phone acceptance open.
+
 ## 2026-11-18 — current owner-driven Emoji sequence
 
 Signed v1.0.109 from `f01e20a3` passed both CI workflows and released to Obtainium; owner has not yet reported real Oppo outcome of A1 top-row alignment. A2 in progress on main: explicit Expand/Collapse beside Emoji Search, separate compact/search/expanded heights, no lower glass modification (`docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`). Following distinct batch: tune only internal blurred Emoji source pixels dark/light with an Appearance switch, preserving the host backdrop and other panels. Do not assert iOS pixel parity without device comparison.

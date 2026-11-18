@@ -1,5 +1,13 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — A3 release gate and Describe Emoji plan-only hold
+
+Signed v1.0.110 from `74f07d1` passed both Actions workflows; physical Expand/Collapse and earlier Smileys crop still need owner Oppo check. A3 source candidate (only Emoji internal blur pixel tonality and matching footer; off restores the original path) requires its **own** Android debug/unit and original-signing workflow before release, plus user dark/light comparison and GPU seam/performance QA. The user's concern about an extra global dark overlay is a hard prohibition. The offline "Describe an Emoji" engine is **NOT IMPLEMENTED**; code-level plan in `docs/DESCRIBE_EMOJI_ENGINE_PLAN_2026_11_18.md`; pending user confirmation of exact phrase-search UX. No AI/network/permission inference included.
+
+## 2026-11-18 — Emoji-only tonal candidate, device verification pending
+
+Source prepared for an Appearance toggle and dark/light ColorMatrix applied to **only live Emoji blur samples and its matching ABC/mic footer continuation**. No double wash over the host IME backdrop or Clipboard/Toolbar, and Off restores existing draw path (`docs/EMOJI_GLASS_TONE_2026_11_18.md`). Initial matrix coefficients require actual Oppo screenshots; GPU cost, alpha handling, seam and dark/light visuals cannot be certified by source tests. Do not push as part of A2 Expanded Emoji release.
+
 ## 2026-11-18 — A1 Oppo check / A2 Expanded Browse / Emoji-only tonal glass
 
 v1.0.109 `f01e20a3` signed/CI passed but owner testing of Smileys first-row crop is still outstanding. A2 adds a reversible intentional Expanded Emoji Browse button to Search and prevents Search→Back from triggering unwanted extra height; both CI and Oppo expanded/compact/Back/category/landscape QA remain open until gates complete (`docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`). Following separate tonal batch must darken only blurred Emoji content in dark mode and brighten only blurred Emoji content in light mode, with Off restoring original pixels; no compounded host backdrop blur.
