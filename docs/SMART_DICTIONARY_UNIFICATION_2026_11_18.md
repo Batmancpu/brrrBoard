@@ -87,6 +87,18 @@ Record their exact run IDs, terminal status, resulting release target,
 certificate and SHA-256 after any source commit. Do not claim device-accepted
 behavior merely from green CI.
 
+### CI correction checkpoint
+
+Main commit `8c390dae38ec4db536d6a2da9401c3607ac964af` compiled but its
+debug workflow `44353959830` failed one of 310 Android tests:
+`EmojiDescribeBundledCorpusTest.realLifeDescriptionsUseMeaningRatherThanOnlyLiteralEmojiNames`
+at the natural query `laughing so hard I am crying`. Root cause: Search promoted
+the suffix-only low-confidence contextual `crying` rule above the existing CLDR
+semantic `🤣` result. The follow-up correction restricts Search rule promotion
+to **whole explicit query matches**. The suggestion strip deliberately retains
+its suffix matching, since live editor text is contextual by definition. A
+focused regression was added. This must be confirmed by the next full CI runs.
+
 ## Follow-up intelligence without multiplying engines
 
 The remaining substantive “better dictionary” work is an **evidence-gated**

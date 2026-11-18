@@ -86,6 +86,12 @@ public class EmojiContextScorerTest {
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthday", false).isEmpty());
         assertEquals(List.of("🍀"),
                 EmojiContextScorer.rankSearchCandidates("good luck", 8));
+        // The exact phrase is a Search synonym; a weak trailing trigger in a
+        // longer description must not override a stronger CLDR semantic hit.
+        assertEquals(List.of("🎂", "🎉"),
+                EmojiContextScorer.rankSearchCandidates("Happy birthday!!", 8));
+        assertTrue(EmojiContextScorer.rankSearchCandidates(
+                "laughing so hard I am crying", 8).isEmpty());
         assertTrue(EmojiContextScorer.rankSearchCandidates("good luck", 0).isEmpty());
     }
 }

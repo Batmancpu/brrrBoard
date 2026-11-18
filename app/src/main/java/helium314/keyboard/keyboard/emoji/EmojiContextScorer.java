@@ -161,8 +161,14 @@ public final class EmojiContextScorer {
      */
     static List<String> rankSearchCandidates(final String description, final int limit) {
         if (limit <= 0) return List.of();
+        // An incidental trailing trigger like "crying" must not outrank
+        // the semantic CLDR match for "laughing so hard I am crying".
+        // Promote reviewed rules only for an exact explicit query; the
+        // suggestion strip still uses suffix matches for live context.
+        final String requestedPhrase = description == null ? "" : normalizeSuffix(description);
         final List<String> outputs = new ArrayList<>();
         for (final Candidate candidate : rank(description, false)) {
+            if (!candidate.matchedTrigger.equals(requestedPhrase)) continue;
             outputs.add(candidate.emoji);
             if (outputs.size() == limit) break;
         }
