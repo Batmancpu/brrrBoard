@@ -31,8 +31,25 @@ public final class ClipboardGlassFrameLayout extends FrameLayout {
 
     @Override
     protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
-        if (child.getId() != R.id.clipboard_list || Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-                !canvas.isHardwareAccelerated()) {
+        if (child.getId() != R.id.clipboard_list) {
+            return super.drawChild(canvas, child, drawingTime);
+        }
+        // Search moves the real alphabet into the lower portion of this panel.
+        // The old implementation disabled bottom glass in Search, which also
+        // disabled its ONLY sharp-list clip and let long clips paint onto keys.
+        // Protect the alphabet on every Android version; it is not glass.
+        final View searchKeyboard = findViewById(R.id.clipboard_search_keyboard_host);
+        if (searchKeyboard != null && searchKeyboard.getVisibility() == VISIBLE
+                && searchKeyboard.getTop() > 0) {
+            final int saved = canvas.save();
+            try {
+                canvas.clipRect(0, 0, getWidth(), searchKeyboard.getTop());
+                return super.drawChild(canvas, child, drawingTime);
+            } finally {
+                canvas.restoreToCount(saved);
+            }
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !canvas.isHardwareAccelerated()) {
             return super.drawChild(canvas, child, drawingTime);
         }
         final View glass = findViewById(R.id.clipboard_bottom_glass);

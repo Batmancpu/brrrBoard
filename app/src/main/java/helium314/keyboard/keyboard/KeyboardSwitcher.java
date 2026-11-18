@@ -322,7 +322,17 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mCurrentAnimatingPanel.setAlpha(1f);
             mCurrentAnimatingPanel = null;
         }
+        final View outgoingPanel = getVisibleKeyboardView();
         action.run();
+        if (targetPanel == mKeyboardView
+                && (outgoingPanel == mEmojiPalettesView
+                    || outgoingPanel == mClipboardHistoryView)) {
+            // The source panel is already hidden by action.run(). Fading the
+            // ONLY remaining alphabet from alpha=0 exposes the host backdrop
+            // as a bright flash. The panel has handled its own height shrink.
+            targetPanel.setAlpha(1f);
+            return;
+        }
         // Never fade the keyboard to an empty/black surface when Android has
         // reduced animations or the panel isn't attached yet.
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
@@ -1773,6 +1783,17 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public boolean isShowingStripContainer() {
         return mStripContainer != null && mStripContainer.isShown();
+    }
+
+    /** ABC in the fixed footer is a panel EXIT, not a letter typed in Search. */
+    public boolean collapsePanelSearchForFooterAlphabet(final Runnable finish) {
+        if (isShowingClipboardHistory() && mClipboardHistoryView.isSearchMode()) {
+            return mClipboardHistoryView.collapseSearchForFooterAlphabet(finish);
+        }
+        if (isShowingEmojiPalettes()) {
+            return mEmojiPalettesView.collapseForFooterAlphabet(finish);
+        }
+        return false;
     }
 
     public EmojiPalettesView getEmojiPalettesView() {

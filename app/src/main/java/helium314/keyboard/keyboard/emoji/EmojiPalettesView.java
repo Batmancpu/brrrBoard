@@ -394,9 +394,10 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mPager = findViewById(R.id.emoji_pager);
-        // Keep the adjacent categories prepared for a fluid horizontal swipe.
-        // RecyclerView still virtualizes the rows within each category.
-        mPager.setOffscreenPageLimit(2);
+        // Only one adjacent page is retained: mode-height springs must not
+        // remeasure five entire RecyclerView pages on every frame. The row
+        // cache handles direction reversals within the active category.
+        mPager.setOffscreenPageLimit(1);
         mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(),
                 mEmojiCategory.getCurrentCategoryPageId() * Math.max(1, mEmojiCategory.getRowsPerPage()));
         mCategoryPagerAdapter = new EmojiCategoryPagerAdapter(mEmojiCategory, this,
@@ -958,6 +959,21 @@ public final class EmojiPalettesView extends LinearLayout
             return true;
         }
         return false;
+    }
+
+    /** Finish Search/Expanded shrink before ABC switches the whole keyboard. */
+    public boolean collapseForFooterAlphabet(final Runnable switchToAlphabet) {
+        if (!mSearchMode && !mExpandedMode) return false;
+        if (mSearchMode) {
+            mExpandedMode = false;
+            exitSearchMode(false);
+        } else {
+            collapseExpandedBrowse();
+        }
+        postDelayed(() -> {
+            if (isShown() && !mSearchMode && !mExpandedMode) switchToAlphabet.run();
+        }, EmojiPanelHeightMotion.DURATION_MS);
+        return true;
     }
 
     private void updateExpandButton() {

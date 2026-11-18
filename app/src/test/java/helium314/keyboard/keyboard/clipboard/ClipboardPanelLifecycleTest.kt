@@ -6,10 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -46,6 +49,30 @@ class ClipboardPanelLifecycleTest {
             items.notifyDataSetChanged()
             assertEquals(View.INVISIBLE, header.visibility)
         }
+    }
+
+    @Test fun searchUsesOneBoundedHorizontalRowAndRestoresBrowseGrid() {
+        val ime = Robolectric.setupService(LatinIME::class.java)
+        val panel = LayoutInflater.from(ime).inflate(R.layout.clipboard_history_view, null)
+            as ClipboardHistoryView
+        val initialize = ClipboardHistoryView::class.java.getDeclaredMethod("initialize")
+        initialize.isAccessible = true
+        initialize.invoke(panel)
+        val layout = ClipboardHistoryView::class.java.getDeclaredMethod(
+            "applySearchResultsLayout", Boolean::class.javaPrimitiveType)
+        layout.isAccessible = true
+        val list = panel.findViewById<ClipboardHistoryRecyclerView>(R.id.clipboard_list)
+        layout.invoke(panel, true)
+        assertTrue(list.horizontalSearchMode)
+        assertEquals(RecyclerView.HORIZONTAL, (list.layoutManager as LinearLayoutManager).orientation)
+        assertEquals((96 * ime.resources.displayMetrics.density).toInt(), list.layoutParams.height)
+        assertEquals((48 * ime.resources.displayMetrics.density).toInt(),
+            (list.layoutParams as FrameLayout.LayoutParams).topMargin)
+        layout.invoke(panel, false)
+        assertEquals(false, list.horizontalSearchMode)
+        assertEquals(StaggeredGridLayoutManager.VERTICAL,
+            (list.layoutManager as StaggeredGridLayoutManager).orientation)
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, list.layoutParams.height)
     }
 
     private class MutableRows : RecyclerView.Adapter<RecyclerView.ViewHolder>() {

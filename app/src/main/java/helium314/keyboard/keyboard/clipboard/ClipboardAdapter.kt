@@ -42,6 +42,7 @@ class ClipboardAdapter(
     var clipboardHistoryManager: ClipboardHistoryManager? = null
     private var filterQuery: String = ""
     private var filteredIds: List<Long> = emptyList()
+    var horizontalSearchRow: Boolean = false
 
     val isFiltered: Boolean get() = filterQuery.isNotEmpty()
 
@@ -211,7 +212,13 @@ class ClipboardAdapter(
 
                 // Bound thumbnails so a landscape panel or a single image cannot
                 // occupy the entire history viewport.
-                if (parent.width > 0) {
+                if (horizontalSearchRow) {
+                    if (lp != null) {
+                        lp.width = searchCardWidth()
+                        lp.height = searchCardHeight()
+                        itemView.layoutParams = lp
+                    }
+                } else if (parent.width > 0) {
                     val layoutManager = (parent as? RecyclerView)?.layoutManager
                     val spanCount = when (layoutManager) {
                         is StaggeredGridLayoutManager -> layoutManager.spanCount
@@ -249,10 +256,14 @@ class ClipboardAdapter(
                 contentView?.text = text
                 contentView?.let { KeyboardTypeface.applyToTextView(it, text, itemTypeFace ?: android.graphics.Typeface.DEFAULT) }
 
-                // Reset text items back to standard wrap_content height
+                contentView?.maxLines = if (horizontalSearchRow) 3 else 4
+                // Search shows one horizontally scrollable row of bounded
+                // cards; full original clip text is retained for insertion.
                 if (lp != null) {
-                    lp.width = ViewGroup.LayoutParams.MATCH_PARENT
-                    lp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    lp.width = if (horizontalSearchRow) searchCardWidth()
+                        else ViewGroup.LayoutParams.MATCH_PARENT
+                    lp.height = if (horizontalSearchRow) searchCardHeight()
+                        else ViewGroup.LayoutParams.WRAP_CONTENT
                     itemView.layoutParams = lp
                 }
             }
@@ -268,6 +279,17 @@ class ClipboardAdapter(
                 true
             }
         }
+
+        private fun searchCardWidth(): Int {
+            val screen = if (parent.width > 0) parent.width else
+                helium314.keyboard.latin.utils.ResourceUtils.getKeyboardWidth(
+                    parent.context, Settings.getValues())
+            val density = itemView.resources.displayMetrics.density
+            return (screen * 0.55f).toInt().coerceIn((120 * density).toInt(), (220 * density).toInt())
+        }
+
+        private fun searchCardHeight(): Int =
+            (80 * itemView.resources.displayMetrics.density).toInt()
 
         fun clearImage() {
             imageView.load(null)

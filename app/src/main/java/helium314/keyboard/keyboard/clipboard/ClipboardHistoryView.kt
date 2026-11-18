@@ -3,6 +3,9 @@
 package helium314.keyboard.keyboard.clipboard
 
 import android.annotation.SuppressLint
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.SharedPreferences
 import android.text.Editable
@@ -14,6 +17,8 @@ import helium314.keyboard.keyboard.KeyboardSwitcher
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Outline
+import android.os.Build
+import android.os.Parcelable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
@@ -30,6 +35,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardActionListener
@@ -38,6 +44,7 @@ import helium314.keyboard.keyboard.KeyboardLayoutSet
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.MainKeyboardView
+import helium314.keyboard.keyboard.emoji.EmojiPanelHeightMotion
 import helium314.keyboard.keyboard.PanelMaterial
 import helium314.keyboard.keyboard.PointerTracker
 import helium314.keyboard.keyboard.internal.KeyDrawParams
@@ -48,6 +55,7 @@ import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.ClipboardHistoryEntry
 import helium314.keyboard.latin.ClipboardHistoryManager
 import helium314.keyboard.latin.BoardFooterView
+import helium314.keyboard.latin.KeyboardWrapperView
 import helium314.keyboard.latin.FrostedGlassHelper
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.common.Colors
@@ -92,8 +100,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private lateinit var searchHeader: View
     private lateinit var searchInput: EditText
     private lateinit var searchKeyboardHost: FrameLayout
+    private lateinit var searchClearButton: ImageButton
     private var clipboardRowKeyboard: MainKeyboardView? = null
     private var searchShifted = false
+    private var normalListState: Parcelable? = null
+    private var heightMotion: ValueAnimator? = null
+    private var animatedBodyHeight = -1
+    private var pendingFromHeight = -1
+    private var heightChangePending = false
+    private var heightGeneration = 0L
     fun isSearchMode(): Boolean = searchMode
 
 
@@ -121,6 +136,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val toolbarHeight = if (settings.mToolbarMode == ToolbarMode.HIDDEN) 0
             else resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
         val strip = rootView.findViewById<View>(R.id.strip_container)
+        // Clipboard owns its fixed title, so no second alphabet strip belongs
+        // above it (the same contract used by Emoji Browse).
+        if (strip?.visibility == View.VISIBLE) strip.visibility = View.GONE
         val availableHeight = when (MeasureSpec.getMode(heightMeasureSpec)) {
             MeasureSpec.EXACTLY, MeasureSpec.AT_MOST -> MeasureSpec.getSize(heightMeasureSpec)
             else -> Int.MAX_VALUE
@@ -129,10 +147,90 @@ class ClipboardHistoryView @JvmOverloads constructor(
             abcHeight, emojiRowHeight, toolbarHeight,
             strip != null && strip.visibility == View.VISIBLE, availableHeight,
         )
-        val finalHeight = if (searchMode) (normalHeight + 150.dpToPx(resources)).coerceAtMost(availableHeight)
+        // Search should occupy the same native typing viewport + 160dp as
+        // Expanded Emoji, even if the real alphabet is a few pixels taller
+        // than ResourceUtils' nominal estimate on this device.
+        val matchedEmojiHeight = helium314.keyboard.latin.SharedPanelGeometry.retainExistingPanelViewport(
+            normalHeight, (parent as? KeyboardWrapperView)?.getLastTypingPanelViewportHeight() ?: 0,
+            availableHeight, resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height))
+        val targetHeight = if (searchMode)
+            helium314.keyboard.latin.SharedPanelGeometry.emojiExpandedBodyHeight(
+                matchedEmojiHeight, 160.dpToPx(resources), availableHeight)
             else normalHeight
+        if (heightChangePending) {
+            heightChangePending = false
+            val from = pendingFromHeight
+            pendingFromHeight = -1
+            if (EmojiPanelHeightMotion.canAnimate(from, targetHeight, availableHeight,
+                    isShown, heightMotionEnabled())) {
+                animatedBodyHeight = from
+                clipChildren = true
+                val generation = heightGeneration
+                post { launchHeightMotion(from, targetHeight, generation) }
+            } else {
+                animatedBodyHeight = -1
+            }
+        }
+        val finalHeight = if (animatedBodyHeight > 0)
+            EmojiPanelHeightMotion.bound(animatedBodyHeight, availableHeight) else targetHeight
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY))
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), finalHeight)
+    }
+
+    private fun heightMotionEnabled(): Boolean =
+        android.provider.Settings.Global.getFloat(context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f &&
+            (Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled())
+
+    private fun prepareHeightMotion() {
+        val from = if (animatedBodyHeight > 0) animatedBodyHeight else height
+        cancelHeightMotion()
+        if (from > 0 && isShown && heightMotionEnabled()) {
+            pendingFromHeight = from
+            heightChangePending = true
+        }
+    }
+
+    private fun launchHeightMotion(from: Int, target: Int, generation: Long) {
+        if (generation != heightGeneration || !isShown || !heightMotionEnabled()) {
+            if (generation == heightGeneration) cancelHeightMotion()
+            return
+        }
+        heightMotion = ValueAnimator.ofInt(from, target).apply {
+            duration = EmojiPanelHeightMotion.DURATION_MS
+            interpolator = android.animation.TimeInterpolator(EmojiPanelHeightMotion::springProgress)
+            addUpdateListener { motion ->
+                if (generation == heightGeneration) {
+                    animatedBodyHeight = motion.animatedValue as Int
+                    requestLayout()
+                }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (generation != heightGeneration) return
+                    heightMotion = null
+                    animatedBodyHeight = -1
+                    clipChildren = false
+                    requestLayout()
+                }
+            })
+            start()
+        }
+    }
+
+    private fun cancelHeightMotion() {
+        heightGeneration++
+        pendingFromHeight = -1
+        heightChangePending = false
+        animatedBodyHeight = -1
+        clipChildren = false
+        heightMotion?.cancel()
+        heightMotion = null
+    }
+
+    override fun onDetachedFromWindow() {
+        cancelHeightMotion()
+        super.onDetachedFromWindow()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -334,6 +432,37 @@ class ClipboardHistoryView @JvmOverloads constructor(
         )
     }
 
+    /** Exactly the same semantic text/icon colors and round controls as Emoji Search. */
+    private fun applySearchTheme(colors: Colors) {
+        val textColor = colors.get(ColorType.TOOL_BAR_KEY)
+        searchInput.setTextColor(textColor)
+        searchInput.setHintTextColor(ColorUtils.setAlphaComponent(textColor, 0x80))
+        val iconTint = ColorStateList.valueOf(colors.get(ColorType.FUNCTIONAL_KEY_TEXT))
+        for (id in intArrayOf(R.id.clipboard_search_back, R.id.clipboard_search_clear)) {
+            findViewById<ImageButton>(id)?.apply {
+                imageTintList = iconTint
+                background = searchControlBackground(colors)
+                scaleType = ImageView.ScaleType.CENTER
+                setPadding(0, 0, 0, 0)
+            }
+        }
+    }
+
+    private fun searchControlBackground(colors: Colors): RippleDrawable {
+        val circle = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            colors.setColor(this, ColorType.SPECIAL_KEY_BACKGROUND)
+        }
+        val inset = 3.dpToPx(resources)
+        val content = InsetDrawable(circle, inset, inset, inset, inset)
+        val mask = InsetDrawable(GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.BLACK)
+        }, inset, inset, inset, inset)
+        return RippleDrawable(ColorStateList.valueOf(ColorUtils.setAlphaComponent(
+            colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x33)), content, mask)
+    }
+
     private fun setupClipKey(params: KeyDrawParams) {
         clipboardAdapter.apply {
             itemBackgroundId = keyBackgroundId
@@ -372,6 +501,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             editorInfo: EditorInfo,
             keyboardActionListener: KeyboardActionListener
     ) {
+        cancelHeightMotion()
         this.keyboardActionListener = keyboardActionListener
         clipboardHistoryManager = historyManager
         initialize()
@@ -421,6 +551,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     fun stopClipboardHistory() {
+        cancelHeightMotion()
         if (searchMode) closeSearch()
         hideUndoBar()
         removeCallbacks(hideUndoBarRunnable)
@@ -493,11 +624,13 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchHeader = findViewById(R.id.clipboard_search_header)
         searchInput = findViewById(R.id.clipboard_search_text)
         searchKeyboardHost = findViewById(R.id.clipboard_search_keyboard_host)
+        searchClearButton = findViewById(R.id.clipboard_search_clear)
         searchInput.setShowSoftInputOnFocus(false)
         searchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
+                searchClearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
                 if (::clipboardAdapter.isInitialized && ::clipboardRecyclerView.isInitialized) {
                     clipboardAdapter.setSearchQuery(s?.toString().orEmpty())
                     clipboardRecyclerView.scrollToPosition(0)
@@ -505,28 +638,54 @@ class ClipboardHistoryView @JvmOverloads constructor(
             }
         })
         findViewById<ImageButton>(R.id.clipboard_search_back).setOnClickListener { closeSearch() }
-        findViewById<ImageButton>(R.id.clipboard_search_clear).setOnClickListener {
+        searchClearButton.setOnClickListener {
             searchInput.setText("")
-        }
-        searchKeyboardHost.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            if (searchMode) updateSearchPadding()
         }
     }
 
-    private fun updateSearchPadding() {
-        if (!searchMode) return
-        val space = searchKeyboardHost.height + 12.dpToPx(resources)
-        if (space > 0 && clipboardRecyclerView.paddingBottom != space)
-            clipboardRecyclerView.setPadding(clipboardRecyclerView.paddingLeft,
-                clipboardRecyclerView.paddingTop, clipboardRecyclerView.paddingRight, space)
+    private fun applySearchResultsLayout(search: Boolean) {
+        val list = clipboardRecyclerView
+        if (search) {
+            normalListState = list.layoutManager?.onSaveInstanceState()
+            clipboardAdapter.horizontalSearchRow = true
+            list.horizontalSearchMode = true
+            list.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
+        } else {
+            clipboardAdapter.horizontalSearchRow = false
+            list.horizontalSearchMode = false
+            val columns = resources.getInteger(R.integer.config_clipboard_keyboard_col_count)
+            val manager = StaggeredGridLayoutManager(columns, StaggeredGridLayoutManager.VERTICAL)
+            list.layoutManager = manager
+            normalListState?.let { manager.onRestoreInstanceState(it) }
+            normalListState = null
+        }
+        (list.layoutParams as FrameLayout.LayoutParams).let { params ->
+            params.height = if (search) 96.dpToPx(resources) else ViewGroup.LayoutParams.MATCH_PARENT
+            params.topMargin = if (search) 48.dpToPx(resources) else 0
+            params.gravity = if (search) Gravity.TOP else Gravity.CENTER_HORIZONTAL
+            list.layoutParams = params
+        }
+        val top = if (search) 0 else resources.getDimensionPixelSize(R.dimen.panel_content_top_inset)
+        list.setPadding(list.paddingLeft, top, list.paddingRight,
+            if (search) 0 else list.paddingBottom)
+        (placeholderView.layoutParams as FrameLayout.LayoutParams).let { params ->
+            params.gravity = if (search) Gravity.TOP else Gravity.CENTER
+            params.topMargin = if (search) 48.dpToPx(resources) else 0
+            params.height = if (search) 96.dpToPx(resources) else ViewGroup.LayoutParams.WRAP_CONTENT
+            placeholderView.layoutParams = params
+        }
+        clipboardAdapter.notifyDataSetChanged()
     }
 
     private fun openSearch() {
         if (searchMode || !::clipboardHistoryManager.isInitialized) return
         val switcher = KeyboardSwitcher.getInstance()
         val typing = switcher.mainKeyboardView ?: return
+        prepareHeightMotion()
         searchMode = true
         searchShifted = false
+        applySearchTheme(Settings.getValues().mColors)
+        applySearchResultsLayout(true)
         searchHeader.visibility = View.VISIBLE
         titleView.visibility = View.INVISIBLE
         clipboardRowKeyboard?.visibility = View.GONE
@@ -546,13 +705,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
         requestLayout()
     }
 
-    private fun closeSearch() {
+    private fun closeSearch(animate: Boolean = true) {
         if (!searchMode) return
+        if (animate) prepareHeightMotion() else cancelHeightMotion()
         searchMode = false
         searchHeader.visibility = View.GONE
         titleView.visibility = View.VISIBLE
         searchInput.setText("")
         clipboardAdapter.setSearchQuery("")
+        applySearchResultsLayout(false)
         placeholderView.setText(R.string.clipboard_empty_state)
         val switcher = KeyboardSwitcher.getInstance()
         val typing = switcher.mainKeyboardView
@@ -571,6 +732,21 @@ class ClipboardHistoryView @JvmOverloads constructor(
         findViewById<View>(R.id.clipboard_bottom_glass).visibility = View.VISIBLE
         searchInput.clearFocus()
         requestLayout()
+    }
+
+    /** Called only from the separate ABC footer, never by Search typing keys. */
+    fun exitSearchForAlphabet() {
+        if (searchMode) closeSearch(animate = false)
+    }
+
+    /** Shared footer ABC first shrinks the in-panel Search height, then exits. */
+    fun collapseSearchForFooterAlphabet(switchToAlphabet: Runnable): Boolean {
+        if (!searchMode) return false
+        closeSearch()
+        postDelayed({
+            if (isShown && !searchMode) switchToAlphabet.run()
+        }, EmojiPanelHeightMotion.DURATION_MS)
+        return true
     }
 
     private fun insertSearchText(value: String) {

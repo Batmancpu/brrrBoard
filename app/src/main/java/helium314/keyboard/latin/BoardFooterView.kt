@@ -29,6 +29,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.keyboard.KeyboardTheme
+import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.PanelGlassOverlayView
 import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
@@ -110,7 +111,17 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         ime = owner
         emojiButton.setOnClickListener {
             feedback(it)
-            send(if (returnToLetters) KeyCode.ALPHA else KeyCode.EMOJI)
+            if (returnToLetters) {
+                // Search uses the same alphabet View for PRIVATE query editing;
+                // the footer ABC means leave the entire panel, not change its
+                // internal keyboard layout. Collapse first to avoid a hard cut.
+                if (!KeyboardSwitcher.getInstance().collapsePanelSearchForFooterAlphabet(
+                        Runnable { send(KeyCode.ALPHA) })) {
+                    send(KeyCode.ALPHA)
+                }
+            } else {
+                send(KeyCode.EMOJI)
+            }
         }
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.

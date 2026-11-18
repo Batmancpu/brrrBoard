@@ -23,6 +23,8 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
     }
 
     var clipDismissListener: OnClipDismissListener? = null
+    /** Search uses horizontal paging; don't mistake a scroll for swipe-to-delete. */
+    var horizontalSearchMode: Boolean = false
     var placeholderView: View? = null
     var onEmptyStateChanged: ((Boolean) -> Unit)? = null
     val historyManager: ClipboardHistoryManager? get() = (adapter as? ClipboardAdapter?)?.clipboardHistoryManager
@@ -30,6 +32,7 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
     private val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
         override fun onMove(recyclerView: RecyclerView, viewHolder: ViewHolder, target: ViewHolder) = false
         override fun getSwipeDirs(recyclerView: RecyclerView, viewHolder: ViewHolder): Int {
+            if (horizontalSearchMode) return 0
             val position = viewHolder.absoluteAdapterPosition
             if (position == RecyclerView.NO_POSITION || historyManager?.canRemove(position) != true)
                 return 0 // block swipe for pinned items
