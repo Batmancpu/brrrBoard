@@ -39,6 +39,7 @@ import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.RichInputConnection;
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner;
 import helium314.keyboard.latin.brain.SwipeGeometryRescue;
+import helium314.keyboard.latin.brain.SwipeContextWindow;
 import helium314.keyboard.latin.SingleDictionaryFacilitator;
 import helium314.keyboard.latin.Suggest;
 import helium314.keyboard.latin.Suggest.OnGetSuggestedWordsCallback;
@@ -140,11 +141,22 @@ public final class InputLogic {
     private String mCurrentSwipeSkeleton;
     private String mRejectedSwipeSkeleton;
     private long mRejectedSwipeAt;
+    private long mLastInteractionUptime;
+    private boolean mIgnoreOldContextUntilWordCommit;
 
     private boolean mayLearnSwipe(final SettingsValues values) {
         return values != null && SwipeCorrectionLearner.isAllowed(mLatinIME,
                 mLatinIME.getCurrentInputEditorInfo(), values.mIncognitoModeEnabled,
                 values.isSuggestionsEnabledPerUserSettings()) && !mConnection.hasSlowInputConnection();
+    }
+
+    private void markContextInteraction(final long now) {
+        if (SwipeContextWindow.expired(mLastInteractionUptime, now)) {
+            mIgnoreOldContextUntilWordCommit = true;
+            mRejectedSwipeSkeleton = null;
+            mCurrentSwipeSkeleton = null;
+        }
+        mLastInteractionUptime = now;
     }
 
     private void confirmSwipeCorrection(final SettingsValues values,
@@ -190,6 +202,8 @@ public final class InputLogic {
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
+        mLastInteractionUptime = 0L;
+        mIgnoreOldContextUntilWordCommit = false;
         mEnteredText = null;
         mWordBeingCorrectedByCursor = null;
         mConnection.onStartInput();
@@ -590,6 +604,7 @@ public final class InputLogic {
             mDeleteCount = 0;
         }
         mLastKeyTime = inputTransaction.getTimestamp();
+        markContextInteraction(inputTransaction.getTimestamp());
         mConnection.beginBatchEdit();
         if (!mWordComposer.isComposingWord()) {
             // TODO: is this useful? It doesn't look like it should be done here, but rather
@@ -736,6 +751,7 @@ public final class InputLogic {
     }
 
     public void onEndBatchInput(final InputPointers batchPointers) {
+        markContextInteraction(SystemClock.uptimeMillis());
         final SettingsValues values = Settings.getValues();
         final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
         mCurrentSwipeSkeleton = null;
@@ -2426,6 +2442,7 @@ public final class InputLogic {
      */
     public NgramContext getNgramContextFromNthPreviousWordForSuggestion(
             final SpacingAndPunctuations spacingAndPunctuations, final int nthPreviousWord) {
+        if (mIgnoreOldContextUntilWordCommit) return NgramContext.BEGINNING_OF_SENTENCE;
         if (spacingAndPunctuations.mCurrentLanguageHasSpaces) {
             // If we are typing in a language with spaces we can just look up the previous
             // word information from textview.
@@ -2890,8 +2907,10 @@ public final class InputLogic {
         // 1st previous word is the word to be committed. Otherwise get n-gram context
         // from the 1st
         // previous word.
-        final NgramContext ngramContext = mConnection.getNgramContextFromNthPreviousWord(
-                settingsValues.mSpacingAndPunctuations, mWordComposer.isComposingWord() ? 2 : 1);
+        final NgramContext ngramContext = mIgnoreOldContextUntilWordCommit
+                ? NgramContext.BEGINNING_OF_SENTENCE
+                : mConnection.getNgramContextFromNthPreviousWord(
+                    settingsValues.mSpacingAndPunctuations, mWordComposer.isComposingWord() ? 2 : 1);
         if (DebugFlags.DEBUG_ENABLED) {
             long runTimeMillis = SystemClock.elapsedRealtime() - startTimeMillis;
             Log.d(TAG, "commitChosenWord() : " + runTimeMillis + " ms to run "
@@ -2908,6 +2927,7 @@ public final class InputLogic {
         }
         // Add the word to the user history dictionary
         performAdditionToUserHistoryDictionary(settingsValues, chosenWord, ngramContext);
+        mIgnoreOldContextUntilWordCommit = false;
         if (DebugFlags.DEBUG_ENABLED) {
             long runTimeMillis = SystemClock.elapsedRealtime() - startTimeMillis;
             Log.d(TAG, "commitChosenWord() : " + runTimeMillis + " ms to run "

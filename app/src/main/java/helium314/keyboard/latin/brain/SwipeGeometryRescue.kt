@@ -95,6 +95,18 @@ object SwipeGeometryRescue {
         return hints(sampled, centers, keyboard.mMostCommonKeyWidth.toDouble())
     }
 
+    /** Pure bounded variants; dictionary membership verifies before suggestion. */
+    fun lexicalVariants(seed: String): List<String> {
+        if (seed.length !in 3..12 || seed.any { it !in 'a'..'z' }) return emptyList()
+        val words = LinkedHashSet<String>()
+        words.add(seed)
+        for (i in 1 until seed.lastIndex) {
+            words.add(seed.substring(0, i + 1) + seed[i] + seed.substring(i + 1))
+        }
+        for (suffix in listOf("y", "e", "s", "py", "ly", "ed", "er", "ing")) words.add(seed + suffix)
+        return words.take(14)
+    }
+
     /** Filter unrelated lexical completions without a full decoder on the hot path. */
     fun couldMatchSeed(seed: String, word: String): Boolean {
         if (seed.length !in 2..18 || word.length !in 2..24

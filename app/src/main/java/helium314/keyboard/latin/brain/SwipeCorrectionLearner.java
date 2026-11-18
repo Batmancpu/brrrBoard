@@ -90,7 +90,7 @@ public final class SwipeCorrectionLearner {
             final boolean incognito, final boolean personalizedSuggestionsEnabled) {
         return personalizedSuggestionsEnabled && EmojiContextEligibility.isEligible(editor, incognito)
                 && KtxKt.prefs(context).getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
-                && KtxKt.prefs(context).getBoolean(Settings.PREF_LEARN_SWIPE_CORRECTIONS, false);
+                && KtxKt.prefs(context).getBoolean(Settings.PREF_LEARN_SWIPE_CORRECTIONS, true);
     }
 
     private static String key(final String seed, final String word) { return seed + "/" + word; }

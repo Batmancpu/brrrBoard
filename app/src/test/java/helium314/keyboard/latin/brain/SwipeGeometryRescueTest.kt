@@ -39,6 +39,14 @@ class SwipeGeometryRescueTest {
                 keys.getValue('p')), keys, 2.0))
     }
 
+    @Test fun typedLexicalRescueIsBoundedWithoutNativeDecoderReentry() {
+        val variants = SwipeGeometryRescue.lexicalVariants("hapy")
+        assertTrue(variants.contains("happy"))
+        assertTrue(SwipeGeometryRescue.lexicalVariants("hap").contains("happy"))
+        assertTrue(variants.size <= 14)
+        assertTrue(SwipeGeometryRescue.lexicalVariants("ha!").isEmpty())
+    }
+
     @Test fun independentLexicalRescueMayRecoverMissingHappy() {
         assertTrue(SwipeGeometryRescue.couldMatchSeed("hapy", "happy"))
         assertTrue(SwipeGeometryRescue.couldMatchSeed("hap", "happy"))

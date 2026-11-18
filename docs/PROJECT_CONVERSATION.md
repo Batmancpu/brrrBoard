@@ -1,4 +1,8 @@
 Warning: truncated output (original token count: 26619)
+
+## 2026-11-19 — owner-reported v1.0.131 swipe crash; source recovery pending CI
+
+The owner reports that every swipe gesture (for example a common English word) makes the keyboard disappear and no text is committed. The attached 23.07-second screen recording shows Clipboard Search cards near the alphabet boundary and MeTube's vivid multicolor edge glow for visual reference; it does NOT show a Java exception or native tombstone, and no Oppo stack trace is available. Source review found the newly added geometric fallback calling dictionary.getSuggestions with ComposedData(InputPointers(1), false, nonemptySeed). The coordinate payload has zero points and can violate the native typed-composition contract. Recovery removes this unsafe native re-entry, uses bounded lexical variants checked only through existing isInDictionary, never alters native Glide top1, and adds a pure test. Correction learning now defaults ON for ordinary editors while respecting incognito, IME_FLAG_NO_PERSONALIZED_LEARNING, passwords/no-suggestions and explicit user switch OFF; reset remains. Editor switches already clear pending swipe transactions; a new five-minute in-memory idle gate avoids carrying old word-pair context into the resumed session. No per-app learned dictionary/profile has shipped. Separate Clipboard rainbow-match styling and search-viewport clipping remain OPEN and must be verified on actual Oppo; don't claim match-color or crash resolution solely from CI. Keep main-only, original package com.mangoloads.board, pinned signer and independent Dictate work; test both CI gates and request phone swipe report.
 Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record

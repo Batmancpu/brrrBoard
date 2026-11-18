@@ -560,45 +560,36 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         val existing = results.map { it.mWord.lowercase(Locale.ROOT) }.toHashSet()
         val topScore = results.firstOrNull()?.mScore ?: 0
         val thirdScore = results.elementAtOrNull(2)?.mScore ?: 0
-        val rescueScore = if (results.isEmpty()) 1 else {
-            minOf(topScore - 1, maxOf(0, thirdScore + 1))
-        }
+        val rescueScore = if (results.isEmpty()) 1 else minOf(topScore - 1, maxOf(0, thirdScore + 1))
         if (rescueScore <= 0 && results.isNotEmpty()) return
-        val noWeightHint = floatArrayOf(Dictionary.NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL)
+
+        // A zero-pointer ComposedData with a nonempty typed word must NEVER be
+        // re-entered into a native dictionary from the gesture pipeline.
+        // Keep Glide's native top-1 and verify only finite lexical alternatives.
         val activeIme = LatinIME.getInstance()
         val sv = Settings.getValues()
         val learner = if (activeIme != null && sv != null && SwipeCorrectionLearner.isAllowed(
                 activeIme, activeIme.currentInputEditorInfo, sv.mIncognitoModeEnabled,
                 sv.isSuggestionsEnabledPerUserSettings()
             )) SwipeCorrectionLearner.get(activeIme) else null
+        val types = arrayOf(Dictionary.TYPE_MAIN, Dictionary.TYPE_BRR_PERSONAL, Dictionary.TYPE_USER)
         for (seed in seeds) {
-            val confirmedWord = learner?.suggest(seed)
-            if (confirmedWord != null && confirmedWord !in existing
-                && !BrrPersonalDictionary.isNoSuggestionWord(confirmedWord)) {
-                results.add(SuggestedWordInfo(confirmedWord, "", rescueScore,
-                    SuggestedWordInfo.KIND_CORRECTION, Dictionary.DICTIONARY_HARDCODED,
-                    SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
-                return
-            }
-            val typed = ComposedData(InputPointers(1), false, seed)
-            for (group in dictionaryGroups) {
-                // Native text lookup is independent from native gesture lookup;
-                // run sequentially after tail decode on the existing worker.
-                val candidates = getSuggestions(typed, ngramContext, settings, sessionId,
-                    proximityInfoHandle, noWeightHint, group)
-                for (candidate in candidates) {
-                    val word = candidate.mWord
-                    val folded = word.lowercase(Locale.ROOT)
-                    if (folded in existing || candidate.isEmoji
-                        || BrrPersonalDictionary.isNoSuggestionWord(word)
-                        || !SwipeGeometryRescue.couldMatchSeed(seed, word)) continue
-                    // Only actual dictionary words may be surfaced as new
-                    // alternatives; no arbitrary gesture key string insertion.
-                    if (!candidate.mSourceDict.isInDictionary(word)) continue
-                    results.add(SuggestedWordInfo(word, "", rescueScore,
-                        SuggestedWordInfo.KIND_CORRECTION, candidate.mSourceDict,
-                        SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
-                    return // hard bound: one extra candidate, no first-word promotion
+            val words = LinkedHashSet<String>()
+            learner?.suggest(seed)?.let { words.add(it) }
+            words.addAll(SwipeGeometryRescue.lexicalVariants(seed))
+            for (word in words) {
+                if (word.lowercase(Locale.ROOT) in existing
+                    || BrrPersonalDictionary.isNoSuggestionWord(word)
+                    || !SwipeGeometryRescue.couldMatchSeed(seed, word)) continue
+                for (group in dictionaryGroups) {
+                    for (type in types) {
+                        val dictionary = group.getSubDict(type) ?: continue
+                        if (!dictionary.isInDictionary(word)) continue
+                        results.add(SuggestedWordInfo(word, "", rescueScore,
+                            SuggestedWordInfo.KIND_CORRECTION, dictionary,
+                            SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
+                        return
+                    }
                 }
             }
         }
