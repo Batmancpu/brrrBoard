@@ -36,7 +36,7 @@ class SharedPanelGeometryTest {
         val search = SharedPanelGeometry.emojiSearchBodyHeight(642, 48, 56, compactBefore, 1100)
         val compactAfter = SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 1100)
         assertEquals(750, compactBefore)
-        assertEquals(746, search) // Search's independent geometry never feeds Browse.
+        assertEquals(750, search) // Search requests 746px, but retains the 750px normal-panel minimum.
         assertEquals(compactBefore, compactAfter)
         assertEquals(400, SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 400))
     }
