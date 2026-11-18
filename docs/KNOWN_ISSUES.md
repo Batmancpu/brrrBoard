@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — Describe signed v1.0.113; custom shortcuts importer candidate, phone OPEN
+
+Describe commit `2f279e6` passed debug #207 and original-signed #113; signed [v1.0.113](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.113/brrBoard.apk). It has NOT been tested on Oppo. Owner requests immediate next separate item; new **custom description→existing Unicode Emoji search shortcuts** importer source and tests are pending independent CI/release (`docs/CUSTOM_EMOJI_SEARCH_SHORTCUTS_2026_11_18.md`). Risks: owner-created TSV usability, unexpected Files providers, import error/undo feedback, backup restore, real phone search updates after file replacement. Do not confuse with existing custom Emoji font picker or promise image/sticker import. No package/signature/glass/normal typing changes; the v1.0.112 upper emoji crop and blur acceptance remains separately open.
+
 ## 2026-11-18 — Describe an Emoji implemented in source; signed CI and phone relevance OPEN
 
 Owner superseded plan-only restriction and requested implementation immediately while testing v1.0.112. New Search-only background CLDR token index, reviewed aliases/typo matches, generation-checked results, UI hint and two pure Java regression suites are in the source candidate (`docs/DESCRIBE_EMOJI_IMPLEMENTATION_2026_11_18.md`). **Do not claim signed release, device latency/relevance or correct interaction until new CI, original signer and Oppo testing**. No AI/network/corpus update, no normal typing integration. Potential remaining issues: English-only coverage, obscure descriptions missing from the finite CLDR/alias corpus, fallback locale dictionary delay on no-match, on-device low-memory index residency and search keyboard accessibility. Existing v1.0.112 Emoji upper-band crop/blur transitions still require independent owner result and are not modified by this batch.

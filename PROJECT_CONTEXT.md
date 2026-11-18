@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## CURRENT 2026-11-18 — v1.0.113 signed; next small source batch is custom offline Emoji Search shortcuts
+
+Describe Emoji commit `2f279e6fe2426ea25f89a11534dc904819183b56` passed both full Android test and debug workflow #207 (`44245705860`) and original-signed Obtainium #113 (`44245705899`), with published signed v1.0.113 `brrBoard.apk`. Oppo device acceptance pending because owner cannot test right now. User requests immediate next work; new independent code adds SAF UTF-8 `.tsv` phrase→supported Emoji shortcuts import under Appearance, local bounded strict validation and atomic replacement, explicit remove, backup allowlist, worker-side lazy reload and tests. This is distinct from the existing custom Emoji **font** import and does not accept user images/stickers/unsupported sequences. Full source, client instructions, limits, tests and still-pending new CI in `docs/CUSTOM_EMOJI_SEARCH_SHORTCUTS_2026_11_18.md`. Preserve source `main`, `com.mangoloads.board`, original signing certificate, Emoji glass and normal typing paths. New source is not yet CI-verified or physically accepted.
+
 ## CURRENT 2026-11-18 — Describe an Emoji authorized and implemented in source
 
 The owner's latest directive **supersedes the historical plan-only hold below**: implement an offline, efficient Describe an Emoji Search feature now while they independently test signed v1.0.112's Emoji viewport fixes. Source candidate, exact UI/dataflow, tests, privacy guarantees and Oppo acceptance are in `docs/DESCRIBE_EMOJI_IMPLEMENTATION_2026_11_18.md` and the dated entry at this file's end. Separate CI and original-signed release gate needed before calling it shipped. All A3 Emoji-only glass and v1.0.112 viewport logic are already in the signed baseline and **must not be modified** by Describe; phone visual acceptance is pending.

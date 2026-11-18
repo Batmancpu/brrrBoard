@@ -10,6 +10,8 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,10 @@ final class EmojiDescribeEngine {
 
     private volatile EmojiDescribeIndex index;
     private volatile boolean loadFailed;
+    private volatile Map<String, String> customMappings = Map.of();
+    private final AtomicInteger customRevision = new AtomicInteger();
+    // Accessed on this engine's one background worker only.
+    private int customLoadedRevision = -1;
 
     static EmojiDescribeEngine get() { return INSTANCE; }
 
@@ -68,7 +74,15 @@ final class EmojiDescribeEngine {
             boolean available = ready != null;
             if (ready != null) {
                 try {
+                    final int revision = customRevision.get();
+                    if (customLoadedRevision != revision) {
+                        customMappings = EmojiDescribeCustomAliases.load(app, ready);
+                        customLoadedRevision = revision;
+                    }
                     result = ready.search(bounded, limit);
+                    final String personalized = customMappings.get(
+                            EmojiDescribeNormalizer.normalizePhrase(bounded));
+                    result = EmojiDescribeCustomAliases.promote(personalized, result, limit);
                 } catch (final RuntimeException error) {
                     // A malformed description must never terminate Search or
                     // permanently stall the single worker thread.
@@ -84,6 +98,13 @@ final class EmojiDescribeEngine {
 
     void cancelPending() {
         worker.getQueue().clear();
+    }
+
+    void customMappingsChanged() {
+        // Avoid a Settings I/O roundtrip on every Search character. The next
+        // explicit Search will refresh once on this worker, even if queued
+        // warmup requests were discarded while the user typed quickly.
+        customRevision.incrementAndGet();
     }
 
     private EmojiDescribeIndex ensureIndex(final Context context) {

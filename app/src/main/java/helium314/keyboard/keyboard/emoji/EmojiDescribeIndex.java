@@ -86,6 +86,7 @@ final class EmojiDescribeIndex {
 
     int emojiCount() { return emoji.length; }
     int termCount() { return tokens.size(); }
+    boolean containsEmoji(final String sequence) { return emojiId.containsKey(sequence); }
 
     List<String> search(final String input, final int maxResults) {
         if (maxResults <= 0) return List.of();

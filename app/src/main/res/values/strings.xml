@@ -499,6 +499,11 @@
     <string name="board_toolbar">Toolbar</string>
     <string name="emoji_search_no_results">No matching emoji</string>
     <string name="emoji_describe_search_hint">Describe an emoji</string>
+    <string name="emoji_describe_shortcuts_title">Import emoji search shortcuts</string>
+    <string name="emoji_describe_shortcuts_summary">Optional local .tsv: one description, a tab, and a supported emoji per line. Up to 128 shortcuts; only existing Unicode emojis.</string>
+    <string name="emoji_describe_shortcuts_remove_hint">Replace your existing shortcuts, or remove them to restore normal emoji search. The default emoji list is not affected.</string>
+    <string name="emoji_describe_shortcuts_error">Could not import. Use UTF-8 text with one description, a tab, and one supported emoji per line. Maximum 32 KiB and 128 lines. Existing shortcuts were kept.</string>
+    <string name="emoji_describe_shortcuts_imported">Imported %1$d offline emoji search shortcuts.</string>
     <string name="emoji_expand">Expand emoji</string>
     <string name="emoji_collapse">Collapse emoji</string>
     <string name="emoji_glass_tone_title">Emoji glass light and dark tint</string>

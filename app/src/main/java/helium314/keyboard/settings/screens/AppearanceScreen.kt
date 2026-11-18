@@ -32,6 +32,7 @@ import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.BackgroundImagePref
 import helium314.keyboard.settings.preferences.CustomFontPreference
+import helium314.keyboard.settings.preferences.CustomEmojiSearchAliasesPreference
 import helium314.keyboard.settings.preferences.KeyboardScalePreference
 import helium314.keyboard.settings.preferences.TextInputPreference
 import helium314.keyboard.latin.utils.previewDark
@@ -78,6 +79,7 @@ fun AppearanceScreen(
         SettingsWithoutKey.CUSTOM_FONT,
         Settings.PREF_FONT_SCALE,
         SettingsWithoutKey.CUSTOM_EMOJI_FONT,
+        SettingsWithoutKey.CUSTOM_EMOJI_SEARCH_SHORTCUTS,
         Settings.PREF_EMOJI_FONT_SCALE,
         if (prefs.getFloat(Settings.PREF_EMOJI_FONT_SCALE, Defaults.PREF_EMOJI_FONT_SCALE) != 1f)
             Settings.PREF_EMOJI_KEY_FIT else null,
@@ -235,6 +237,10 @@ fun createAppearanceSettings(context: Context) = listOf(
     },
     Setting(context, SettingsWithoutKey.CUSTOM_EMOJI_FONT, R.string.custom_emoji_font) {
         CustomFontPreference(it, Settings.getCustomEmojiFontFile(LocalContext.current), R.string.custom_emoji_font)
+    },
+    Setting(context, SettingsWithoutKey.CUSTOM_EMOJI_SEARCH_SHORTCUTS,
+        R.string.emoji_describe_shortcuts_title, R.string.emoji_describe_shortcuts_summary) {
+        CustomEmojiSearchAliasesPreference(it)
     },
     Setting(context, Settings.PREF_EMOJI_FONT_SCALE, R.string.prefs_emoji_font_scale) { setting ->
         SliderPreference(
