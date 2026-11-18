@@ -37,4 +37,15 @@ public class EmojiPanelHeightMotionTest {
         }
         assertTrue(EmojiPanelHeightMotion.springProgress(0.5f) > 0.80f);
     }
+
+    @Test public void bottomAnchoredClipRevealsGrowAndShrinksInReverse() {
+        assertEquals(180, EmojiPanelHeightMotion.topClipInset(300, 480, 0f));
+        assertEquals(90, EmojiPanelHeightMotion.topClipInset(300, 480, 0.5f));
+        assertEquals(0, EmojiPanelHeightMotion.topClipInset(300, 480, 1f));
+        assertEquals(0, EmojiPanelHeightMotion.topClipInset(480, 300, 0f));
+        assertEquals(90, EmojiPanelHeightMotion.topClipInset(480, 300, 0.5f));
+        assertEquals(180, EmojiPanelHeightMotion.topClipInset(480, 300, 1f));
+        assertEquals(180, EmojiPanelHeightMotion.topClipInset(300, 480, -2f));
+        assertEquals(180, EmojiPanelHeightMotion.topClipInset(480, 300, 7f));
+    }
 }

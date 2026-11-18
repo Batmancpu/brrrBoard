@@ -28,4 +28,12 @@ public final class EmojiPanelHeightMotion {
     public static int bound(final int height, final int available) {
         return Math.max(1, Math.min(height, Math.max(1, available)));
     }
+
+    /** Clip the top of one bottom-anchored viewport; the bottom never moves. */
+    public static int topClipInset(final int from, final int target, final float progress) {
+        final int distance = Math.abs(target - from);
+        final float fraction = Math.max(0f, Math.min(1f, progress));
+        return Math.max(0, Math.min(distance, Math.round(distance *
+                (target > from ? 1f - fraction : fraction))));
+    }
 }

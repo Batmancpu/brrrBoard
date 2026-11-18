@@ -18,6 +18,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -152,10 +153,13 @@ public final class EmojiPalettesView extends LinearLayout
     private List<String> mSearchIdleReviewed = List.of();
     private List<String> mSearchIdleRecent = List.of();
     private long mSearchGeneration;
+    private boolean mSearchResultsPending;
+    private int mSearchDisplayedResultCount;
     private ValueAnimator mHeightMotion;
     private int mAnimatedBodyHeight = -1;
     private int mPendingBodyFromHeight = -1;
     private boolean mBodyHeightChangePending;
+    private boolean mShrinkClipAwaitingLayout;
     private long mHeightMotionGeneration;
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
     private LinearLayout mContextSmartSection;
@@ -267,16 +271,18 @@ public final class EmojiPalettesView extends LinearLayout
             mPendingBodyFromHeight = -1;
             if (EmojiPanelHeightMotion.canAnimate(from, finalHeight, availableHeight,
                     isShown(), areHeightAnimationsEnabled())) {
-                mAnimatedBodyHeight = from;
-                // Search has more fixed children than Compact Browse. Until
-                // the height catches up, clip those children to the actual
-                // panel bounds instead of painting outside the IME window.
-                setClipChildren(true);
+                // Keep a single measured viewport for the complete motion.
+                // The old implementation ran full IME/pager requestLayout()
+                // on EVERY animation frame, explaining the costly jank risk.
+                // Grow measures its final content once; shrink retains the
+                // larger viewport until the last frame then measures once.
+                mAnimatedBodyHeight = from > finalHeight ? from : -1;
                 final long generation = mHeightMotionGeneration;
                 final int targetHeight = finalHeight;
                 post(() -> launchBodyHeightMotion(from, targetHeight, generation));
             } else {
                 mAnimatedBodyHeight = -1;
+                setClipBounds(null);
             }
         }
         if (mAnimatedBodyHeight > 0)
@@ -293,15 +299,34 @@ public final class EmojiPalettesView extends LinearLayout
             mEmojiCategoryPageIndicatorView.mWidth = width;
         }
         setMeasuredDimension(width, finalHeight);
+        if (mHeightMotion != null && getClipBounds() != null) {
+            final Rect clip = getClipBounds();
+            setClipBounds(new Rect(0, clip.top, width, finalHeight));
+        }
     }
 
     /** Capture the visible height BEFORE changing the mode's child hierarchy. */
     private void prepareBodyHeightMotion() {
-        final int current = mAnimatedBodyHeight > 0 ? mAnimatedBodyHeight : getHeight();
+        final Rect activeClip = getClipBounds();
+        final int current = activeClip != null ? activeClip.height()
+                : (mAnimatedBodyHeight > 0 ? mAnimatedBodyHeight : getHeight());
         cancelBodyHeightMotion();
         if (current > 0 && isShown() && areHeightAnimationsEnabled()) {
             mPendingBodyFromHeight = current;
             mBodyHeightChangePending = true;
+        }
+    }
+
+    @Override protected void onLayout(final boolean changed, final int left, final int top,
+            final int right, final int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        if (mShrinkClipAwaitingLayout) {
+            // The short-to-tall layer must remain clipped until Android has
+            // committed the ONE new compact measure; clearing it earlier
+            // would expose a full-height flash for one traversal.
+            mShrinkClipAwaitingLayout = false;
+            setClipBounds(null);
+            setClipChildren(false);
         }
     }
 
@@ -316,7 +341,12 @@ public final class EmojiPalettesView extends LinearLayout
             if (generation == mHeightMotionGeneration) cancelBodyHeightMotion();
             return;
         }
-        final ValueAnimator animator = ValueAnimator.ofInt(from, target);
+        final int distance = Math.abs(target - from);
+        final boolean growing = target > from;
+        final int renderHeight = Math.max(from, target);
+        setClipChildren(true);
+        setClipBounds(new Rect(0, growing ? distance : 0, getWidth(), renderHeight));
+        final ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
         mHeightMotion = animator;
         animator.setDuration(EmojiPanelHeightMotion.DURATION_MS);
         // A bounded, critically damped spring-shaped curve: smooth initial
@@ -324,16 +354,22 @@ public final class EmojiPalettesView extends LinearLayout
         animator.setInterpolator(EmojiPanelHeightMotion::springProgress);
         animator.addUpdateListener(animation -> {
             if (generation != mHeightMotionGeneration) return;
-            mAnimatedBodyHeight = (int) animation.getAnimatedValue();
-            requestLayout();
+            final float progress = (float) animation.getAnimatedValue();
+            final int top = EmojiPanelHeightMotion.topClipInset(from, target, progress);
+            setClipBounds(new Rect(0, top, getWidth(), renderHeight));
         });
         animator.addListener(new AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(final Animator animation) {
                 if (generation != mHeightMotionGeneration) return;
                 mHeightMotion = null;
                 mAnimatedBodyHeight = -1;
-                setClipChildren(false);
-                requestLayout();
+                if (growing) {
+                    setClipBounds(null);
+                    setClipChildren(false);
+                } else {
+                    mShrinkClipAwaitingLayout = true;
+                    requestLayout();
+                }
             }
         });
         animator.start();
@@ -344,6 +380,8 @@ public final class EmojiPalettesView extends LinearLayout
         mBodyHeightChangePending = false;
         mPendingBodyFromHeight = -1;
         mAnimatedBodyHeight = -1;
+        mShrinkClipAwaitingLayout = false;
+        setClipBounds(null);
         setClipChildren(false);
         if (mHeightMotion != null) {
             mHeightMotion.cancel();
@@ -394,10 +432,11 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mPager = findViewById(R.id.emoji_pager);
-        // Only one adjacent page is retained: mode-height springs must not
-        // remeasure five entire RecyclerView pages on every frame. The row
-        // cache handles direction reversals within the active category.
-        mPager.setOffscreenPageLimit(1);
+        // Reuse the next TWO categories during rapid horizontal swipes. The
+        // height spring no longer remeasures the full pager on every frame,
+        // so keeping this small bounded neighboring cache avoids allocating
+        // a new RecyclerView while the owner's finger is still dragging.
+        mPager.setOffscreenPageLimit(2);
         mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(),
                 mEmojiCategory.getCurrentCategoryPageId() * Math.max(1, mEmojiCategory.getRowsPerPage()));
         mCategoryPagerAdapter = new EmojiCategoryPagerAdapter(mEmojiCategory, this,
@@ -1159,11 +1198,27 @@ public final class EmojiPalettesView extends LinearLayout
         }
         final long generation = ++mSearchGeneration;
         final String query = text == null ? "" : text;
-        // Clear the previous query's tappable results immediately. Never let a
-        // stale Emoji remain interactive while a newer phrase is indexing.
-        showEmojiSearchResults(query, query.isBlank() && mSearchMode
-                ? mSearchIdleSuggestions : List.of(), query.isBlank());
-        if (!mSearchMode || query.isBlank()) return;
+        if (!mSearchMode || query.isBlank()) {
+            // Idle suggestions are immediately selectable; leaving Search
+            // must also release the pending touch gate and stale results.
+            setSearchResultsPending(false);
+            showEmojiSearchResults(query, mSearchMode ? mSearchIdleSuggestions : List.of(), true);
+            return;
+        }
+        // Keep the already laid-out row in place while the asynchronous CLDR
+        // worker searches. Replacing it with an empty DynamicGridKeyboard on
+        // every keystroke caused the visible blank flash in the recording.
+        // The old row is faded and cannot be selected until the new answer
+        // arrives, so no stale Emoji can be sent to the host app.
+        if (mSearchDisplayedResultCount == 0 && !mSearchIdleSuggestions.isEmpty()) {
+            // Recover from a previous "No results" query without letting its
+            // empty keyboard persist through the next asynchronous request.
+            showEmojiSearchResults("", mSearchIdleSuggestions, true);
+        }
+        setSearchResultsPending(true);
+        if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
+        if (mSearchResultsScrollView != null)
+            mSearchResultsScrollView.setVisibility(View.VISIBLE);
         // All asset I/O, token posting lookups and typo correction happen on
         // one bounded background worker, not inside the IME key event path.
         EmojiDescribeEngine.get().search(getContext(), query, 24, (found, indexAvailable) -> {
@@ -1229,6 +1284,7 @@ public final class EmojiPalettesView extends LinearLayout
             keyParams.mAbsoluteHeight = mSearchKeyHeight;
             mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
         }
+        mSearchDisplayedResultCount = emojis.size();
         if (mSearchEmptyView != null) {
             final boolean noMatches = finalAnswer && text != null
                     && !text.isBlank() && emojis.isEmpty();
@@ -1239,8 +1295,24 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.scrollTo(0, 0);
         }
+        setSearchResultsPending(false);
         mSearchResultsView.invalidate();
         mSearchResultsView.requestLayout();
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setSearchResultsPending(final boolean pending) {
+        if (mSearchResultsView == null || mSearchResultsPending == pending) return;
+        mSearchResultsPending = pending;
+        // This custom keyboard handles touches even when View.enabled=false;
+        // intercept them BEFORE its onTouchEvent, and remove the gate when
+        // the newest result has replaced the visible keys.
+        if (pending) mSearchResultsView.setOnTouchListener((view, event) -> true);
+        else mSearchResultsView.setOnTouchListener(null);
+        mSearchResultsView.setImportantForAccessibility(pending
+                ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+        mSearchResultsView.setAlpha(pending ? 0.48f : 1f);
     }
 
     private static synchronized void initSearchDictionaryFacilitator(final Context context) {
@@ -1289,7 +1361,12 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchEditText == null) {
             return;
         }
-        mSearchQuery = mSearchEditText.getText().toString();
+        final String current = mSearchEditText.getText().toString();
+        // A normal key edit already fired TextWatcher's afterTextChanged().
+        // Avoid immediately clearing the results and re-queuing the SAME
+        // background Describe query a second time from the key listener.
+        if (current.equals(mSearchQuery)) return;
+        mSearchQuery = current;
         updateSearchQueryUi();
         searchEmoji(mSearchQuery);
     }
@@ -2138,9 +2215,12 @@ public final class EmojiPalettesView extends LinearLayout
         if (!fromScroll && mPager != null && mCategoryPagerAdapter != null) {
             final int index = mCategoryPagerAdapter.indexOf(categoryId);
             if (index >= 0 && index != mPager.getCurrentItem()) {
-                // ViewPager2 moves both complete category pages during drag;
-                // it handles incomplete gestures and always snaps at rest.
-                mPager.setCurrentItem(index, !isAnimationsDisabled());
+                // ViewPager2's animated long-distance setCurrentItem jumps to
+                // a nearby page first, then animates, visibly flashing empty
+                // intermediate pages on category taps. Slide neighboring
+                // categories; directly select distant categories in one pass.
+                mPager.setCurrentItem(index, !isAnimationsDisabled()
+                        && Math.abs(index - mPager.getCurrentItem()) == 1);
                 return;
             }
         }

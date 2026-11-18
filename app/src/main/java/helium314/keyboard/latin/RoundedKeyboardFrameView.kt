@@ -91,6 +91,28 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         }
     }
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // The detached category tabs are now INSIDE Emoji's scrolling shell.
+        // Suppress the two legacy *outer* header slots BEFORE LinearLayout
+        // measures its children. Hiding them in EmojiPalettesView.onMeasure is
+        // too late: the parent has already measured the strip first, leaving
+        // a blank 40/48dp band above the in-panel tabs on a mode switch.
+        // Do not touch these rows in ordinary alphabet or Clipboard modes.
+        if (findViewById<View>(R.id.emoji_palettes_view)?.visibility == View.VISIBLE) {
+            val outerHeaderIds = intArrayOf(
+                R.id.persistent_emoji_row_scroll,
+                R.id.persistent_emoji_row_divider,
+                R.id.strip_container,
+            )
+            for (id in outerHeaderIds) {
+                findViewById<View>(id)?.let { header ->
+                    if (header.visibility != View.GONE) header.visibility = View.GONE
+                }
+            }
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+    }
+
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
         val navigationBottomInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             insets.getInsets(WindowInsets.Type.navigationBars()).bottom
