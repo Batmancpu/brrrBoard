@@ -30,3 +30,5 @@ The compact Browse category-gap issue is **independent**. v1.0.115 source `c1fd0
 5. If compact gap remains, capture a **new recording on this exact version** showing first open, current category, and entry/exit; source inspection cannot provide the Oppo view-coordinate trace.
 
 Smooth Grow/Collapse height animation remains a separately requested follow-up; do not bundle it with these corrections.
+
+**Subsequent CI checkpoint:** source `b71dabe82e8fb1efca227a3100be40dfcbbe84e8`, Android debug #211 (`44255489574`) SUCCESS, original-signer production #116 (`44255489601`) SUCCESS. Signed v1.0.116 APK: https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.116/brrBoard.apk ; SHA-256 `83f54206d6c43679dec8c95283e1eb2851adb15a7cb7c431fca6b4654a38de85`. All physical Oppo checks listed above remain OPEN. The planned animation is developed in the *next*, separate source batch: `docs/EMOJI_HEIGHT_MOTION_2026_11_18.md`.

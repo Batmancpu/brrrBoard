@@ -7,6 +7,9 @@
 package helium314.keyboard.keyboard.emoji;
 
 import android.annotation.SuppressLint;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -30,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.Gravity;
+import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.EditText;
@@ -148,6 +152,11 @@ public final class EmojiPalettesView extends LinearLayout
     private List<String> mSearchIdleReviewed = List.of();
     private List<String> mSearchIdleRecent = List.of();
     private long mSearchGeneration;
+    private ValueAnimator mHeightMotion;
+    private int mAnimatedBodyHeight = -1;
+    private int mPendingBodyFromHeight = -1;
+    private boolean mBodyHeightChangePending;
+    private long mHeightMotionGeneration;
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
     private LinearLayout mContextSmartSection;
     private LinearLayout mContextSmartRow;
@@ -235,6 +244,29 @@ public final class EmojiPalettesView extends LinearLayout
             mCompactContextPanel = compact;
             updateContextSmartVisibility();
         }
+        // The target geometry is still computed exactly as before. Only an
+        // explicit Browse/Search/Expanded mode change can interpolate toward it;
+        // ordinary relayout, window resize and input keystrokes never animate.
+        if (mBodyHeightChangePending) {
+            mBodyHeightChangePending = false;
+            final int from = mPendingBodyFromHeight;
+            mPendingBodyFromHeight = -1;
+            if (EmojiPanelHeightMotion.canAnimate(from, finalHeight, availableHeight,
+                    isShown(), areHeightAnimationsEnabled())) {
+                mAnimatedBodyHeight = from;
+                // Search has more fixed children than Compact Browse. Until
+                // the height catches up, clip those children to the actual
+                // panel bounds instead of painting outside the IME window.
+                setClipChildren(true);
+                final long generation = mHeightMotionGeneration;
+                final int targetHeight = finalHeight;
+                post(() -> launchBodyHeightMotion(from, targetHeight, generation));
+            } else {
+                mAnimatedBodyHeight = -1;
+            }
+        }
+        if (mAnimatedBodyHeight > 0)
+            finalHeight = EmojiPanelHeightMotion.bound(mAnimatedBodyHeight, availableHeight);
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY));
         final int requestedWidth = ResourceUtils.getKeyboardWidth(getContext(), settings)
                 + getPaddingLeft() + getPaddingRight();
@@ -247,6 +279,65 @@ public final class EmojiPalettesView extends LinearLayout
             mEmojiCategoryPageIndicatorView.mWidth = width;
         }
         setMeasuredDimension(width, finalHeight);
+    }
+
+    /** Capture the visible height BEFORE changing the mode's child hierarchy. */
+    private void prepareBodyHeightMotion() {
+        final int current = mAnimatedBodyHeight > 0 ? mAnimatedBodyHeight : getHeight();
+        cancelBodyHeightMotion();
+        if (current > 0 && isShown() && areHeightAnimationsEnabled()) {
+            mPendingBodyFromHeight = current;
+            mBodyHeightChangePending = true;
+        }
+    }
+
+    private boolean areHeightAnimationsEnabled() {
+        return !isAnimationsDisabled() && (android.os.Build.VERSION.SDK_INT < 26
+                || ValueAnimator.areAnimatorsEnabled());
+    }
+
+    private void launchBodyHeightMotion(final int from, final int target, final long generation) {
+        if (generation != mHeightMotionGeneration || !isShown()
+                || !areHeightAnimationsEnabled()) {
+            if (generation == mHeightMotionGeneration) cancelBodyHeightMotion();
+            return;
+        }
+        final ValueAnimator animator = ValueAnimator.ofInt(from, target);
+        mHeightMotion = animator;
+        animator.setDuration(EmojiPanelHeightMotion.DURATION_MS);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.addUpdateListener(animation -> {
+            if (generation != mHeightMotionGeneration) return;
+            mAnimatedBodyHeight = (int) animation.getAnimatedValue();
+            requestLayout();
+        });
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(final Animator animation) {
+                if (generation != mHeightMotionGeneration) return;
+                mHeightMotion = null;
+                mAnimatedBodyHeight = -1;
+                setClipChildren(false);
+                requestLayout();
+            }
+        });
+        animator.start();
+    }
+
+    private void cancelBodyHeightMotion() {
+        ++mHeightMotionGeneration;
+        mBodyHeightChangePending = false;
+        mPendingBodyFromHeight = -1;
+        mAnimatedBodyHeight = -1;
+        setClipChildren(false);
+        if (mHeightMotion != null) {
+            mHeightMotion.cancel();
+            mHeightMotion = null;
+        }
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        cancelBodyHeightMotion();
+        super.onDetachedFromWindow();
     }
 
     private void addTab(final LinearLayout host, final int categoryId) {
@@ -503,6 +594,8 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchExpandButton.setOnClickListener(v -> {
                 performTapFeedback(v);
                 if (mSearchMode) {
+                    // Search → intentional Expanded (or Compact) starts from
+                    // the visible Search height, not a stale Browse measure.
                     mExpandedMode = !mExpandedMode;
                     setSearchText("", 0);
                     exitSearchMode(false);
@@ -627,6 +720,7 @@ public final class EmojiPalettesView extends LinearLayout
     public void startEmojiPalettes(final KeyVisualAttributes keyVisualAttr,
                final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
         initialize();
+        cancelBodyHeightMotion();
         // A new Emoji session always starts compact; expansion is user-driven.
         mExpandedMode = false;
         updateContextSmartVisibility();
@@ -680,6 +774,7 @@ public final class EmojiPalettesView extends LinearLayout
             focusSearchField(true);
             return;
         }
+        prepareBodyHeightMotion();
         // Capture only eligible text from the HOST editor, before focusing the
         // keyboard's own Search EditText. Never persist or log that text.
         final String hostContext = mSearchQuery.isBlank() ? prepareSearchIdleSuggestions() : "";
@@ -778,6 +873,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (!mSearchMode && !clearQuery) {
             return;
         }
+        if (restoreViews && mSearchMode) prepareBodyHeightMotion();
         if (clearQuery) {
             setSearchText("", 0);
         }
@@ -856,7 +952,12 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void collapseExpandedBrowse() {
+        collapseExpandedBrowse(true);
+    }
+
+    private void collapseExpandedBrowse(final boolean animate) {
         if (!mExpandedMode || mSearchMode) return;
+        if (animate) prepareBodyHeightMotion();
         mExpandedMode = false;
         updateContextSmartVisibility();
         if (mSearchBarContainer != null) mSearchBarContainer.setVisibility(View.GONE);
@@ -1849,13 +1950,15 @@ public final class EmojiPalettesView extends LinearLayout
     public void stopEmojiPalettes() {
         if (!initialized) return;
 
+        cancelBodyHeightMotion();
+
         ++mSearchGeneration;
         EmojiDescribeEngine.get().cancelPending();
 
         if (mSearchMode) {
             exitSearchMode(false, false);
         }
-        collapseExpandedBrowse();
+        collapseExpandedBrowse(false);
         getRecentsKeyboard().flushPendingRecentKeys();
         // Never retain even a reviewed trigger or selection across editors.
         mHasContextSmartPicks = false;
