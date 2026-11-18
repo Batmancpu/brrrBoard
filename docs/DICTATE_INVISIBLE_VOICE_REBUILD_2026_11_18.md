@@ -103,3 +103,65 @@ provider-permission error attribution.
    user settings, or signing identity.
 
 **This is a source/architecture checkpoint, not phone-verified successful dictation.**
+
+## ColorOS 15 source audit and second candidate — 2026-11-18
+
+The first brrBoard source rebuild was published as
+[signed Obtainium v1.0.126](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.126)
+from main `8e3289c`; both [debug CI](https://github.com/Batmancpu/brrrBoard/actions/runs/44339584441)
+and [original-signer CI](https://github.com/Batmancpu/brrrBoard/actions/runs/44339584403)
+passed including unit tests. This does not mean recording worked on the Oppo.
+
+The latest *published* Dictate as of this audit is
+[v6.4.0](https://github.com/DevEmperor/DictateKeyboard/releases/tag/v6.4.0)
+(2026-10-07), while Dictate's actively developed main is later (2026-11-18).
+The v6.4.0 `RecognitionSession` file was checked independently: it has the same
+speech-threshold callback, early-stop race and no-speech watchdog as main.
+Do not confuse a main-branch behavior with a feature guaranteed on an owner's
+installed older Dictate; record its installed version during device tests.
+
+**ColorOS 15 considerations, separated by evidence:**
+
+1. OPPO documents `Settings → Security & privacy → Privacy controls →
+   Permission manager → Microphone` for ColorOS 14–16. Check *both* brrBoard
+   and Dictate; one grant does not imply the other. OPPO's official permission
+   guide: https://support.oppo.com/ph/answer/?aid=neu139
+2. Android exposes a global Mic access toggle on Android 12+ (including the
+   target phone OS). A disabled global toggle is distinct from both runtime
+   package grants. See https://developer.android.com/training/permissions/explaining-access
+3. Android 15 targets restrict requesting audio focus while an app is not on
+   top or in a foreground service. Dictate targetSdk 36 currently optionally
+   requests focus during `RecognitionService` capture, but ignores a failed
+   `requestAudioFocus` return; this is a *plausible ancillary issue*, **not**
+   a demonstrated cause of error 9. See
+   https://developer.android.com/about/versions/15/behavior-changes-15
+4. Dictate currently acquires AudioRecord with its own application context;
+   Android's RecognitionService contract recommends caller attribution through
+   `callback.getCallingAttributionSource()`, `ContextParams`, and
+   `AudioRecord.Builder.setContext()`. A physical log is required to determine
+   whether this explains the Oppo AppOps/permission check failure.
+5. Android's audio-capture priority can return silence when other apps use the
+   microphone; phone calls, voice recorders and Bluetooth routing deserve
+   controlled A/B tests. Do not globally disable privacy controls, force the
+   keyboard into a foreground service, request unrestricted background access
+   by default, or install hidden permissions as a workaround.
+
+**ColorOS-tailored second candidate:** On the recognizer's error 9 callback,
+brrBoard now asks Android only whether `net.devemperor.dictate` has a runtime
+mic grant. If explicitly denied, it shows a targeted Dictate permission hint;
+if granted or query unavailable, it continues to report a recognizer/provider
+audio failure, because runtime grant alone cannot certify AppOps, in-use
+eligibility or a successful recorder. Logs contain only the numeric error and
+two boolean/null grant flags — no user utterance, text or provider credentials.
+JUnit cases verify the distinction and the existing brrBoard-denied path.
+
+**Owner phone acceptance:** Install the new signed APK; verify installed
+Dictate version; enable global Mic access and grant brrBoard *and* Dictate
+microphone permissions in ColorOS; confirm Dictate's own keyboard can record;
+then with brrBoard selected tap mic, speak a short English sentence, tap stop,
+and observe one insertion without an app/IME switch. Repeat cold-start,
+rapid second tap, silent/noisy input, device lock/unlock, Bluetooth connected
+vs disconnected and permission-denied cases. If error 9 remains while both
+grants are allowed, capture the exact error and a *redacted* logcat showing
+RecognitionService/AppOps/AudioRecord for a single attempt; no audio/transcript
+or keys. Do not assume a battery-exemption workaround without an A/B result.

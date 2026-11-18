@@ -1,5 +1,25 @@
 # brrBoard agent instructions
 
+## 2026-11-18 — ColorOS 15 permission diagnosis; follow-up to signed v1.0.126
+
+Commit `8e3289c2a1f6a610352caf2d51935c2531268fc2` shipped
+[v1.0.126](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.126);
+debug CI `44339584441` and pinned original-signing release CI `44339584403`
+both SUCCESS. This proves build/signature gates, **not** the owner's Oppo mic.
+Follow-up owner request: audit latest released Dictate (v6.4.0, 2026-10-07),
+Dictate current main (2026-11-18), brrBoard and Android 15/ColorOS 15.
+Both Dictate v6.4 and main prematurely send `readyForSpeech` and can drop a
+stop during asynchronous capture startup. Android's RecognitionService docs
+require caller-attributed audio capture; Dictate instead constructs legacy
+AudioRecord. ColorOS's permission manager treats brrBoard and Dictate as two
+separate apps. A narrowly scoped follow-up source candidate checks Dictate's
+own `RECORD_AUDIO` runtime grant only on error 9 and reports it separately from
+caller permission vs provider/AppOps denial; adds tests, no extra permissions.
+Global mic toggle, Android 15 audio-focus background limits, battery saver and
+audio contention are conditional test items, **not proven Oppo failure causes**.
+See `docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`. This follow-up requires
+new CI/release and owner physical verification; do not mark voice solved yet.
+
 ## 2026-11-18 — Owner-authorized invisible Dictate voice rebuild (source candidate)
 
 The owner explicitly requests implementation of the best no-popup/no-IME-switch

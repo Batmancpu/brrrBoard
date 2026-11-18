@@ -55,6 +55,12 @@ class DictateServiceSelectionTest {
     @Test fun recognizerPermissionErrorIsNotMisreportedAsLocalDeniedPermission() {
         assertEquals(R.string.inline_voice_provider_audio_failure,
             recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, true))
+        assertEquals(R.string.inline_voice_provider_audio_failure,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, true, true))
+        assertEquals(R.string.inline_voice_dictate_permission,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, true, false))
+        assertEquals(R.string.inline_voice_permission,
+            recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, false, false))
         assertEquals(R.string.inline_voice_permission,
             recognitionFailureMessage(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, false))
         assertEquals(R.string.inline_voice_no_speech,

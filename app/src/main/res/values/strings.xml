@@ -526,7 +526,9 @@
     <string name="board_voice_english_only">Dictate must be set to English</string>
     <string name="board_voice_failed">Dictation unavailable — try again</string>
     <string name="inline_voice_provider_audio_failure">Dictate could not start audio capture. brrBoard microphone permission may already be granted; the recognition service or Android audio access rejected the request.</string>
+    <string name="inline_voice_dictate_permission">Allow microphone access for Dictate in ColorOS Settings → Security &amp; privacy → Privacy controls → Permission manager → Microphone. Check both Dictate and brrBoard.</string>
     <string name="board_voice_provider_audio_failure">Dictate could not access audio</string>
+    <string name="board_voice_dictate_permission_missing">Allow Dictate microphone access</string>
     <string name="board_voice_starting">Starting…</string>
     <string name="board_voice_listening">Listening…</string>
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>

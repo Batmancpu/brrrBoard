@@ -1,5 +1,16 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — ColorOS 15: both apps' mic grant and provider AppOps are distinct
+
+Green [v1.0.126](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.126)
+fixes caller lifecycle; no phone acceptance yet. A callback error 9 can still
+occur despite brrBoard's local runtime mic grant. Follow-up source candidate
+also queries Dictate's own package-level `RECORD_AUDIO` grant and shows
+"Allow Dictate microphone access" only when that grant is denied; otherwise
+it preserves the provider/Android attribution failure message. This query is
+not an AppOps proof. ColorOS 15 permission steps, Android 15 background-focus
+hazard and device test plan: `docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`.
+
 ## 2026-11-18 — Invisible Dictate voice remains an Oppo acceptance blocker
 
 Owner previously observed `ERROR_INSUFFICIENT_PERMISSIONS` from the selected

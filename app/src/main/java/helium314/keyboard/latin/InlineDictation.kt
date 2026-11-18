@@ -178,8 +178,18 @@ internal class InlineDictation(private val ime: LatinIME) {
                     // It is not proof that the user denied brrBoard's runtime permission.
                     val locallyGranted = ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
                         PackageManager.PERMISSION_GRANTED
-                    Log.w("InlineDictation", "Recognition callback failed: code=$error localMicPermission=$locallyGranted")
-                    fail(recognitionFailureMessage(error, locallyGranted))
+                    // ColorOS can show brrBoard granted while Dictate has no microphone grant.
+                    // A grant still cannot rule out Android's AppOps/attribution denial.
+                    val dictateGranted = if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                        runCatching {
+                            ime.packageManager.checkPermission(
+                                Manifest.permission.RECORD_AUDIO, DICTATE_SERVICE_PACKAGE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        }.getOrNull()
+                    } else null
+                    Log.w("InlineDictation", "Recognition callback failed: code=$error " +
+                        "localMicPermission=$locallyGranted dictateMicPermission=$dictateGranted")
+                    fail(recognitionFailureMessage(error, locallyGranted, dictateGranted))
                 }
                 override fun onResults(results: Bundle?) {
                     if (!isCurrent()) return
@@ -272,12 +282,14 @@ internal class InlineDictation(private val ime: LatinIME) {
         val shortHint = when (message) {
             R.string.inline_voice_select_dictate_service -> R.string.board_voice_dictate_missing
             R.string.inline_voice_permission -> R.string.board_voice_permission_missing
+            R.string.inline_voice_dictate_permission -> R.string.board_voice_dictate_permission_missing
             R.string.inline_voice_provider_audio_failure -> R.string.board_voice_provider_audio_failure
             R.string.inline_voice_hindi_result -> R.string.board_voice_english_only
             else -> R.string.board_voice_failed
         }
         statusFooter?.showDictationError(shortHint)
-        val duration = if (message == R.string.inline_voice_hindi_result) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        val duration = if (message == R.string.inline_voice_hindi_result ||
+            message == R.string.inline_voice_dictate_permission) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
         Toast.makeText(ime, message, duration).show()
     }
 
@@ -355,11 +367,19 @@ private const val DICTATE_RECOGNITION_SERVICE_CLASS =
     "dev.patrickgold.florisboard.dictate.recognition.DictateRecognitionService"
 
 /** Distinguish brrBoard's local permission gate from a provider's asynchronous error. */
-internal fun recognitionFailureMessage(error: Int, localMicPermissionGranted: Boolean): Int = when (error) {
+internal fun recognitionFailureMessage(
+    error: Int,
+    localMicPermissionGranted: Boolean,
+    dictateMicPermissionGranted: Boolean? = null,
+): Int = when (error) {
     SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> R.string.inline_voice_no_model
     SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> R.string.inline_voice_unsupported_language
     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-        if (localMicPermissionGranted) R.string.inline_voice_provider_audio_failure else R.string.inline_voice_permission
+        when {
+            !localMicPermissionGranted -> R.string.inline_voice_permission
+            dictateMicPermissionGranted == false -> R.string.inline_voice_dictate_permission
+            else -> R.string.inline_voice_provider_audio_failure
+        }
     SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> R.string.inline_voice_no_speech
     else -> R.string.inline_voice_failure
 }

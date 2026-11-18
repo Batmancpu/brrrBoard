@@ -1,5 +1,20 @@
 # brrBoard project context
 
+## 2026-11-18 — ColorOS 15 refinement after green signed Dictate v126
+
+Owner asks explicit ColorOS 15/Oppo Reno 10 5G audit and tailoring. brrBoard
+`8e3289c` is source-matched [v1.0.126](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.126),
+both GitHub workflows green. Dictate current GitHub release is v6.4.0, while
+main has continued development; inspected release-tagged RecognitionSession
+too and confirmed the same early-ready/stop gap. Android 15 background audio
+focus is a potential optional-feature conflict, whereas a `SpeechRecognizer`
+error 9 warrants separate permission checks for brrBoard and Dictate and
+consideration of global microphone privacy/AppOps, without demanding broad
+battery exemptions or permission bypasses. Follow-up implementation adds
+Dictate mic-grant diagnostics and focused unit assertions. ColorOS physical
+success remains unverified. Full first-party rationale/checklist in
+`docs/DICTATE_INVISIBLE_VOICE_REBUILD_2026_11_18.md`.
+
 ## 2026-11-18 — New owner priority: invisible Dictate mic, source implementation pending CI
 
 User authorizes a targeted rebuild so tapping brrBoard's mic never opens
