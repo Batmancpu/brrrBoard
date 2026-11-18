@@ -43,7 +43,7 @@ class RoundedKeyboardFrameEmojiHeaderTest {
 
     private fun createFrame(emojiVisible: Boolean): Fixture {
         val context = RuntimeEnvironment.getApplication() as Application
-        val frame = RoundedKeyboardFrameView(context)
+        val frame = RoundedKeyboardFrameView(context).apply { orientation = LinearLayout.VERTICAL }
         fun addRow(id: Int, height: Int): View = View(context).also {
             it.id = id
             frame.addView(it, LinearLayout.LayoutParams(500, height))
