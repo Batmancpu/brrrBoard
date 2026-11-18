@@ -1,0 +1,24 @@
+# brrBrain learning dashboard — implementation checkpoint (2026-11-19)
+
+## Owner request
+Owner confirms swipe typing no longer crashes in v1.0.133 and is more usable; now wants a colorful REAL learning dashboard (not arbitrary scores), a privacy-safe encrypted learning future (optional local touch paths that are distilled and then erased), restored suggestion strip, proper Clipboard Search rainbow and no text/blur behind ABC/mic, plus remaining documented batches. Work exclusively on main, preserve original signer, Dictate independent, run CI per batch and retain full context.
+
+## First implementation: genuine measurement only
+- Settings > Typing & input > brrBrain learning dashboard. Material 3 colorful cards, manual Refresh, erase swipe correction-pair learning with confirmation.
+- Read SwipeCorrectionLearner.snapshot(): in-process eligible swipe count (InputLogic.onEndBatchInput gated by mayLearnSwipe), in-process confirmed correction decisions, stored patterns, ready patterns (count>=2), and number of learned alternatives offered in current process. A local preview of up to 8 real correction associations lets owner review whether the learner is making wrong pairings. NOT an accuracy percentage: recall-offered does not mean accepted.
+- Read existing AdaptiveEmojiEngine SharedPreferences metadata (key pref_adaptive_emoji_metadata) for actual observed Emoji selection frequencies and top five. No new profiling or text capture in the dashboard.
+- Distinguish lifetime stored patterns from session counters, and show Accuracy: NOT MEASURED rather than fabricated model intelligence. Dashboard refreshes explicitly and does not itself observe app text.
+- Existing correction-pair file is local but unencrypted (brr_swipe_corrections_v1). Existing Emoji usage metadata also lives in SharedPreferences. The dashboard correctly discloses that encrypted Keystore vault migration is PENDING. Do not claim encrypted storage until migration and restore tests pass.
+
+## Suggestion strip symptom
+The owner reports the whole strip vanishes, with top-rounded keyboard beginning at row QWERTY. Source: KeyboardSwitcher.trySetKeyboardForFastCaseSwitch returns early before setMainKeyboardFrame, which is the method restoring mStripContainer and mSuggestionStripView after Emoji/Clipboard panels had set both GONE. New conditional restoration only if the toolbar/strip should exist and no active Search panel. Pure policy regression tests cover hidden panel, enabled and user-hidden toolbar.
+
+## Next gates, in order (not source-complete)
+1. Build the dashboard + strip recovery source with Android unit suite and original-signed Obtainium APK. Verify dashboard shows nonzero real numbers after corrections, privacy exclusions, and no ghost strip after fast ABC→Shift transitions on Oppo.
+2. Reproduce owner's still-unsatisfied Clipboard Search appearance **on the actual v1.0.133**. Do not assume earlier CSS/gradient and clipping code matches recorded request. Check Clipboard color and real text region in all layouts, and fix measurable root (not another blind tint).
+3. Add Android Keystore AES-GCM authenticated encryption of the bounded word-pair learner and/or opt-in short-lived gesture features; migrate the existing v1 file and verify lossless preservation, key failure/fallback, locked-device behavior, backup exclusion, reset and at-rest plaintext scan; never write raw touch paths until there is a validated adaptation/TTL deletion pipeline. Ordinary typing and native Glide must remain responsive if vault unavailable.
+4. Instrument measured auto-correction, top1 success and alternative selection only when the user explicitly confirms corrections; use acceptance metrics from observed behavior, not invented label/accuracy. Include active editor session reset and per-app privacy controls after review.
+5. Re-audit docs/ACTIVE_REMAINING_BATCHES_2026_11_18.md and current main. Prioritize unresolved visual bugs, Emoji contextual relevance, offline language/context, gesture library quality, big numpad and accessibility; do not implement features already source-shipped. Dictate is separate agent's scope. CI and device verification gates each batch; don't run obsolete failed commits just to make CI history green.
+
+## Constraints
+Private keyboard data stays on-device; no INTERNET; no logs of host text, passwords, clipboard contents or touch coordinates. Never store imported native Google-compatible gesture library content in the repo. Retain package com.mangoloads.board, pinned original certificate, single main branch. Only green CI proves build/test/sign, NOT phone visual or learning accuracy. The overnight automation is an independent scheduled agent (if enabled); this chat cannot promise continuous execution by itself.

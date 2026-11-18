@@ -110,6 +110,7 @@ fun MainSettingsScreen(
     onClickPreferences: () -> Unit,
     onClickToolbar: () -> Unit,
     onClickGestureTyping: () -> Unit,
+    onClickBrainDashboard: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
@@ -187,11 +188,17 @@ fun MainSettingsScreen(
         
         Md3ePreferenceGroup("Typing & input") {
             Md3ePreference(
+                icon = "insights",
+                title = "brrBrain learning dashboard",
+                description = "Actual swipe learning, correction history and Emoji usage",
+                onClick = onClickBrainDashboard,
+                isFirst = true
+            )
+            Md3ePreference(
                 icon = "gesture",
                 title = stringResource(R.string.settings_screen_gesture),
                 description = if (JniUtils.sHaveGestureLib) "Swipe typing, trail colors, and gesture actions" else stringResource(R.string.gesture_not_loaded_summary),
-                onClick = onClickGestureTyping,
-                isFirst = true
+                onClick = onClickGestureTyping
             )
             Md3ePreference(
                 icon = "spellcheck",

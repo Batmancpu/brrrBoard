@@ -756,6 +756,7 @@ public final class InputLogic {
         final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
         mCurrentSwipeSkeleton = null;
         if (mayLearnSwipe(values) && keyboard != null) {
+            SwipeCorrectionLearner.get(mLatinIME).recordSwipeAttempt();
             final java.util.List<String> hints = SwipeGeometryRescue.INSTANCE.hints(batchPointers, keyboard);
             if (!hints.isEmpty()) mCurrentSwipeSkeleton = hints.get(0);
         }

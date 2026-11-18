@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Bounded, local swipe-correction memory: geometric key skeleton -> confirmed word.
@@ -44,6 +45,9 @@ public final class SwipeCorrectionLearner {
     private final AtomicFile file;
     private final Map<String, Entry> learned = new HashMap<>();
     private long revision;
+    private final AtomicLong sessionSwipes = new AtomicLong();
+    private final AtomicLong sessionCorrections = new AtomicLong();
+    private final AtomicLong sessionRecallOffers = new AtomicLong();
 
     private static final class Entry {
         final String seed;
@@ -86,6 +90,51 @@ public final class SwipeCorrectionLearner {
         return instance;
     }
 
+    /** Read-only live diagnostics. Counts are sourced from actual learner events. */
+    public static final class Snapshot {
+        public final int storedPairs;
+        public final int readyPairs;
+        public final int totalConfirmationsInStore;
+        public final long swipesThisSession;
+        public final long confirmedCorrectionsThisSession;
+        public final long recallOffersThisSession;
+        public final List<String> recentAssociations;
+
+        Snapshot(int stored, int ready, int total, long swipes, long corrections,
+                long recallOffers, List<String> associations) {
+            storedPairs = stored;
+            readyPairs = ready;
+            totalConfirmationsInStore = total;
+            swipesThisSession = swipes;
+            confirmedCorrectionsThisSession = corrections;
+            recallOffersThisSession = recallOffers;
+            recentAssociations = java.util.Collections.unmodifiableList(associations);
+        }
+    }
+
+    /** Do not log the swipe geometry or editor text. Only count eligible gestures. */
+    public void recordSwipeAttempt() { sessionSwipes.incrementAndGet(); }
+
+    public synchronized Snapshot snapshot() {
+        int ready = 0;
+        int confirmations = 0;
+        final List<Entry> sorted = new ArrayList<>(learned.values());
+        sorted.sort(Comparator.comparingInt((Entry e) -> e.count).reversed()
+                .thenComparingLong(e -> -e.lastUsed));
+        final List<String> examples = new ArrayList<>();
+        for (final Entry e : sorted) {
+            confirmations += e.count;
+            if (e.count >= 2) ready++;
+            if (examples.size() < 8) {
+                examples.add(e.seed + "  →  " + e.word
+                        + (e.count >= 2 ? "  · ready" : "  · learning"));
+            }
+        }
+        return new Snapshot(learned.size(), ready, confirmations,
+                sessionSwipes.get(), sessionCorrections.get(),
+                sessionRecallOffers.get(), examples);
+    }
+
     public static boolean isAllowed(final Context context, @Nullable final EditorInfo editor,
             final boolean incognito, final boolean personalizedSuggestionsEnabled) {
         return personalizedSuggestionsEnabled && EmojiContextEligibility.isEligible(editor, incognito)
@@ -114,6 +163,7 @@ public final class SwipeCorrectionLearner {
             if (best == null || candidate.count > best.count
                     || (candidate.count == best.count && candidate.lastUsed > best.lastUsed)) best = candidate;
         }
+        if (best != null) sessionRecallOffers.incrementAndGet();
         return best == null ? null : best.word;
     }
 
@@ -133,6 +183,7 @@ public final class SwipeCorrectionLearner {
                 final Entry oldest = learned.values().stream().min(Comparator.comparingLong(e -> e.lastUsed)).orElse(null);
                 if (oldest != null) learned.remove(key(oldest.seed, oldest.word));
             }
+            sessionCorrections.incrementAndGet();
             snapshot = new ArrayList<>(learned.values());
             version = ++revision;
         }

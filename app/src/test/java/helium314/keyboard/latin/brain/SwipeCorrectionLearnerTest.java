@@ -35,6 +35,26 @@ public final class SwipeCorrectionLearnerTest {
         assertNull(learner.suggest("hapy"));
     }
 
+    @Test public void snapshotShowsOnlyMeasuredLearningAndReviewablePairs() {
+        final Context context = ApplicationProvider.getApplicationContext();
+        final SwipeCorrectionLearner learner = SwipeCorrectionLearner.get(context);
+        learner.clear();
+        final long beforeSwipes = learner.snapshot().swipesThisSession;
+        learner.recordSwipeAttempt();
+        learner.confirm("hapy", "happy");
+        final SwipeCorrectionLearner.Snapshot first = learner.snapshot();
+        assertEquals(beforeSwipes + 1, first.swipesThisSession);
+        assertTrue(first.storedPairs >= 1);
+        assertEquals(0, first.readyPairs);
+        assertTrue(first.recentAssociations.get(0).contains("happy"));
+        learner.confirm("hapy", "happy");
+        assertEquals(1, learner.snapshot().readyPairs);
+        assertEquals("happy", learner.suggest("hapy"));
+        assertTrue(learner.snapshot().recallOffersThisSession >= 1);
+        learner.clear();
+        assertEquals(0, learner.snapshot().storedPairs);
+    }
+
     @Test public void isOptInAndBlockedInPrivateEditors() {
         final Context context = ApplicationProvider.getApplicationContext();
         final SharedPreferences prefs = KtxKt.prefs(context);

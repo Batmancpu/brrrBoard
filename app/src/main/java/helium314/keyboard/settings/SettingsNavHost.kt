@@ -24,6 +24,7 @@ import helium314.keyboard.settings.screens.ColorsScreen
 import helium314.keyboard.settings.screens.DebugScreen
 import helium314.keyboard.settings.screens.DictionaryScreen
 import helium314.keyboard.settings.screens.GestureTypingScreen
+import helium314.keyboard.settings.screens.BrainDashboardScreen
 import helium314.keyboard.settings.screens.LanguageScreen
 import helium314.keyboard.settings.screens.MainSettingsScreen
 import helium314.keyboard.settings.screens.PersonalDictionariesScreen
@@ -73,6 +74,7 @@ fun SettingsNavHost(
                 onClickPreferences = { navController.navigate(SettingsDestination.Preferences) },
                 onClickToolbar = { navController.navigate(SettingsDestination.Toolbar) },
                 onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
+                onClickBrainDashboard = { navController.navigate(SettingsDestination.BrainDashboard) },
                 onClickAdvanced = { navController.navigate(SettingsDestination.Advanced) },
                 onClickAppearance = { navController.navigate(SettingsDestination.Appearance) },
                 onClickLanguage = { navController.navigate(SettingsDestination.Languages) },
@@ -96,6 +98,9 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.GestureTyping) {
             GestureTypingScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.BrainDashboard) {
+            BrainDashboardScreen(onClickBack = ::goBack)
         }
 /*      will be added as part of passive data gathering
         composable(SettingsDestination.DataReview) {
@@ -165,6 +170,7 @@ object SettingsDestination {
     const val Preferences = "preferences"
     const val Toolbar = "toolbar"
     const val GestureTyping = "gesture_typing"
+    const val BrainDashboard = "brain_dashboard"
     const val DataGathering = "data_gathering" // remove when data gathering phase is done (end of 2026 latest)
     const val DataReview = "data_review" // remove when data gathering phase is done (end of 2026 latest)
     const val Advanced = "advanced"

@@ -457,6 +457,19 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (!canUseFastCaseSwitch(oldKeyboard, newKeyboard, toggleState, animate)) {
             return false;
         }
+        // The fast alphabet case switch normally bypasses setMainKeyboardFrame.
+        // After Emoji/Clipboard Search the alphabet can be visible while the
+        // suggestion strip container is still GONE; restore it first.
+        final boolean searchActive = (mClipboardHistoryView != null && mClipboardHistoryView.isSearchMode())
+                || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode())
+                || (mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode());
+        if (SuggestionStripRestorePolicy.shouldRestore(
+                mLatinIME.hasSuggestionStripView(), mStripContainer != null
+                        && mStripContainer.getVisibility() == View.VISIBLE,
+                mSuggestionStripView != null && mSuggestionStripView.getVisibility() == View.VISIBLE,
+                searchActive)) {
+            setMainKeyboardFrame(settingsValues, toggleState);
+        }
         Trace.beginSection("KeyboardSwitcher#fastCaseSwitch");
         try {
             keyboardView.setKeyboardForCaseSwitch(newKeyboard);
