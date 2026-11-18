@@ -4,6 +4,7 @@
 package helium314.keyboard.keyboard.emoji;
 
 import android.util.SparseIntArray;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
@@ -79,6 +80,14 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     @Override public void onBindViewHolder(@NonNull final PageHolder holder, final int position) {
         final int categoryId = categoryAt(position);
         holder.categoryId = categoryId;
+        // A page can be rebound while the IME switches between compact Browse
+        // and the taller Search keyboard. Do not carry its old pixel offset
+        // into the first row of the newly measured viewport: only row indices
+        // are persisted, so position zero must begin wholly below top padding.
+        if (holder.topAnchorListener != null) {
+            holder.rows.removeOnLayoutChangeListener(holder.topAnchorListener);
+        }
+        holder.topAnchorListener = null;
         final float density = holder.rows.getResources().getDisplayMetrics().density;
         // Categories now sit in the fixed strip ABOVE this viewport. Keep only
         // the original 8dp breathing room; the old 60dp reservation for an
@@ -110,9 +119,46 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         final LinearLayoutManager manager = (LinearLayoutManager) holder.rows.getLayoutManager();
         if (manager != null) manager.scrollToPositionWithOffset(
                 Math.max(0, Math.min(rowAdapter.getItemCount() - 1, rememberedRows.get(categoryId, 0))), 0);
+        final View.OnLayoutChangeListener topAnchorListener = new View.OnLayoutChangeListener() {
+            private boolean corrected;
+
+            @Override public void onLayoutChange(final View view, final int left, final int top,
+                    final int right, final int bottom, final int oldLeft, final int oldTop,
+                    final int oldRight, final int oldBottom) {
+                // A one-time geometry correction, not a scroll snap. Ordinary
+                // finger scrolling and saved nonzero category rows are untouched.
+                if (corrected || holder.categoryId != categoryId ||
+                        bottom <= top || holder.rows.getScrollState() != RecyclerView.SCROLL_STATE_IDLE ||
+                        rememberedRows.get(categoryId, 0) != 0) return;
+                final LinearLayoutManager lm = (LinearLayoutManager) holder.rows.getLayoutManager();
+                if (lm == null || lm.findFirstVisibleItemPosition() != 0) return;
+                final View first = lm.findViewByPosition(0);
+                if (first == null) return;
+                if (EmojiRowViewportPolicy.firstRowNeedsAlignment(first.getTop(),
+                        holder.rows.getPaddingTop())) {
+                    corrected = true;
+                    lm.scrollToPositionWithOffset(0, 0);
+                    holder.rows.requestLayout();
+                }
+            }
+        };
+        holder.topAnchorListener = topAnchorListener;
+        holder.rows.addOnLayoutChangeListener(topAnchorListener);
+        // Rebinding a page does not always change RecyclerView's outer bounds,
+        // so run the same check once after its next child layout as well.
+        holder.rows.post(() -> {
+            if (holder.topAnchorListener == topAnchorListener) {
+                topAnchorListener.onLayoutChange(holder.rows, 0, 0,
+                        holder.rows.getWidth(), holder.rows.getHeight(), 0, 0, 0, 0);
+            }
+        });
     }
 
     @Override public void onViewRecycled(@NonNull final PageHolder holder) {
+        if (holder.topAnchorListener != null) {
+            holder.rows.removeOnLayoutChangeListener(holder.topAnchorListener);
+            holder.topAnchorListener = null;
+        }
         remember(holder);
         holder.rows.setAdapter(null);
     }
@@ -129,6 +175,7 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
 
     static final class PageHolder extends RecyclerView.ViewHolder {
         final RecyclerView rows;
+        View.OnLayoutChangeListener topAnchorListener;
         int categoryId = -1;
         PageHolder(final FrameLayout root, final RecyclerView rows) { super(root); this.rows = rows; }
     }
