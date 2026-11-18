@@ -115,6 +115,11 @@ final class EmojiContextIndex {
         return mByEmoji.get(exactEmoji);
     }
 
+    /** Read-only CLDR-order source for the lazy Describe index; never expose mutations. */
+    Map<String, Annotation> entries() {
+        return mByEmoji;
+    }
+
     int size() {
         return mByEmoji.size();
     }

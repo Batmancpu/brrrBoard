@@ -498,6 +498,7 @@
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="emoji_search_no_results">No matching emoji</string>
+    <string name="emoji_describe_search_hint">Describe an emoji</string>
     <string name="emoji_expand">Expand emoji</string>
     <string name="emoji_collapse">Collapse emoji</string>
     <string name="emoji_glass_tone_title">Emoji glass light and dark tint</string>

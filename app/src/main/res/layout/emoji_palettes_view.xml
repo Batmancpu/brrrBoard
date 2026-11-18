@@ -67,7 +67,7 @@
                     android:layout_weight="1"
                     android:background="@android:color/transparent"
                     android:gravity="center_vertical"
-                    android:hint="@string/search_field_placeholder"
+                    android:hint="@string/emoji_describe_search_hint"
                     android:imeOptions="actionSearch|flagNoExtractUi"
                     android:inputType="text|textNoSuggestions"
                     android:padding="0dp"

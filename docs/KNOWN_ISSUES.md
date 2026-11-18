@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — Describe an Emoji implemented in source; signed CI and phone relevance OPEN
+
+Owner superseded plan-only restriction and requested implementation immediately while testing v1.0.112. New Search-only background CLDR token index, reviewed aliases/typo matches, generation-checked results, UI hint and two pure Java regression suites are in the source candidate (`docs/DESCRIBE_EMOJI_IMPLEMENTATION_2026_11_18.md`). **Do not claim signed release, device latency/relevance or correct interaction until new CI, original signer and Oppo testing**. No AI/network/corpus update, no normal typing integration. Potential remaining issues: English-only coverage, obscure descriptions missing from the finite CLDR/alias corpus, fallback locale dictionary delay on no-match, on-device low-memory index residency and search keyboard accessibility. Existing v1.0.112 Emoji upper-band crop/blur transitions still require independent owner result and are not modified by this batch.
+
 ## 2026-11-18 — A3 release gate and Describe Emoji plan-only hold
 
 Signed v1.0.110 from `74f07d1` passed both Actions workflows; physical Expand/Collapse and earlier Smileys crop still need owner Oppo check. A3 source candidate (only Emoji internal blur pixel tonality and matching footer; off restores the original path) requires its **own** Android debug/unit and original-signing workflow before release, plus user dark/light comparison and GPU seam/performance QA. The user's concern about an extra global dark overlay is a hard prohibition. The offline "Describe an Emoji" engine is **NOT IMPLEMENTED**; code-level plan in `docs/DESCRIBE_EMOJI_ENGINE_PLAN_2026_11_18.md`; pending user confirmation of exact phrase-search UX. No AI/network/permission inference included.

@@ -144,6 +144,7 @@ public final class EmojiPalettesView extends LinearLayout
     private boolean mExpandedMode = false;
     private boolean mUpdatingSearchText = false;
     private String mSearchQuery = "";
+    private long mSearchGeneration;
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
     private LinearLayout mContextSmartSection;
     private LinearLayout mContextSmartRow;
@@ -655,6 +656,9 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         mSearchMode = true;
+        // This worker is allocated only on deliberate Emoji Search entry;
+        // ordinary typing and Browse never load the description index.
+        EmojiDescribeEngine.get().warmUp(getContext());
         if (mSearchEditText != null) mSearchEditText.setFocusableInTouchMode(true);
         updateExpandButton();
         updateContextSmartVisibility();
@@ -699,6 +703,8 @@ public final class EmojiPalettesView extends LinearLayout
             setSearchText("", 0);
         }
         mSearchMode = false;
+        ++mSearchGeneration;
+        EmojiDescribeEngine.get().cancelPending();
         updateContextSmartVisibility();
         if (mSearchEditText != null) {
             mSearchEditText.setCursorVisible(false);
@@ -935,32 +941,61 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsKeyboard == null || mSearchResultsView == null) {
             return;
         }
-        // Search must work offline even if the optional per-locale binary Emoji
-        // dictionary is absent. CLDR metadata is bundled in every APK.
-        final java.util.LinkedHashSet<String> matches = new java.util.LinkedHashSet<>();
-        if (text != null && !text.isBlank()) {
-            final EmojiContextIndex annotations = getSearchAnnotations(getContext());
-            if (annotations != null) {
-                for (final String candidate : annotations.search(text, 96)) {
-                    matches.add(EmojiParserKt.getEmojiDefaultVersion(candidate));
-                }
+        final long generation = ++mSearchGeneration;
+        final String query = text == null ? "" : text;
+        // Clear the previous query's tappable results immediately. Never let a
+        // stale Emoji remain interactive while a newer phrase is indexing.
+        showEmojiSearchResults(query, List.of(), false);
+        if (!mSearchMode || query.isBlank()) return;
+        // All asset I/O, token posting lookups and typo correction happen on
+        // one bounded background worker, not inside the IME key event path.
+        EmojiDescribeEngine.get().search(getContext(), query, 24, (found, indexAvailable) -> {
+            if (generation != mSearchGeneration || !mSearchMode
+                    || !query.equals(mSearchQuery)) return;
+            final java.util.LinkedHashSet<String> matches = new java.util.LinkedHashSet<>();
+            for (final String candidate : found) {
+                matches.add(EmojiParserKt.getEmojiDefaultVersion(candidate));
             }
+            // Preserve the existing optional locale dictionary for queries the
+            // pinned English CLDR cannot answer. No dictionary I/O is needed
+            // on the usual successful description-query path.
+            if (matches.isEmpty()) {
+                if (!indexAvailable) {
+                    final EmojiContextIndex legacy = getSearchAnnotations(getContext());
+                    if (legacy != null) for (final String item : legacy.search(query, 24))
+                        matches.add(EmojiParserKt.getEmojiDefaultVersion(item));
+                }
+                if (matches.isEmpty()) addLocalDictionaryMatches(query, matches);
+            }
+            showEmojiSearchResults(query, new ArrayList<>(matches), true);
+        });
+    }
+
+    private void addLocalDictionaryMatches(final String text,
+            final java.util.LinkedHashSet<String> matches) {
+        try {
             initSearchDictionaryFacilitator();
             final SingleDictionaryFacilitator facilitator = sSearchDictionaryFacilitator;
-            if (facilitator != null) {
-                final List<String> tokens = StringUtilsKt.splitOnWhitespace(text);
-                for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
-                    if (suggestion.isEmoji()) {
-                        matches.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
-                        if (matches.size() >= 96) break;
-                    }
+            if (facilitator == null) return;
+            final List<String> tokens = StringUtilsKt.splitOnWhitespace(text);
+            for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
+                if (suggestion.isEmoji()) {
+                    matches.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
+                    if (matches.size() >= 24) break;
                 }
             }
+        } catch (final RuntimeException error) {
+            Log.e("EmojiPalettesView", "Local Emoji dictionary fallback unavailable", error);
         }
-        final ArrayList<String> emojis = new ArrayList<>(matches);
+    }
 
+    /** UI thread only; the existing Search keyboard and variant popups stay intact. */
+    private void showEmojiSearchResults(final String text, final List<String> emojis,
+            final boolean finalAnswer) {
         final int keyboardWidth = getSearchResultsKeyboardWidth(emojis.size());
-        if (keyboardWidth != mSearchResultsKeyboardWidth) {
+        // Clearing the old query must not rebuild an entire keyboard layout
+        // on every character. Only rebuild once the worker has final hits.
+        if (finalAnswer && keyboardWidth != mSearchResultsKeyboardWidth) {
             setupSearchResultKeyboard(keyboardWidth);
         }
         mSearchResultsKeyboard.removeAllKeys();
@@ -978,7 +1013,8 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
         }
         if (mSearchEmptyView != null) {
-            final boolean noMatches = text != null && !text.isBlank() && emojis.isEmpty();
+            final boolean noMatches = finalAnswer && text != null
+                    && !text.isBlank() && emojis.isEmpty();
             mSearchEmptyView.setVisibility(mSearchMode && noMatches ? View.VISIBLE : View.GONE);
             if (mSearchResultsScrollView != null)
                 mSearchResultsScrollView.setVisibility(mSearchMode && noMatches ? View.GONE : View.VISIBLE);
@@ -1729,6 +1765,9 @@ public final class EmojiPalettesView extends LinearLayout
 
     public void stopEmojiPalettes() {
         if (!initialized) return;
+
+        ++mSearchGeneration;
+        EmojiDescribeEngine.get().cancelPending();
 
         if (mSearchMode) {
             exitSearchMode(false, false);

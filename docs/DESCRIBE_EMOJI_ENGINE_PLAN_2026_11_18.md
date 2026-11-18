@@ -1,6 +1,6 @@
 # Describe an Emoji — offline engine, code-level implementation plan
 
-**Status:** DESIGN ONLY. No Describe Emoji engine implementation authorized yet.
+**Status at original writing:** DESIGN ONLY. **Superseded 2026-11-18:** owner explicitly authorized implementation; actual code and tests tracked at [Describe implementation](DESCRIBE_EMOJI_IMPLEMENTATION_2026_11_18.md). Retain this document as the original proposal, not the current hold.
 **Owner:** brrBoard (`com.mangoloads.board`), `main` only, Oppo Reno 10 5G.
 **Sequence:** finish separate Emoji-only tonal glass release first; begin this
 engine only after the owner approves the behavior and acceptance criteria.
