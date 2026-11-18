@@ -127,6 +127,7 @@ public final class EmojiPalettesView extends LinearLayout
     private ImageButton mSearchBackButton;
     private EditText mSearchEditText;
     private ImageButton mSearchClearButton;
+    private ImageButton mSearchExpandButton;
     private HorizontalScrollView mSearchResultsScrollView;
     private EmojiPageKeyboardView mSearchResultsView;
     private TextView mSearchEmptyView;
@@ -138,6 +139,7 @@ public final class EmojiPalettesView extends LinearLayout
     private float mSearchKeyWidth;
     private float mSearchKeyHeight;
     private boolean mSearchMode = false;
+    private boolean mExpandedMode = false;
     private boolean mUpdatingSearchText = false;
     private String mSearchQuery = "";
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
@@ -194,7 +196,14 @@ public final class EmojiPalettesView extends LinearLayout
         // reparents that alphabet view, and its stale size previously made
         // Browse grow depending on whether Search had just been dismissed.
         // Keep the existing grid, fixed tabs, footer and glass unchanged.
-        if (mSearchMode) {
+        if (mExpandedMode && !mSearchMode) {
+            // Real Expanded Browse, never a lingering Search measurement.
+            // 160dp includes its own 48dp search bar; the rest shows extra
+            // emoji rows while retaining the fixed category strip/footer.
+            final int growth = (int) (160 * res.getDisplayMetrics().density);
+            finalHeight = helium314.keyboard.latin.SharedPanelGeometry.emojiExpandedBodyHeight(
+                    finalHeight, growth, availableHeight);
+        } else if (mSearchMode) {
             // Search is a complete typing keyboard plus one result row and a
             // search field. The fixed-height grid mode cannot accommodate it.
             final View searchBar = findViewById(R.id.emoji_search_bar_container);
@@ -342,6 +351,7 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchBackButton = findViewById(R.id.emoji_search_back_button);
         mSearchEditText = findViewById(R.id.emoji_search_edit_text);
         mSearchClearButton = findViewById(R.id.emoji_search_clear_button);
+        mSearchExpandButton = findViewById(R.id.emoji_search_expand_button);
         mSearchResultsScrollView = findViewById(R.id.emoji_search_results_scroll);
         mSearchResultsView = findViewById(R.id.emoji_search_results_view);
         mSearchEmptyView = findViewById(R.id.emoji_search_empty);
@@ -434,7 +444,20 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchBackButton != null) {
             mSearchBackButton.setOnClickListener(v -> {
                 performTapFeedback(v);
-                exitSearchMode(false);
+                if (mSearchMode) exitSearchMode(false);
+                else collapseExpandedBrowse();
+            });
+        }
+        if (mSearchExpandButton != null) {
+            mSearchExpandButton.setOnClickListener(v -> {
+                performTapFeedback(v);
+                if (mSearchMode) {
+                    mExpandedMode = !mExpandedMode;
+                    setSearchText("", 0);
+                    exitSearchMode(false);
+                } else if (mExpandedMode) {
+                    collapseExpandedBrowse();
+                }
             });
         }
         if (mSearchClearButton != null) {
@@ -445,7 +468,10 @@ public final class EmojiPalettesView extends LinearLayout
             });
         }
         if (mSearchEditText != null) {
-            mSearchEditText.setOnClickListener(v -> focusSearchField(false));
+            mSearchEditText.setOnClickListener(v -> {
+                if (mExpandedMode && !mSearchMode) enterSearchMode();
+                else focusSearchField(false);
+            });
         }
     }
 
@@ -458,6 +484,12 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchBackButton.setBackground(createBackButtonBackground(mColors));
             mSearchBackButton.setPadding(0, 0, 0, 0);
             mSearchBackButton.setScaleType(ImageView.ScaleType.CENTER);
+        }
+        if (mSearchExpandButton != null) {
+            mColors.setColor(mSearchExpandButton, ColorType.FUNCTIONAL_KEY_TEXT);
+            mSearchExpandButton.setBackground(createBackButtonBackground(mColors));
+            mSearchExpandButton.setPadding(0, 0, 0, 0);
+            mSearchExpandButton.setScaleType(ImageView.ScaleType.CENTER);
         }
         if (mSearchEditText != null) {
             final int toolBarColor = mColors.get(ColorType.TOOL_BAR_KEY);
@@ -544,6 +576,11 @@ public final class EmojiPalettesView extends LinearLayout
     public void startEmojiPalettes(final KeyVisualAttributes keyVisualAttr,
                final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
         initialize();
+        // A new Emoji session always starts compact; expansion is user-driven.
+        mExpandedMode = false;
+        if (!mSearchMode && mSearchBarContainer != null) {
+            mSearchBarContainer.setVisibility(View.GONE);
+        }
         PanelMaterial.apply(getContext(), Settings.getValues().mColors,
                 findViewById(R.id.emoji_header_scrim),
                 findViewById(R.id.emoji_bottom_glass), mPager);
@@ -581,6 +618,8 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         mSearchMode = true;
+        if (mSearchEditText != null) mSearchEditText.setFocusableInTouchMode(true);
+        updateExpandButton();
         updateContextSmartVisibility();
         mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
 
@@ -626,12 +665,14 @@ public final class EmojiPalettesView extends LinearLayout
         updateContextSmartVisibility();
         if (mSearchEditText != null) {
             mSearchEditText.setCursorVisible(false);
-
             mSearchEditText.clearFocus();
+            // Expanded Browse has a search entry point, not a live input.
+            mSearchEditText.setFocusable(false);
         }
         if (mSearchBarContainer != null) {
-            mSearchBarContainer.setVisibility(View.GONE);
+            mSearchBarContainer.setVisibility(mExpandedMode ? View.VISIBLE : View.GONE);
         }
+        updateExpandButton();
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.setVisibility(View.GONE);
         }
@@ -671,7 +712,28 @@ public final class EmojiPalettesView extends LinearLayout
             exitSearchMode(false);
             return true;
         }
+        if (mExpandedMode) {
+            collapseExpandedBrowse();
+            return true;
+        }
         return false;
+    }
+
+    private void updateExpandButton() {
+        if (mSearchExpandButton == null) return;
+        final boolean expanded = mExpandedMode;
+        mSearchExpandButton.setImageResource(expanded
+                ? R.drawable.ic_emoji_collapse : R.drawable.ic_emoji_expand);
+        mSearchExpandButton.setContentDescription(getResources().getString(expanded
+                ? R.string.emoji_collapse : R.string.emoji_expand));
+    }
+
+    private void collapseExpandedBrowse() {
+        if (!mExpandedMode || mSearchMode) return;
+        mExpandedMode = false;
+        if (mSearchBarContainer != null) mSearchBarContainer.setVisibility(View.GONE);
+        updateExpandButton();
+        requestLayout();
     }
 
     private void restoreEmojiCategoryStrip() {
@@ -1629,6 +1691,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchMode) {
             exitSearchMode(false, false);
         }
+        collapseExpandedBrowse();
         getRecentsKeyboard().flushPendingRecentKeys();
         // Never retain even a reviewed trigger or selection across editors.
         mHasContextSmartPicks = false;

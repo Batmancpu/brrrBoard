@@ -7,6 +7,20 @@ package helium314.keyboard.latin
  * never to individual Emoji/Clipboard panels.
  */
 object SharedPanelGeometry {
+    /**
+     * Expanded Emoji is an explicit, reversible browse mode. A transition
+     * through Search must never silently turn compact Browse into this size.
+     * The requested growth includes the 48dp toolbar shown in expanded mode;
+     * the remaining room becomes additional fully scrollable emoji rows.
+     */
+    @JvmStatic
+    fun emojiExpandedBodyHeight(
+        compactBodyPx: Int,
+        requestedGrowthPx: Int,
+        availableBodyPx: Int,
+    ): Int = (compactBodyPx.coerceAtLeast(0).toLong() + requestedGrowthPx.coerceAtLeast(0))
+        .coerceAtMost(availableBodyPx.coerceAtLeast(0).toLong()).toInt()
+
     @JvmStatic
     fun emojiSearchBodyHeight(
         typingBodyPx: Int,

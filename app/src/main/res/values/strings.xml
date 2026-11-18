@@ -498,6 +498,8 @@
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="emoji_search_no_results">No matching emoji</string>
+    <string name="emoji_expand">Expand emoji</string>
+    <string name="emoji_collapse">Collapse emoji</string>
     <string name="inline_voice_setup">Microphone permission</string>
     <string name="inline_voice_setup_summary">Allow brrBoard to use the microphone for dictation through your selected Android speech service.</string>
     <string name="inline_voice_unavailable">No compatible Android speech-recognition service is available.</string>

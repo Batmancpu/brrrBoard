@@ -1,5 +1,9 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — A1 Oppo check / A2 Expanded Browse / Emoji-only tonal glass
+
+v1.0.109 `f01e20a3` signed/CI passed but owner testing of Smileys first-row crop is still outstanding. A2 adds a reversible intentional Expanded Emoji Browse button to Search and prevents Search→Back from triggering unwanted extra height; both CI and Oppo expanded/compact/Back/category/landscape QA remain open until gates complete (`docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`). Following separate tonal batch must darken only blurred Emoji content in dark mode and brighten only blurred Emoji content in light mode, with Off restoring original pixels; no compounded host backdrop blur.
+
 ## 2026-11-18 — v1.0.108 Emoji first-row crop persists (focused corrective candidate)
 
 Owner's new Oppo photo verifies that A1's panel-height correction did NOT physically eliminate a half-clipped first Smileys row and empty-looking upper band. In the RecyclerView pager, saved vertical position is an integer row, while the actual first view can inherit an unverified fractional/pixel offset after bind or geometry transition. A new one-time top-anchor correction for remembered row zero is in source, guarded against mid-gesture movement and nonzero saved rows. Automated test and original signing remain pending; only the Oppo first-open, tab switching and Search→Back repeat can close this issue. Never claim success from CI alone. Protected lower live blur and other layout/features remain untouched. See `docs/EMOJI_TOP_ROW_CLIP_2026_11_18.md`.

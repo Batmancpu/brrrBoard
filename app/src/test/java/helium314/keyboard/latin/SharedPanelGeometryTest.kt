@@ -31,6 +31,14 @@ class SharedPanelGeometryTest {
         assertEquals(300, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 300))
         assertEquals(288, SharedPanelGeometry.emojiSearchBodyHeight(252, 0, 0, 288, 1000))
     }
+    @Test fun expandedEmojiIsDeliberateAndClampedWithoutMutatingCompactBrowse() {
+        val compact = SharedPanelGeometry.panelBodyHeight(252, 0, 36, true, 1000)
+        assertEquals(252, compact)
+        assertEquals(412, SharedPanelGeometry.emojiExpandedBodyHeight(compact, 160, 1000))
+        assertEquals(340, SharedPanelGeometry.emojiExpandedBodyHeight(compact, 160, 340))
+        assertEquals(compact, SharedPanelGeometry.panelBodyHeight(252, 0, 36, true, 1000))
+        assertEquals(0, SharedPanelGeometry.emojiExpandedBodyHeight(-5, -1, 0))
+    }
     @Test fun compactBrowseIsIndependentOfSearchHeightAndClampedToCurrentWindow() {
         val compactBefore = SharedPanelGeometry.panelBodyHeight(642, 0, 108, false, 1100)
         val search = SharedPanelGeometry.emojiSearchBodyHeight(642, 48, 56, compactBefore, 1100)

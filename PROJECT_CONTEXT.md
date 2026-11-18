@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-18 — current owner-driven Emoji sequence
+
+Signed v1.0.109 from `f01e20a3` passed both CI workflows and released to Obtainium; owner has not yet reported real Oppo outcome of A1 top-row alignment. A2 in progress on main: explicit Expand/Collapse beside Emoji Search, separate compact/search/expanded heights, no lower glass modification (`docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`). Following distinct batch: tune only internal blurred Emoji source pixels dark/light with an Appearance switch, preserving the host backdrop and other panels. Do not assert iOS pixel parity without device comparison.
+
 ## 2026-11-18 — single-bug v1.0.108 Emoji top-row clipping follow-up
 
 Owner provided fresh photo from Oppo Reno 10 5G running signed v1.0.108. The leading Smileys row is cut at the upper grid edge, with empty-looking space between fixed categories and the cropped row. Source audit: A1's deterministic Browse height fix has no per-pixel top-row boundary check; `EmojiCategoryPagerAdapter` persists row numbers but its nested RecyclerView may keep an offset when rebound/relaid out across modes. Candidate remediation checks real first-row bounds after layout and aligns row zero to the existing 8dp padding exactly once if mispositioned. It does not change glass/footer/icons/Search implementation or start the planned Expand work. Test file `EmojiRowViewportPolicyTest.java`; detailed ledger `docs/EMOJI_TOP_ROW_CLIP_2026_11_18.md`. Until both Android CI gates and owner phone testing, classify as unverified source fix, not a verified physical solution. All other backlog paused at owner's request.

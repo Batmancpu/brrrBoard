@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## 2026-11-18 — owner A2: deliberate Expanded Emoji Browse after v1.0.109
+
+v1.0.109 `f01e20a3` published original-signed after both CI workflows passed; **Oppo first-row acceptance is pending**. Owner's 27-second recording demonstrates Search→Back accidentally producing a taller multi-row Emoji grid. A2 now implements deliberate Expand control beside Emoji Search, a separate reversible expanded Browse state and viewport cap. See `docs/EMOJI_EXPANDED_BROWSE_2026_11_18.md`. Do not mix with A1 or change the approved lower Emoji/footer glass. CI/release and Oppo acceptance for A2 pending. Next separate request: darken internal blurred Emoji pixels in dark mode, lighten in light mode, toggle in Appearance; **never darken the existing host-app blur again**. Do not touch Clipboard/Toolbar or the keyboard's backdrop.
+
 ## 2026-11-18 — owner v1.0.108 top Emoji row clipping, ONE ISSUE ONLY
 
 Owner supplied a new Oppo Reno 10 5G photo of installed **v1.0.108**: fixed Emoji categories at top, an empty-looking band, and the first Smileys row severed at a horizontal upper edge; second row is intact. A1 changed `EmojiPalettesView.onMeasure` but did not guarantee a fully aligned first item after the nested RecyclerView is rebound or remeasured. The vertical category list only saves integer row indices; during compact/Search/Back or a pager geometry change a leftover pixel offset can still show part of row zero. This is a source-level failure mode consistent with the photo, not yet a captured on-device layout trace.

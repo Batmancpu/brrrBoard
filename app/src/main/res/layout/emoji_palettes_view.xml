@@ -88,6 +88,17 @@
                     android:visibility="gone" />
             </LinearLayout>
         </FrameLayout>
+        <!-- Explicit Expand/Collapse, kept beside Emoji Search rather than
+             altering the normal compact grid or its fixed action row. -->
+        <ImageButton
+            android:id="@+id/emoji_search_expand_button"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="6dp"
+            android:contentDescription="@string/emoji_expand"
+            android:padding="0dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_emoji_expand" />
     </LinearLayout>
 
     <HorizontalScrollView
