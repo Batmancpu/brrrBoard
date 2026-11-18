@@ -485,9 +485,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
             ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x35)),
             null, null)
         searchMatchHaze.background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            intArrayOf(ColorUtils.setAlphaComponent(colors.get(ColorType.SPECIAL_KEY_BACKGROUND), 0x00),
-                ColorUtils.setAlphaComponent(colors.get(ColorType.SPECIAL_KEY_BACKGROUND), 0x54),
-                ColorUtils.setAlphaComponent(colors.get(ColorType.SPECIAL_KEY_BACKGROUND), 0x00))).apply {
+            intArrayOf(ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x00),
+                ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x54),
+                ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 0x00))).apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = 24.dpToPx(resources).toFloat()
         }
@@ -730,7 +730,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val generation = ++searchMatchGeneration
         searchMatchHaze.animate().cancel()
         val colors = Settings.getValues().mColors
-        val accent = colors.get(ColorType.SPECIAL_KEY_BACKGROUND)
+        val accent = colors.get(ColorType.ACTION_KEY_BACKGROUND)
         searchInput.setTextColor(if (found) accent else colors.get(ColorType.TOOL_BAR_KEY))
         if (!found) {
             searchInput.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)

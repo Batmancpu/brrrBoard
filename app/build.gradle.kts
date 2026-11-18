@@ -199,6 +199,14 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Robolectric fetches android-all-instrumented at *test runtime*,
+            // independently of Gradle's mavenCentral() repositories. The
+            // repo1.maven.org default can fail on transient CI routing even
+            // after APK assembly succeeds, failing every Robolectric class.
+            // Use the canonical Maven Central host without skipping tests.
+            all {
+                it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+            }
         }
     }
 

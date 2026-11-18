@@ -1,5 +1,9 @@
 # Clipboard Search — measured row, match-centered preview, accent haze, and frame pacing
 
+## Release gate status and immediate palette correction
+
+Focused source `78115ce7708d71d8939cc70ca7100c0d74e79401` passed original signer `44282918004` and published [original-signed v1.0.122](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.122/brrBoard.apk), SHA-256 `d067270dfdefdfcfec245777d3e5d9e7aa0f0e23049925a130d6cf65e4e0c8f9` (38,118,508 bytes). Debug `44282918098` first failed exclusively at 25 Robolectric `MavenArtifactFetcher` runtime SDK downloads; the failed-job rerun `134731958824` ended **SUCCESS**, including unit, B16A/B16B checks, on the exact same source. A subsequent audit found that `SPECIAL_KEY_BACKGROUND` is a neutral modifier color on the default palette, not the user's accent. The *next adjacent candidate* changes Clipboard card match, query text glow and haze to `ACTION_KEY_BACKGROUND`, the same accent role as Enter, and explicitly uses `repo.maven.apache.org/maven2` for Robolectric runtime test fetching. No production source or test bypass and no OEM-frame-rate claim. This next candidate still requires its own full CI, signer and phone validation; the historical candidate wording below is preserved as a dated pre-release snapshot.
+
 Owner request: 18 November 2026, screenshot of signed v1.0.121 running on Oppo Reno10 5G. **This is a source candidate; Android CI, original-signed next APK, real frame timing and visual acceptance are pending.**
 
 ## Starting verified release

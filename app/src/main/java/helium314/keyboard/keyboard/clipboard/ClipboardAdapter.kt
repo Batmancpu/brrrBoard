@@ -92,7 +92,9 @@ class ClipboardAdapter(
     private fun emphasizedPreview(text: String, query: String, density: Float): CharSequence {
         val window = ClipboardSearchPreview.window(text, query)
         if (!window.hasMatch) return window.text
-        val accent = Settings.getValues().mColors.get(ColorType.SPECIAL_KEY_BACKGROUND)
+        // ACTION_KEY_BACKGROUND is the user's actual keyboard accent. The
+        // SPECIAL_KEY_BACKGROUND role is a neutral modifier in stock themes.
+        val accent = Settings.getValues().mColors.get(ColorType.ACTION_KEY_BACKGROUND)
         return SpannableStringBuilder(window.text).apply {
             setSpan(BackgroundColorSpan(ColorUtils.setAlphaComponent(accent, 0x30)),
                 window.matchStart, window.matchEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
