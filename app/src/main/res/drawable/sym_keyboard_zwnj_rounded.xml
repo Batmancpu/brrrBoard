@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard non-joining character glyph; SPDX-License-Identifier: GPL-3.0-only -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="26dp" android:height="26dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M12,4.1 V19.9 M9.3,12 H3.1 M5.8,9.2 L3.1,12 L5.8,14.8 M14.7,12 H20.9 M18.2,9.2 L20.9,12 L18.2,14.8" />
+</vector>

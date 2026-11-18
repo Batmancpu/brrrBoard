@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard rounded Collapse glyph; SPDX-License-Identifier: GPL-3.0-only -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -6,9 +7,9 @@
     android:viewportHeight="24">
     <path
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2"
+        android:strokeWidth="2.25"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="@android:color/transparent"
-        android:pathData="M4,4 L9,9 M9,4 L9,9 L4,9 M20,20 L15,15 M15,20 L15,15 L20,15" />
+        android:pathData="M4.5,4.5 L9.2,9.2 M9.15,4.5 V9.15 H4.5 M19.5,19.5 L14.8,14.8 M14.85,19.5 V14.85 H19.5" />
 </vector>

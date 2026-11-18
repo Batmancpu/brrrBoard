@@ -241,8 +241,8 @@ class KeyboardIconsSet private constructor() {
             NAME_SPACE_KEY_FOR_NUMBER_LAYOUT to R.drawable.sym_keyboard_space_rounded,
             NAME_SHORTCUT_KEY_DISABLED to       R.drawable.sym_keyboard_voice_off_rounded,
             NAME_LANGUAGE_SWITCH_KEY to         R.drawable.ic_brr_globe,
-            NAME_ZWNJ_KEY to                    R.drawable.sym_keyboard_zwnj_lxx,
-            NAME_ZWJ_KEY to                     R.drawable.sym_keyboard_zwj_lxx,
+            NAME_ZWNJ_KEY to                    R.drawable.sym_keyboard_zwnj_rounded,
+            NAME_ZWJ_KEY to                     R.drawable.sym_keyboard_zwj_rounded,
             NAME_STOP_ONEHANDED_KEY to          R.drawable.sym_keyboard_stop_onehanded_rounded,
             NAME_SWITCH_ONEHANDED_KEY to        R.drawable.ic_arrow_left_rounded,
             NAME_RESIZE_ONEHANDED_KEY to        R.drawable.ic_arrow_horizontal_rounded,
@@ -253,7 +253,7 @@ class KeyboardIconsSet private constructor() {
                 put(it.name.lowercase(Locale.US), when (it) {
                     ToolbarKey.VOICE -> R.drawable.ic_board_mic
                     ToolbarKey.CLIPBOARD -> R.drawable.ic_brr_clipboard
-                    ToolbarKey.NUMPAD -> R.drawable.sym_keyboard_numpad_key_lxx
+                    ToolbarKey.NUMPAD -> R.drawable.sym_keyboard_numpad_key_rounded
                     ToolbarKey.UNDO -> R.drawable.ic_undo_rounded
                     ToolbarKey.REDO -> R.drawable.ic_redo_rounded
                     ToolbarKey.SETTINGS -> R.drawable.sym_keyboard_settings_rounded
@@ -263,7 +263,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.CUT -> R.drawable.sym_keyboard_cut_rounded
                     ToolbarKey.PASTE -> R.drawable.sym_keyboard_paste_rounded
                     ToolbarKey.ONE_HANDED -> R.drawable.sym_keyboard_start_onehanded_rounded
-                    ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_lxx
+                    ToolbarKey.INCOGNITO -> R.drawable.sym_keyboard_incognito_rounded
                     ToolbarKey.AUTOCORRECT -> R.drawable.ic_autocorrect_rounded
                     ToolbarKey.CLEAR_CLIPBOARD -> R.drawable.sym_keyboard_clear_clipboard_rounded
                     ToolbarKey.CLOSE_HISTORY -> R.drawable.ic_close_rounded
@@ -280,7 +280,7 @@ class KeyboardIconsSet private constructor() {
                     ToolbarKey.FULL_RIGHT -> R.drawable.ic_to_end_rounded
                     ToolbarKey.PAGE_START -> R.drawable.ic_page_start_rounded
                     ToolbarKey.PAGE_END -> R.drawable.ic_page_end_rounded
-                    ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher
+                    ToolbarKey.SPLIT -> R.drawable.ic_ime_switcher_rounded
                     ToolbarKey.AI_TOOLS -> R.drawable.ic_ai_tools
                     ToolbarKey.GIFS -> R.drawable.ic_klipy_gifs
                     ToolbarKey.STICKERS -> R.drawable.ic_klipy_stickers
