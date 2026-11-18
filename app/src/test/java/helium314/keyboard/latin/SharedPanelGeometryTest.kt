@@ -26,6 +26,21 @@ class SharedPanelGeometryTest {
         assertEquals(0, SharedPanelGeometry.retainExistingPanelViewport(-1, 100, 0, 100))
     }
 
+    @Test fun compactTopBandCanOnlyBorrowOneRealTypingAccessory() {
+        val nativeTypingViewport = KeyboardViewportHeightMemory()
+        nativeTypingViewport.observe(694, true)
+        // Search moves the alphabet into Emoji; this must not redefine the
+        // native typing viewport used to size the returning compact browser.
+        nativeTypingViewport.observe(962, false)
+        val compact = SharedPanelGeometry.retainExistingPanelViewport(
+            640, nativeTypingViewport.lastTypingHeight, 1100, 64)
+        assertEquals(694, compact)
+        assertEquals(640, SharedPanelGeometry.retainExistingPanelViewport(
+            640, 962, 1100, 64))
+        assertEquals(640, SharedPanelGeometry.retainExistingPanelViewport(
+            640, nativeTypingViewport.lastTypingHeight, 650, 64))
+    }
+
     @Test fun searchAddsFieldAndExactlyOneResultRowWithoutTruncatingTypingBody() {
         assertEquals(356, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 1000))
         assertEquals(300, SharedPanelGeometry.emojiSearchBodyHeight(252, 48, 56, 288, 300))

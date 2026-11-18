@@ -87,6 +87,9 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         rows.setLayoutManager(new LinearLayoutManager(parent.getContext(), RecyclerView.VERTICAL, false));
         rows.setItemAnimator(null);
         rows.setHasFixedSize(true);
+        // Reuse nearby rows while flinging instead of recreating keyboard
+        // drawing views at every small direction reversal. Bounded per page.
+        rows.setItemViewCacheSize(4);
         rows.setClipToPadding(false);
         rows.setVerticalScrollBarEnabled(false);
         frame.addView(rows);

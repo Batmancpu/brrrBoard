@@ -33,7 +33,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.Gravity;
-import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.widget.EditText;
@@ -75,6 +74,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.EmojiParserKt;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager;
 import helium314.keyboard.latin.LatinIME;
+import helium314.keyboard.latin.KeyboardWrapperView;
 import helium314.keyboard.latin.dictionary.Dictionary;
 import helium314.keyboard.latin.dictionary.DictionaryFactory;
 import helium314.keyboard.latin.R;
@@ -199,6 +199,12 @@ public final class EmojiPalettesView extends LinearLayout
         final View strip = getRootView().findViewById(R.id.strip_container);
         final int accessoryHeight = settings.mToolbarMode == ToolbarMode.HIDDEN ? 0
                 : res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height);
+        // The fixed Emoji tabs are mounted IN the grid shell, not in the
+        // alphabet suggestion strip. An asynchronously restored strip must not
+        // reserve a second blank 48dp band above Compact or Expanded Browse.
+        if (!mSearchMode && strip != null && strip.getVisibility() == View.VISIBLE) {
+            strip.setVisibility(View.GONE);
+        }
         final int availableHeight = switch (MeasureSpec.getMode(heightMeasureSpec)) {
             case MeasureSpec.AT_MOST, MeasureSpec.EXACTLY -> MeasureSpec.getSize(heightMeasureSpec);
             default -> Integer.MAX_VALUE;
@@ -206,11 +212,19 @@ public final class EmojiPalettesView extends LinearLayout
         int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
-        // Compact Browse uses only the configured typing geometry and the current
-        // window cap. Never borrow a wrapper/alphabet measured height: Search
-        // reparents that alphabet view, and its stale size previously made
-        // Browse grow depending on whether Search had just been dismissed.
-        // Keep the existing grid, fixed tabs, footer and glass unchanged.
+        // The FrameLayout places the Emoji view at the BOTTOM. If the actual
+        // typing key geometry was up to one accessory strip taller than the
+        // nominal ResourceUtils estimate, the missing pixels become a dead band
+        // ABOVE the fixed Emoji tabs. Reconcile only a bounded small difference
+        // against a real typing viewport (never the reparented Search keyboard).
+        if (!mSearchMode && !mExpandedMode && getParent() instanceof KeyboardWrapperView) {
+            final int established = ((KeyboardWrapperView) getParent())
+                    .getLastTypingPanelViewportHeight();
+            final int maxReconciliation = res.getDimensionPixelSize(
+                    R.dimen.config_suggestions_strip_height);
+            finalHeight = helium314.keyboard.latin.SharedPanelGeometry.retainExistingPanelViewport(
+                    finalHeight, established, availableHeight, maxReconciliation);
+        }
         if (mExpandedMode && !mSearchMode) {
             // Real Expanded Browse, never a lingering Search measurement.
             // The expanded browser contains categories + more emoji rows only.
@@ -305,7 +319,9 @@ public final class EmojiPalettesView extends LinearLayout
         final ValueAnimator animator = ValueAnimator.ofInt(from, target);
         mHeightMotion = animator;
         animator.setDuration(EmojiPanelHeightMotion.DURATION_MS);
-        animator.setInterpolator(new DecelerateInterpolator());
+        // A bounded, critically damped spring-shaped curve: smooth initial
+        // acceleration and a soft settle, with NO overshoot into the IME host.
+        animator.setInterpolator(EmojiPanelHeightMotion::springProgress);
         animator.addUpdateListener(animation -> {
             if (generation != mHeightMotionGeneration) return;
             mAnimatedBodyHeight = (int) animation.getAnimatedValue();
@@ -378,7 +394,9 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mPager = findViewById(R.id.emoji_pager);
-        mPager.setOffscreenPageLimit(1);
+        // Keep the adjacent categories prepared for a fluid horizontal swipe.
+        // RecyclerView still virtualizes the rows within each category.
+        mPager.setOffscreenPageLimit(2);
         mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(),
                 mEmojiCategory.getCurrentCategoryPageId() * Math.max(1, mEmojiCategory.getRowsPerPage()));
         mCategoryPagerAdapter = new EmojiCategoryPagerAdapter(mEmojiCategory, this,
@@ -978,13 +996,12 @@ public final class EmojiPalettesView extends LinearLayout
     private void revealWithoutFlash(final View view) {
         if (view == null) return;
         view.animate().cancel();
+        // Opacity fades previously ran at the same time as the springing panel
+        // height, momentarily exposing the host backdrop and causing a bright
+        // pulse/glow on Search, Expand and Return-to-Browse transitions.
+        // Change content immediately; the single height spring owns motion.
+        view.setAlpha(1f);
         view.setVisibility(View.VISIBLE);
-        if (isAnimationsDisabled()) {
-            view.setAlpha(1f);
-        } else {
-            view.setAlpha(0f);
-            view.animate().alpha(1f).setDuration(PanelMaterial.TRANSITION_MS).start();
-        }
     }
 
 

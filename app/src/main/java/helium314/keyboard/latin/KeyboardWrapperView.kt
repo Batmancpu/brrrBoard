@@ -33,15 +33,26 @@ class KeyboardWrapperView @JvmOverloads constructor(
     // The alphabet view becomes GONE before Emoji measures. Its old
     // measuredHeight is not guaranteed to survive the new FrameLayout pass.
     private val typingHeightMemory = KeyboardViewportHeightMemory()
+    private val typingViewportMemory = KeyboardViewportHeightMemory()
 
     /** Height of the last truly visible alphabet body, excluding fixed strip/footer. */
     fun getLastTypingKeyboardHeight(): Int = typingHeightMemory.lastTypingHeight
+
+    /** Last native typing body + its real outer strip, excluding the shared footer. */
+    fun getLastTypingPanelViewportHeight(): Int = typingViewportMemory.lastTypingHeight
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val alphabet = findViewById<View>(R.id.keyboard_view)
         if (alphabet != null) {
-            typingHeightMemory.observe(alphabet.measuredHeight, alphabet.visibility == View.VISIBLE)
+            // Emoji Search temporarily REPARENTS this same alphabet View under
+            // EmojiPalettesView. Never let its temporary Search geometry replace
+            // the last real typing viewport; that made Browse vary after Search.
+            val nativeTyping = alphabet.parent === this && alphabet.visibility == View.VISIBLE
+            typingHeightMemory.observe(alphabet.measuredHeight, nativeTyping)
+            val strip = rootView.findViewById<View>(R.id.strip_container)
+            val stripHeight = if (strip?.visibility == View.VISIBLE) strip.measuredHeight else 0
+            typingViewportMemory.observe(alphabet.measuredHeight + stripHeight, nativeTyping)
         }
     }
 
