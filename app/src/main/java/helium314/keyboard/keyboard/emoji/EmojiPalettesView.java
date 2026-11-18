@@ -223,6 +223,7 @@ public final class EmojiPalettesView extends LinearLayout
                 && mEmojiCategory.getCurrentCategoryId() != EmojiCategory.ID_RECENTS
                 && mContextSmartSection.getVisibility() != View.GONE) {
             mContextSmartSection.setVisibility(View.GONE);
+            if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.setSmartRowInset(0);
         }
         // The Smart row must not sacrifice the two visible Emoji rows in a
         // short landscape IME. The keyboard shell height itself never grows.
@@ -338,6 +339,13 @@ public final class EmojiPalettesView extends LinearLayout
         });
         mContextSmartSection = findViewById(R.id.emoji_context_smart_section);
         mContextSmartRow = findViewById(R.id.emoji_context_smart_row);
+        // This optional 70dp Recents row used to be a vertical sibling BEFORE
+        // the grid. When it was shown it pushed the entire grid (including the
+        // fixed category icons) down, leaving the empty-looking band visible
+        // on the owner's compact keyboard. It belongs BELOW the fixed tabs,
+        // inside the same overlay viewport, not above the categories.
+        attachSmartRowBelowCategories(shell, mContextSmartSection,
+                getResources().getDimensionPixelSize(R.dimen.config_suggestions_strip_height));
         final TextView smartTitle = findViewById(R.id.emoji_context_smart_title);
         final TextView recentLabel = findViewById(R.id.emoji_context_recent_label);
         final int labelColor = ColorUtils.setAlphaComponent(mColors.get(ColorType.TOOL_BAR_KEY), 0xC0);
@@ -360,6 +368,20 @@ public final class EmojiPalettesView extends LinearLayout
         }
         tabStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         tabStrip.setVisibility(View.VISIBLE);
+    }
+
+    /** Moving Smart picks into the grid prevents them reserving a blank top strip. */
+    static void attachSmartRowBelowCategories(final ViewGroup shell, final View smartRow,
+            final int headerHeightPx) {
+        if (smartRow.getParent() != shell) {
+            final ViewParent parent = smartRow.getParent();
+            if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(smartRow);
+            final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
+            params.topMargin = headerHeightPx;
+            shell.addView(smartRow, params);
+        }
     }
 
     private void invalidatePanelGlass() {
@@ -1868,7 +1890,15 @@ public final class EmojiPalettesView extends LinearLayout
         // mid-scroll. Only its introduction may wait for the gesture to end.
         if (EmojiSmartRowVisibilityPolicy.deferAppearance(mEmojiGridScrollActive,
                 visible, mContextSmartSection.getVisibility() == View.VISIBLE)) return;
+        final boolean changed = (mContextSmartSection.getVisibility() == View.VISIBLE) != visible;
         mContextSmartSection.setVisibility(visible ? View.VISIBLE : View.GONE);
+        // Keep the first Recents row unobstructed when real Smart picks are
+        // present; after they disappear the ordinary list starts immediately
+        // below the categories. Neither case shifts the category header.
+        if (mCategoryPagerAdapter != null && changed) {
+            final int smartHeight = visible ? Math.round(70 * getResources().getDisplayMetrics().density) : 0;
+            mCategoryPagerAdapter.setSmartRowInset(smartHeight);
+        }
     }
 
     private static LatinIME findHostingIme(final Context context) {

@@ -30,6 +30,7 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     private final RowScrollCallback rowScrollCallback;
     private final List<EmojiCategory.CategoryProperties> pages;
     private int horizontalPadding;
+    private int smartRowInset;
 
     EmojiCategoryPagerAdapter(final EmojiCategory category, final EmojiViewCallback emojiCallback,
             final SparseIntArray rememberedRows, final RowScrollCallback rowScrollCallback) {
@@ -52,6 +53,21 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     void setHorizontalPadding(final int padding) {
         horizontalPadding = Math.max(0, padding);
         notifyDataSetChanged();
+    }
+
+    void setSmartRowInset(final int insetPx) {
+        final int bounded = Math.max(0, insetPx);
+        if (smartRowInset == bounded) return;
+        smartRowInset = bounded;
+        final int recentsPosition = indexOf(EmojiCategory.ID_RECENTS);
+        if (recentsPosition >= 0 && recentsPosition < getItemCount())
+            notifyItemChanged(recentsPosition);
+    }
+
+    static int rowTopPadding(final int headerPx, final int breathingPx,
+            final int smartInsetPx, final boolean recents) {
+        return Math.max(0, headerPx) + Math.max(0, breathingPx)
+                + (recents ? Math.max(0, smartInsetPx) : 0);
     }
 
     void refresh() { notifyDataSetChanged(); }
@@ -93,9 +109,10 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         // Start row zero below the 36dp fixed header on first open, but keep
         // clipToPadding=false: scrolling rows can pass behind its TOP glass.
         // No extra Search-pill spacer exists in Browse.
-        final int topPadding = holder.rows.getResources().getDimensionPixelSize(
-                helium314.keyboard.latin.R.dimen.config_suggestions_strip_height)
-                + (int) (8 * density);
+        final int topPadding = rowTopPadding(holder.rows.getResources().getDimensionPixelSize(
+                helium314.keyboard.latin.R.dimen.config_suggestions_strip_height),
+                (int) (8 * density), smartRowInset,
+                categoryId == EmojiCategory.ID_RECENTS);
         final int bottomPadding = (int) (50 * density)
                 + holder.rows.getResources().getDimensionPixelSize(
                         helium314.keyboard.latin.R.dimen.config_board_footer_height)
