@@ -1,5 +1,13 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — blank Emoji Search results root-caused; Oppo gap acceptance still open
+
+**Confirmed source defect:** empty `EmojiPalettesView.searchEmoji` blanked the Search result row and early-returned. Current v1.0.116 candidate makes the row immediately nonempty from reviewed eligible context, local recent Emoji and generic fallback; async specific CLDR topic matches then replace fallback slots (guarded against stale query). `EmojiSearchContextPolicy` limits preceding text to 80 latest code points and rejects password/incognito/no-learning/identifier input. **Compact gap:** signed green v115 (`c1fd0555`) moved optional 70dp Smart picks from above categories into their shell; v116 candidate additionally removes 8dp of list padding beneath the fixed header. Neither is physically confirmed on the owner's Oppo. Real-corpus Describe relevance regression also included; Android gates and new v116 signing pending. Detailed evidence and acceptance: `docs/EMOJI_SEARCH_IDLE_CONTEXT_2026_11_18.md`. User-requested smooth height transitions remain unimplemented and separate.
+
+## 2026-11-18 — Describe conversational relevance verified in local corpus probe, CI pending
+
+Full 3,944-entry CLDR48 data in a pure-JVM test: baseline v114 algorithm returns zero for all 19 everyday descriptions; reviewed stopword/synonym/idiom handling yields 17 meaningful matches, 2 correct unsupported-composite rejections. Golden JUnit cases added but Android debug, original signer and Oppo runtime are still unverified. Keep this second batch behind the compact gap-only v115 gate. See `docs/DESCRIBE_EMOJI_REAL_WORLD_RELEVANCE_2026_11_18.md`. Third independent requested feature: smooth height grow/collapse; don't conflate its animation with Search relevance or top-gap fixes.
+
 ## 2026-11-18 — renewed Oppo top gap after v114, separate offline Describe improvements requested
 
 Owner's v113 77.5s video plus v114 verbal test show compact Emoji categories displaced below a blank-looking strip, while intentional expanded Browse lacks it. The 70dp `emoji_context_smart_section` precedes the grid as an outer weighted-sibling and is only visible in compact Recents; in expanded Browse it is GONE. New source candidate reparents Smart picks beneath tabs inside the same grid viewport; the Recents list gains top inset only while those picks appear. No additional wash over host backdrop. Physical device acceptance and next signed build **pending**. Video also shows `smiley with sunglasses` and `man with glasses` returning no results. Next separate work: realistic natural-language Describe relevance tests and small safe window-height interpolation. Full evidence: `docs/EMOJI_COMPACT_SMART_ROW_GAP_2026_11_18.md`.

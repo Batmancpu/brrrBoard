@@ -37,4 +37,61 @@ public class EmojiDescribeBundledCorpusTest {
             for (final String emoji : results) assertFalse(emoji.isEmpty());
         }
     }
+
+    @Test public void realLifeDescriptionsUseMeaningRatherThanOnlyLiteralEmojiNames()
+            throws Exception {
+        Path asset = Path.of("src/main/assets/emoji_cldr48_en.tsv");
+        if (!Files.exists(asset)) asset = Path.of("app/src/main/assets/emoji_cldr48_en.tsv");
+        final EmojiDescribeIndex engine;
+        try (InputStream input = Files.newInputStream(asset)) {
+            engine = EmojiDescribeIndex.from(EmojiContextIndex.read(input));
+        }
+        // These are natural descriptions, not CLDR short names. Several
+        // reproduced zero matches in the owner's v113 recording.
+        assertEquals("😎", engine.search("smiley with sunglasses", 8).get(0));
+        assertEquals("🥸", engine.search("smily glasses", 8).get(0));
+        assertEquals("🥸", engine.search("man with glasses", 8).get(0));
+        assertEquals("🤣", engine.search("laughing so hard I am crying", 8).get(0));
+        assertEquals("🤣", engine.search("I can't stop laughing", 8).get(0));
+        assertEquals("🤮", engine.search("I am sick and throwing up", 8).get(0));
+        assertEquals("🧑‍🦯", engine.search(
+                "a person who cannot see and walks with a cane", 8).get(0));
+        assertEquals("🦮", engine.search("a dog helping a blind person", 8).get(0));
+        assertTrue(engine.search("party because someone was born today", 8).contains("🥳"));
+        assertEquals("💔", engine.search("love that hurts", 8).get(0));
+        assertTrue(engine.search("I have no energy and need sleep", 8).contains("😴"));
+        assertEquals("😬", engine.search(
+                "I made a silly mistake and feel awkward", 8).get(0));
+        assertEquals("😅", engine.search("I am really nervous about this", 8).get(0));
+        assertEquals("🤫", engine.search("someone keeping a secret", 8).get(0));
+        assertEquals("🍵", engine.search("take a break and have a cup of tea", 8).get(0));
+        assertEquals("🚽", engine.search("need to use the bathroom", 8).get(0));
+        assertEquals("🏖️", engine.search("sunny and happy beach holiday", 8).get(0));
+
+        // There is no Unicode composite for a man with an ordinary pet dog;
+        // weak one-word overlap must not hallucinate a combined character.
+        assertTrue(engine.search("man with a dog", 8).isEmpty());
+        assertTrue(engine.search("flying dog", 8).isEmpty());
+    }
+
+    @Test public void blankSearchCanRankContextTopicsWithoutScanningEditorOnUiThread()
+            throws Exception {
+        Path asset = Path.of("src/main/assets/emoji_cldr48_en.tsv");
+        if (!Files.exists(asset)) asset = Path.of("app/src/main/assets/emoji_cldr48_en.tsv");
+        final EmojiDescribeIndex engine;
+        try (InputStream input = Files.newInputStream(asset)) {
+            engine = EmojiDescribeIndex.from(EmojiContextIndex.read(input));
+        }
+        assertEquals("🍕", engine.suggestFromContext("Let's get pizza tonight", 8).get(0));
+        assertEquals("☕", engine.suggestFromContext("We need coffee", 8).get(0));
+        assertEquals("🏖️", engine.suggestFromContext("Planning a beach holiday", 8).get(0));
+        assertEquals("🎥", engine.suggestFromContext("Let's watch a movie tonight", 8).get(0));
+        assertEquals("🐕", engine.suggestFromContext("We need dog food", 8).get(0));
+        // Context is read from the end; a long preceding sentence must never
+        // cause the latest subject to be silently dropped by query token caps.
+        assertEquals("🍕", engine.suggestFromContext(
+                "I wanted to explain a few things but most of all let's order pizza", 8).get(0));
+        assertTrue(engine.suggestFromContext("", 8).isEmpty());
+        assertTrue(engine.suggestFromContext("pizza", 0).isEmpty());
+    }
 }

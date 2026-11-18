@@ -106,12 +106,13 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         holder.topAnchorListener = null;
         final float density = holder.rows.getResources().getDisplayMetrics().density;
         // The category tabs now OVERLAY the same live scrolling surface.
-        // Start row zero below the 36dp fixed header on first open, but keep
-        // clipToPadding=false: scrolling rows can pass behind its TOP glass.
-        // No extra Search-pill spacer exists in Browse.
+        // Start row zero EXACTLY below the fixed category header on first
+        // open. An extra 8dp "breathing" inset compounded the perceived
+        // blank band on compact phones. clipToPadding=false still lets rows
+        // slide behind the TOP glass when scrolled; no Browse spacer exists.
         final int topPadding = rowTopPadding(holder.rows.getResources().getDimensionPixelSize(
                 helium314.keyboard.latin.R.dimen.config_suggestions_strip_height),
-                (int) (8 * density), smartRowInset,
+                0, smartRowInset,
                 categoryId == EmojiCategory.ID_RECENTS);
         final int bottomPadding = (int) (50 * density)
                 + holder.rows.getResources().getDimensionPixelSize(

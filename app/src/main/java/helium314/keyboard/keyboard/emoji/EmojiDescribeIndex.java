@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +20,10 @@ import java.util.TreeMap;
 final class EmojiDescribeIndex {
     private static final int MAX_PREFIX_TERMS = 48;
     private static final int MAX_FUZZY_CANDIDATES = 96;
+    private static final Set<String> WEAK_CONTEXT_TERMS = Set.of(
+            "let", "lets", "get", "we", "plan", "planning", "watch", "going",
+            "today", "tonight", "tomorrow", "night", "holiday", "maybe",
+            "order", "most", "all", "few", "thing", "buy", "please");
 
     private final String[] emoji;
     private final String[] normalizedNames;
@@ -88,11 +93,47 @@ final class EmojiDescribeIndex {
     int termCount() { return tokens.size(); }
     boolean containsEmoji(final String sequence) { return emojiId.containsKey(sequence); }
 
+    /**
+     * Search-entry suggestions from the last few ordinary editor words.
+     * Unlike a description query, unrelated context words are NOT required
+     * to coexist on one Emoji. Prefer recent specific terms, not ubiquitous
+     * words like "face" or "person". This stays off the IME main thread.
+     */
+    List<String> suggestFromContext(final String input, final int maxResults) {
+        if (input == null || maxResults <= 0) return List.of();
+        final List<String> terms = EmojiDescribeNormalizer.recentContextTokens(input);
+        final LinkedHashSet<String> suggestions = new LinkedHashSet<>();
+        final int from = Math.max(0, terms.size() - 5);
+        final ArrayList<String> specific = new ArrayList<>();
+        for (int i = from; i < terms.size(); i++) {
+            final String term = terms.get(i);
+            if (term.length() < 3 || WEAK_CONTEXT_TERMS.contains(term)) continue;
+            final Posting posting = tokens.get(term);
+            if (posting != null && posting.name.length + posting.keyword.length <= 160)
+                specific.add(term);
+        }
+        // An uncommon subject such as "pizza" outranks incidental "night"
+        // or "food". Stable tie order prefers the latest word.
+        specific.sort(Comparator.comparingInt((String term) -> {
+            final Posting posting = tokens.get(term);
+            return posting.name.length + posting.keyword.length;
+        }).thenComparing((String term) -> -terms.lastIndexOf(term)));
+        for (final String term : specific) {
+            for (final String result : search(term, 3)) {
+                suggestions.add(result);
+                if (suggestions.size() == maxResults) break;
+            }
+            if (suggestions.size() == maxResults) break;
+        }
+        return Collections.unmodifiableList(new ArrayList<>(suggestions));
+    }
+
     List<String> search(final String input, final int maxResults) {
         if (maxResults <= 0) return List.of();
         final String phrase = EmojiDescribeNormalizer.normalizePhrase(
                 EmojiDescribeNormalizer.clampQuery(input));
-        final List<String> query = EmojiDescribeNormalizer.tokens(input, true);
+        final List<String> query = EmojiDescribeNormalizer.tokens(
+                EmojiDescribeAliases.rewriteDescription(phrase), true);
         if (query.isEmpty()) return List.of();
 
         final int[] score = new int[emoji.length];

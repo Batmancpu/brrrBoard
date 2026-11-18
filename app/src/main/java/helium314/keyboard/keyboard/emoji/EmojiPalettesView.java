@@ -144,6 +144,9 @@ public final class EmojiPalettesView extends LinearLayout
     private boolean mExpandedMode = false;
     private boolean mUpdatingSearchText = false;
     private String mSearchQuery = "";
+    private List<String> mSearchIdleSuggestions = List.of();
+    private List<String> mSearchIdleReviewed = List.of();
+    private List<String> mSearchIdleRecent = List.of();
     private long mSearchGeneration;
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
     private LinearLayout mContextSmartSection;
@@ -677,6 +680,9 @@ public final class EmojiPalettesView extends LinearLayout
             focusSearchField(true);
             return;
         }
+        // Capture only eligible text from the HOST editor, before focusing the
+        // keyboard's own Search EditText. Never persist or log that text.
+        final String hostContext = mSearchQuery.isBlank() ? prepareSearchIdleSuggestions() : "";
         mSearchMode = true;
         // This worker is allocated only on deliberate Emoji Search entry;
         // ordinary typing and Browse never load the description index.
@@ -709,7 +715,58 @@ public final class EmojiPalettesView extends LinearLayout
         focusSearchField(true);
         updateSearchQueryUi();
         searchEmoji(mSearchQuery);
+        if (!hostContext.isEmpty() && mSearchQuery.isBlank()) {
+            final long idleGeneration = mSearchGeneration;
+            EmojiDescribeEngine.get().suggestContext(getContext(), hostContext, 8,
+                    (semantic, available) -> {
+                        if (!mSearchMode || idleGeneration != mSearchGeneration
+                                || !mSearchQuery.isBlank()) return;
+                        final java.util.ArrayList<String> normalized = new java.util.ArrayList<>();
+                        for (final String candidate : semantic) {
+                            final String emoji = EmojiParserKt.getEmojiDefaultVersion(candidate);
+                            normalized.add(emoji);
+                        }
+                        mSearchIdleSuggestions = EmojiSearchIdleResults.merge(
+                                mSearchIdleReviewed, normalized, mSearchIdleRecent, 10);
+                        showEmojiSearchResults("", mSearchIdleSuggestions, true);
+                    });
+        }
         requestLayout();
+    }
+
+    /** Always give blank Search a tappable row, even without previous text. */
+    private String prepareSearchIdleSuggestions() {
+        final java.util.LinkedHashSet<String> ordered = new java.util.LinkedHashSet<>();
+        final LatinIME ime = findHostingIme(getContext());
+        final EditorInfo editor = ime == null ? null : ime.getCurrentInputEditorInfo();
+        final boolean eligible = EmojiContextEligibility.isEligible(editor,
+                Settings.getValues().mIncognitoModeEnabled);
+        String safeContext = "";
+        if (eligible && ime != null) {
+            final InputConnection input = ime.getCurrentInputConnection();
+            if (input != null) {
+                try {
+                    safeContext = EmojiSearchContextPolicy.safeSuffix(
+                            input.getTextBeforeCursor(160, 0));
+                } catch (final RuntimeException unavailableEditor) {
+                    safeContext = "";
+                }
+            }
+        }
+        if (!safeContext.isEmpty()) {
+            for (final EmojiContextScorer.Candidate candidate
+                    : EmojiContextScorer.rank(safeContext, false)) {
+                ordered.add(EmojiParserKt.getEmojiDefaultVersion(candidate.emoji));
+            }
+        }
+        mSearchIdleReviewed = List.copyOf(ordered);
+        // Sensitive editors/incognito never expose learned history; all fields
+        // still receive non-personalized defaults, even on a fresh install.
+        mSearchIdleRecent = eligible
+                ? AdaptiveEmojiEngine.getFastRowEmojis(getContext(), 10) : List.of();
+        mSearchIdleSuggestions = EmojiSearchIdleResults.merge(
+                mSearchIdleReviewed, List.of(), mSearchIdleRecent, 10);
+        return safeContext;
     }
 
     public void exitSearchMode(final boolean clearQuery) {
@@ -725,6 +782,9 @@ public final class EmojiPalettesView extends LinearLayout
             setSearchText("", 0);
         }
         mSearchMode = false;
+        mSearchIdleSuggestions = List.of();
+        mSearchIdleReviewed = List.of();
+        mSearchIdleRecent = List.of();
         ++mSearchGeneration;
         EmojiDescribeEngine.get().cancelPending();
         updateContextSmartVisibility();
@@ -967,7 +1027,8 @@ public final class EmojiPalettesView extends LinearLayout
         final String query = text == null ? "" : text;
         // Clear the previous query's tappable results immediately. Never let a
         // stale Emoji remain interactive while a newer phrase is indexing.
-        showEmojiSearchResults(query, List.of(), false);
+        showEmojiSearchResults(query, query.isBlank() && mSearchMode
+                ? mSearchIdleSuggestions : List.of(), query.isBlank());
         if (!mSearchMode || query.isBlank()) return;
         // All asset I/O, token posting lookups and typo correction happen on
         // one bounded background worker, not inside the IME key event path.

@@ -96,6 +96,27 @@ final class EmojiDescribeEngine {
         });
     }
 
+    void suggestContext(final Context context, final String boundedContext, final int limit,
+            final Callback callback) {
+        worker.getQueue().clear();
+        final Context app = context.getApplicationContext();
+        // A short transient copy survives only the queued task. Never save
+        // context strings or feed them into the normal typing suggestion path.
+        worker.execute(() -> {
+            final EmojiDescribeIndex ready = ensureIndex(app);
+            List<String> suggestions = List.of();
+            if (ready != null) {
+                try {
+                    suggestions = ready.suggestFromContext(boundedContext, limit);
+                } catch (final RuntimeException error) {
+                    Log.e(TAG, "Unable to rank offline contextual Emoji", error);
+                }
+            }
+            final List<String> results = suggestions;
+            ui.post(() -> callback.onResult(results, ready != null));
+        });
+    }
+
     void cancelPending() {
         worker.getQueue().clear();
     }

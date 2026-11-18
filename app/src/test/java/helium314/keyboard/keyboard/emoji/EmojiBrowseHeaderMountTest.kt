@@ -67,8 +67,8 @@ class EmojiBrowseHeaderMountTest {
     }
 
     @Test fun realSmartPicksMoveOnlyTheRecentsListNotTheCategoryBar() {
-        assertEquals(52, EmojiCategoryPagerAdapter.rowTopPadding(44, 8, 70, false))
-        assertEquals(122, EmojiCategoryPagerAdapter.rowTopPadding(44, 8, 70, true))
-        assertEquals(52, EmojiCategoryPagerAdapter.rowTopPadding(44, 8, 0, true))
+        assertEquals(44, EmojiCategoryPagerAdapter.rowTopPadding(44, 0, 70, false))
+        assertEquals(114, EmojiCategoryPagerAdapter.rowTopPadding(44, 0, 70, true))
+        assertEquals(44, EmojiCategoryPagerAdapter.rowTopPadding(44, 0, 0, true))
     }
 }

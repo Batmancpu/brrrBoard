@@ -12,6 +12,8 @@ Move the **same** Smart picks section into `emoji_grid_shell` as a `FrameLayout`
 
 Regression tests verify reparenting, no duplicates, overlay gravity/margin and per-category inset. This change does not modify Search, fonts, application ID, ordinary typing or the blur compositor. Automated CI and pinned original signer, then real Oppo device acceptance, are separate gates.
 
+**Release gate update:** v1.0.115, main `c1fd0555`, debug workflow #210 `44249727705` and original-signer workflow #115 `44249727675` both succeeded; signed APK: https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.115/brrBoard.apk, SHA-256 `5889f2c6041869f2fdb10056887724644e669ca0a7c81463e8f924e36ad25c1d`. Phone acceptance is still pending. In the next focused Search-empty-row follow-up, remove 8dp decorative row-top breathing space as well; see `docs/EMOJI_SEARCH_IDLE_CONTEXT_2026_11_18.md`. Do not retroactively describe that 8dp source change as part of v115.
+
 ## Subsequent owner requests
 
 1. Exercise actual CLDR Describe queries using indirect everyday language; improve bounded conservative offline alias/intent ranking without models, network, logging or unsupported Unicode sequences.
