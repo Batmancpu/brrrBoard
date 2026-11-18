@@ -1,5 +1,7 @@
 # Describe an Emoji — implementation and phone acceptance
 
+**Release verification (2026-11-18):** Source `2f279e6fe2426ea25f89a11534dc904819183b56` passed complete [debug/unit #207](https://github.com/Batmancpu/brrrBoard/actions/runs/44245705860) and [original-signer #113](https://github.com/Batmancpu/brrrBoard/actions/runs/44245705899), both terminal SUCCESS. [Signed APK v1.0.113](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.113/brrBoard.apk) published targeting that exact source. User's device behavior remains **unverified**. Custom offline shortcuts followed independently in signed v1.0.114. The original source-candidate notes below are historical pre-release status.
+
 **Owner authorization:** 2026-11-18: implement now, separately from the Emoji viewport/blur release the owner is testing.
 **Starting source:** `main` `9b04e2e10bfb4f86d176e4d1a780f33ca18cd920`, signed v1.0.112, debug #206 and original signer #112 both succeeded. **This document records a new source candidate, not an already validated APK.**
 

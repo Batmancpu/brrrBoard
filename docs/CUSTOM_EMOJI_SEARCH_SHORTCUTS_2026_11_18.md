@@ -1,5 +1,7 @@
 # Custom Emoji Search shortcuts — small follow-up after Describe v1.0.113
 
+**Release verification (2026-11-18):** Source `0f62298fd8e0397457f50ea554460314fbae7eec` passed complete [debug/unit #208](https://github.com/Batmancpu/brrrBoard/actions/runs/44246920005) and [original-signer #114](https://github.com/Batmancpu/brrrBoard/actions/runs/44246919873), both terminal SUCCESS. Published [signed brrBoard.apk v1.0.114](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.114/brrBoard.apk), 38,113,740 bytes, SHA-256 `f5d609237e1f6435f0fdff434c9684473ea996f3971d7656dc542168145c1d08`. User has not yet run the Oppo acceptance test; the prior source-candidate notes below reflect pre-CI state.
+
 **Baseline and release order:** Describe v1.0.113 source `2f279e6fe2426ea25f89a11534dc904819183b56`; debug #207 and original-signed #113 both completed SUCCESS and signed [v1.0.113](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.113/brrBoard.apk) is published. Owner cannot test immediately and explicitly requested the next small separate update close behind. New import code is a source candidate; **independent CI, signing and Oppo checks pending**.
 
 ## Exact user-facing scope and limits
