@@ -146,7 +146,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                 Button(onClick = { refresh++ }) { Text("Refresh actual data") }
                 OutlinedButton(onClick = { confirmErase = true }) { Text("Erase swipe learning") }
             }
-            Text("This screen does not record raw typing. Session counters restart when the IME restarts. Encryption of the existing on-disk correction-pair store is a separate rollout gate.",
+            Text("Swipe correction storage: " + snapshot.storageStatus + ". This dashboard never records raw typing. Session counters restart when the keyboard service restarts.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }

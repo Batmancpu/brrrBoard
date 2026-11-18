@@ -12,6 +12,11 @@ import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.utils.KtxKt;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.util.Arrays;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
@@ -32,7 +37,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * It is an alternative-candidate prior, never an automatic top-word replacement.
  */
 public final class SwipeCorrectionLearner {
-    private static final String FILENAME = "brr_swipe_corrections_v1";
+    private static final String FILENAME = "brr_swipe_corrections_v2.aesgcm";
+    private static final String LEGACY_FILENAME = "brr_swipe_corrections_v1";
     private static final int MAX_PAIRS = 64;
     private static final int MAX_FILE_BYTES = 8192;
     private static final ExecutorService DISK = Executors.newSingleThreadExecutor(r -> {
@@ -43,6 +49,10 @@ public final class SwipeCorrectionLearner {
     private static SwipeCorrectionLearner instance;
 
     private final AtomicFile file;
+    private final AtomicFile legacyFile;
+    private volatile boolean vaultReadOnly;
+    private volatile boolean encryptedPersisted;
+    private volatile boolean legacyPending;
     private final Map<String, Entry> learned = new HashMap<>();
     private long revision;
     private final AtomicLong sessionSwipes = new AtomicLong();
@@ -64,24 +74,115 @@ public final class SwipeCorrectionLearner {
     }
 
     private SwipeCorrectionLearner(final Context context) {
-        file = new AtomicFile(new File(context.getNoBackupFilesDir(), FILENAME));
+        final File dir = context.getNoBackupFilesDir();
+        file = new AtomicFile(new File(dir, FILENAME));
+        legacyFile = new AtomicFile(new File(dir, LEGACY_FILENAME));
+        final boolean hasEncrypted = file.getBaseFile().exists();
+        final boolean hasLegacy = legacyFile.getBaseFile().exists();
+        if (!hasEncrypted && !hasLegacy) return;
+
+        byte[] plaintext = null;
         try {
-            final File base = file.getBaseFile();
-            if (!base.exists() || base.length() > MAX_FILE_BYTES) return;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    file.openRead(), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null && learned.size() < MAX_PAIRS) {
-                    final String[] tokens = line.split("\\t", -1);
-                    if (tokens.length != 4 || !valid(tokens[0]) || !valid(tokens[1])) continue;
+            if (hasEncrypted) {
+                // NEVER overwrite a sealed store that we cannot authenticate.
+                plaintext = BrainLearningVault.open(readBounded(file, MAX_FILE_BYTES + 1024));
+            } else {
+                // Old plaintext is read only for a one-time, lossless migration.
+                plaintext = readBounded(legacyFile, MAX_FILE_BYTES);
+                legacyPending = true;
+            }
+            loadEntries(plaintext);
+            encryptedPersisted = hasEncrypted;
+            if (hasEncrypted && hasLegacy) {
+                // A valid authenticated v2 store supersedes the old plaintext.
+                DISK.execute(legacyFile::delete);
+            } else if (legacyPending) {
+                final List<Entry> initial = new ArrayList<>(learned.values());
+                final long initialVersion = revision;
+                DISK.execute(() -> persistEncrypted(initial, initialVersion));
+            }
+        } catch (Exception ignored) {
+            // Device locked, Keystore invalidated, or corrupted data.
+            // Work in memory, leave old/ciphertext bytes intact for recovery.
+            vaultReadOnly = true;
+            encryptedPersisted = false;
+            learned.clear();
+        } finally {
+            if (plaintext != null) Arrays.fill(plaintext, (byte) 0);
+        }
+    }
+
+    private static byte[] readBounded(final AtomicFile source, final int max)
+            throws IOException {
+        try (InputStream in = source.openRead();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            final byte[] buffer = new byte[1024];
+            int count;
+            while ((count = in.read(buffer)) != -1) {
+                if (out.size() + count > max) throw new IOException("Learning file exceeds bound");
+                out.write(buffer, 0, count);
+            }
+            return out.toByteArray();
+        }
+    }
+
+    private void loadEntries(final byte[] plaintext) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                new ByteArrayInputStream(plaintext), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null && learned.size() < MAX_PAIRS) {
+                final String[] tokens = line.split("\\t", -1);
+                if (tokens.length != 4 || !valid(tokens[0]) || !valid(tokens[1])) continue;
+                try {
                     final int count = Integer.parseInt(tokens[2]);
                     final long last = Long.parseLong(tokens[3]);
                     if (count < 1 || count > 20 || last < 0) continue;
-                    learned.put(key(tokens[0], tokens[1]), new Entry(tokens[0], tokens[1], count, last));
+                    learned.put(key(tokens[0], tokens[1]),
+                            new Entry(tokens[0], tokens[1], count, last));
+                } catch (NumberFormatException ignored) {
+                    // Skip a bad legacy row instead of destroying valid rows.
                 }
             }
+        }
+    }
+
+    private void persistEncrypted(final List<Entry> snapshot, final long version) {
+        if (vaultReadOnly) return;
+        final ByteArrayOutputStream plain = new ByteArrayOutputStream(MAX_FILE_BYTES);
+        try {
+            for (final Entry entry : snapshot) {
+                final String line = entry.seed + "\t" + entry.word + "\t"
+                        + entry.count + "\t" + entry.lastUsed + "\n";
+                plain.write(line.getBytes(StandardCharsets.UTF_8));
+            }
+            final byte[] raw = plain.toByteArray();
+            final byte[] sealed;
+            try {
+                sealed = BrainLearningVault.seal(raw);
+            } finally {
+                Arrays.fill(raw, (byte) 0);
+            }
+            synchronized (this) {
+                if (revision != version || vaultReadOnly) return;
+                FileOutputStream out = null;
+                try {
+                    out = file.startWrite();
+                    out.write(sealed);
+                    file.finishWrite(out);
+                    encryptedPersisted = true;
+                    legacyPending = false;
+                    // Delete old plaintext only AFTER authenticated writing finishes.
+                    legacyFile.delete();
+                } catch (Exception ignored) {
+                    if (out != null) file.failWrite(out);
+                    // Never fall back to plaintext.
+                    vaultReadOnly = true;
+                }
+            }
+            Arrays.fill(sealed, (byte) 0);
         } catch (Exception ignored) {
-            learned.clear(); // malformed or incomplete data must fail closed
+            // If the Keystore is unavailable, new learning remains in RAM only.
+            vaultReadOnly = true;
         }
     }
 
@@ -99,9 +200,10 @@ public final class SwipeCorrectionLearner {
         public final long confirmedCorrectionsThisSession;
         public final long recallOffersThisSession;
         public final List<String> recentAssociations;
+        public final String storageStatus;
 
         Snapshot(int stored, int ready, int total, long swipes, long corrections,
-                long recallOffers, List<String> associations) {
+                long recallOffers, List<String> associations, String status) {
             storedPairs = stored;
             readyPairs = ready;
             totalConfirmationsInStore = total;
@@ -109,6 +211,7 @@ public final class SwipeCorrectionLearner {
             confirmedCorrectionsThisSession = corrections;
             recallOffersThisSession = recallOffers;
             recentAssociations = java.util.Collections.unmodifiableList(associations);
+            storageStatus = status;
         }
     }
 
@@ -132,7 +235,11 @@ public final class SwipeCorrectionLearner {
         }
         return new Snapshot(learned.size(), ready, confirmations,
                 sessionSwipes.get(), sessionCorrections.get(),
-                sessionRecallOffers.get(), examples);
+                sessionRecallOffers.get(), examples,
+                vaultReadOnly ? "Vault unavailable · in-memory only (no plaintext fallback)"
+                : encryptedPersisted ? "Encrypted on device · Android Keystore AES-256-GCM"
+                : legacyPending ? "Migrating existing corrections into encrypted vault"
+                : "Ready · no encrypted corrections saved yet");
     }
 
     public static boolean isAllowed(final Context context, @Nullable final EditorInfo editor,
@@ -187,34 +294,21 @@ public final class SwipeCorrectionLearner {
             snapshot = new ArrayList<>(learned.values());
             version = ++revision;
         }
-        DISK.execute(() -> {
-            synchronized (SwipeCorrectionLearner.this) {
-                // A later write/reset supersedes this snapshot.
-                if (revision != version) return;
-                FileOutputStream out = null;
-                try {
-                    out = file.startWrite();
-                    for (final Entry entry : snapshot) {
-                        final String line = entry.seed + "\t" + entry.word + "\t"
-                                + entry.count + "\t" + entry.lastUsed + "\n";
-                        out.write(line.getBytes(StandardCharsets.UTF_8));
-                    }
-                    file.finishWrite(out);
-                } catch (Exception ignored) {
-                    if (out != null) file.failWrite(out);
-                }
-            }
-        });
+        DISK.execute(() -> persistEncrypted(snapshot, version));
     }
 
     public void clear() {
         synchronized (this) {
             learned.clear();
             ++revision;
+            vaultReadOnly = false;
+            encryptedPersisted = false;
+            legacyPending = false;
         }
         DISK.execute(() -> {
             synchronized (SwipeCorrectionLearner.this) {
                 file.delete();
+                legacyFile.delete();
             }
         });
     }

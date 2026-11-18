@@ -1,5 +1,9 @@
 # brrBrain learning dashboard — implementation checkpoint (2026-11-19)
 
+## 2026-11-19 — learning vault candidate (AES-GCM) after v1.0.135 dashboard
+
+Signed original-certificate v1.0.135 from source `dbf1e85e` passed debug run `44385317509` and release run `44385317561`. Colorful dashboard and conditional suggestion-strip restoration are source-shipped, on-device observation PENDING. New independent secure-vault batch uses AndroidKeyStore AES-256-GCM, fresh nonce, authenticated/v2 bounded AtomicFile in noBackup directory, legacy v1 plaintext migration *only after* successful sealed write, fail closed to RAM-only when KeyStore unavailable, never plaintext fallback, and dashboard reflects actual persisted/encrypted vs pending status. Pure crypto tamper/wrong-key/nonce tests added; new full CI/original signer must pass. Does NOT store raw touch paths, and does not yet encrypt every native personalized/Emoji dictionary. Do not claim all learning encrypted. See docs/BRRBRAIN_SECURE_LEARNING_VAULT_2026_11_19.md. Owner Clipboard visual still unsatisfied; identified InputView.onMeasure incorrectly passes clipboard_list to footer glass even during Clipboard Search. Next independent patch must stop that source in Search while preserving Browse blur and improve contrast; real Oppo acceptance mandatory. Dictate separate, package/signing unchanged.
+
 ## Owner request
 Owner confirms swipe typing no longer crashes in v1.0.133 and is more usable; now wants a colorful REAL learning dashboard (not arbitrary scores), a privacy-safe encrypted learning future (optional local touch paths that are distilled and then erased), restored suggestion strip, proper Clipboard Search rainbow and no text/blur behind ABC/mic, plus remaining documented batches. Work exclusively on main, preserve original signer, Dictate independent, run CI per batch and retain full context.
 
