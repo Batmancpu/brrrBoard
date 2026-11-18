@@ -52,6 +52,7 @@ public final class EmojiContextScorer {
         // triggers. These are NOT copied from CLDR annotation keywords.
         add(rules, "happy birthday", "🎂", 650); add(rules, "happy birthday", "🎉", 620);
         add(rules, "birthday party", "🎉", 610); add(rules, "birthday cake", "🎂", 610);
+        add(rules, "birthday", "🎂", 575); add(rules, "happy", "😊", 540);
         add(rules, "congratulations", "🎉", 550); add(rules, "congrats", "🎉", 540);
         add(rules, "well done", "👏", 565); add(rules, "great job", "👏", 570);
         add(rules, "good luck", "🍀", 585); add(rules, "best wishes", "💐", 550);
@@ -74,8 +75,13 @@ public final class EmojiContextScorer {
         add(rules, "beautiful sunset", "🌅", 585); add(rules, "heavy rain", "🌧️", 540);
         add(rules, "snowing", "❄️", 475); add(rules, "rainbow", "🌈", 485);
         add(rules, "diwali", "🪔", 560); add(rules, "happy diwali", "🪔", 635);
+        add(rules, "holi", "🎨", 560); add(rules, "happy holi", "🎨", 610);
+        add(rules, "eid mubarak", "🌙", 620); add(rules, "raksha bandhan", "🧵", 565);
         add(rules, "namaste", "🙏", 545); add(rules, "shukriya", "🙏", 540);
         add(rules, "bahut badhiya", "👌", 550); add(rules, "yaar mast", "😎", 585);
+        add(rules, "mast", "🔥", 530); add(rules, "bhai", "🤝", 525);
+        add(rules, "bohot badhiya", "👏", 560); add(rules, "kya scene", "👀", 530);
+        add(rules, "sab badhiya", "👌", 540);
         add(rules, "yaar mast", "🔥", 540); add(rules, "kya baat", "👏", 550);
         add(rules, "dost", "🤝", 470); add(rules, "dosti", "🤝", 490);
         add(rules, "goodbye", "👋", 470); add(rules, "see you soon", "👋", 555);

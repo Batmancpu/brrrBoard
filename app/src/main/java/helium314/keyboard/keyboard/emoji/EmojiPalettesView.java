@@ -307,14 +307,9 @@ public final class EmojiPalettesView extends LinearLayout
 
     /** Capture the visible height BEFORE changing the mode's child hierarchy. */
     private void prepareBodyHeightMotion() {
-        final Rect activeClip = getClipBounds();
-        final int current = activeClip != null ? activeClip.height()
-                : (mAnimatedBodyHeight > 0 ? mAnimatedBodyHeight : getHeight());
+        // A third-party IME's internal resize fights the host/ColorOS window
+        // transition. Switch directly to the final measured endpoint instead.
         cancelBodyHeightMotion();
-        if (current > 0 && isShown() && areHeightAnimationsEnabled()) {
-            mPendingBodyFromHeight = current;
-            mBodyHeightChangePending = true;
-        }
     }
 
     @Override protected void onLayout(final boolean changed, final int left, final int top,
@@ -331,8 +326,7 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private boolean areHeightAnimationsEnabled() {
-        return !isAnimationsDisabled() && (android.os.Build.VERSION.SDK_INT < 26
-                || ValueAnimator.areAnimatorsEnabled());
+        return false; // Internal Emoji height changes always snap; system IME motion remains.
     }
 
     private void launchBodyHeightMotion(final int from, final int target, final long generation) {
@@ -1000,7 +994,7 @@ public final class EmojiPalettesView extends LinearLayout
         return false;
     }
 
-    /** Finish Search/Expanded shrink before ABC switches the whole keyboard. */
+    /** Instant Search/Expanded -> ABC; never leave a delayed blank footer frame. */
     public boolean collapseForFooterAlphabet(final Runnable switchToAlphabet) {
         if (!mSearchMode && !mExpandedMode) return false;
         if (mSearchMode) {
@@ -1009,9 +1003,7 @@ public final class EmojiPalettesView extends LinearLayout
         } else {
             collapseExpandedBrowse();
         }
-        postDelayed(() -> {
-            if (isShown() && !mSearchMode && !mExpandedMode) switchToAlphabet.run();
-        }, EmojiPanelHeightMotion.DURATION_MS);
+        if (!mSearchMode && !mExpandedMode) switchToAlphabet.run();
         return true;
     }
 
@@ -1787,8 +1779,10 @@ public final class EmojiPalettesView extends LinearLayout
     };
 
     void addRecentKey(final Key key) {
-        if (Settings.getValues().mIncognitoModeEnabled) {
-            // We do not want to log recent keys while being in incognito
+        final LatinIME activeIme = LatinIME.getInstance();
+        if (activeIme == null || !EmojiContextEligibility.isEligible(
+                activeIme.getCurrentInputEditorInfo(), Settings.getValues().mIncognitoModeEnabled)) {
+            // No recents/usage learning in private or non-prose editor fields.
             return;
         }
         final String emojiStr = key.getOutputText() != null ? key.getOutputText() : (key.getCode() > 0 ? new String(Character.toChars(key.getCode())) : null);
@@ -1817,6 +1811,17 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     public static class AdaptiveEmojiEngine {
+        // One bounded writer shared by all Emoji taps; never spawn a thread per tap.
+        private static final java.util.concurrent.ExecutorService RECORD_EXECUTOR =
+                java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                    final Thread thread = new Thread(r, "brr-emoji-usage");
+                    thread.setDaemon(true);
+                    return thread;
+                });
+        private static final java.util.concurrent.ConcurrentHashMap<String, Integer> USAGE_CACHE =
+                new java.util.concurrent.ConcurrentHashMap<>();
+        private static final java.util.concurrent.atomic.AtomicBoolean CACHE_WARMED =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
         private static final String PREF_ADAPTIVE_METADATA = "pref_adaptive_emoji_metadata";
         private static final String PREF_FAST_ROW_CACHE = "pref_adaptive_emoji_fast_row_cache";
         private static final String PREF_FAST_ROW_LAST_REFRESH = "pref_adaptive_emoji_fast_row_last_refresh";
@@ -1824,8 +1829,34 @@ public final class EmojiPalettesView extends LinearLayout
         private static final int MAX_FAST_ROW_EMOJI_COUNT = 48;
         private static final double RECENCY_DECAY_SECONDS = 7.0 * 24.0 * 60.0 * 60.0;
 
+        /** Existing persisted Emoji frequency can influence the same contextual strip. */
+        public static void warmUsageCache(@NonNull final Context context) {
+            if (!CACHE_WARMED.compareAndSet(false, true)) return;
+            RECORD_EXECUTOR.execute(() -> {
+                try {
+                    final String json = KtxKt.prefs(context.getApplicationContext())
+                            .getString(PREF_ADAPTIVE_METADATA, "{}");
+                    final org.json.JSONObject root = new org.json.JSONObject(json);
+                    final java.util.Iterator<String> keys = root.keys();
+                    int count = 0;
+                    while (keys.hasNext() && count++ < 256) {
+                        final String emoji = keys.next();
+                        final org.json.JSONObject record = root.optJSONObject(emoji);
+                        if (record != null) USAGE_CACHE.merge(emoji,
+                                Math.max(0, Math.min(20, record.optInt("freq", 0))), Math::max);
+                    }
+                } catch (Exception ignored) { // A malformed old cache must never disrupt typing.
+                }
+            });
+        }
+
+        public static int cachedUsageBoost(@NonNull final String emoji) {
+            return Math.min(48, USAGE_CACHE.getOrDefault(emoji, 0) * 8);
+        }
+
         public static void recordEmojiUsage(@NonNull final Context context, @NonNull final String emoji) {
-            new Thread(() -> {
+            USAGE_CACHE.merge(emoji, 1, (a, b) -> Math.min(20, a + b));
+            RECORD_EXECUTOR.execute(() -> {
                 synchronized (AdaptiveEmojiEngine.class) {
                     try {
                         final android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
@@ -1875,7 +1906,7 @@ public final class EmojiPalettesView extends LinearLayout
                         Log.e("AdaptiveEmojiEngine", "Failed to record emoji usage asynchronously", e);
                     }
                 }
-            }).start();
+            });
         }
 
         public static boolean shouldRefreshFastRow(@NonNull final Context context) {

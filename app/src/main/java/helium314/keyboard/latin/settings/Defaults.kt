@@ -55,6 +55,7 @@ object Defaults {
     const val PREF_VIBRATE_IN_DND_MODE = false
     const val PREF_SOUND_ON = false
     const val PREF_SUGGEST_EMOJIS = true
+    const val PREF_LEARN_SWIPE_CORRECTIONS = false
     const val PREF_INLINE_EMOJI_SEARCH = false
     const val PREF_SHOW_EMOJI_DESCRIPTIONS = true
     const val PREF_PERSISTENT_EMOJI_ROW = false

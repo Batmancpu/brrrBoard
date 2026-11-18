@@ -189,18 +189,12 @@ class ClipboardHistoryView @JvmOverloads constructor(
         }
     }
 
-    private fun heightMotionEnabled(): Boolean =
-        android.provider.Settings.Global.getFloat(context.contentResolver,
-            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f &&
-            (Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled())
+    // Never animate an IME-internal layout height against ColorOS window/insets.
+    // Endpoint geometry and the Android system keyboard show/hide remain intact.
+    private fun heightMotionEnabled(): Boolean = false
 
     private fun prepareHeightMotion() {
-        val from = if (animatedBodyHeight > 0) animatedBodyHeight else height
         cancelHeightMotion()
-        if (from > 0 && isShown && heightMotionEnabled()) {
-            pendingFromHeight = from
-            heightChangePending = true
-        }
     }
 
     private fun launchHeightMotion(from: Int, target: Int, generation: Long) {
@@ -877,13 +871,11 @@ class ClipboardHistoryView @JvmOverloads constructor(
         if (searchMode) closeSearch(animate = false)
     }
 
-    /** Shared footer ABC first shrinks the in-panel Search height, then exits. */
+    /** Shared footer ABC switches once, immediately, with no 260 ms hold. */
     fun collapseSearchForFooterAlphabet(switchToAlphabet: Runnable): Boolean {
         if (!searchMode) return false
-        closeSearch()
-        postDelayed({
-            if (isShown && !searchMode) switchToAlphabet.run()
-        }, EmojiPanelHeightMotion.DURATION_MS)
+        closeSearch(animate = false)
+        if (!searchMode) switchToAlphabet.run()
         return true
     }
 

@@ -45,6 +45,7 @@ import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.utils.ChecksumCalculator
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.Log
@@ -97,6 +98,10 @@ fun GestureTypingScreen(
             Settings.PREF_GESTURE_FLOATING_PREVIEW_DYNAMIC else null,
         if (gestureEnabled)
             Settings.PREF_GESTURE_SPACE_AWARE else null,
+        if (gestureEnabled)
+            Settings.PREF_LEARN_SWIPE_CORRECTIONS else null,
+        if (gestureEnabled)
+            "brr_forget_swipe_corrections" else null,
         if (gestureEnabled)
             Settings.PREF_GESTURE_FAST_TYPING_COOLDOWN else null,
         if (gestureEnabled &&
@@ -262,6 +267,19 @@ fun GestureLibrarySetupGuide() {
 }
 
 fun createGestureTypingSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_LEARN_SWIPE_CORRECTIONS,
+        R.string.brr_learn_swipe_corrections, R.string.brr_learn_swipe_corrections_summary) {
+        SwitchPreference(it, Defaults.PREF_LEARN_SWIPE_CORRECTIONS)
+    },
+    Setting(context, "brr_forget_swipe_corrections", R.string.brr_forget_swipe_corrections) { item ->
+        val ctx = LocalContext.current
+        Button(onClick = {
+            SwipeCorrectionLearner.get(ctx).clear()
+            Toast.makeText(ctx, R.string.brr_swipe_corrections_cleared, Toast.LENGTH_SHORT).show()
+        }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+            Text(item.title)
+        }
+    },
     Setting(context, Settings.PREF_GESTURE_INPUT, R.string.gesture_input, R.string.gesture_input_summary) {
         SwitchPreference(it, Defaults.PREF_GESTURE_INPUT)
     },

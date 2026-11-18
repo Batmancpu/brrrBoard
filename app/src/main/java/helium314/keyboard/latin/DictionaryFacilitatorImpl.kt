@@ -15,6 +15,7 @@ import helium314.keyboard.latin.DictionaryFacilitator.DictionaryInitializationLi
 import helium314.keyboard.latin.NgramContext.WordInfo
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ComposedData
+import helium314.keyboard.latin.common.InputPointers
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.StringUtils
 import helium314.keyboard.latin.common.decapitalize
@@ -22,6 +23,8 @@ import helium314.keyboard.latin.common.mightBeEmoji
 import helium314.keyboard.latin.common.splitOnWhitespace
 import helium314.keyboard.latin.dictionary.AppsBinaryDictionary
 import helium314.keyboard.latin.dictionary.BrrPersonalDictionary
+import helium314.keyboard.latin.brain.SwipeGeometryRescue
+import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.dictionary.ContactsBinaryDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.dictionary.DictionaryFactory
@@ -520,6 +523,11 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             suggestionResults.mRawSuggestions?.addAll(it)
         }
 
+        if (composedData.mIsBatchMode && inputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH) {
+            addGeometricRecallCandidates(suggestionResults, composedData, ngramContext,
+                keyboard, settingsValuesForSuggestion, sessionId, proximityInfoHandle)
+        }
+
         // For a typed word, keep a text candidate in the center and let contextual Emoji use
         // either side slot. Empty-token predictions and swipe decoding retain the two-word
         // preference so their first visible choices remain useful text candidates.
@@ -533,6 +541,67 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         )
 
         return suggestionResults
+    }
+
+    /**
+     * Final-swipe-only candidate recovery. The imported gesture library may
+     * omit a word entirely, while the *typed-mode* dictionary can still recover
+     * it from a corner-derived key sequence (e.g. hapy -> happy). We preserve
+     * the native top result; at most one verified lexical rescue enters the
+     * visible alternatives. No duplicate dictionary or packaged neural runtime.
+     */
+    private fun addGeometricRecallCandidates(
+        results: SuggestionResults, composedData: ComposedData, ngramContext: NgramContext,
+        keyboard: Keyboard, settings: SettingsValuesForSuggestion, sessionId: Int,
+        proximityInfoHandle: Long
+    ) {
+        val seeds = SwipeGeometryRescue.hints(composedData.mInputPointers, keyboard)
+        if (seeds.isEmpty()) return
+        val existing = results.map { it.mWord.lowercase(Locale.ROOT) }.toHashSet()
+        val topScore = results.firstOrNull()?.mScore ?: 0
+        val thirdScore = results.elementAtOrNull(2)?.mScore ?: 0
+        val rescueScore = if (results.isEmpty()) 1 else {
+            minOf(topScore - 1, maxOf(0, thirdScore + 1))
+        }
+        if (rescueScore <= 0 && results.isNotEmpty()) return
+        val noWeightHint = floatArrayOf(Dictionary.NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL)
+        val activeIme = LatinIME.getInstance()
+        val sv = Settings.getValues()
+        val learner = if (activeIme != null && sv != null && SwipeCorrectionLearner.isAllowed(
+                activeIme, activeIme.currentInputEditorInfo, sv.mIncognitoModeEnabled,
+                sv.isSuggestionsEnabledPerUserSettings()
+            )) SwipeCorrectionLearner.get(activeIme) else null
+        for (seed in seeds) {
+            val confirmedWord = learner?.suggest(seed)
+            if (confirmedWord != null && confirmedWord !in existing
+                && !BrrPersonalDictionary.isNoSuggestionWord(confirmedWord)) {
+                results.add(SuggestedWordInfo(confirmedWord, "", rescueScore,
+                    SuggestedWordInfo.KIND_CORRECTION, Dictionary.DICTIONARY_HARDCODED,
+                    SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
+                return
+            }
+            val typed = ComposedData(InputPointers(1), false, seed)
+            for (group in dictionaryGroups) {
+                // Native text lookup is independent from native gesture lookup;
+                // run sequentially after tail decode on the existing worker.
+                val candidates = getSuggestions(typed, ngramContext, settings, sessionId,
+                    proximityInfoHandle, noWeightHint, group)
+                for (candidate in candidates) {
+                    val word = candidate.mWord
+                    val folded = word.lowercase(Locale.ROOT)
+                    if (folded in existing || candidate.isEmoji
+                        || BrrPersonalDictionary.isNoSuggestionWord(word)
+                        || !SwipeGeometryRescue.couldMatchSeed(seed, word)) continue
+                    // Only actual dictionary words may be surfaced as new
+                    // alternatives; no arbitrary gesture key string insertion.
+                    if (!candidate.mSourceDict.isInDictionary(word)) continue
+                    results.add(SuggestedWordInfo(word, "", rescueScore,
+                        SuggestedWordInfo.KIND_CORRECTION, candidate.mSourceDict,
+                        SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
+                    return // hard bound: one extra candidate, no first-word promotion
+                }
+            }
+        }
     }
 
     private fun getSuggestions(

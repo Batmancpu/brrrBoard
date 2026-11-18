@@ -98,6 +98,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_VIBRATE_IN_DND_MODE = "vibrate_in_dnd_mode";
     public static final String PREF_SOUND_ON = "sound_on";
     public static final String PREF_SUGGEST_EMOJIS = "suggest_emojis";
+    // Extra learned gesture associations are opt-in. Existing native history is unchanged.
+    public static final String PREF_LEARN_SWIPE_CORRECTIONS = "brr_learn_swipe_corrections";
     public static final String PREF_INLINE_EMOJI_SEARCH = "inline_emoji_search";
     public static final String PREF_SHOW_EMOJI_DESCRIPTIONS = "show_emoji_descriptions";
     public static final String PREF_PERSISTENT_EMOJI_ROW = "persistent_emoji_row";

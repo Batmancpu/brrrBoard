@@ -24,7 +24,9 @@ import java.util.Set;
  */
 public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
     private static final String TAG = "brrPersonal";
-    private static final String NAME = "brrPersonal_v1";
+    // Rebuild the on-device expandable cache after adding the reviewed social lexicon.
+    // Keep the old v1 cache untouched for rollback and backup compatibility.
+    private static final String NAME = "brrPersonal_v2";
     private static final String DATA_ASSET = "brrPersonal.tsv";
     private static final String RULES_ASSET = "brrPersonal_rules.tsv";
     private static final int SHORTCUT_FREQUENCY = 14;

@@ -12,6 +12,7 @@ from prepare_brrpersonal import (
     MANUAL_RULE_FREQUENCY,
     build_seed_entries,
     find_columns,
+    read_reviewed_social,
     read_rules,
 )
 
@@ -79,6 +80,23 @@ class BrrPersonalSeedTests(unittest.TestCase):
             path.write_text("contains space\t😎\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "invalid word"):
                 read_rules(path)
+
+    def test_reviewed_social_words_are_predictable_but_profanity_is_not(self):
+        with tempfile.TemporaryDirectory(prefix="brr-social-test-") as directory:
+            path = Path(directory, "social.tsv")
+            path.write_text("kya\t105\nsolulu\t31\n", encoding="utf-8")
+            reviewed = read_reviewed_social(path, {"wtf": "🤦"})
+            entries, _, _ = build_seed_entries([], "h", "e", {"wtf": "🤦"},
+                                                reviewed_social=reviewed)
+            self.assertEqual((105, ""), entries["kya"])
+            self.assertEqual((31, ""), entries["solulu"])
+            self.assertEqual((MANUAL_RULE_FREQUENCY, "🤦"), entries["wtf"])
+            path.write_text("wtf\t105\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "valid-only"):
+                read_reviewed_social(path, {"wtf": "🤦"})
+            path.write_text("solulu\t200\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "frequency"):
+                read_reviewed_social(path, {})
 
 
 if __name__ == "__main__":

@@ -37,6 +37,8 @@ import helium314.keyboard.latin.LastComposedWord;
 import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.RichInputConnection;
+import helium314.keyboard.latin.brain.SwipeCorrectionLearner;
+import helium314.keyboard.latin.brain.SwipeGeometryRescue;
 import helium314.keyboard.latin.SingleDictionaryFacilitator;
 import helium314.keyboard.latin.Suggest;
 import helium314.keyboard.latin.Suggest.OnGetSuggestedWordsCallback;
@@ -134,6 +136,24 @@ public final class InputLogic {
 
     private boolean mJustRevertedACommit = false;
 
+    // RAM-only direct-correction receipt; no touch coordinates are persisted.
+    private String mCurrentSwipeSkeleton;
+    private String mRejectedSwipeSkeleton;
+    private long mRejectedSwipeAt;
+
+    private boolean mayLearnSwipe(final SettingsValues values) {
+        return values != null && SwipeCorrectionLearner.isAllowed(mLatinIME,
+                mLatinIME.getCurrentInputEditorInfo(), values.mIncognitoModeEnabled,
+                values.isSuggestionsEnabledPerUserSettings()) && !mConnection.hasSlowInputConnection();
+    }
+
+    private void confirmSwipeCorrection(final SettingsValues values,
+            final String skeleton, final String word) {
+        if (skeleton != null && mayLearnSwipe(values)) {
+            SwipeCorrectionLearner.get(mLatinIME).confirm(skeleton, word);
+        }
+    }
+
     /**
      * Create a new instance of the input logic.
      * 
@@ -168,6 +188,8 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
         mEnteredText = null;
         mWordBeingCorrectedByCursor = null;
         mConnection.onStartInput();
@@ -231,6 +253,8 @@ public final class InputLogic {
      * Clean up the input logic after input is finished.
      */
     public void finishInput() {
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
         if (mWordComposer.isComposingWord()) {
             mConnection.finishComposingText();
             StatsUtils.onWordCommitUserTyped(mWordComposer.getTypedWord(), mWordComposer.isBatchMode());
@@ -253,6 +277,7 @@ public final class InputLogic {
      */
     public InputTransaction onTextInput(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler) {
+        mRejectedSwipeSkeleton = null; // pasted text cannot confirm a swipe correction
         final String rawText = event.getTextToCommit().toString();
         final InputTransaction inputTransaction = new InputTransaction(settingsValues, event,
                 SystemClock.uptimeMillis(), mSpaceState,
@@ -310,6 +335,12 @@ public final class InputLogic {
 
         final SuggestedWords suggestedWords = mSuggestedWords;
         final String suggestion = suggestionInfo.mWord;
+        if (mWordComposer.isBatchMode() && mCurrentSwipeSkeleton != null
+                && !suggestion.equalsIgnoreCase(mWordComposer.getTypedWord())) {
+            confirmSwipeCorrection(settingsValues, mCurrentSwipeSkeleton, suggestion);
+        }
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
         // If this is a punctuation picked from the suggestion strip, pass it to
         // onCodeInput
         if (suggestion.length() == 1 && suggestedWords.isPunctuationSuggestions()) {
@@ -384,6 +415,46 @@ public final class InputLogic {
         StatsUtils.onPickSuggestionManually(mSuggestedWords, suggestionInfo, mDictionaryFacilitator);
         StatsUtils.onWordCommitSuggestionPickedManually(suggestionInfo.mWord, mWordComposer.isBatchMode());
         return inputTransaction;
+    }
+
+    /**
+     * A contextual Emoji suggestion is an insertion, not a spelling correction.
+     * Finish the exact composing word first; then insert at the editor cursor with
+     * one optional separating space. Do not route Emoji through commitChosenWord.
+     */
+    public InputTransaction onInsertEmojiSuggestion(final SettingsValues settingsValues,
+            final String emoji, final int keyboardShiftState, final LatinIME.UIHandler handler) {
+        final Event event = Event.createSoftwareTextEvent(emoji, KeyCode.MULTIPLE_CODE_POINTS, null);
+        final InputTransaction transaction = new InputTransaction(settingsValues, event,
+                SystemClock.uptimeMillis(), mSpaceState, keyboardShiftState);
+        mConnection.beginBatchEdit();
+        if (mWordComposer.isComposingWord()) {
+            if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
+                mConnection.finishComposingText();
+                resetComposingState(false);
+            } else {
+                // Do not auto-correct "happy" into an unrelated word when the
+                // owner explicitly chose 🎉 instead of a text candidate.
+                commitTyped(settingsValues, LastComposedWord.NOT_A_SEPARATOR);
+            }
+        }
+        final CharSequence preceding = mConnection.getTextBeforeCursor(2, 0);
+        if (EmojiSuggestionInsertPolicy.needsSpace(preceding,
+                settingsValues.mInputAttributes.mShouldInsertSpacesAutomatically)) {
+            mConnection.commitText(" ", 1);
+        }
+        // Reuse the native last-word -> Emoji history path before clearing it.
+        addToHistoryIfEmoji(emoji, settingsValues);
+        mConnection.commitText(emoji, 1);
+        resetComposingState(true);
+        mSpaceState = SpaceState.NONE;
+        mEnteredText = emoji;
+        mWordBeingCorrectedByCursor = null;
+        mConnection.endBatchEdit();
+        transaction.setDidAffectContents();
+        transaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+        handler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+        return transaction;
     }
 
     /**
@@ -567,6 +638,8 @@ public final class InputLogic {
 
     public void onStartBatchInput(final SettingsValues settingsValues,
             final KeyboardSwitcher keyboardSwitcher, final LatinIME.UIHandler handler) {
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
         mWordBeingCorrectedByCursor = null;
         mInputLogicHandler.onStartBatchInput();
         handler.showGesturePreviewAndSetSuggestions(SuggestedWords.getEmptyBatchInstance(), false);
@@ -663,11 +736,20 @@ public final class InputLogic {
     }
 
     public void onEndBatchInput(final InputPointers batchPointers) {
+        final SettingsValues values = Settings.getValues();
+        final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
+        mCurrentSwipeSkeleton = null;
+        if (mayLearnSwipe(values) && keyboard != null) {
+            final java.util.List<String> hints = SwipeGeometryRescue.INSTANCE.hints(batchPointers, keyboard);
+            if (!hints.isEmpty()) mCurrentSwipeSkeleton = hints.get(0);
+        }
         mInputLogicHandler.updateTailBatchInput(batchPointers, mAutoCommitSequenceNumber);
         ++mAutoCommitSequenceNumber;
     }
 
     public void onCancelBatchInput(final LatinIME.UIHandler handler) {
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
         mInputLogicHandler.onCancelBatchInput();
         handler.showGesturePreviewAndSetSuggestions(
                 SuggestedWords.getEmptyInstance(), true /* dismissGestureFloatingPreviewText */);
@@ -1122,6 +1204,8 @@ public final class InputLogic {
     }
 
     private void addToHistoryIfEmoji(final String text, final SettingsValues settingsValues) {
+        if (!helium314.keyboard.keyboard.emoji.EmojiContextEligibility.isEligible(
+                mLatinIME.getCurrentInputEditorInfo(), settingsValues.mIncognitoModeEnabled)) return;
         if (mLastComposedWord == LastComposedWord.NOT_A_COMPOSED_WORD // we want a last composed word, also to avoid
                                                                       // storing consecutive emojis
                 || mWordComposer.isComposingWord() // emoji will be part of the word in this case, better do nothing
@@ -1468,6 +1552,11 @@ public final class InputLogic {
         if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isBatchMode()) {
                 final String rejectedSuggestion = mWordComposer.getTypedWord();
+                if (mCurrentSwipeSkeleton != null && mayLearnSwipe(inputTransaction.getSettingsValues())) {
+                    mRejectedSwipeSkeleton = mCurrentSwipeSkeleton;
+                    mRejectedSwipeAt = SystemClock.uptimeMillis();
+                }
+                mCurrentSwipeSkeleton = null;
                 mWordComposer.reset();
                 mWordComposer.setRejectedBatchModeSuggestion(rejectedSuggestion);
                 if (!TextUtils.isEmpty(rejectedSuggestion)) {
@@ -1688,6 +1777,11 @@ public final class InputLogic {
                 .getNgramContextFromNthPreviousWord(settingsValues.mSpacingAndPunctuations, 2);
         final long timeStampInSeconds = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         mDictionaryFacilitator.unlearnFromUserHistory(word, ngramContext, timeStampInSeconds, eventType);
+        // The next-word cache is keyed only by context: a history rejection
+        // otherwise leaves its old ranking (including empty results) alive.
+        if (eventType != Constants.EVENT_BACKSPACE && mSuggest != null) {
+            mSuggest.clearNextWordSuggestionsCache();
+        }
     }
 
     /**
@@ -1931,6 +2025,11 @@ public final class InputLogic {
         final int timeStampInSeconds = (int) TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         mDictionaryFacilitator.addToUserHistory(word, wasAutoCapitalized, ngramContext,
                 timeStampInSeconds, settingsValues.mBlockPotentiallyOffensive);
+        // Invalidate at accepted word boundaries, never per-key. The next
+        // post-Space query must see newly learned unigrams and bigrams.
+        if (mSuggest != null) {
+            mSuggest.clearNextWordSuggestionsCache();
+        }
     }
 
     // strip word separators from end (may be necessary for urls, e.g. when the user
@@ -2761,6 +2860,15 @@ public final class InputLogic {
      */
     private void commitChosenWord(final SettingsValues settingsValues, final String chosenWord,
             final int commitType, final String separatorString) {
+        if (mRejectedSwipeSkeleton != null) {
+            // The first *typed* word directly after deleting a bad swipe can
+            // confirm the intended target. A later/pasted/swiped word cannot.
+            if (!mWordComposer.isBatchMode() && SystemClock.uptimeMillis() - mRejectedSwipeAt <= 20_000L) {
+                confirmSwipeCorrection(settingsValues, mRejectedSwipeSkeleton, chosenWord);
+            }
+            mRejectedSwipeSkeleton = null;
+        }
+        if (mWordComposer.isBatchMode()) mCurrentSwipeSkeleton = null;
         long startTimeMillis = 0;
         if (DebugFlags.DEBUG_ENABLED) {
             startTimeMillis = SystemClock.elapsedRealtime();

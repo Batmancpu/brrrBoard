@@ -1,5 +1,19 @@
 # brrBoard Known Issues & Audit Notes
 
+## 2026-11-18 — brrBrain v2 candidate, swipe recall and Oppo motion unresolved
+
+The approved GO source adds independent geometric typed-dictionary *candidate
+recall*, repeated-confirmation swipe associations, Emoji insert/post-Space
+context, safe reviewed Hinglish/social terms and instant panel ABC. The native
+imported GlideLib is still the primary decoder; if its typed lexicon also fails
+to propose the intended word, rescue may fail. The original `happy`/`hap`/rare
+word report lacks a captured same-build gesture trace or device latency
+benchmark. The 260ms delayed Emoji/Clipboard return is removed in source, but
+ColorOS frame pacing and top-gap are not phone-verified. No per-app prior or
+external ONNX model included. See
+`docs/BRRBRAIN_V2_GO_IMPLEMENTATION_2026_11_18.md`; Android CI/original signer
+and Oppo acceptance remain open, separate from older Dictate issue.
+
 ## 2026-11-18 — ColorOS 15: both apps' mic grant and provider AppOps are distinct
 
 Green [v1.0.126](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.126)

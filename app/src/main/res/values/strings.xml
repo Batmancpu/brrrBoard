@@ -8,6 +8,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"
     tools:ignore="MissingTranslation">
+    <string name="brr_learn_swipe_corrections">Learn corrected swipes</string>
+    <string name="brr_learn_swipe_corrections_summary">Opt-in, offline: after you replace an incorrect swipe twice, suggest the intended word next time. Stores small word associations only, never your touch path. Not used in private fields.</string>
+    <string name="brr_forget_swipe_corrections">Forget learned swipe corrections</string>
+    <string name="brr_swipe_corrections_cleared">Learned swipe corrections cleared</string>
     <!-- Name of Android spell checker service. The app name should not be translated. -->
     <string name="spell_checker_service_name">brrBoard Spell Checker</string>
     <!-- Title for IME settings screen. The app name should not be translated. -->

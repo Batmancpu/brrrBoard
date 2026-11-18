@@ -764,6 +764,7 @@ public class LatinIME extends InputMethodService implements
     public void onCreate() {
         sInstance = this;
         mSettings.startListener();
+        EmojiPalettesView.AdaptiveEmojiEngine.warmUsageCache(this);
         KeyboardIconsSet.Companion.getInstance().loadIcons(this);
         mRichImm = RichInputMethodManager.getInstance();
         AudioAndHapticFeedbackManager.init(this);
@@ -2118,10 +2119,22 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
         if (suggestionInfo.isEmoji()) {
-            final EmojiPalettesView emojiPalettesView = mKeyboardSwitcher.getEmojiPalettesView();
-            if (emojiPalettesView != null) {
-                emojiPalettesView.addRecentEmoji(suggestionInfo.mWord);
+            final InputTransaction emojiTransaction = mInputLogic.onInsertEmojiSuggestion(
+                    mSettings.getCurrent(), suggestionInfo.mWord,
+                    mKeyboardSwitcher.getKeyboardShiftMode(), mHandler);
+            updateStateAfterInputTransaction(emojiTransaction);
+            if (helium314.keyboard.keyboard.emoji.EmojiContextEligibility.isEligible(
+                    getCurrentInputEditorInfo(), mSettings.getCurrent().mIncognitoModeEnabled)) {
+                final EmojiPalettesView emojiPalettesView = mKeyboardSwitcher.getEmojiPalettesView();
+                if (emojiPalettesView != null) {
+                    emojiPalettesView.addRecentEmoji(suggestionInfo.mWord);
+                } else {
+                    // The Emoji panel is lazily created; strip usage must still
+                    // train the same local prior before its first open.
+                    EmojiPalettesView.AdaptiveEmojiEngine.recordEmojiUsage(this, suggestionInfo.mWord);
+                }
             }
+            return;
         }
         final InputTransaction completeInputTransaction = mInputLogic.onPickSuggestionManually(
                 mSettings.getCurrent(), suggestionInfo,

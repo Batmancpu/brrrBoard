@@ -1,0 +1,32 @@
+# brrBrain v2 — owner GO, exact implementation and acceptance ledger
+
+18 November 2026. **Status: source candidate. Android CI, original-signed Obtainium APK, and Oppo Reno 10 5G acceptance are not yet complete.** The complete aspirational T0–T6 design remains `BRRBRAIN_V2_DECODER_AND_CONTEXT_HANDOFF_2026_11_18.md`; this is the honest implementation delta. No Dictate files were changed.
+
+## This batch's code
+
+1. **North Indian Romanized Hindi + social words:** 144 authored/reviewed safe tokens in `app/src/main/assets/brrPersonal_social.tsv` with conservative seed weights (not measured corpus counts). `tools/prepare_brrpersonal.py` checks schema/duplicates/forbidden rule overlap and folds these into the existing pinned PHINC generation at Gradle build time. `BrrPersonalDictionary.NAME` advances to v2 to rebuild the app's own expanded lexicon. Existing en-US/en-GB/hi-Latn dictionaries survive. No scraping of Instagram comments or copied licensed social feeds.
+2. **Geometric swipe candidate rescue:** `brain/SwipeGeometryRescue.kt` takes ephemeral completed gesture points, finds corners relative to the active keyboard, rejects invalid traces and makes at most two typed spelling seeds. `DictionaryFacilitatorImpl.kt` runs these through the **independent typed-mode** native lexicon, verifies lexical matches, and adds at most one alternate, never changes native top-1. This could recover `happy` from `hapy` when the imported gesture decoder omitted it, but the actual Oppo recall is not yet measured. Not a replacement CTC/DTW decoder.
+3. **Swipe correction learning:** `brain/SwipeCorrectionLearner.java` stores at most 64 `(coarse key seed, manually corrected word, count, timestamp)` records in app-private **no-backup** storage; no coordinates, messages, or app identifiers. A correction is recorded when the user picks a different swipe alternative or directly deletes a swipe and commits a manually typed replacement within 20 seconds. Two confirmations and shape similarity are required before recalling the word as an alternative. Opt-in **Learn corrected swipes**, OFF by default; **Forget learned swipe corrections** clears just this data. Editor type, incognito, no-learning and personalized-dictionary gates apply. The original n-gram learning is retained.
+4. **Emoji insert action:** `LatinIME` branches Emoji suggestions into `InputLogic.onInsertEmojiSuggestion`, preserving the exact composing word, adding at most one separating space, committing multi-codepoint Emoji and updating suggestions. `EmojiSuggestionInsertPolicy` has spacing tests. No text correction can replace `happy` with 🎉 anymore through this path.
+5. **Post-Space context and freshness:** `Suggest.kt` uses the already-available committed `NgramContext` after Space for reviewed context Emoji, while preserving two native text positions where present. `EmojiContextScorer` adds conservative `happy`/`birthday` and North Indian holiday/common phrase triggers. User-history additions/rejections invalidate the next-word cache at word boundaries, not each key.
+6. **One Emoji usage source:** existing Emoji Recents/usage metadata now has one serial background writer, asynchronous cache warm-up and a capped frequency bonus to reorder equally plausible Emoji context candidates. This is *global Emoji frequency*, not a new topic co-occurrence model or a separate dictionary. No raw context is persisted.
+7. **Instant Emoji/Clipboard exit:** both internal panel height-motion entry points cancel stale animation, compute the final layout, and footer ABC switches immediately (no 260 ms hold). Android system keyboard show/hide remains untouched; source still contains disabled helper animator methods for future removal after device QA.
+
+## Gates and explicit limitations
+
+- Local `python3 -m unittest discover -s tools -p 'test_*.py' -v`: **11/11 PASS**. Added Java/Kotlin unit and Robolectric tests for Emoji spacing, reviewed triggers, geometric seeds, learned-pair threshold/reset and privacy; Android SDK unavailable locally, so those require CI.
+- **T0/Oppo pending:** physical complete/early-lift `happy` swipes, actual native pre/post-filter recall, held-out gesture replay and p95 latency; a synthetic `hapy -> happy` test is not device proof.
+- **T2 optional CTC held:** no unlicensed CTC weights, FUTO/Google binaries, ONNX Runtime or new 3 MB word list packaged. Condition remains a demonstrable held-out improvement under +20 MB including runtime and legal rights.
+- **T3/T5 per-app held:** no app package profiles or Keystore-scoped per-app prior shipped. Existing global native n-gram still learns accepted words. The new swipe model is opt-in, no-backup and bounded, not app-aware.
+- **T4 contextual Emoji partial:** global usage personalizes ordering of reviewed triggers, but no per-topic co-occurrence table. Emoji Search/Clipboard contents are not learned. Device smoothness unknown.
+- **T6 pending:** assembleDebug, testRunTests, both GitHub Actions green, pinned original signer and package cert, exact signed APK bytes/hash, ABI and Oppo results. Do not claim 100% accuracy, improved top-3, or fixed physical frame pacing until measured.
+
+## Owner acceptance after signed release
+
+1. Notes: type `happy`, tap 🎉, expect `happy 🎉`; repeat `happy `, then `happy birthday `; next-word text may appear and birthday context may offer 🎂/🎉. A Space before Emoji never duplicates.
+2. Swipe `happy` five times on the Oppo; report whether intended word is top-1, side candidate, or absent. Compare earlier app behavior, including early lift `hap`.
+3. Enable Gesture typing → Learn corrected swipes. Twice swipe an ambiguous shape, erase the wrong word and manually enter `happy` immediately. Repeat: a learned alternative may surface; it will not auto-replace. Forget it with the adjacent button.
+4. Private/URL/password/no-personalized-learning editor: the additional learning/context must be silent. Test only with harmless synthetic input.
+5. Rapid Emoji Search/Expanded/Clipboard Search → ABC: no spring, 260ms pause or dead footer. ColorOS/Oppo acceptance remains open.
+
+**Preserve** `com.mangoloads.board`, the original Obtainium signing certificate, all four ABIs/16 KB checks, the imported user-supplied gesture library, and concurrent Dictate changes.

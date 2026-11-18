@@ -409,10 +409,12 @@ tasks.matching {
 val prepareBrrPersonalDictionary = tasks.register<Exec>("prepareBrrPersonalDictionary") {
     val generator = rootProject.file("tools/prepare_brrpersonal.py")
     val rules = file("src/main/assets/brrPersonal_rules.tsv")
+    val reviewedSocial = file("src/main/assets/brrPersonal_social.tsv")
     val generatedAsset = file("src/main/assets/brrPersonal.tsv")
-    inputs.files(generator, rules)
+    inputs.files(generator, rules, reviewedSocial)
     outputs.file(generatedAsset)
-    commandLine("python3", generator.absolutePath, generatedAsset.absolutePath, rules.absolutePath)
+    commandLine("python3", generator.absolutePath, generatedAsset.absolutePath,
+        rules.absolutePath, reviewedSocial.absolutePath)
 }
 
 tasks.named("preBuild").configure {

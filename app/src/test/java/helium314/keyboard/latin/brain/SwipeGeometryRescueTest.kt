@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-3.0-only
+package helium314.keyboard.latin.brain
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class SwipeGeometryRescueTest {
+    private val keys = mapOf(
+        'h' to SwipeGeometryRescue.Point(5.0, 10.0),
+        'a' to SwipeGeometryRescue.Point(0.0, 10.0),
+        'p' to SwipeGeometryRescue.Point(9.0, 0.0),
+        'y' to SwipeGeometryRescue.Point(5.0, 0.0),
+        'q' to SwipeGeometryRescue.Point(0.0, 0.0)
+    )
+
+    private fun segment(a: SwipeGeometryRescue.Point, b: SwipeGeometryRescue.Point) =
+        (0..10).map { fraction ->
+            val portion = fraction / 10.0
+            SwipeGeometryRescue.Point(a.x + (b.x - a.x) * portion,
+                a.y + (b.y - a.y) * portion)
+        }
+
+    @Test fun cornersRecoverWordShapeMissedByExistingNativeCandidates() {
+        val trace = listOf('h', 'a', 'p', 'y').zipWithNext().flatMap { (a, b) ->
+            segment(keys.getValue(a), keys.getValue(b))
+        }
+        val hints = SwipeGeometryRescue.hints(trace, keys, 2.0)
+        assertTrue("expected hapy spelling seed, got $hints", hints.contains("hapy"))
+    }
+
+    @Test fun rejectsTapJitterAndUnboundedGesture() {
+        assertEquals(emptyList<String>(), SwipeGeometryRescue.hints(
+            listOf(keys.getValue('h')), keys, 2.0))
+        assertEquals(emptyList<String>(), SwipeGeometryRescue.hints(
+            listOf(keys.getValue('h'), keys.getValue('h'), keys.getValue('h')), keys, 2.0))
+        assertEquals(emptyList<String>(), SwipeGeometryRescue.hints(
+            listOf(keys.getValue('h'), SwipeGeometryRescue.Point(1000.0, 1000.0),
+                keys.getValue('p')), keys, 2.0))
+    }
+
+    @Test fun independentLexicalRescueMayRecoverMissingHappy() {
+        assertTrue(SwipeGeometryRescue.couldMatchSeed("hapy", "happy"))
+        assertTrue(SwipeGeometryRescue.couldMatchSeed("hap", "happy"))
+        assertTrue(!SwipeGeometryRescue.couldMatchSeed("hap", "zapt"))
+        assertTrue(!SwipeGeometryRescue.couldMatchSeed("hapy", "birthday"))
+    }
+}

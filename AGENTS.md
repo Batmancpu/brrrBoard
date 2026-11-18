@@ -1,5 +1,21 @@
 # brrBoard agent instructions
 
+## 2026-11-18 — brrBrain v2 owner GO, source candidate (CI/phone pending)
+
+Owner authorized the first lightweight Text/Emoji brain batch and reviewed North
+India/2026 social vocabulary. On the main baseline `6bf66ff`, source now adds
+144 authored safe tokens to existing pinned PHINC-generated `brrPersonal_v2`,
+corner-seed typed-dictionary swipe rescue, opt-in bounded no-backup swipe
+correction pairs, Emoji append instead of word replacement, contextual Emoji
+after Space, accepted-word n-gram cache invalidation, serialized Emoji usage,
+and immediate Emoji/Clipboard ABC endpoint switch. No Dictate files touched;
+no new gesture binary/ONNX/model, network permission or separate 3 MB lexicon.
+Local Python 11/11 PASS; Android tests, both CI gates, original-signed APK and
+actual Oppo recall/animation acceptance **PENDING**. This is NOT completed T0–T6
+or measured swipe accuracy. Exact code, risks, deferred per-app/CTC, test script:
+`docs/BRRBRAIN_V2_GO_IMPLEMENTATION_2026_11_18.md`. Preserve main-only,
+original signature and parallel Dictate work; never claim phone success from CI.
+
 ## 2026-11-18 — ColorOS 15 permission diagnosis; follow-up to signed v1.0.126
 
 Commit `8e3289c2a1f6a610352caf2d51935c2531268fc2` shipped

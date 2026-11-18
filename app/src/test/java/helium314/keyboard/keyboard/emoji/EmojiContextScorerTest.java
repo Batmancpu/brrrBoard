@@ -79,11 +79,12 @@ public class EmojiContextScorerTest {
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("happy birthday", true).isEmpty());
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("mail@example.com", false).isEmpty());
         assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthdayparty", false).isEmpty());
-        // A previous-word context unlocks reviewed multiword intent without
-        // adding any new word/Emoji candidate to the strip.
+        // Completed-phrase context can also be used after Space; one-word
+        // fallback is lower confidence than the explicit multiword trigger.
         assertEquals(List.of("🎂", "🎉"),
                 EmojiContextScorer.rankEmojiSideCandidates("happy birthday", false));
-        assertTrue(EmojiContextScorer.rankEmojiSideCandidates("birthday", false).isEmpty());
+        assertEquals(List.of("🎂"), EmojiContextScorer.rankEmojiSideCandidates("birthday", false));
+        assertEquals(List.of("😊"), EmojiContextScorer.rankEmojiSideCandidates("happy", false));
         assertEquals(List.of("🍀"),
                 EmojiContextScorer.rankSearchCandidates("good luck", 8));
         // The exact phrase is a Search synonym; a weak trailing trigger in a

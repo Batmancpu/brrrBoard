@@ -1,5 +1,7 @@
 # brrBrain v2 — independent swipe candidate generation + adaptive text/Emoji + optional per-app context
 
+> **18 Nov GO update:** The owner authorized implementation. The first lightweight implementation candidate is documented in `BRRBRAIN_V2_GO_IMPLEMENTATION_2026_11_18.md`; T0–T6 are NOT all complete, and device/CI gates still apply. The next paragraph is the original pre-GO planning state preserved for design provenance.
+
 **Status: revised implementation DESIGN ONLY; DO NOT implement until owner says GO.** 18 November 2026, India. This file **supersedes the architecture and T0–T6 stage definitions** in `docs/ADAPTIVE_TYPING_EMOJI_AND_SNAP_HANDOFF_2026_11_18.md`. Preserve its detailed Emoji insertion, post-Space, snap-height, privacy and regression requirements where consistent with this revision. Do not use the old plan's *native-top-three-only* swipe ranking restriction: the owner has now reported that the intended swipe word is sometimes absent from *every* suggestion.
 
 ## 0. Product decision, exact owner examples and hard constraints

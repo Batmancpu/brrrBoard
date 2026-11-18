@@ -9,6 +9,9 @@ import android.text.TextUtils
 import android.util.LruCache
 import com.android.inputmethod.latin.utils.BinaryDictionaryUtils
 import helium314.keyboard.keyboard.Keyboard
+import helium314.keyboard.keyboard.emoji.EmojiContextScorer
+import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
+import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.common.ComposedData
@@ -163,18 +166,40 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
         val isTypedWordValid = firstOccurrenceOfTypedWordInSuggestions > -1 || (!resultsArePredictions && !allowsToBeAutoCorrected)
-        // Reuse the decoder's already-available previous-word context for
-        // ranking existing Emoji side slots. No extra editor Binder read, saved
-        // history, model or persistent context. The normal tap path does not
-        // allocate a snapshot unless multiple Emoji are actually present.
+        // Reuse the decoder's already-available n-gram context after Space as well
+        // as while composing. In particular, after "happy birthday " the word
+        // composer is empty, but the accepted phrase can still suggest 🎂.
+        // Never issue an extra surrounding-editor-text IPC from this path.
         val currentSettings = Settings.getValues()
-        val emojiContext = if (!currentSettings.mIncognitoModeEnabled
+        val mayUseEmojiContext = !currentSettings.mIncognitoModeEnabled
             && currentSettings.mInputAttributes.mIsGeneralTextInput
             && currentSettings.mInputAttributes.mShouldShowSuggestions
-            && !resultsArePredictions && suggestionsList.count { it.isEmoji } > 1) {
+            && EmojiContextEligibility.isEligible(
+                LatinIME.getInstance()?.currentInputEditorInfo, currentSettings.mIncognitoModeEnabled)
+        val emojiContext = if (mayUseEmojiContext && (resultsArePredictions
+                    || suggestionsList.count { it.isEmoji } > 1)) {
             val previous = ngramContext.extractPrevWordsContext()
-            (previous + " " + capitalizedTypedWord).takeLast(160)
+            if (resultsArePredictions) previous.takeLast(160)
+            else (previous + " " + capitalizedTypedWord).takeLast(160)
         } else ""
+        if (resultsArePredictions && mayUseEmojiContext
+            && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
+            && suggestionsList.none { it.isEmoji }) {
+            val reviewed = EmojiContextScorer.rankEmojiSideCandidates(emojiContext, false)
+            // Keep reviewed semantic confidence dominant. Repeated actual Emoji
+            // choices can gently reorder the alternatives without learning text.
+            val emoji = reviewed.withIndex().maxByOrNull { (index, value) ->
+                EmojiPalettesView.AdaptiveEmojiEngine.cachedUsageBoost(value) - index * 30
+            }?.value
+            if (emoji != null) {
+                // Preserve the two strongest text predictions in visible slots;
+                // an Emoji is a distinct insertion action, never a word candidate.
+                suggestionsList.add(min(2, suggestionsList.size),
+                    SuggestedWordInfo(emoji, "", 0, SuggestedWordInfo.KIND_PREDICTION,
+                        Dictionary.DICTIONARY_HARDCODED, SuggestedWordInfo.NOT_AN_INDEX,
+                        SuggestedWordInfo.NOT_A_CONFIDENCE))
+            }
+        }
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions,
             typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
             emojiContext)
