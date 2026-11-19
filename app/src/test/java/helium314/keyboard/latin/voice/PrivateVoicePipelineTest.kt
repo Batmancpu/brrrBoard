@@ -104,5 +104,7 @@ class PrivateVoicePipelineTest {
                 "The board meeting is about obtaining results, not github.com or a kotlin-based project.",
             ),
         )
+        assertEquals("Android. GitHub! support@github.com",
+            VoiceTranscriptFormatter.format("android. github! support@github.com"))
     }
 }

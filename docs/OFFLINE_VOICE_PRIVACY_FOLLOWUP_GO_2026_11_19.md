@@ -67,3 +67,8 @@ local glossary may follow only with deterministic safety rules and a verified
 Oppo latency/word-error-rate comparison; never promise an accuracy improvement
 without on-device evidence. Silence/energy and overlap thresholds must also
 be measured before imposing filters that could discard softly spoken words.
+
+## 2026-11-19 — Voice formatter punctuation CI repair (fresh CI REQUIRED)
+
+Initial voice follow-up `14a6d32` compiled successfully but debug run [44510814687](https://github.com/Batmancpu/brrrBoard/actions/runs/44510814687) executed 371 tests with one failure: `PrivateVoicePipelineTest.formattingOnlyChangesUnambiguousCasingWithoutRewritingSpeech`, first assertion at line 95. The URL/email guard excluded ALL trailing dots, accidentally preventing `android.` from becoming `Android.` at the end of an ordinary sentence. Narrow fix excludes only `.` followed by an alphanumeric domain component, and tests terminal punctuation plus `support@github.com`; neither core engine nor red brrSpeak integration changes. **Do not ship the first failed SHA; wait for BOTH exact new-SHA debug and original-signed release gates.**
+

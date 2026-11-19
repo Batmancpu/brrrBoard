@@ -20,8 +20,9 @@ internal object VoiceTranscriptFormatter {
         "kotlin" to "Kotlin",
         "obtainium" to "Obtainium",
     )
-    // Dot/@ boundaries are deliberately excluded: never rewrite URLs or email addresses.
-    private val tokens = Regex("(?<![\\p{L}\\p{N}.@])[A-Za-z]+(?![\\p{L}\\p{N}.@])")
+    // Exclude URLs/email addresses without treating ordinary sentence-ending periods
+    // as part of a domain. For example, "android." is a word, "android.com" is not.
+    private val tokens = Regex("(?<![\\p{L}\\p{N}.@])[A-Za-z]+(?![\\p{L}\\p{N}@]|\\.[A-Za-z0-9])")
 
     fun format(text: String): String = tokens.replace(text) { match ->
         canonicalWords[match.value.lowercase(Locale.ROOT)] ?: match.value
