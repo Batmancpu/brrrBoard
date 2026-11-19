@@ -26,21 +26,24 @@ import helium314.keyboard.latin.settings.Settings
 import java.util.Locale
 import helium314.keyboard.latin.utils.Log
 
-// brrSpeak may need to load saved provider settings before it can read the supplied pipe.
-private const val SPEECH_SERVICE_START_TIMEOUT_MS = 25_000L
+// The microphone starts in the foreground IME; completed audio is handed to a separate bound service.
 private const val MICROPHONE_START_TIMEOUT_MS = 8_000L
-private const val TRANSCRIPTION_RESULT_TIMEOUT_MS = 120_000L
+private const val RECORDING_FINALIZATION_TIMEOUT_MS = 20_000L
+private const val TRANSCRIPTION_RESULT_TIMEOUT_MS = 150_000L
 
-/** Foreground keyboard mic -> brrSpeak's explicit RecognitionService -> current editor, no activities. */
+/**
+ * Two-tap record-first dictation. The keyboard captures private audio itself and transfers only
+ * a completed read-only PCM file descriptor to brrSpeak's explicit authenticated Binder service.
+ * Android's cross-UID RecognitionService path is intentionally no longer used.
+ */
 internal class InlineDictation(private val ime: LatinIME) {
     private val handler = Handler(Looper.getMainLooper())
     private val state = InlineVoiceSessionState()
-    private var recognizer: SpeechRecognizer? = null
-    private var pcmSource: KeyboardPcmAudioSource? = null
+    private var source: KeyboardRecordedAudioSource? = null
+    private var client: BrrSpeakRecordedAudioClient? = null
     private var footer: BoardFooterView? = null
     private var deadline: Runnable? = null
     private var generation = 0L
-    private var detectedSpeechLanguage: String? = null
 
     fun toggle(root: View?, locale: Locale) {
         when (state.tap()) {
@@ -48,32 +51,23 @@ internal class InlineDictation(private val ime: LatinIME) {
             InlineVoiceSessionState.Action.STOP -> sendStop()
             InlineVoiceSessionState.Action.CANCEL -> cancel()
             InlineVoiceSessionState.Action.NONE -> {
-                // If a quick second tap arrives during binding, stop once our own AudioRecord
-                // starts. Never call stopListening: this transport ends by closing the PCM pipe.
                 footer?.showDictationStatus(R.string.board_voice_starting)
             }
         }
     }
 
     fun start(root: View?, locale: Locale) {
-        if (recognizer != null) return
+        if (state.phase != InlineVoiceSessionState.Phase.IDLE) return
         val inputView = root ?: return
         footer = inputView.findViewById(R.id.board_footer)
         footer?.clearDictationError()
-        // Speaking is now the active intent; it supersedes any older Undo
-        // chip and gives the live voice status exclusive center ownership.
         footer?.clearContextAction()
         val editor = ime.currentInputEditorInfo ?: return
-        if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
+        if (!ime.isInputViewShown || !canDictate(editor) ||
+            !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            report(R.string.inline_voice_brrspeak_requires_android_13)
-            return
-        }
-        val brrSpeakService = installedBrrSpeakService(ime)
-        if (brrSpeakService == null) {
-            // Never silently bind the purchased original Dictate or an OEM recognizer.
-            Log.w("InlineDictation", "brrSpeak RecognitionService not discoverable")
+        if (installedBrrSpeakReceiver(ime) == null) {
+            Log.w("InlineDictation", "record-first brrSpeak receiver unavailable or outdated")
             report(R.string.inline_voice_brrspeak_missing)
             return
         }
@@ -81,190 +75,146 @@ internal class InlineDictation(private val ime: LatinIME) {
             report(R.string.inline_voice_permission)
             return
         }
-        try {
-            val session = SpeechRecognizer.createSpeechRecognizer(ime, brrSpeakService)
-            state.begin()
-            generation++
-            recognizer = session
-            val currentGeneration = generation
-            val source = KeyboardPcmAudioSource(
-                onRecordingStarted = {
-                    if (recognizer === session && generation == currentGeneration) {
-                        if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
-                            cancel()
-                        } else {
-                            clearDeadline()
-                            when (state.onAudioCaptureStarted()) {
-                                InlineVoiceSessionState.Action.STOP -> sendStop()
-                                else -> if (state.phase == InlineVoiceSessionState.Phase.LISTENING) {
-                                    footer?.showDictationActive(true)
-                                    footer?.showDictationStatus(R.string.board_voice_listening)
-                                }
+        state.begin()
+        generation++
+        val currentGeneration = generation
+        footer?.showDictationStatus(R.string.board_voice_starting)
+        footer?.setDictationCancelAvailable(true)
+        val newSource = KeyboardRecordedAudioSource(
+            ime,
+            onRecordingStarted = {
+                if (generation == currentGeneration &&
+                    state.phase == InlineVoiceSessionState.Phase.STARTING) {
+                    if (!isOriginalEditor(connection, editor)) {
+                        cancel()
+                    } else {
+                        clearDeadline()
+                        when (state.onAudioCaptureStarted()) {
+                            InlineVoiceSessionState.Action.STOP -> sendStop()
+                            else -> {
+                                footer?.showDictationActive(true)
+                                footer?.showDictationStatus(R.string.board_voice_listening)
                             }
                         }
                     }
-                },
-                onCaptureFailure = {
-                    if (recognizer === session && generation == currentGeneration) {
-                        fail(R.string.inline_voice_provider_audio_failure)
-                    }
-                },
-            )
-            pcmSource = source
-            detectedSpeechLanguage = null
-            footer?.showDictationStatus(R.string.board_voice_starting)
-            footer?.setDictationCancelAvailable(true)
-            listen(session, createBrrSpeakAudioIntent(locale, source.readEnd), connection)
-        } catch (_: Exception) {
-            fail(R.string.inline_voice_failure)
-        }
-    }
-
-    private fun listen(
-        session: SpeechRecognizer,
-        intent: Intent,
-        connection: InputConnection,
-    ) {
-        val sessionGeneration = generation
-        fun isCurrent(): Boolean = recognizer === session && generation == sessionGeneration
-        try {
-            session.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-                    if (!isCurrent()) return
-                    if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
-                        cancel()
-                        return
-                    }
-                    if (state.phase != InlineVoiceSessionState.Phase.STARTING) return
-                    // The tested brrSpeak receiver has opened its external PCM reader now.
-                    // Start the *keyboard's* microphone only at this point; otherwise
-                    // its pipe can fill while brrSpeak is still loading provider settings.
-                    scheduleDeadline(MICROPHONE_START_TIMEOUT_MS, sessionGeneration) {
-                        fail(R.string.inline_voice_provider_audio_failure)
-                    }
-                    pcmSource?.start()
                 }
-                override fun onBeginningOfSpeech() {
-                    if (!isCurrent()) return
-                    if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
-                        cancel()
-                        return
-                    }
-                    // brrSpeak reports amplitude-based speech, not microphone acquisition.
-                    // Only the local AudioRecord startup callback may turn the mic indicator red.
-                }
-                override fun onLanguageDetection(results: Bundle) {
-                    if (!isCurrent()) return
-                    val language = results.getString(SpeechRecognizer.DETECTED_LANGUAGE) ?: return
-                    val confidence = results.getInt(
-                        SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL,
-                        SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_UNKNOWN,
-                    )
-                    if (confidence == SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_CONFIDENT ||
-                        confidence == SpeechRecognizer.LANGUAGE_DETECTION_CONFIDENCE_LEVEL_HIGHLY_CONFIDENT) {
-                        detectedSpeechLanguage = language
-                    }
-                }
-                override fun onRmsChanged(rmsdB: Float) = Unit
-                override fun onBufferReceived(buffer: ByteArray?) = Unit
-                override fun onPartialResults(partialResults: Bundle?) = Unit
-                override fun onEvent(eventType: Int, params: Bundle?) = Unit
-                override fun onEndOfSpeech() {
-                    if (!isCurrent()) return
-                    if (!ime.isInputViewShown || ime.currentInputConnection !== connection) {
-                        cancel()
-                        return
-                    }
-                    pcmSource?.stop()
+            },
+            onRecordingFinished = { file, bytes ->
+                if (generation != currentGeneration ||
+                    state.phase == InlineVoiceSessionState.Phase.IDLE ||
+                    !isOriginalEditor(connection, editor)) {
+                    file.delete()
+                    cancel()
+                } else {
                     state.onEndOfSpeech()
+                    footer?.showDictationActive(false)
                     footer?.showDictationProcessing()
                     footer?.showDictationStatus(R.string.board_voice_transcribing)
-                    scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS, sessionGeneration) {
-                        fail(R.string.inline_voice_failure)
-                    }
+                    handoff(file, bytes, connection, editor, currentGeneration)
                 }
-                override fun onError(error: Int) {
-                    if (!isCurrent()) return
-                    val locallyGranted = ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
-                        PackageManager.PERMISSION_GRANTED
-                    Log.w("InlineDictation", "Recognition callback failed: code=$error " +
-                        "localMicPermission=$locallyGranted externalPcm=true")
-                    fail(brrSpeakFailureMessage(error, locallyGranted))
+            },
+            onCaptureFailure = { reason ->
+                if (generation == currentGeneration) {
+                    Log.w("InlineDictation", "microphone failure stage=" + reason.name)
+                    fail(R.string.inline_voice_provider_audio_failure)
                 }
-                override fun onResults(results: Bundle?) {
-                    if (!isCurrent()) return
-                    val candidates = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        .orEmpty()
-                    val resultLanguage = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        results?.getString(SpeechRecognizer.DETECTED_LANGUAGE)
-                    } else null) ?: detectedSpeechLanguage
-                    val detectedNonEnglish = resultLanguage != null && !isEnglishLanguageTag(resultLanguage)
-                    // brrSpeak currently returns one candidate and no language tag. Android services
-                    // that provide a confident language tag are filtered here; Devanagari Hindi is
-                    // also rejected even when a service omits that metadata.
-                    val text = if (detectedNonEnglish) "" else candidates
-                        .firstOrNull { it.isNotBlank() && !containsHindiScript(it) }
-                        ?.trim().orEmpty()
-                    val rejectedNonEnglish = candidates.isNotEmpty() && text.isEmpty() &&
-                        (detectedNonEnglish || candidates.any(::containsHindiScript))
-                    val statusFooter = footer
-                    cancel()
-                    if (ime.isInputViewShown && ime.currentInputConnection === connection) {
-                        if (text.isNotEmpty()) {
-                            ime.onTextInput(text)
-                        } else if (rejectedNonEnglish) {
-                            report(R.string.inline_voice_hindi_result, statusFooter)
-                        }
-                    }
-                }
-            })
-            scheduleDeadline(SPEECH_SERVICE_START_TIMEOUT_MS, sessionGeneration) {
-                fail(R.string.inline_voice_no_speech)
-            }
-            session.startListening(intent)
-        } catch (_: Exception) {
-            fail(R.string.inline_voice_failure)
+            },
+        )
+        source = newSource
+        scheduleDeadline(MICROPHONE_START_TIMEOUT_MS, currentGeneration) {
+            fail(R.string.inline_voice_provider_audio_failure)
         }
+        newSource.start()
     }
 
     private fun sendStop() {
-        if (recognizer == null) return
-        val sessionGeneration = generation
+        val capture = source ?: return
+        val currentGeneration = generation
+        footer?.showDictationActive(false)
         footer?.showDictationProcessing()
         footer?.showDictationStatus(R.string.board_voice_transcribing)
-        scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS, sessionGeneration) {
+        scheduleDeadline(RECORDING_FINALIZATION_TIMEOUT_MS, currentGeneration) {
+            fail(R.string.inline_voice_provider_audio_failure)
+        }
+        capture.stop()
+    }
+
+    private fun handoff(
+        file: java.io.File,
+        bytes: Long,
+        connection: InputConnection,
+        editor: EditorInfo,
+        currentGeneration: Long,
+    ) {
+        if (!RecordedPcmContract.validLength(bytes)) {
+            file.delete()
+            fail(R.string.inline_voice_no_speech)
+            return
+        }
+        val sessionId = (java.util.UUID.randomUUID().mostSignificantBits and Long.MAX_VALUE)
+            .coerceAtLeast(1L)
+        val request = BrrSpeakRecordedAudioClient(
+            ime,
+            sessionId,
+            file,
+            bytes,
+            onResult = { text ->
+                if (generation == currentGeneration) {
+                    val originalEditorActive = isOriginalEditor(connection, editor)
+                    val accepted = text.trim().takeUnless { it.isBlank() || containsHindiScript(it) }
+                    val rejectedHindi = containsHindiScript(text)
+                    val statusFooter = footer
+                    cancel()
+                    if (originalEditorActive) {
+                        when {
+                            accepted != null -> ime.onTextInput(accepted)
+                            rejectedHindi -> report(R.string.inline_voice_hindi_result, statusFooter)
+                            else -> report(R.string.inline_voice_no_speech, statusFooter)
+                        }
+                    }
+                }
+            },
+            onError = { code ->
+                if (generation == currentGeneration) {
+                    Log.w("InlineDictation", "brrSpeak receiver failed code=" + code)
+                    fail(R.string.inline_voice_provider_audio_failure)
+                }
+            },
+        )
+        client = request
+        scheduleDeadline(TRANSCRIPTION_RESULT_TIMEOUT_MS, currentGeneration) {
             fail(R.string.inline_voice_failure)
         }
-        // The brrSpeak external-source receiver reads to EOF and transcribes every queued frame.
-        // Calling stopListening first could truncate the last words.
-        pcmSource?.stop()
+        if (!request.start()) {
+            fail(R.string.inline_voice_brrspeak_missing)
+        }
     }
+
+    private fun isOriginalEditor(connection: InputConnection, editor: EditorInfo): Boolean =
+        ime.isInputViewShown &&
+            ime.currentInputConnection === connection &&
+            ime.currentInputEditorInfo === editor
 
     fun cancel() {
         clearDeadline()
-        val session = recognizer
-        recognizer = null
         generation++
         state.reset()
-        detectedSpeechLanguage = null
-        val source = pcmSource
-        pcmSource = null
+        client?.close()
+        client = null
         source?.close()
+        source = null
         footer?.showDictationActive(false)
         footer?.showDictationProcessing(false)
         footer?.setDictationCancelAvailable(false)
         footer?.clearDictationError()
         footer = null
-        if (session != null) {
-            runCatching { session.cancel() }
-            runCatching { session.destroy() }
-        }
     }
 
-    private fun scheduleDeadline(delayMillis: Long, sessionGeneration: Long, action: () -> Unit) {
+    private fun scheduleDeadline(delayMillis: Long, currentGeneration: Long, action: () -> Unit) {
         clearDeadline()
         deadline = Runnable {
-            if (recognizer != null && generation == sessionGeneration) action()
+            if (state.phase != InlineVoiceSessionState.Phase.IDLE &&
+                generation == currentGeneration) action()
         }.also { handler.postDelayed(it, delayMillis) }
     }
 
@@ -309,56 +259,36 @@ internal class InlineDictation(private val ime: LatinIME) {
     companion object {
         @JvmStatic
         fun isAvailable(context: Context): Boolean =
-            runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
+            context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE)
 
-        private fun installedBrrSpeakService(context: Context): ComponentName? {
-            // A pre-v5 fork exposes the same RecognitionService class but does not
-            // understand EXTRA_AUDIO_SOURCE and might try opening its own microphone.
+        private fun installedBrrSpeakReceiver(context: Context): ComponentName? {
             @Suppress("DEPRECATION")
-            val installedVersion = runCatching {
-                val info = context.packageManager.getPackageInfo(BRRSPEAK_PACKAGE, 0)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode
-                else info.versionCode.toLong()
-            }.getOrNull()
-            if (!supportsBrrSpeakAudioSource(installedVersion)) return null
-            val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(BRRSPEAK_PACKAGE)
-            val services = runCatching {
-                context.packageManager.queryIntentServices(query, 0).mapNotNull { info ->
-                    info.serviceInfo?.let { ComponentName(it.packageName, it.name) }
-                }
-            }.getOrDefault(emptyList())
-            return resolveBrrSpeakService(services)
+            val info = runCatching {
+                context.packageManager.getPackageInfo(
+                    BRRSPEAK_PACKAGE, PackageManager.GET_SERVICES,
+                )
+            }.getOrNull() ?: return null
+            val installedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+            if (!RecordedAudioWire.supports(installedVersion)) return null
+            val service = info.services?.firstOrNull {
+                it.name == RecordedAudioWire.SERVICE_CLASS && it.exported
+            } ?: return null
+            return ComponentName(service.packageName, service.name)
         }
 
-        private fun selectedDictateRecognitionService(context: Context): DictateServiceSelection {
-            val selected = AndroidSettings.Secure.getString(
-                context.contentResolver, VOICE_RECOGNITION_SERVICE_SETTING
-            )
-            val query = Intent(RecognitionService.SERVICE_INTERFACE).setPackage(DICTATE_PACKAGE_NAME)
-            val services = runCatching {
-                context.packageManager.queryIntentServices(query, 0).mapNotNull { info ->
-                    info.serviceInfo?.let { ComponentName(it.packageName, it.name) }
-                }
-            }.getOrDefault(emptyList())
-            return resolveDictateServiceSelection(selected, services)
-        }
-
-        // This rejects Hindi-script output because the owner requested English only. Dictate's
-        // saved Active language remains authoritative; this does not identify Romanized Hindi.
         private fun containsHindiScript(text: String): Boolean =
             text.any { it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF' }
-
-        private fun isEnglishLanguageTag(languageTag: String): Boolean =
-            Locale.forLanguageTag(languageTag).language.equals(Locale.ENGLISH.language, ignoreCase = true)
 
         private fun canDictate(editor: EditorInfo): Boolean =
             editor.inputType != 0 &&
                 !InputTypeUtils.isPasswordInputType(editor.inputType) &&
                 !InputTypeUtils.isVisiblePasswordInputType(editor.inputType) &&
                 editor.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
-
-        private const val VOICE_RECOGNITION_SERVICE_SETTING = "voice_recognition_service"
-        private const val DICTATE_PACKAGE_NAME = "net.devemperor.dictate"
     }
 }
 

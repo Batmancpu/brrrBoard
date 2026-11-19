@@ -132,6 +132,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     </application>
 
     <queries>
+        <!-- Explicit visibility of the independently installed brrSpeak Binder receiver. -->
+        <package android:name="com.mangoloads.speak" />
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
