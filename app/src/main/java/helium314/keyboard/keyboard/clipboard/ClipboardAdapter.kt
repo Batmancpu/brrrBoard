@@ -183,10 +183,6 @@ class ClipboardAdapter(
 
     override fun onViewRecycled(holder: ViewHolder) {
         (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
-        super.onViewRecycled(holder)
-    }
-
-    override fun onViewRecycled(holder: ViewHolder) {
         holder.clearImage()
         super.onViewRecycled(holder)
     }

@@ -1,5 +1,18 @@
 # brrBoard project context
 
+## 2026-11-19 — initial owner video CI failure and narrowly scoped repair
+
+Commit `f566a5c` with Clipboard gesture, moving glow, Toolbar/footer, emoji
+hold and brrBrain guard produced debug `44461419515` FAILURE and pinned-signer
+release `44461419585` FAILURE. Failure was Android Kotlin compilation only:
+`ClipboardAdapter.kt` contained two `onViewRecycled(ViewHolder)` overrides
+(pre-existing image disposal plus new glow disposal). Fixed locally by merging
+the glow stop call into the pre-existing override and preserving image cleanup.
+The workflows were not permitted to sign/release; a new commit and successful
+debug + signer checks are REQUIRED. User approved Batch 2 with an added center
+prediction pill preference: default neutral gray, setting optionally match
+theme tint; only begin Batch 2 after this repair is verified green.
+
 ## 2026-11-19 — owner recording follow-up, implementation prepared, not CI verified
 
 New 23.7s owner video exposes a fixed 56dp Toolbar glass bar clipping an extra

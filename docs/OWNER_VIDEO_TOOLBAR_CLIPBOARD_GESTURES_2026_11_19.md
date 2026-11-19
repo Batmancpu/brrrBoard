@@ -4,6 +4,12 @@ Date: 2026-11-19. Base: `main` `89f9b56` (signed v1.0.137 already CI-green).
 This is a **source candidate until BOTH authoritative CI workflows pass**. A green
 Android build is not physical Oppo Reno 10 5G visual or gesture acceptance.
 
+Build checkpoint: first uploaded code commit `f566a5c` failed both debug run
+`44461419515` and signing run `44461419585` at `ClipboardAdapter.kt`'s
+duplicate `onViewRecycled` callback. Repair folds glow disposal into the
+already-existing image-disposal override. This candidate still requires a new
+commit and full red-to-green reruns; no APK from `f566a5c` was published.
+
 ## Owner request and video evidence
 
 - Owner reports swipe typing is inert in Clipboard Search, rainbow highlight

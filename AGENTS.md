@@ -1,5 +1,16 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — compilation repair after owner video source candidate
+
+First full debug run `44461419515` and original-signed release run
+`44461419585` on `f566a5c` both FAILED at Kotlin compilation. Both logs show
+the same precise pair of `Conflicting overloads` in
+`ClipboardAdapter.kt:184/189`: the new animated-glow cleanup added a second
+`onViewRecycled` instead of integrating with existing Coil `clearImage` cleanup.
+Candidate repair merges glow.stop into the ORIGINAL override, keeps
+`clearImage`, onAttach start and onDetach stop. No signing/voice/source model
+changes. Must run both workflows again before any Batch 2 work.
+
 ## 2026-11-19 — new owner Oppo recording: Toolbar/Clipboard/emoji hold follow-up
 
 Owner asks: fix inert Clipboard Search swipe, **live** (not static) luminous
