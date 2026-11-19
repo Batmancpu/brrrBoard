@@ -12,7 +12,8 @@ class RecordedAudioHandoffContractTest {
         assertFalse(RecordedAudioWire.supports(null))
         assertFalse(RecordedAudioWire.supports(142_005L))
         assertFalse(RecordedAudioWire.supports(142_007L))
-        assertTrue(RecordedAudioWire.supports(142_008L))
+        assertFalse(RecordedAudioWire.supports(142_008L))
+        assertTrue(RecordedAudioWire.supports(142_009L))
         assertTrue(RecordedAudioWire.supports(143_000L))
     }
 
@@ -38,6 +39,9 @@ class RecordedAudioHandoffContractTest {
         assertEquals("audio", RecordedAudioWire.AUDIO)
         assertEquals("text", RecordedAudioWire.TEXT)
         assertEquals("session", RecordedAudioWire.SESSION)
+        assertEquals("com.mangoloads.speak.boardaudio", RecordedAudioWire.WAKE_AUTHORITY)
+        assertEquals("prepare-recorded-audio", RecordedAudioWire.WAKE_METHOD)
+        assertEquals("ready", RecordedAudioWire.WAKE_READY)
         assertTrue(RecordedAudioWire.SERVICE_CLASS.endsWith(".BoardRecordedAudioService"))
     }
 }

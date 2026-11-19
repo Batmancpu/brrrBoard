@@ -46,24 +46,26 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
         val cx = bounds.exactCenterX()
         // Center on the icon's optical center, accounting for footer padding.
         val cy = bounds.exactCenterY() - 5f * density
-        val red = FooterIndicatorPolicy.voiceTint(dark, offline)
-        val haloRadius = 25f * density
-        val softHalo = RadialGradient(cx, cy, haloRadius, intArrayOf(
-            withAlpha(red, (40f + 75f * pulse).toInt()),
-            withAlpha(red, (18f + 39f * pulse).toInt()),
-            withAlpha(red, 0),
-        ), floatArrayOf(0f, .76f, 1f), Shader.TileMode.CLAMP)
+        val tint = FooterIndicatorPolicy.voiceTint(dark, offline)
+        // This disk never changes radius or opacity with the voice meter.
+        // It fits inside the 48dp footer hitbox, including the -5dp optical offset.
         paint.style = Paint.Style.FILL
-        paint.shader = softHalo
-        paint.alpha = drawableAlpha
-        canvas.drawCircle(cx, cy, haloRadius, paint)
         paint.shader = null
-
-        // The larger filled surface is a soft dark button under the red glyph,
-        // not a stroke or permanent outline. Intensity follows one mic timer.
         paint.color = if (dark) 0xFF29292E.toInt() else 0xFF292B32.toInt()
         paint.alpha = drawableAlpha
-        canvas.drawCircle(cx, cy, 21.0f * density, paint)
+        canvas.drawCircle(cx, cy, 18f * density, paint)
+
+        // The breathing light originates *behind the mic glyph*, never from the outer circle.
+        // It remains entirely inside the fixed disk, avoiding clipping against the key strip.
+        val glowRadius = 15f * density
+        paint.shader = RadialGradient(cx, cy, glowRadius, intArrayOf(
+            withAlpha(tint, (18f + 76f * pulse).toInt()),
+            withAlpha(tint, (8f + 31f * pulse).toInt()),
+            withAlpha(tint, 0),
+        ), floatArrayOf(0f, .50f, 1f), Shader.TileMode.CLAMP)
+        paint.alpha = drawableAlpha
+        canvas.drawCircle(cx, cy, glowRadius, paint)
+        paint.shader = null
     }
 
     override fun setAlpha(alpha: Int) {

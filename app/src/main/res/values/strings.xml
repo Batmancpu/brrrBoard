@@ -529,14 +529,14 @@
     <string name="inline_voice_no_speech">No speech was recognized. Try again.</string>
     <string name="inline_voice_no_model">The selected speech service does not have the requested language available.</string>
     <string name="inline_voice_hindi_result">Only English dictation is accepted. In brrSpeak → Languages, set Active language to English and turn off Follow keyboard language.</string>
-    <string name="inline_voice_brrspeak_missing">Install brrSpeak audio-source v5 or newer and configure its transcription provider. brrBoard will not use the original Dictate automatically.</string>
+    <string name="inline_voice_brrspeak_missing">Install the latest brrSpeak recording receiver and configure its transcription provider. brrBoard never uses original Dictate automatically.</string>
     <string name="inline_voice_brrspeak_requires_android_13">Inline brrSpeak audio-source recording requires Android 13 or newer.</string>
     <string name="inline_voice_select_dictate_service">Select Dictate as Android’s Voice input service to use its configured transcription engine inline.</string>
     <string name="inline_voice_open_settings_failed">Open Android Settings → Voice input and select Dictate, then tap the microphone again.</string>
     <string name="inline_voice_configure">Configure Dictate voice input</string>
     <string name="inline_voice_configure_summary">Explicitly open Android voice-input settings to select Dictate; tapping the keyboard microphone never opens settings.</string>
     <string name="board_voice_dictate_missing">Dictate service unavailable</string>
-    <string name="board_voice_brrspeak_missing">brrSpeak service unavailable</string>
+    <string name="board_voice_brrspeak_missing">brrSpeak receiver unavailable · update brrSpeak</string>
     <string name="board_voice_permission_missing">Allow brrBoard microphone permission</string>
     <string name="board_voice_english_only">brrSpeak must be set to English</string>
     <string name="board_voice_failed">Dictation unavailable — try again</string>
@@ -546,6 +546,7 @@
     <string name="board_voice_dictate_permission_missing">Allow Dictate microphone access</string>
     <string name="board_voice_starting">Starting…</string>
     <string name="board_voice_listening">Recording…</string>
+    <string name="board_voice_cancel">Cancel</string>
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
     <string name="board_voice_transcribing">Transcribing…</string>
     <string name="board_voice_offline_model_missing">Private English voice model is not installed. Install the one-time model-inclusive brrBoard APK and open it once.</string>

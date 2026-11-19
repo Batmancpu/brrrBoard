@@ -118,6 +118,7 @@
             android:layout_gravity="center"
             android:gravity="center"
             android:maxWidth="230dp"
+            android:minWidth="72dp"
             android:maxLines="2"
             android:ellipsize="end"
             android:textSize="12sp"

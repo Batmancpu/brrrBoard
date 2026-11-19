@@ -97,25 +97,65 @@ internal class BrrSpeakRecordedAudioClient(
         }
     }
 
+    private val started = AtomicBoolean(false)
+
     fun start(): Boolean {
-        if (closed.get() || !RecordedPcmContract.validLength(audioBytes)) return false
-        return try {
-            val component = ComponentName(
-                BRRSPEAK_PACKAGE, RecordedAudioWire.SERVICE_CLASS,
-            )
-            val boundNow = context.bindService(
+        if (!started.compareAndSet(false, true) || closed.get() ||
+            !RecordedPcmContract.validLength(audioBytes)) return false
+        // This worker makes no microphone request and transfers no data. Acquiring the exported
+        // UID-verified ContentProvider starts a cold brrSpeak process on Android/ColorOS, without
+        // requiring its activity to stay open or a permanent foreground/background service.
+        Thread({
+            val awake = runCatching {
+                val answer = context.contentResolver.call(
+                    android.net.Uri.parse("content://" + RecordedAudioWire.WAKE_AUTHORITY),
+                    RecordedAudioWire.WAKE_METHOD, null, null,
+                )
+                answer?.getBoolean(RecordedAudioWire.WAKE_READY, false) == true
+            }.onFailure {
+                Log.w("BrrSpeakRecordedIPC", "cold-start provider exception=" +
+                    it.javaClass.simpleName)
+            }.getOrDefault(false)
+            main.post {
+                if (!closed.get()) bindReceiver(awake)
+            }
+        }, "brrBoard-brrSpeak-cold-start").apply { isDaemon = true }.start()
+        return true
+    }
+
+    private fun bindReceiver(awake: Boolean) {
+        if (closed.get()) return
+        // Some older builds lack the provider; still try the legacy direct bind. An explicitly
+        // installed old protocol version, however, cannot safely accept this request.
+        @Suppress("DEPRECATION")
+        val installed = runCatching {
+            context.packageManager.getPackageInfo(BRRSPEAK_PACKAGE, 0)
+        }.getOrNull()
+        if (installed != null) {
+            val version = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                installed.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                installed.versionCode.toLong()
+            }
+            if (!RecordedAudioWire.supports(version)) {
+                fail(RecordedAudioWire.ERROR_VERSION)
+                return
+            }
+        }
+        try {
+            val component = ComponentName(BRRSPEAK_PACKAGE, RecordedAudioWire.SERVICE_CLASS)
+            bound = context.bindService(
                 Intent().setComponent(component), connection, Context.BIND_AUTO_CREATE,
             )
-            bound = boundNow
-            if (!boundNow) {
-                Log.w("BrrSpeakRecordedIPC", "explicit service binding returned false")
-                finish()
+            if (!bound) {
+                Log.w("BrrSpeakRecordedIPC", "explicit bind false after cold-start ack=" + awake)
+                fail(RecordedAudioWire.ERROR_BIND)
             }
-            boundNow
         } catch (e: Exception) {
-            Log.w("BrrSpeakRecordedIPC", "bind exception=" + e.javaClass.simpleName)
-            finish()
-            false
+            Log.w("BrrSpeakRecordedIPC", "bind exception=" + e.javaClass.simpleName +
+                " providerAck=" + awake)
+            fail(RecordedAudioWire.ERROR_BIND)
         }
     }
 
@@ -156,7 +196,7 @@ internal class BrrSpeakRecordedAudioClient(
 internal object RecordedAudioWire {
     const val SERVICE_CLASS =
         "dev.patrickgold.florisboard.dictate.recognition.BoardRecordedAudioService"
-    const val MIN_BRRSPEAK_VERSION = 142_008L
+    const val MIN_BRRSPEAK_VERSION = 142_009L
     const val REQUEST = 1
     const val CANCEL = 2
     const val RESULT = 3
@@ -172,6 +212,10 @@ internal object RecordedAudioWire {
     const val ERROR_BIND = 101
     const val ERROR_TRANSPORT = 102
     const val ERROR_DISCONNECTED = 103
+    const val ERROR_VERSION = 104
+    const val WAKE_AUTHORITY = "com.mangoloads.speak.boardaudio"
+    const val WAKE_METHOD = "prepare-recorded-audio"
+    const val WAKE_READY = "ready"
 
     fun supports(versionCode: Long?): Boolean =
         versionCode != null && versionCode >= MIN_BRRSPEAK_VERSION

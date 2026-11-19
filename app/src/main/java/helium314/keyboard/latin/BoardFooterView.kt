@@ -57,6 +57,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var returnToLetters = false
     private var micPulse: ValueAnimator? = null
     private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density)
+    private var pulsingMicIcon: FooterMicPulseDrawable? = null
     private var idleMicBackground: Drawable? = null
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
@@ -135,6 +136,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Emoji, ABC and the idle mic keep their original unframed surfaces.
         // Only active dictation receives the filled, animated mic capsule.
         idleMicBackground = microphone.background
+        microphone.drawable?.let { original ->
+            pulsingMicIcon = FooterMicPulseDrawable(original.mutate()).also {
+                microphone.setImageDrawable(it)
+            }
+        }
     }
 
     fun setPanelGlassSource(source: View?, emojiSource: Boolean = false) {
@@ -320,7 +326,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             microphone.imageTintList = ColorStateList.valueOf(
                 FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context), offline))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
-            startMicPulse()
+            // Recording is over. Keep the circle steady while provider work runs.
+            stopMicPulse()
         }
     }
 
@@ -341,6 +348,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun showDictationError(message: Int) {
         removeCallbacks(clearVoiceError)
+        configureVoiceStatusAction(false)
         voiceError.setText(message)
         voiceError.visibility = VISIBLE
         voiceError.announceForAccessibility(resources.getString(message))
@@ -352,6 +360,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         removeCallbacks(clearVoiceError)
         val label = resources.getString(message)
         val changed = voiceError.text.toString() != label || voiceError.visibility != VISIBLE
+        configureVoiceStatusAction(message == R.string.board_voice_cancel)
         voiceError.setText(message)
         voiceError.visibility = VISIBLE
         if (changed) voiceError.announceForAccessibility(label)
@@ -359,7 +368,27 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun clearDictationError() {
         removeCallbacks(clearVoiceError)
+        configureVoiceStatusAction(false)
         voiceError.visibility = GONE
+    }
+
+    /** The center Cancel label stops and discards recording; a second MIC tap still stops/sends. */
+    private fun configureVoiceStatusAction(cancel: Boolean) {
+        val status = voiceError
+        if (cancel && this::ime.isInitialized) {
+            status.setOnClickListener { view ->
+                feedback(view)
+                ime.cancelBoardDictation()
+            }
+            status.contentDescription = resources.getString(R.string.board_cancel_dictation)
+            status.isClickable = true
+            status.isFocusable = true
+        } else {
+            status.setOnClickListener(null)
+            status.contentDescription = null
+            status.isClickable = false
+            status.isFocusable = false
+        }
     }
 
     /** The footer's center is normally empty: one scoped, short-lived action only. */
@@ -426,9 +455,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             addUpdateListener { animation ->
                 val phase = FooterIndicatorPolicy.pulseIntensity(
                     animation.animatedValue as Float, dictationProcessing)
+                // Animate only the icon; scaling ImageButton also scales/clips its circle.
                 micRing.setPulse(phase)
-                mic.scaleX = 1f + 0.065f * phase
-                mic.scaleY = 1f + 0.065f * phase
+                pulsingMicIcon?.setPulse(phase)
                 mic.imageAlpha = (230f + 25f * phase).roundToInt()
             }
             start()
@@ -439,6 +468,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         micPulse?.cancel()
         micPulse = null
         micRing.setPulse(0f)
+        pulsingMicIcon?.setPulse(0f)
         if (this::ime.isInitialized) {
             microphone.scaleX = 1f
             microphone.scaleY = 1f

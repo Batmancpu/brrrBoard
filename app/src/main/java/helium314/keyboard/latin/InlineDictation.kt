@@ -69,11 +69,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         if (!ime.isInputViewShown || !canDictate(editor) ||
             !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
-        if (installedBrrSpeakReceiver(ime) == null) {
-            Log.w("InlineDictation", "record-first brrSpeak receiver unavailable or outdated")
-            report(R.string.inline_voice_brrspeak_missing)
-            return
-        }
+        // Do not reject an idle/cold brrSpeak process based on PackageManager's service list.
+        // The authenticated no-data provider wake and explicit bind happen after capture.
         if (ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             report(R.string.inline_voice_permission)
             return
@@ -105,7 +102,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                             InlineVoiceSessionState.Action.STOP -> sendStop()
                             else -> {
                                 footer?.showDictationActive(true)
-                                footer?.showDictationStatus(R.string.board_voice_listening)
+                                footer?.showDictationStatus(R.string.board_voice_cancel)
                             }
                         }
                     }
@@ -203,7 +200,13 @@ internal class InlineDictation(private val ime: LatinIME) {
             onError = { code ->
                 if (generation == currentGeneration) {
                     Log.w("InlineDictation", "brrSpeak receiver failed code=" + code)
-                    fail(R.string.inline_voice_provider_audio_failure)
+                    fail(
+                        if (code == RecordedAudioWire.ERROR_BIND ||
+                            code == RecordedAudioWire.ERROR_VERSION ||
+                            code == RecordedAudioWire.ERROR_DISCONNECTED)
+                            R.string.inline_voice_brrspeak_missing
+                        else R.string.inline_voice_provider_audio_failure,
+                    )
                 }
             },
         )
@@ -311,26 +314,6 @@ internal class InlineDictation(private val ime: LatinIME) {
         @JvmStatic
         fun isAvailable(context: Context): Boolean =
             context.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE)
-
-        private fun installedBrrSpeakReceiver(context: Context): ComponentName? {
-            @Suppress("DEPRECATION")
-            val info = runCatching {
-                context.packageManager.getPackageInfo(
-                    BRRSPEAK_PACKAGE, PackageManager.GET_SERVICES,
-                )
-            }.getOrNull() ?: return null
-            val installedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                info.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                info.versionCode.toLong()
-            }
-            if (!RecordedAudioWire.supports(installedVersion)) return null
-            val service = info.services?.firstOrNull {
-                it.name == RecordedAudioWire.SERVICE_CLASS && it.exported
-            } ?: return null
-            return ComponentName(service.packageName, service.name)
-        }
 
         private fun containsHindiScript(text: String): Boolean =
             text.any { it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF' }
