@@ -547,13 +547,13 @@
     <string name="board_voice_starting">Starting…</string>
     <string name="board_voice_listening">Recording…</string>
     <string name="board_voice_cancel">Cancel</string>
+    <string name="board_voice_discarded">Dictation discarded</string>
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
     <string name="board_voice_transcribing">Transcribing…</string>
-    <string name="board_voice_offline_model_missing">Bundled English voice model is not ready. Open brrBoard after updating and allow setup to finish.</string>
+    <string name="board_voice_offline_model_missing">Offline English voice model is missing. Install a model-inclusive brrBoard update to restore voice typing.</string>
     <string name="board_voice_offline_model_installing">Installing private English voice model. Please wait a moment.</string>
     <string name="board_voice_offline_model_install_failed">Private voice model setup failed. Open brrBoard Settings to retry.</string>
     <string name="board_voice_offline_listening">Private offline listening…</string>
-    <string name="board_voice_offline_processing">Transcribing privately on device…</string>
     <string name="board_voice_offline_failed">Private English transcription failed</string>
     <string name="board_show_more_suggestions">Show more suggestions</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>

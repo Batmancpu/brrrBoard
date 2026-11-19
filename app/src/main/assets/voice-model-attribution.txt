@@ -1,4 +1,4 @@
-Bundled offline English voice recognition model — attribution
+Optional offline English voice recognition model — attribution
 
 Model: NVIDIA Parakeet TDT-CTC 110M, English
 Original model: https://huggingface.co/nvidia/parakeet-tdt_ctc-110m
@@ -6,12 +6,14 @@ Original model license: Creative Commons Attribution 4.0 International
 License text: https://creativecommons.org/licenses/by/4.0/legalcode
 Copyright: NVIDIA Corporation (model authors)
 
-This APK contains an INT8 ONNX conversion used with sherpa-onnx.
+An optional model-bootstrap APK contains an INT8 ONNX conversion used with
+sherpa-onnx. Normal APK updates do not include these weights, and instead use
+the model verified and extracted into this app's private storage earlier.
 Model distribution pinned for reproducible builds:
 https://github.com/DevEmperor/DictateKeyboard/releases/tag/whisper-models-v1
 sherpa-onnx project: https://github.com/k2-fsa/sherpa-onnx
 sherpa-onnx software license: Apache License 2.0
 
 No audio is transferred to the model's original publisher or to sherpa-onnx.
-The four embedded model assets are pinned by SHA-256 and checked during
-the release build. See the repository's NOTICE and tools/offline-voice-model.lock.
+When weights are embedded, all four assets are pinned by SHA-256 and checked
+during the release build. See NOTICE and tools/offline-voice-model.lock.

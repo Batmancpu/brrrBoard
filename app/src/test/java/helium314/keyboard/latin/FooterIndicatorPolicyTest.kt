@@ -31,4 +31,14 @@ class FooterIndicatorPolicyTest {
             assertTrue((blue and 0xff) > ((blue shr 16) and 0xff))
         }
     }
+
+    @Test fun turquoiseProcessingIsDistinctFromBlueRecordingAndRedLegacy() {
+        for (dark in listOf(false, true)) {
+            val processing = FooterIndicatorPolicy.processingTint(dark)
+            assertEquals(0xFF, processing ushr 24)
+            assertTrue(processing != FooterIndicatorPolicy.voiceTint(dark, offline = true))
+            assertTrue(processing != FooterIndicatorPolicy.voiceTint(dark))
+            assertTrue((processing shr 8 and 0xFF) > (processing shr 16 and 0xFF))
+        }
+    }
 }

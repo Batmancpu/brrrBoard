@@ -2,6 +2,8 @@
 package helium314.keyboard.latin
 
 import android.annotation.SuppressLint
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.graphics.drawable.Drawable
 import android.content.Context
@@ -17,6 +19,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.accessibility.AccessibilityManager
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -45,6 +48,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
+    private val micUnderlight get() = findViewById<FooterMicUnderlightView>(R.id.board_footer_mic_underlight)
+    private val discardGlyph get() = findViewById<FooterMicDiscardMorphView>(R.id.board_footer_discard)
     private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
     private val contextAction get() = findViewById<TextView>(R.id.board_footer_context_action)
     private var popup: PopupWindow? = null
@@ -56,11 +61,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var offlineHoldActive = false
     private var returnToLetters = false
     private var micPulse: ValueAnimator? = null
-    private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density)
+    private var micDiscardAnimator: ValueAnimator? = null
+    private var micDiscardRestartTouchArmed = false
     private var pulsingMicIcon: FooterMicPulseDrawable? = null
     private var idleMicBackground: Drawable? = null
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
+    private val clearMicDiscardRunnable = Runnable { clearMicDiscardFeedback() }
     private val clearContextActionRunnable = Runnable { clearContextAction() }
     private var contextActionOwner: Any? = null
     private var contextActionCallback: (() -> Unit)? = null
@@ -133,8 +140,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Backdrop underlays the *existing* footer buttons; they never blur.
         addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         glass.visibility = GONE
-        // Emoji, ABC and the idle mic keep their original unframed surfaces.
-        // Only active dictation receives the filled, animated mic capsule.
+        // Emoji, ABC and the mic keep their original unframed touch surfaces.
+        // Recording/processing illuminate only the exact mic silhouette below.
         idleMicBackground = microphone.background
         microphone.drawable?.let { original ->
             pulsingMicIcon = FooterMicPulseDrawable(original.mutate()).also {
@@ -183,7 +190,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.
-        microphone.setOnClickListener { feedback(it); ime.toggleBoardOfflineDictation() }
+        microphone.setOnClickListener {
+            // A direct/accessibility click during discard has the same immediate
+            // restart semantics as a physical tap, without waiting for the morph.
+            if (discardGlyph.visibility == VISIBLE) clearMicDiscardFeedback()
+            feedback(it)
+            ime.toggleBoardOfflineDictation()
+        }
         // Touch-exploration double-taps activate an accessibility click, not the
         // IME-switch gesture. The dedicated accessibility switch action stays below.
         microphone.setOnTouchListener { view, event ->
@@ -192,6 +205,26 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 MotionEvent.ACTION_DOWN -> view.isPressed = true
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL,
                 MotionEvent.ACTION_POINTER_DOWN -> view.isPressed = false
+            }
+            // Cancellation is a visual event, not an input lock. Interrupt its
+            // animation on DOWN, then start a fresh recording on a valid UP.
+            // A dragged-away or cancelled gesture must never start the mic.
+            if (event.actionMasked == MotionEvent.ACTION_DOWN &&
+                discardGlyph.visibility == VISIBLE) {
+                clearMicDiscardFeedback()
+                micDiscardRestartTouchArmed = true
+            }
+            if (micDiscardRestartTouchArmed) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_UP -> {
+                        micDiscardRestartTouchArmed = false
+                        if (micActionAvailable() && event.x >= 0f && event.x < view.width &&
+                            event.y >= 0f && event.y < view.height) view.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN ->
+                        micDiscardRestartTouchArmed = false
+                }
+                return@setOnTouchListener true
             }
             // A held mic ends on release; a single tap toggles the SAME private engine.
             // Neither gesture may bind to brrSpeak or accidentally switch keyboards.
@@ -285,7 +318,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         val dark = KeyboardTheme.isDarkThemeActive(context)
-        micRing.setAppearance(dark)
         emojiButton.imageTintList = tint
         voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         if (dictationProcessing) showDictationProcessing()
@@ -295,40 +327,96 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun showDictationActive(active: Boolean, offline: Boolean = false) {
         // A layout/theme re-render must not erase the live voice status.
-        if (active && !dictationActive) clearDictationError()
+        if (active) {
+            clearMicDiscardFeedback()
+            if (!dictationActive) clearDictationError()
+        }
         dictationActive = active
         dictationProcessing = false
         dictationOffline = active && offline
-        micRing.setOfflineMode(dictationOffline)
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        micUnderlight.setPhase(if (active) FooterMicUnderlightView.Phase.RECORDING
+            else FooterMicUnderlightView.Phase.IDLE, dark)
         val colors = Settings.getValues().mColors
         microphone.imageTintList = ColorStateList.valueOf(
-            if (active) FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context), dictationOffline)
+            if (active) FooterIndicatorPolicy.voiceTint(dark)
             else colors.get(ColorType.KEY_ICON),
         )
         microphone.contentDescription = resources.getString(
             if (active) R.string.board_dictation_stop else R.string.board_inline_dictation,
         )
-        micRing.setVoiceState(if (active) FooterStatusRingDrawable.VoiceState.LISTENING
-            else FooterStatusRingDrawable.VoiceState.IDLE)
-        microphone.background = if (active) micRing else idleMicBackground
+        // No disk, ring or badge: the silhouette-shaped glow belongs to the
+        // actual keyboard surface below the existing 48dp mic touch target.
+        microphone.background = idleMicBackground
         if (active) startMicPulse() else stopMicPulse()
     }
 
     fun showDictationProcessing(processing: Boolean = true, offline: Boolean = dictationOffline) {
         dictationProcessing = processing
         if (processing) {
+            clearMicDiscardFeedback()
             showDictationActive(false)
             dictationProcessing = true
             dictationOffline = offline
-            micRing.setOfflineMode(offline)
-            micRing.setVoiceState(FooterStatusRingDrawable.VoiceState.PROCESSING)
-            microphone.background = micRing
+            // Processing is communicated solely by the turquoise pulsing mic;
+            // old Cancel/Transcribing text must never survive until insertion.
+            clearDictationError()
+            micUnderlight.setPhase(FooterMicUnderlightView.Phase.PROCESSING,
+                KeyboardTheme.isDarkThemeActive(context))
+            microphone.background = idleMicBackground
             microphone.imageTintList = ColorStateList.valueOf(
-                FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context), offline))
+                FooterIndicatorPolicy.processingTint(KeyboardTheme.isDarkThemeActive(context)))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
-            // Recording is over. Keep the circle steady while provider work runs.
-            stopMicPulse()
+            // The turquoise glyph and its mic-shaped underlight breathe together.
+            startMicPulse()
         }
+    }
+
+    /** Called only after an explicit user Cancel of an active private voice session. */
+    fun showDictationDiscarded(wasProcessing: Boolean = false) {
+        clearMicDiscardFeedback()
+        if (!isShown || microphone.visibility != VISIBLE) return
+        clearDictationError()
+        val glyph = discardGlyph
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        glyph.setStartingMicTint(if (wasProcessing) FooterIndicatorPolicy.processingTint(dark)
+            else FooterIndicatorPolicy.voiceTint(dark))
+        glyph.setIdleTint(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        glyph.setProgress(0f)
+        glyph.visibility = VISIBLE
+        microphone.announceForAccessibility(resources.getString(R.string.board_voice_discarded))
+        microphone.imageAlpha = 0
+        if (!KeyboardMotionSpec.enabled()) {
+            glyph.setProgress(.75f)
+            postDelayed(clearMicDiscardRunnable, 220L)
+            return
+        }
+        micDiscardAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = FooterMicMorphPolicy.DURATION_MS
+            interpolator = LinearInterpolator()
+            addUpdateListener { frame ->
+                val p = frame.animatedValue as Float
+                glyph.setProgress(p)
+                // The morph's white mic and real idle mic crossfade in one place.
+                microphone.imageAlpha = (FooterMicMorphPolicy.idleRevealFraction(p) * 255f).roundToInt()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (micDiscardAnimator === animation) clearMicDiscardFeedback()
+                }
+            })
+            start()
+        }
+    }
+
+    private fun clearMicDiscardFeedback() {
+        removeCallbacks(clearMicDiscardRunnable)
+        val running = micDiscardAnimator
+        micDiscardAnimator = null
+        running?.cancel()
+        discardGlyph.visibility = GONE
+        discardGlyph.setProgress(0f)
+        microphone.imageAlpha = 255
     }
 
     fun setDictationCancelAvailable(available: Boolean, offline: Boolean = dictationOffline) {
@@ -357,6 +445,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     /** Stable footer status; changing state never changes the keyboard's measured height. */
     fun showDictationStatus(message: Int) {
+        if (dictationProcessing) {
+            clearDictationError()
+            return
+        }
         removeCallbacks(clearVoiceError)
         val blueRecording = message == R.string.board_voice_offline_listening
         val visibleMessage = if (blueRecording) R.string.board_voice_cancel else message
@@ -459,8 +551,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             addUpdateListener { animation ->
                 val phase = FooterIndicatorPolicy.pulseIntensity(
                     animation.animatedValue as Float, dictationProcessing)
-                // Animate only the icon; scaling ImageButton also scales/clips its circle.
-                micRing.setPulse(phase)
+                // Animate the mic glyph and the matching underlight, not its touch target.
+                micUnderlight.setPulse(phase)
                 pulsingMicIcon?.setPulse(phase)
                 mic.imageAlpha = (230f + 25f * phase).roundToInt()
             }
@@ -471,7 +563,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private fun stopMicPulse() {
         micPulse?.cancel()
         micPulse = null
-        micRing.setPulse(0f)
+        micUnderlight.setPulse(0f)
         pulsingMicIcon?.setPulse(0f)
         if (this::ime.isInitialized) {
             microphone.scaleX = 1f
@@ -481,6 +573,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun reset() {
+        micDiscardRestartTouchArmed = false
+        clearMicDiscardFeedback()
         clearDictationError()
         clearContextAction()
         showDictationActive(false)

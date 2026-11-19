@@ -1676,7 +1676,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void cancelBoardOfflineDictation() {
-        mOfflineDictation.cancel();
+        mOfflineDictation.cancelFromUser();
     }
 
     void toggleBoardOfflineDictation() {

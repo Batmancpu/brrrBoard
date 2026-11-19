@@ -109,6 +109,8 @@
         android:id="@+id/board_footer"
         android:layout_width="match_parent"
         android:layout_height="@dimen/config_board_footer_height"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:visibility="gone">
 
         <TextView
@@ -156,6 +158,18 @@
             android:contentDescription="@string/board_language_and_shortcuts"
             android:background="?android:attr/selectableItemBackgroundBorderless" />
 
+        <!-- Cached, mic-shaped glow on the Frosted Glass surface, below the icon. -->
+        <helium314.keyboard.latin.FooterMicUnderlightView
+            android:id="@+id/board_footer_mic_underlight"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:enabled="false"
+            android:importantForAccessibility="no" />
+
         <ImageButton
             android:id="@+id/board_footer_mic"
             android:layout_width="48dp"
@@ -167,6 +181,20 @@
             android:src="@drawable/ic_board_mic"
             android:contentDescription="@string/board_inline_dictation"
             android:background="?android:attr/selectableItemBackgroundBorderless" />
+
+        <!-- Event-scoped full drawing canvas: bin descends from the Enter-key region,
+             opens, swallows the mic and morphs into the idle white mic. -->
+        <helium314.keyboard.latin.FooterMicDiscardMorphView
+            android:id="@+id/board_footer_discard"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_gravity="end|bottom"
+            android:layout_marginEnd="12dp"
+            android:clickable="false"
+            android:focusable="false"
+            android:enabled="false"
+            android:importantForAccessibility="no"
+            android:visibility="gone" />
     </helium314.keyboard.latin.BoardFooterView>
 
 </helium314.keyboard.latin.RoundedKeyboardFrameView>

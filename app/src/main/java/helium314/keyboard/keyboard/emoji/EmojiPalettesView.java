@@ -225,8 +225,17 @@ public final class EmojiPalettesView extends LinearLayout
         if (!mSearchMode && !mExpandedMode && getParent() instanceof KeyboardWrapperView) {
             final int panelWidth = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED
                     ? 0 : MeasureSpec.getSize(widthMeasureSpec);
-            final int established = ((KeyboardWrapperView) getParent())
-                    .getLastTypingPanelViewportHeightForWidth(panelWidth);
+            final KeyboardWrapperView wrapper = (KeyboardWrapperView) getParent();
+            final int storedTypingHeight = wrapper.getLastTypingPanelViewportHeightForWidth(panelWidth);
+            // On the first Emoji open an OEM may have laid out the wrapper but
+            // not yet recorded a visible alphabet frame. Previously that zero
+            // snapshot left the smaller bottom-gravity Emoji child and an empty
+            // band ABOVE its fixed header. A same-width, already measured
+            // wrapper is a safe secondary viewport source; never use a stale
+            // portrait/landscape or one-handed measurement from another width.
+            final int established = helium314.keyboard.latin.SharedPanelGeometry.chooseCompactEmojiViewport(
+                    storedTypingHeight, wrapper.getMeasuredHeight(),
+                    panelWidth > 0 && wrapper.getMeasuredWidth() == panelWidth);
             finalHeight = helium314.keyboard.latin.SharedPanelGeometry.alignCompactEmojiToTypingViewport(
                     finalHeight, established, availableHeight);
         }

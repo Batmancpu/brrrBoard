@@ -37,7 +37,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         when (phase) {
             Phase.IDLE -> start(root)
             Phase.STARTING, Phase.CAPTURING -> stop()
-            Phase.DECODING -> cancel() // A tap during processing discards the pending result.
+            Phase.DECODING -> cancelFromUser() // A tap discards the pending result.
         }
     }
 
@@ -100,7 +100,6 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             Phase.STARTING, Phase.CAPTURING -> {
                 phase = Phase.DECODING
                 footer?.showDictationProcessing(offline = true)
-                footer?.showDictationStatus(R.string.board_voice_offline_processing)
                 source?.stop()
             }
         }
@@ -136,7 +135,16 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         }
     }
 
-    fun cancel() {
+    /** Only an explicit Cancel/mic-discard gesture may play the discard feedback. */
+    fun cancelFromUser() = finish(OfflineDictationExit.USER_CANCEL)
+
+    /** Editor loss, IME dismissal, failures and successful commits never imply Cancel. */
+    fun cancel() = finish(OfflineDictationExit.OTHER)
+
+    private fun finish(reason: OfflineDictationExit) {
+        val wasActive = phase != Phase.IDLE
+        val wasProcessing = phase == Phase.DECODING
+        val statusFooter = footer
         generation++
         phase = Phase.IDLE
         decodeRequest?.cancel()
@@ -146,10 +154,16 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         pcmBuffer?.discard()
         pcmBuffer = null
         originalConnection = null
-        footer?.showDictationActive(false)
-        footer?.showDictationProcessing(false)
-        footer?.setDictationCancelAvailable(false)
+        statusFooter?.showDictationActive(false)
+        statusFooter?.showDictationProcessing(false)
+        statusFooter?.setDictationCancelAvailable(false)
+        // The old Cancel/Transcribing label was never dismissed on success or
+        // cancel. Clear it synchronously before the next editor can be shown.
+        statusFooter?.clearDictationError()
         footer = null
+        if (OfflineDictationFeedbackPolicy.showDiscard(reason, wasActive)) {
+            statusFooter?.showDictationDiscarded(wasProcessing)
+        }
     }
 
     private fun fail(message: Int) {

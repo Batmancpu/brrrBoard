@@ -64,9 +64,6 @@ jobs:
 
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
-      - name: Bundle verified English ASR weights for self-contained debug APK
-        run: bash tools/prepare-offline-voice-pack.sh
-
       - name: Build debug APK
         shell: bash
         run: |
@@ -92,7 +89,7 @@ jobs:
           APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*-debug.apk' | head -n 1)"
           test -n "$APK"
           test -s "$APK"
-          bash tools/verify-bundled-voice-model.sh "$APK"
+          bash tools/verify-voice-model-packaging.sh "$APK" unbundled
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"
@@ -137,7 +134,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
 
-      - name: Verify offline-only mic routing and bundled-model contract
+      - name: Verify offline-only mic routing and optional-model packaging contract
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)

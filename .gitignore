@@ -26,6 +26,7 @@ tools/*.txt
 *.sh
 !tools/fetch-board-sherpa-onnx.sh
 !tools/prepare-offline-voice-pack.sh
+!tools/verify-voice-model-packaging.sh
 
 # Reproducibly fetched offline voice runtime and opt-in one-time model pack.
 /app/libs/sherpa-onnx-1.13.3.jar

@@ -7,8 +7,8 @@ import android.graphics.ColorFilter
 import android.graphics.drawable.Drawable
 
 /**
- * Scales only the mic glyph inside its unchanged ImageButton and background.
- * The fixed circle can never grow into the keyboard strip or be cropped by footer bounds.
+ * Scales only the microphone glyph inside its unchanged 48dp touch target.
+ * FooterMicUnderlightView uses the same pulse factor under the button.
  */
 internal class FooterMicPulseDrawable(private val icon: Drawable) : Drawable() {
     private var intensity = 0f

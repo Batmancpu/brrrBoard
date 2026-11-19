@@ -7,6 +7,18 @@ package helium314.keyboard.latin
  * never to individual Emoji/Clipboard panels.
  */
 object SharedPanelGeometry {
+    /** No guessed pixel offset: reuse only an observed same-width viewport. */
+    @JvmStatic
+    fun chooseCompactEmojiViewport(
+        savedTypingHeightPx: Int,
+        measuredWrapperHeightPx: Int,
+        sameWidth: Boolean,
+    ): Int = when {
+        savedTypingHeightPx > 0 -> savedTypingHeightPx
+        sameWidth && measuredWrapperHeightPx > 0 -> measuredWrapperHeightPx
+        else -> 0
+    }
+
     /**
      * Native typing geometry wins over the nominal resource calculation for
      * same-width compact Emoji Browse. A fixed 36dp tolerance was insufficient

@@ -13,6 +13,12 @@ on:
       - 'gradlew'
       - '.github/workflows/obtainium-release.yml'
   workflow_dispatch:
+    inputs:
+      bundle_voice_model:
+        description: 'Include the ~136 MB English ASR model for bootstrap/recovery'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: write
@@ -46,7 +52,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
-      - name: Bundle pinned English ASR model inside the regular APK
+      - name: Bundle pinned English ASR model only when explicitly requested
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model }}
         run: bash tools/prepare-offline-voice-pack.sh
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
@@ -54,7 +61,7 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace testRunTests
       - name: Validate deterministic brrPersonal seed generator (B16A)
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
-      - name: Verify offline-only mic routing and bundled-model contract
+      - name: Verify offline-only mic routing and optional-model packaging contract
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
@@ -89,6 +96,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
           EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
+          BUNDLE_VOICE: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model && 'bundled' || 'unbundled' }}
         run: |
           set -euo pipefail
           : "${KEYSTORE_BASE64:?Missing OBTAINIUM_KEYSTORE_BASE64}"
@@ -127,8 +135,9 @@ jobs:
             echo "::error::The APK contains a full settings backup."
             exit 1
           fi
-          # Verify all four exact pinned weights inside the signed deliverable.
-          bash tools/verify-bundled-voice-model.sh "$apk"
+          # Regular updates MUST exclude weights; an explicitly dispatched
+          # bootstrap MUST include all four SHA-256-pinned weights.
+          bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_VOICE"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done
@@ -141,6 +150,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          BUNDLE_VOICE: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model && 'bundled' || 'unbundled' }}
         run: |
           set -euo pipefail
           version="1.0.$GITHUB_RUN_NUMBER"
@@ -151,6 +161,10 @@ jobs:
             echo "An equal or newer Obtainium release is already published."
             exit 0
           fi
+          model_note='No model weights in this update; retains the previously installed verified private model.'
+          if [[ "$BUNDLE_VOICE" == 'bundled' ]]; then
+            model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
+          fi
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "brrBoard Obtainium $version" --latest \
-            --notes "Commit: $GITHUB_SHA. Includes verified offline English voice model; no separate download. APK SHA-256: $SHA256."
+            --notes "Commit: $GITHUB_SHA. $model_note APK SHA-256: $SHA256."

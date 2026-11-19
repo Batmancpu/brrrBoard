@@ -46,7 +46,9 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
         val cx = bounds.exactCenterX()
         // Center on the icon's optical center, accounting for footer padding.
         val cy = bounds.exactCenterY() - 5f * density
-        val tint = FooterIndicatorPolicy.voiceTint(dark, offline)
+        val tint = if (voiceState == VoiceState.PROCESSING)
+            FooterIndicatorPolicy.processingTint(dark)
+        else FooterIndicatorPolicy.voiceTint(dark, offline)
         // This disk never changes radius or opacity with the voice meter.
         // It fits inside the 48dp footer hitbox, including the -5dp optical offset.
         paint.style = Paint.Style.FILL
@@ -91,6 +93,10 @@ internal object FooterIndicatorPolicy {
         dark -> 0xFFFF453A.toInt()
         else -> 0xFFFF3B30.toInt()
     }
+
+    /** Distinct from both red/server and blue/offline recording; processing only. */
+    fun processingTint(dark: Boolean): Int =
+        if (dark) 0xFF4DE5D1.toInt() else 0xFF009F97.toInt()
 
     /** Processing remains active but is less like an ongoing recording meter. */
     fun pulseIntensity(phase: Float, processing: Boolean): Float =
