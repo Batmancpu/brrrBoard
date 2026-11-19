@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — LATEST OWNER DIRECTIVE: IMPLEMENT VOICE IN THE NEXT CHAT (GO GRANTED)
+
+The owner now requests **a GO instruction for implementation in a NEW chat**, because this chat may soon end. This **supersedes the prior WAIT FOR GO restriction for the brrBoard → brrSpeak cross-app PCM voice feature**. **Do not start source implementation in this current chat**; make this a handoff only. In the *new chat*, after reading all GitHub context and refreshing current main/CI/upstream issue, **begin the narrowly scoped voice integration without asking for another general GO**. Audit existing code and Android behavior, resolve the mic double-tap switch vs recording tap/tap collision with a safe documented rule, implement the brrBoard foreground `AudioRecord` → `EXTRA_AUDIO_SOURCE` → brrSpeak receiver pipeline, add tests and run CI, protect original signing and separate package IDs, publish the original-signed Obtainium APK only after the gates pass, then await owner physical phone acceptance. Ask only if a material user choice or a genuine blocker remains. Existing watcher remains read-only. All older “WAIT” notes below are **historical**, not the current authorization. Full detailed plan and verified evidence: [docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md](docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md).
+
 ## 2026-11-19 — DURABLE CROSS-CHAT VOICE CHECKPOINT (read first)
 
 Owner asked to preserve all current brrBoard/Frost Keys and brrSpeak/Dictator- information on GitHub for a new chat, with **docs-only updates now** and a strict **WAIT FOR NEW GO** gate before brrBoard-to-brrSpeak voice implementation. Previous “GO” related only to the two-step iOS UI/motion batch.
