@@ -20,7 +20,10 @@ import helium314.keyboard.latin.voice.VoiceModelInstaller
  */
 internal class OfflineBoardDictation(private val ime: LatinIME) {
     private enum class Phase { IDLE, STARTING, CAPTURING, DECODING }
-    private val engine = OfflineVoiceEngine.shared(ime)
+    // LatinIME constructs this member before Service.attachBaseContext(). Initializing the
+    // singleton here dereferences a null applicationContext in Robolectric and cold startup.
+    // Resolve it on first offline action, after the IME has an attached Android Context.
+    private val engine by lazy(LazyThreadSafetyMode.NONE) { OfflineVoiceEngine.shared(ime) }
     private var phase = Phase.IDLE
     private var source: KeyboardPcmAudioSource? = null
     private var pcmBuffer: PrivatePcmBuffer? = null

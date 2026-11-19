@@ -1,5 +1,10 @@
 # brrBoard project context
 
+## 2026-11-19 — targeted offline test harness initialization repair (CI PENDING)
+
+The pre-existing offline voice candidate in `47055d0` compiled, but debug run [44505620258](https://github.com/Batmancpu/brrrBoard/actions/runs/44505620258) failed 134 Robolectric tests at `Robolectric.setupService(LatinIME)`, including `InputLogicTest` and `SuggestTest`. Source trace: `LatinIME` constructs `new OfflineBoardDictation(this)` in a Java field initializer; its eager `OfflineVoiceEngine.shared(ime)` calls `ime.applicationContext` before `attachBaseContext`, causing NPE. Change `OfflineBoardDictation.engine` to `by lazy(LazyThreadSafetyMode.NONE)`, first used in `start()` after attachment. No offline audio/model behavior, signer or normal red-server path changed. New CI required; do not bypass 134 failures.
+
+
 ## 2026-11-19 — brrSpeak cold-start and mic-visual correction (CI PENDING)
 
 **Owner physical finding:** the record-first server handoff from signed v1.0.151 works when brrSpeak is already open, but reports “brrSpeak service unavailable” if brrSpeak is not running. The owner expressly forbids fixing this by keeping its app/service running in the background. They also request a fixed circular mic surface (not cut off by key strip), only the MIC glyph glowing/pulsing, and a visible, tappable **Cancel** label instead of “Recording”. Second tap of mic must still stop/send.
