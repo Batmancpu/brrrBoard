@@ -1,88 +1,145 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.suggestions
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
+import android.graphics.drawable.Drawable
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.TextPaint
+import android.text.style.CharacterStyle
+import android.text.style.UpdateAppearance
 import android.view.ViewGroup
 import android.view.animation.PathInterpolator
 import android.widget.TextView
 import helium314.keyboard.latin.KeyboardMotionSpec
-import helium314.keyboard.latin.utils.dpToPx
+import kotlin.math.min
 
 /**
- * One visible glyph layer per suggestion. In particular, do not copy the old
- * TextView over the new one: both strings become legible at the same time and
- * create the doubled, shadow-like letter shapes reported on the phone.
+ * Slot-local prediction motion. The actual TextViews, words, tags and click
+ * targets update synchronously. A changed word never visits a neighbouring
+ * cell, and no outgoing text layer is drawn.
  *
- * Words that survive a prediction update are visually carried to their next
- * slot; newly replaced words settle into their existing target hitbox.
+ * One clock drives only the new graphemes and the center capsule. Rapid typing
+ * cancels the old clock before capturing the next settled text.
  */
 internal class SuggestionWordMorph(private val owner: ViewGroup) {
-    data class Previous(
-        val parent: ViewGroup, val text: String,
-        val left: Int, val top: Int,
-    )
+    data class Frame(val labels: List<String?>, val centerConfidence: Boolean, val centerPillWidth: Float)
 
-    private val ease = PathInterpolator(.20f, 0f, .20f, 1f)
-    private var generation = 0
-
-    fun capture(words: List<TextView>): List<Previous> {
-        cancel(words)
-        return words.mapNotNull { word ->
-            val parent = word.parent as? ViewGroup ?: return@mapNotNull null
-            if (!parent.isShown || word.width <= 0 || word.text.isNullOrBlank())
-                return@mapNotNull null
-            Previous(parent, word.text.toString(), word.left, word.top)
+    private class SettlingInkSpan(var progress: Float) : CharacterStyle(), UpdateAppearance {
+        override fun updateDrawState(paint: TextPaint) {
+            // Always one legible copy of the new text, never a faded outgoing word.
+            paint.alpha = (paint.alpha * (.74f + .26f * progress)).toInt()
         }
     }
 
-    fun morph(previous: List<Previous>, words: List<TextView>) {
-        if (!KeyboardMotionSpec.enabled() || !owner.isShown || previous.isEmpty()) return
-        val token = ++generation
-        // The strip recycles and re-lays out its word cells in updateKeys().
-        // Wait for that layout before calculating a real old-to-new movement.
-        owner.post {
-            if (token != generation || !owner.isShown) return@post
-            val carried = HashSet<Int>()
-            words.forEach { current ->
-                val parent = current.parent as? ViewGroup ?: return@forEach
-                if (!parent.isShown || current.width <= 0 || current.text.isNullOrBlank())
-                    return@forEach
-                val match = previous.indices.firstOrNull { index ->
-                    index !in carried && previous[index].parent === parent &&
-                        previous[index].text == current.text.toString()
-                }
-                current.animate().cancel()
-                if (match != null) {
-                    carried.add(match)
-                    val old = previous[match]
-                    val dx = (old.left - current.left).toFloat()
-                    val dy = (old.top - current.top).toFloat()
-                    if (dx != 0f || dy != 0f) {
-                        current.translationX = dx
-                        current.translationY = dy
-                        current.animate().translationX(0f).translationY(0f)
-                            .setInterpolator(ease).setDuration(KeyboardMotionSpec.WORD_CROSSFADE_MS)
-                            .start()
-                    }
-                } else {
-                    // Only one text rendering exists. A slight settling motion
-                    // avoids a visual cut without overprinting outgoing glyphs.
-                    current.alpha = .88f
-                    current.translationY = 1.dpToPx(owner.resources).toFloat()
-                    current.animate().alpha(1f).translationY(0f)
-                        .setInterpolator(ease).setDuration(KeyboardMotionSpec.WORD_CROSSFADE_MS)
-                        .start()
-                }
+    private data class ActiveInk(val view: TextView, val span: SettlingInkSpan)
+
+    private val easing = PathInterpolator(.20f, 0f, .20f, 1f)
+    private val activeInk = ArrayList<ActiveInk>(3)
+    private var animator: ValueAnimator? = null
+    private var pill: SuggestionConfidencePillDrawable? = null
+    private var pillView: TextView? = null
+    private var pillEndingInactive = false
+    private var pillFallbackBackground: Drawable? = null
+
+    fun capture(words: List<TextView>, centerConfidence: Boolean): Frame {
+        stopMotion()
+        val width = words.getOrNull(1)?.let { pillWidth(it) } ?: 0f
+        return Frame(words.map { it.text?.toString()?.takeIf { text -> text.isNotBlank() } },
+            centerConfidence, width)
+    }
+
+    fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
+              fillColor: Int, verticalInset: Float) {
+        if (!KeyboardMotionSpec.enabled() || !owner.isShown || words.size < 3) return
+
+        for (index in 0 until min(3, words.size)) {
+            val view = words[index]
+            if (!view.isShown || view.text.isNullOrBlank()) continue
+            val range = SuggestionGlyphDiff.changedRange(previous.labels.getOrNull(index), view.text)
+                ?: continue
+            val span = SettlingInkSpan(0f)
+            val scale = view.textScaleX
+            val styled = SpannableStringBuilder(view.text)
+            styled.setSpan(span, range.start, range.endExclusive, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            view.setText(styled, TextView.BufferType.SPANNABLE)
+            view.textScaleX = scale
+            activeInk.add(ActiveInk(view, span))
+        }
+
+        val center = words[1]
+        if ((centerConfidence || previous.centerConfidence) && center.isShown && center.width > 0) {
+            pillFallbackBackground = if (centerConfidence) null else center.background
+            val targetWidth = pillWidth(center)
+            val originWidth = if (previous.centerConfidence) previous.centerPillWidth else targetWidth
+            pill = SuggestionConfidencePillDrawable(
+                fillColor, originWidth, targetWidth,
+                if (previous.centerConfidence) 1f else 0f,
+                if (centerConfidence) 1f else 0f,
+                verticalInset,
+            ).also { drawable ->
+                drawable.setProgress(0f)
+                center.background = drawable
             }
+            pillView = center
+            pillEndingInactive = !centerConfidence
+        }
+
+        if (activeInk.isEmpty() && pill == null) return
+        animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = KeyboardMotionSpec.WORD_CROSSFADE_MS
+            interpolator = easing
+            addUpdateListener { update ->
+                val progress = update.animatedValue as Float
+                activeInk.forEach { ink ->
+                    ink.span.progress = progress
+                    ink.view.invalidate()
+                }
+                pill?.setProgress(progress)
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (animator === animation) stopMotion()
+                }
+            })
+            start()
         }
     }
 
     fun cancel(words: List<TextView>) {
-        ++generation
-        words.forEach {
-            it.animate().cancel()
-            it.alpha = 1f
-            it.translationX = 0f
-            it.translationY = 0f
+        stopMotion()
+        words.forEach { view ->
+            view.animate().cancel()
+            view.alpha = 1f
+            view.translationX = 0f
+            view.translationY = 0f
         }
+    }
+
+    private fun stopMotion() {
+        val running = animator
+        animator = null
+        running?.removeAllListeners()
+        running?.cancel()
+        activeInk.forEach { ink ->
+            (ink.view.text as? Spannable)?.removeSpan(ink.span)
+            ink.view.invalidate()
+        }
+        activeInk.clear()
+        pill?.setProgress(1f)
+        if (pillEndingInactive) pillView?.background = pillFallbackBackground
+        pill = null
+        pillView = null
+        pillEndingInactive = false
+        pillFallbackBackground = null
+    }
+
+    private fun pillWidth(view: TextView): Float {
+        val density = view.resources.displayMetrics.density
+        val measuredText = view.paint.measureText(view.text.toString())
+        return SuggestionConfidencePillGeometry.width(measuredText, view.width.toFloat(), density)
     }
 }

@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — owner-approved suggestion motion correction (CI PENDING)
+
+Source now replaces overlapping cross-slot prediction view movement with stable three-slot labels, per-changed-grapheme single-layer ink settle and a content-sized center decoder-confidence capsule whose width/opacity runs on the same 150-ms clock. Consecutive keystrokes cancel temporary spans, never stale word tags. Default pill remains neutral-gray with theme-tint option. Base main `1291a755` also contains **separate** voice integration (debug `44488658761` SUCCESS, signed `44488658707` SUCCESS); keep voice code unmodified. This suggestion batch still needs its own CI and original-signed release plus owner Oppo 30fps optical/tap acceptance. Full source and test matrix: [docs/IOS27_SUGGESTION_SLOT_MORPH_2026_11_19.md](docs/IOS27_SUGGESTION_SLOT_MORPH_2026_11_19.md). Preserve prior UI settings, package, signer and Obtainium gates.
+
 ## 2026-11-19 — EXPLICIT VOICE GO: brrSpeak PCM sender implementation candidate (CI PENDING)
 
 This NEW-chat owner message explicitly authorizes implementation and supersedes the old voice WAIT FOR GO. Read complete docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md and current root handoff docs. At start, live brrBoard main `bd5cc7c2f4e3592eeb845e1c3454677acf63f04c`; both debug `44486092201` and original-signed Obtainium `44486092469` terminal SUCCESS, signed v1.0.147. brrSpeak independent main `49cb5d7` v5 proves SAME-APP/UID separate-process PCM transcription only; cross-app/cross-UID on Android 15/ColorOS 15 still UNPROVEN. Upstream Dictate issue #489 maintainer confirmed Android 15 service-binding mic restriction and recommended `EXTRA_AUDIO_SOURCE`.

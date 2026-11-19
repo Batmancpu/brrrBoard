@@ -580,7 +580,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
-        val previousWords = wordMorph.capture(wordViews)
+        val previousWords = wordMorph.capture(wordViews,
+            SuggestionStripLayoutHelper.isCenterConfidenceActive(
+                suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int))
         val previousInputStyle = suggestedWords.mInputStyle
         val previousDirection = direction
         val hasMultipleEmojiCandidates = suggestions.size() > 1
@@ -626,8 +628,14 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 )
             }
         updateKeys()
-        if (previousDirection == direction && previousInputStyle == suggestedWords.mInputStyle)
-            wordMorph.morph(previousWords, wordViews)
+        if (previousDirection == direction && previousInputStyle == suggestedWords.mInputStyle
+            && suggestionsStrip.isVisible && !shouldUseChipSuggestions(suggestedWords)) {
+            val confident = SuggestionStripLayoutHelper.isCenterConfidenceActive(
+                suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int)
+            wordMorph.morph(previousWords, wordViews, confident,
+                layoutHelper.getConfidencePillFillColor(),
+                layoutHelper.getConfidencePillVerticalInset().toFloat())
+        }
         else wordMorph.cancel(wordViews)
     }
 

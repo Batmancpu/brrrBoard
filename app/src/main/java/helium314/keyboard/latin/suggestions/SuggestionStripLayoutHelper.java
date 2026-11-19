@@ -14,7 +14,6 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.InsetDrawable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -523,16 +522,6 @@ final class SuggestionStripLayoutHelper {
         final Integer suggestionIndex = (Integer)wordView.getTag();
         final boolean isConfidencePill = positionInStrip == mCenterPositionInStrip
                 && isCenterConfidenceActive(willAutoCorrect, suggestionIndex);
-        final int pillInset;
-        if (isConfidencePill) {
-            // A single source of truth: the existing decoder-approved correction only.
-            // Preserve the entire tap target, shrinking the visual pill inside the slot.
-            pillInset = getConfidencePillHorizontalInset(width);
-            wordView.setBackground(new InsetDrawable(createConfidencePillBackground(),
-                    pillInset, mChipVerticalMargin, pillInset, mChipVerticalMargin));
-        } else {
-            pillInset = 0;
-        }
         final CharSequence word = wordView.getText();
         // Dots below the center word displaced its optical baseline. The full
         // strip still supports press-and-hold/upward flick for more suggestions,
@@ -546,10 +535,22 @@ final class SuggestionStripLayoutHelper {
                     ? context.getResources().getString(R.string.spoken_empty_suggestion)
                     : word.toString());
         final CharSequence text = getEllipsizedTextWithSettingScaleX(
-                word, Math.max(1, width - 2 * pillInset), wordView.getPaint());
+                word, Math.max(1, width - 2 * mChipHorizontalPadding), wordView.getPaint());
         final float scaleX = wordView.getTextScaleX();
         wordView.setText(text); // TextView.setText() resets text scale x to 1.0.
         wordView.setTextScaleX(scaleX);
+        if (isConfidencePill) {
+            // Same content-based bounds as the animated state: no capsule-size
+            // jump when the next keystroke starts its transition. The TextView
+            // retains the original full-width tap target.
+            final float density = wordView.getResources().getDisplayMetrics().density;
+            final float contentWidth = wordView.getPaint().measureText(text.toString());
+            final float pillWidth = SuggestionConfidencePillGeometry.width(
+                    contentWidth, width, density);
+            wordView.setBackground(new SuggestionConfidencePillDrawable(
+                    getConfidencePillFillColor(), pillWidth, pillWidth,
+                    1f, 1f, mChipVerticalMargin));
+        }
         // A <code>wordView</code> should be disabled when <code>word</code> is empty in order to
         // make it unclickable.
         // With accessibility touch exploration on, <code>wordView</code> should be enabled even
@@ -705,28 +706,18 @@ final class SuggestionStripLayoutHelper {
         return neutral;
     }
 
-    private int getConfidencePillHorizontalInset(final int width) {
-        final float density = mWordViews.get(0).getResources().getDisplayMetrics().density;
-        final int maxInset = Math.round(16 * density);
-        // The visual pill is narrower than its touch target, especially for a
-        // long single suggestion. Keep a minimum visible area in compact layouts.
-        final int proportionalInset = Math.min(maxInset, width / 10);
-        final int maxPillWidth = mSuggestionsStripHeight * 4;
-        return Math.max(mChipHorizontalMargin, Math.max(proportionalInset,
-                (width - maxPillWidth) / 2));
-    }
-
-    private Drawable createConfidencePillBackground() {
-        final GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
+    /** Same accessible theme color for the animated and static center pills. */
+    int getConfidencePillFillColor() {
         final Context context = mWordViews.get(0).getContext();
         final boolean useTint = KtxKt.prefs(context).getBoolean(
                 Settings.PREF_CONFIDENT_SUGGESTION_MATCH_TINT,
                 Defaults.PREF_CONFIDENT_SUGGESTION_MATCH_TINT);
-        background.setColor(confidencePillColor(mColorAutoCorrect, useTint,
-                Settings.getValues().mColors.get(ColorType.ACTION_KEY_BACKGROUND)));
-        background.setCornerRadius(mSuggestionsStripHeight / 2.0f);
-        return background;
+        return confidencePillColor(mColorAutoCorrect, useTint,
+                Settings.getValues().mColors.get(ColorType.ACTION_KEY_BACKGROUND));
+    }
+
+    int getConfidencePillVerticalInset() {
+        return mChipVerticalMargin;
     }
 
     private Drawable createChipBackground() {
