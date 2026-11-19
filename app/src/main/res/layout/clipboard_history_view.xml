@@ -103,16 +103,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/klipy_search_bar_ripple_bg"
                 android:clipChildren="false">
-                <View
-                    android:id="@+id/clipboard_search_match_haze"
-                    android:layout_width="140dp"
-                    android:layout_height="28dp"
-                    android:layout_gravity="start|center_vertical"
-                    android:layout_marginStart="11dp"
-                    android:alpha="0"
-                    android:clickable="false"
-                    android:importantForAccessibility="no"/>
-                <EditText
+                <helium314.keyboard.keyboard.clipboard.ChromaticSearchEditText
                     android:id="@+id/clipboard_search_text"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"

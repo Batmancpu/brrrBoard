@@ -11,10 +11,12 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
+import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.accessibility.AccessibilityManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -39,7 +41,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val DICTATION_RED = 0xFFFF3B30.toInt()
-private const val MIC_SWITCH_HOLD_TIMEOUT_MS = 300L
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private val glass = PanelGlassOverlayView(context)
@@ -64,19 +65,48 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var tracking = false
     private var downX = 0f
     private var downY = 0f
-    private var micTracking = false
-    private var micHoldTriggered = false
-    private var micDownX = 0f
-    private var micDownY = 0f
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
-    private val switchInputMethodOnMicHold = Runnable {
-        if (micTracking && isShown && this::ime.isInitialized) {
-            micHoldTriggered = true
-            microphone.isPressed = false
-            feedback(microphone, HapticEvent.KEY_LONG_PRESS)
-            ime.switchBoardInputMethod()
-        }
+    /** Single taps are confirmed only after the second-tap window has elapsed. */
+    private val micGestureDetector = GestureDetector(context,
+        object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (!micActionAvailable()) return false
+                microphone.performClick()
+                return true
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean = true
+
+            override fun onDoubleTapEvent(e: MotionEvent): Boolean {
+                // Wait for the second UP; a dragged/cancelled second touch must not switch IMEs.
+                if (e.actionMasked == MotionEvent.ACTION_UP && micActionAvailable()) {
+                    microphone.isPressed = false
+                    feedback(microphone)
+                    ime.switchBoardInputMethod()
+                }
+                return true
+            }
+        })
+
+    private fun micActionAvailable(): Boolean = this::ime.isInitialized &&
+        microphone.visibility == VISIBLE && microphone.isShown &&
+        ViewCompat.isAttachedToWindow(microphone)
+
+    private fun isMicTouchExplorationEnabled(): Boolean =
+        (context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager)
+            ?.isTouchExplorationEnabled == true
+
+    private fun cancelMicGesture() {
+        // GestureDetector owns a delayed single-tap confirmation. Cancel it on
+        // keyboard exit so an old tap cannot start Dictate in the next editor.
+        val event = MotionEvent.obtain(0L, android.os.SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_CANCEL, 0f, 0f, 0)
+        micGestureDetector.onTouchEvent(event)
+        event.recycle()
+        microphone.isPressed = false
     }
     private val shortcuts = listOf(
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
@@ -134,34 +164,16 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.
         microphone.setOnClickListener { feedback(it); ime.toggleBoardDictation() }
-        // Input-method switching is a distinct mic hold action. Start it sooner
-        // than Android's default 500 ms long-press while preserving tap-to-dictate.
+        // Touch-exploration double-taps activate an accessibility click, not the
+        // IME-switch gesture. The dedicated accessibility switch action stays below.
         microphone.setOnTouchListener { view, event ->
+            if (isMicTouchExplorationEnabled()) return@setOnTouchListener false
             when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    microphone.removeCallbacks(switchInputMethodOnMicHold)
-                    micTracking = true
-                    micHoldTriggered = false
-                    micDownX = event.rawX
-                    micDownY = event.rawY
-                    view.isPressed = true
-                    microphone.postDelayed(switchInputMethodOnMicHold, MIC_SWITCH_HOLD_TIMEOUT_MS)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val slop = ViewConfiguration.get(context).scaledTouchSlop
-                    if (micTracking && (abs(event.rawX - micDownX) > slop || abs(event.rawY - micDownY) > slop)) {
-                        micTracking = false
-                        microphone.removeCallbacks(switchInputMethodOnMicHold)
-                        view.isPressed = false
-                    }
-                }
-                MotionEvent.ACTION_UP -> {
-                    val tap = micTracking && !micHoldTriggered
-                    cancelMicHold()
-                    if (tap) view.performClick()
-                }
-                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> cancelMicHold()
+                MotionEvent.ACTION_DOWN -> view.isPressed = true
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL,
+                MotionEvent.ACTION_POINTER_DOWN -> view.isPressed = false
             }
+            micGestureDetector.onTouchEvent(event)
             true
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
@@ -368,7 +380,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         showDictationActive(false)
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
-        cancelMicHold()
+        cancelMicGesture()
         dismissShortcutArc()
     }
 
@@ -388,13 +400,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     override fun onDetachedFromWindow() {
         reset()
         super.onDetachedFromWindow()
-    }
-
-    private fun cancelMicHold() {
-        microphone.removeCallbacks(switchInputMethodOnMicHold)
-        micTracking = false
-        micHoldTriggered = false
-        microphone.isPressed = false
     }
 
     private fun feedback(view: android.view.View, event: HapticEvent = HapticEvent.KEY_PRESS) {

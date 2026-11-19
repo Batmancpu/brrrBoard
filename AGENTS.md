@@ -1,5 +1,31 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — Owner GO: iOS-inspired motion, split into two commits
+
+Owner supplied a 37.5667s/1127-frame 30fps YouTube keyboard video and an
+iOS-light keyboard image. The full frame sequence was screened, close-up
+suggestion updates around 25.2s/28.6s inspected at 30fps. Owner explicitly
+approved implementing TWO sequential commits. Commit 1: change the footer mic
+from 300ms hold-switch to **double-tap switch**, retaining single-tap Dictate;
+replace Clipboard Search's WHITE glyph over rainbow background rectangle with
+animated theme-aware CHROMATIC GLYPH INK and a mild text halo. Commit 2 only
+after Commit 1's Android/debug + original-signed release CI gates: coherent
+prediction crossfades/pill morph, Emoji/Clipboard/GIF search motion, outlined
+Emoji footer, synchronous red mic/ring/glow pulse, slow state-safe Dictate
+indication, accessibility and real Oppo visual QA. No additional permissions,
+network, APK identity/signing change, extra branches or numpad changes.
+
+Commit 1 implementation source: `BoardFooterView.kt` (Android GestureDetector
+confirmed single-tap vs second-up double tap, dedicated accessible keyboard
+switch action, remove hold runnable); `ChromaticSearchEditText.kt` (opaque
+gradient on actual query glyphs, cached shader matrix animation, static
+fallback, no highlight rectangle, attach/detach cleanup);
+`ClipboardHistoryView.kt` and `clipboard_history_view.xml` (remove Search haze
+view, keep existing matched-result card treatment); regression policy tests.
+Preserve the prior user-verified BIG NUMPAD behavior. B3D paste-affordance
+candidate remains local/unshipped, and is NOT part of either feature commit.
+Do not claim this new source is shipped until full CI is terminal green.
+
 ## 2026-11-19 — compilation repair after owner video source candidate
 
 First full debug run `44461419515` and original-signed release run

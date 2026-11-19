@@ -107,9 +107,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private lateinit var searchInput: EditText
     private lateinit var searchKeyboardHost: FrameLayout
     private lateinit var searchClearButton: ImageButton
-    private lateinit var searchMatchHaze: View
+    private lateinit var searchChromaticInput: ChromaticSearchEditText
     private var searchClearRevealed = false
-    private var searchMatchGeneration = 0L
     private var searchGestureGeneration = 0L
     private var clipboardRowKeyboard: MainKeyboardView? = null
     private var searchShifted = false
@@ -471,6 +470,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private fun applySearchTheme(colors: Colors) {
         val textColor = colors.get(ColorType.TOOL_BAR_KEY)
         searchInput.setTextColor(textColor)
+        searchChromaticInput.refreshInkTheme()
         searchInput.setHintTextColor(ColorUtils.setAlphaComponent(textColor, 0x80))
         val iconTint = ColorStateList.valueOf(colors.get(ColorType.FUNCTIONAL_KEY_TEXT))
         findViewById<ImageButton>(R.id.clipboard_search_back)?.apply {
@@ -485,9 +485,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchClearButton.background = RippleDrawable(ColorStateList.valueOf(
             ColorUtils.setAlphaComponent(colors.get(ColorType.FUNCTIONAL_KEY_TEXT), 0x35)),
             null, null)
-        // A fixed original rainbow edge highlight replaces wallpaper gray.
-        searchMatchHaze.background = ClipboardRainbowGlowDrawable(
-            resources.displayMetrics.density, true)
+        // Query matches color the actual glyphs, never a rectangle behind text.
     }
 
     private fun searchControlBackground(colors: Colors): RippleDrawable {
@@ -690,7 +688,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchInput = findViewById(R.id.clipboard_search_text)
         searchKeyboardHost = findViewById(R.id.clipboard_search_keyboard_host)
         searchClearButton = findViewById(R.id.clipboard_search_clear)
-        searchMatchHaze = findViewById(R.id.clipboard_search_match_haze)
+        searchChromaticInput = searchInput as ChromaticSearchEditText
         searchKeyboardHost.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
             if (searchMode) updateSearchKeyboardClearance(bottom - top)
         }
@@ -745,41 +743,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         }
     }
 
-    /** Accent ink + a bounded soft pulse, never a bitmap blur/re-layout loop. */
+    /** Chromatic query glyphs, with normal selection and an uncolored capsule. */
     private fun showSearchMatch(found: Boolean) {
-        val generation = ++searchMatchGeneration
-        searchMatchHaze.animate().cancel()
-        (searchMatchHaze.background as? ClipboardRainbowGlowDrawable)?.apply {
-            if (found) start() else stop()
-        }
-        val colors = Settings.getValues().mColors
-        val accent = colors.get(ColorType.ACTION_KEY_BACKGROUND)
-        searchInput.setTextColor(if (found) Color.WHITE else colors.get(ColorType.TOOL_BAR_KEY))
-        if (!found) {
-            searchInput.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
-            searchMatchHaze.alpha = 0f
-            return
-        }
-        searchInput.setShadowLayer(2.5f * resources.displayMetrics.density, 0f, 0f,
-            ColorUtils.setAlphaComponent(accent, 0x85))
-        val maxWidth = (searchInput.width - 52.dpToPx(resources)).coerceAtLeast(24.dpToPx(resources))
-        val textWidth = searchInput.paint.measureText(searchInput.text.toString()) +
-            16.dpToPx(resources)
-        searchMatchHaze.pivotX = 0f
-        searchMatchHaze.scaleX = (textWidth.coerceAtMost(maxWidth.toFloat()) /
-            140.dpToPx(resources).toFloat()).coerceIn(0.20f, 1.25f)
-        if (!heightMotionEnabled()) {
-            searchMatchHaze.alpha = 0.78f
-            return
-        }
-        searchMatchHaze.alpha = 0.40f
-        searchMatchHaze.animate().alpha(0.82f).setDuration(290).withEndAction {
-            if (generation != searchMatchGeneration) return@withEndAction
-            searchMatchHaze.animate().alpha(0.60f).setDuration(340).withEndAction {
-                if (generation != searchMatchGeneration) return@withEndAction
-                searchMatchHaze.animate().alpha(0.74f).setDuration(360).start()
-            }.start()
-        }.start()
+        searchChromaticInput.showMatchedInk(found)
     }
 
     private fun applySearchResultsLayout(search: Boolean) {
@@ -869,7 +835,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private fun closeSearch(animate: Boolean = true) {
         if (!searchMode) return
         searchGestureGeneration++
-        (searchMatchHaze.background as? ClipboardRainbowGlowDrawable)?.stop()
+        searchChromaticInput.showMatchedInk(false)
         if (animate) prepareHeightMotion() else cancelHeightMotion()
         searchMode = false
         searchHeader.visibility = View.GONE

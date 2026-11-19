@@ -1,5 +1,21 @@
 # brrBoard project context
 
+## 2026-11-19 — Owner GO for two-commit iOS visual flow
+
+Current main before work: `4c8ce6f07fdb22c10a54930ef5b8d3190ecb742c`
+(original-signed v1.0.144). Owner states big numpad now functions as intended.
+Provided iOS 27/26 reference video 1127 frames at 30fps and screenshot:
+3 fixed prediction slots, short visible text fade/crossfade, confidence-pill
+morph and compact footer circles; only light-mode screenshot, no authoritative
+Apple internal animation timing. References: official Apple HIG Motion/Color,
+Android GestureDetector.OnDoubleTapListener, LinearGradient, ValueAnimator.
+Owner said GO for (1) mic switch double tap + chromatic *letters* in Clipboard
+Search, then (2) unified suggestion/Emoji/Clipboard/GIF search motion and
+iOS-like footer ring with red synchronized Dictate pulse. Each commit must
+pass independent debug, unit and original-signed workflow before next batch;
+poll and repair failures, report release and no Oppo-acceptance fiction.
+Unrelated B3D clipboard Paste suggestion prepared fix remains unshipped.
+
 ## 2026-11-19 — initial owner video CI failure and narrowly scoped repair
 
 Commit `f566a5c` with Clipboard gesture, moving glow, Toolbar/footer, emoji
