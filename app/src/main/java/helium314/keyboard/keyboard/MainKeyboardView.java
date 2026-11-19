@@ -196,17 +196,6 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         canvas.restore();
     }
 
-    @Override
-    protected void onDrawKeyTopVisuals(@NonNull final Key key, @NonNull final Canvas canvas,
-            @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
-        if (mTrackpadVisualMode) return;
-        final float scale = keyPressScale(key);
-        canvas.save();
-        canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
-        super.onDrawKeyTopVisuals(key, canvas, paint, params);
-        canvas.restore();
-    }
-
     // More keys keyboard
     private final Paint mBackgroundDimAlphaPaint = new Paint(); // todo: not used at all
     private final View mPopupKeysKeyboardContainer;
@@ -978,6 +967,12 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     protected void onDrawKeyTopVisuals(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
+        // Preserve the original spacebar language, popup hints and alt-code drawing.
+        // Trackpad mode hides all labels, while key pressure scales drawing only.
+        if (mTrackpadVisualMode) return;
+        final float scale = keyPressScale(key);
+        canvas.save();
+        canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
         if (key.altCodeWhileTyping() && key.isEnabled()) {
             params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
         }
@@ -995,6 +990,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
             drawKeyPopupHint(key, canvas, paint, params);
         }
+        canvas.restore();
     }
 
     private boolean fitsTextIntoWidth(final int width, final String text, final Paint paint) {

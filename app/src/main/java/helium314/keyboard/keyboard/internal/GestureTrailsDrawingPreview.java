@@ -39,11 +39,13 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
     private final Rect mGestureTrailBoundsRect = new Rect(); // per trail
 
     private final Handler mDrawingHandler = new Handler();
-    private final boolean mFrameSynchronized;
+    private final android.content.Context mContext;
+    private boolean mFrameSynchronized;
     private boolean mFrameScheduled;
 
     public GestureTrailsDrawingPreview(final TypedArray mainKeyboardViewAttr,
             final android.content.Context context) {
+        mContext = context;
         mFrameSynchronized = KeyboardMotionSpec.isIos27(context);
         mDrawingParams = new GestureTrailDrawingParams(mainKeyboardViewAttr, mFrameSynchronized);
         final Paint gesturePaint = new Paint();
@@ -133,6 +135,16 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
         if (!isPreviewEnabled()) {
             return;
         }
+        // A theme/motion selection only reloads the keyboard layout. The drawing
+        // view is reused, so switch the scheduler and trail fade live as well.
+        final boolean frameSynchronized = KeyboardMotionSpec.isIos27(mContext);
+        if (frameSynchronized != mFrameSynchronized) {
+            mDrawingHandler.removeCallbacks(this);
+            removeDrawingViewCallback(this);
+            mFrameScheduled = false;
+            mFrameSynchronized = frameSynchronized;
+        }
+        mDrawingParams.mIosMotion = frameSynchronized;
         mayAllocateOffscreenBuffer();
         // Draw gesture trails to offscreen buffer.
         final boolean needsUpdatingGestureTrail = drawGestureTrails(

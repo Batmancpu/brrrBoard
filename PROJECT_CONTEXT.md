@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — iOS motion first CI repair (fresh exact-SHA CI required)
+
+Initial iOS-motion tree `47ab67c` failed debug Java compilation because the new key-top scaling override duplicated `MainKeyboardView.onDrawKeyTopVisuals`. The corrective source folds key scaling and unlabelled-trackpad behavior into the original method, retaining spacebar/alt-code/popup-hint drawing; swipe-trail scheduling now updates immediately on profile switch. First SHA is invalid. Both corrective-SHA debug and original-signed Obtainium CI must pass. Existing Frosted Glass only; no Liquid Glass.
+
 ## 2026-11-19 — iOS motion/Frosted-only owner GO, quiet hold complete (CI PENDING)
 
 Owner authorizes implementation of iOS 27 touch, suggestion, swipe, Emoji/Clipboard, panel and feedback animations **using existing Frosted Glass, explicitly NO new Liquid Glass compositor**. A 20-minute GitHub HEAD/Actions quiet window concluded unchanged `6ec5918b` at 11:56 UTC before any code edit. Local source candidate adds a default `ios27` motion preset and fully selectable Previous Default retaining pre-existing timing and visuals; draw-only key reactions, detached popup choreography, fixed-slot suggestion real-glyph settling, frame-aligned gesture tail, mode transition timing and label-free trackpad mode. Does not touch signed identity, internet permissions, voice apps, model, decoder, Dictionary, or frosted material. CI and original signer verification and Oppo physical checks still pending. All source, source-vs-inferred timing, regression test/release gates and next steps: [docs/IOS27_FROSTED_MOTION_GO_2026_11_19.md](docs/IOS27_FROSTED_MOTION_GO_2026_11_19.md).

@@ -1,5 +1,11 @@
 # iOS-inspired motion and behavior on existing Frosted Glass — source checkpoint
 
+## First exact-SHA CI feedback and repair
+
+- Published tree `47ab67c` triggered debug run `44521147323`; it **failed** Java compilation due to duplicate `MainKeyboardView.onDrawKeyTopVisuals` overrides. The first candidate is **not installable**.
+- Follow-up integrates draw-only key scaling and trackpad label hiding into the existing override, retaining its spacebar/alt-code/popup-hint drawing logic; gesture-trail scheduler and fade settings now follow live profile changes without IME recreation.
+- This corrective revision requires a fresh **new SHA** debug + signed Obtainium build/test pair. Do not treat the failed source as released.
+
 Date: 2026-11-19. Owner explicitly authorized implementation after a 20-minute quiet hold.
 
 ## Hard scope boundary

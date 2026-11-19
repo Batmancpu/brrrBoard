@@ -25,7 +25,8 @@ final class GestureTrailDrawingParams {
 
     public final int mTrailColor;
     /** The visual renderer changes; native swipe recognition keeps its existing thresholds. */
-    public final boolean mIosMotion;
+    // The user can switch motion profiles without recreating the IME view.
+    public boolean mIosMotion;
     public final float mTrailStartWidth;
     public final float mTrailEndWidth;
     public final float mTrailBodyRatio;
