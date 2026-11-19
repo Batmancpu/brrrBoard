@@ -46,6 +46,7 @@ import helium314.keyboard.keyboard.internal.KeyVisualAttributes
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.LatinIME
+import helium314.keyboard.latin.KeyboardMotionSpec
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.Suggest
 import helium314.keyboard.latin.SuggestedWords
@@ -1257,6 +1258,7 @@ class KlipyPalettesView @JvmOverloads constructor(
 
             val activeRecyclerView = if (tabAtRequest == KlipyHistoryDao.TYPE_GIF) gifsRecyclerView else stickersRecyclerView
             activeRecyclerView.scrollToPosition(0)
+            if (results.isNotEmpty()) KeyboardMotionSpec.revealSearchResults(activeRecyclerView)
 
             if (results.isEmpty()) {
                 emptyState.text = context.getString(R.string.no_results_found)

@@ -2,9 +2,8 @@
 package helium314.keyboard.latin
 
 import android.annotation.SuppressLint
-import android.animation.ObjectAnimator
-import android.animation.PropertyValuesHolder
 import android.animation.ValueAnimator
+import android.graphics.drawable.RippleDrawable
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -40,7 +39,6 @@ import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private const val DICTATION_RED = 0xFFFF3B30.toInt()
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private val glass = PanelGlassOverlayView(context)
@@ -55,7 +53,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationActive = false
     private var dictationProcessing = false
     private var returnToLetters = false
-    private var micPulse: ObjectAnimator? = null
+    private var micPulse: ValueAnimator? = null
+    private val emojiRing = FooterStatusRingDrawable(resources.displayMetrics.density, false)
+    private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density, true)
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
     private val clearContextActionRunnable = Runnable { clearContextAction() }
@@ -121,6 +121,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Backdrop underlays the *existing* footer buttons; they never blur.
         addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         glass.visibility = GONE
+        val ripple = ColorStateList.valueOf(0x338A8D9B)
+        emojiButton.background = RippleDrawable(ripple, emojiRing, null)
+        microphone.background = RippleDrawable(ripple, micRing, null)
     }
 
     fun setPanelGlassSource(source: View?, emojiSource: Boolean = false) {
@@ -236,6 +239,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             return
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        emojiRing.setAppearance(dark)
+        micRing.setAppearance(dark)
         emojiButton.imageTintList = tint
         voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         if (dictationProcessing) showDictationProcessing()
@@ -250,11 +256,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         dictationProcessing = false
         val colors = Settings.getValues().mColors
         microphone.imageTintList = ColorStateList.valueOf(
-            if (active) DICTATION_RED else colors.get(ColorType.KEY_ICON),
+            if (active) FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context))
+            else Color.WHITE,
         )
         microphone.contentDescription = resources.getString(
             if (active) R.string.board_dictation_stop else R.string.board_inline_dictation,
         )
+        micRing.setVoiceState(if (active) FooterStatusRingDrawable.VoiceState.LISTENING
+            else FooterStatusRingDrawable.VoiceState.IDLE)
         if (active) startMicPulse() else stopMicPulse()
     }
 
@@ -263,7 +272,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         if (processing) {
             showDictationActive(false)
             dictationProcessing = true
+            micRing.setVoiceState(FooterStatusRingDrawable.VoiceState.PROCESSING)
+            microphone.imageTintList = ColorStateList.valueOf(
+                FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context)))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
+            startMicPulse()
         }
     }
 
@@ -332,7 +345,18 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         voiceError.visibility = GONE
         chip.visibility = VISIBLE
-        chip.alpha = 1f
+        chip.animate().cancel()
+        if (KeyboardMotionSpec.enabled()) {
+            chip.alpha = 0f
+            chip.scaleX = 0.95f
+            chip.scaleY = 0.95f
+            chip.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(KeyboardMotionSpec.FOOTER_ACTION_MS).start()
+        } else {
+            chip.alpha = 1f
+            chip.scaleX = 1f
+            chip.scaleY = 1f
+        }
         postDelayed(clearContextActionRunnable, FooterContextActionPolicy.durationMs(durationMs))
     }
 
@@ -349,18 +373,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     private fun startMicPulse() {
         if (micPulse != null) return
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-            !ValueAnimator.areAnimatorsEnabled()) return
+        if (!KeyboardMotionSpec.enabled()) return
         val mic = microphone
-        micPulse = ObjectAnimator.ofPropertyValuesHolder(
-            mic,
-            PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.12f),
-            PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.12f),
-        ).apply {
-            duration = 620
+        micPulse = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
+            duration = KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS
             repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
             interpolator = AccelerateDecelerateInterpolator()
+            addUpdateListener { animation ->
+                val phase = FooterIndicatorPolicy.pulseIntensity(
+                    animation.animatedValue as Float, dictationProcessing)
+                micRing.setPulse(phase)
+                mic.scaleX = 1f + 0.065f * phase
+                mic.scaleY = 1f + 0.065f * phase
+                mic.imageAlpha = (230f + 25f * phase).roundToInt()
+            }
             start()
         }
     }
@@ -368,9 +394,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private fun stopMicPulse() {
         micPulse?.cancel()
         micPulse = null
+        micRing.setPulse(0f)
         if (this::ime.isInitialized) {
             microphone.scaleX = 1f
             microphone.scaleY = 1f
+            microphone.imageAlpha = 255
         }
     }
 

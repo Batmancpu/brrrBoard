@@ -168,6 +168,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val wordViews = ArrayList<TextView>()
     private val debugInfoViews = ArrayList<TextView>()
     private val dividerViews = ArrayList<View>()
+    private val wordMorph by lazy { SuggestionWordMorph(this) }
 
     init {
         val inflater = LayoutInflater.from(context)
@@ -579,6 +580,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
+        val previousWords = wordMorph.capture(wordViews)
+        val previousInputStyle = suggestedWords.mInputStyle
+        val previousDirection = direction
         val hasMultipleEmojiCandidates = suggestions.size() > 1
             && (0 until suggestions.size()).count { suggestions.getInfo(it).isEmoji() } > 1
         val service = LatinIME.getInstance()
@@ -622,9 +626,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 )
             }
         updateKeys()
+        if (previousDirection == direction && previousInputStyle == suggestedWords.mInputStyle)
+            wordMorph.morph(previousWords, wordViews)
+        else wordMorph.cancel(wordViews)
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {
+        wordMorph.cancel(wordViews)
         clear()
         if (view == null) {
             isExternalSuggestionVisible = false
@@ -724,6 +732,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     override fun onDetachedFromWindow() {
+        wordMorph.cancel(wordViews)
         super.onDetachedFromWindow()
         isAccessPointMenuOpen = false
         composeLifecycleOwner?.stop()

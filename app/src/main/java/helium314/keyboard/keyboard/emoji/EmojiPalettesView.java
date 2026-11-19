@@ -76,6 +76,7 @@ import helium314.keyboard.latin.KeyboardWrapperView;
 import helium314.keyboard.latin.dictionary.Dictionary;
 import helium314.keyboard.latin.dictionary.DictionaryFactory;
 import helium314.keyboard.latin.R;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.RichInputMethodManager;
 import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.Suggest;
@@ -1166,7 +1167,9 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.scrollTo(0, 0);
         }
+        final boolean wasPending = mSearchResultsPending;
         setSearchResultsPending(false);
+        if (!wasPending && finalAnswer) KeyboardMotionSpec.revealSearchResults(mSearchResultsView);
         mSearchResultsView.invalidate();
         mSearchResultsView.requestLayout();
     }
@@ -1183,7 +1186,8 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchResultsView.setImportantForAccessibility(pending
                 ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
-        mSearchResultsView.setAlpha(pending ? 0.48f : 1f);
+        if (pending) KeyboardMotionSpec.pendingSearchResults(mSearchResultsView);
+        else KeyboardMotionSpec.revealSearchResults(mSearchResultsView);
     }
 
     private static synchronized void initSearchDictionaryFacilitator(final Context context) {

@@ -15,6 +15,7 @@ import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.EditText
 import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.latin.KeyboardMotionSpec
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
@@ -703,6 +704,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
                     clipboardAdapter.setSearchQuery(query)
                     clipboardRecyclerView.scrollToPosition(0)
                     showSearchMatch(query.isNotBlank() && clipboardAdapter.itemCount > 0)
+                    if (query.isNotBlank() && clipboardAdapter.itemCount > 0)
+                        KeyboardMotionSpec.revealSearchResults(clipboardRecyclerView)
                 }
             }
         })
@@ -720,7 +723,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchClearButton.isEnabled = show
         if (show) {
             searchClearButton.visibility = View.VISIBLE
-            if (!heightMotionEnabled()) {
+            if (!KeyboardMotionSpec.enabled()) {
                 searchClearButton.alpha = 1f
                 searchClearButton.scaleX = 1f
                 searchClearButton.scaleY = 1f
@@ -729,7 +732,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 searchClearButton.animate().alpha(1f).scaleX(1f).scaleY(1f)
                     .translationX(0f).setDuration(170).start()
             }
-        } else if (!heightMotionEnabled()) {
+        } else if (!KeyboardMotionSpec.enabled()) {
             searchClearButton.visibility = View.INVISIBLE
             searchClearButton.alpha = 0f
             searchClearButton.scaleX = 0.55f
@@ -834,6 +837,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun closeSearch(animate: Boolean = true) {
         if (!searchMode) return
+        KeyboardMotionSpec.reset(clipboardRecyclerView)
         searchGestureGeneration++
         searchChromaticInput.showMatchedInk(false)
         if (animate) prepareHeightMotion() else cancelHeightMotion()
