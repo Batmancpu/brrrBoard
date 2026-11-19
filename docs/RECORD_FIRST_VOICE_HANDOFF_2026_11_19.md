@@ -36,3 +36,6 @@ brrSpeak:
 - Fix CI compilation/tests if they fail; do not bypass gates.
 - Report exact SHAs, run IDs, direct APK links only after publication, signing limitation and remaining phone tests.
 - No side effects to existing appearance/motion work. Maintain this file, AGENTS.md and PROJECT_CONTEXT.md across future checkpoints.
+
+## CI correction
+- Debug CI #249 (`44501490540`) found an Android `Message.callback` property shadowing the private `Messenger` callback in `BrrSpeakRecordedAudioClient.kt:66`. Explicitly qualified `this@BrrSpeakRecordedAudioClient.callback` in the next main commit; rerun compile/tests/release on that SHA.

@@ -63,7 +63,7 @@ internal class BrrSpeakRecordedAudioClient(
                 try {
                     val request = Message.obtain().apply {
                         what = RecordedAudioWire.REQUEST
-                        replyTo = callback
+                        replyTo = this@BrrSpeakRecordedAudioClient.callback
                         data = Bundle().apply {
                             putLong(RecordedAudioWire.SESSION, sessionId)
                             putLong(RecordedAudioWire.BYTES, audioBytes)
