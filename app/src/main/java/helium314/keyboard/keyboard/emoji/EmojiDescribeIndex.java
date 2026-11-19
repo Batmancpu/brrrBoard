@@ -30,15 +30,18 @@ final class EmojiDescribeIndex {
     private final TreeMap<String, Posting> tokens;
     private final Map<String, String[]> trigramTerms;
     private final Map<String, Integer> emojiId;
+    private final Map<String, List<String>> toneFamilies;
 
     private EmojiDescribeIndex(final String[] emoji, final String[] normalizedNames,
             final TreeMap<String, Posting> tokens, final Map<String, String[]> trigramTerms,
-            final Map<String, Integer> emojiId) {
+            final Map<String, Integer> emojiId,
+            final Map<String, List<String>> toneFamilies) {
         this.emoji = emoji;
         this.normalizedNames = normalizedNames;
         this.tokens = tokens;
         this.trigramTerms = trigramTerms;
         this.emojiId = emojiId;
+        this.toneFamilies = toneFamilies;
     }
 
     static EmojiDescribeIndex from(final EmojiContextIndex source) {
@@ -86,7 +89,8 @@ final class EmojiDescribeIndex {
             gramIndex.put(entry.getKey(), list.toArray(new String[0]));
         }
         return new EmojiDescribeIndex(emoji, names, postings,
-                Collections.unmodifiableMap(gramIndex), Collections.unmodifiableMap(bySequence));
+                Collections.unmodifiableMap(gramIndex), Collections.unmodifiableMap(bySequence),
+                EmojiSkinToneSearchPolicy.families(bySequence.keySet()));
     }
 
     int emojiCount() { return emoji.length; }
@@ -130,6 +134,40 @@ final class EmojiDescribeIndex {
 
     List<String> search(final String input, final int maxResults) {
         if (input == null || maxResults <= 0) return List.of();
+        final EmojiSkinToneSearchPolicy.Request toneRequest = EmojiSkinToneSearchPolicy.parse(input);
+        // CLDR contains up to six copies of a tone-bearing subject. Rank a
+        // bounded larger pool BEFORE selecting tones, or those copies consume
+        // nearly every visible Search slot and hide unrelated useful Emoji.
+        final int poolSize = (int)Math.min(240L, Math.max(48L, (long)maxResults * 8L));
+        final String literalName = EmojiDescribeNormalizer.normalizePhrase(input);
+        if (toneRequest.explicitlyRequestedTone() && !literalName.contains("skin")
+                && !literalName.contains("tone")) {
+            // Color words can be the real, exact CLDR name of a non-human Emoji.
+            // In particular "black heart" must NEVER turn into dark heart hands.
+            for (final String name : normalizedNames) {
+                if (name.equals(literalName)) {
+                    return EmojiSkinToneSearchPolicy.select(
+                            new EmojiSkinToneSearchPolicy.Request(input,
+                                    EmojiSkinToneSearchPolicy.Mode.DEFAULT, 0),
+                            searchRanked(input, poolSize), emojiId.keySet(),
+                            toneFamilies, maxResults);
+                }
+            }
+        }
+        final List<String> selected = EmojiSkinToneSearchPolicy.select(toneRequest,
+                searchRanked(toneRequest.lookup, poolSize), emojiId.keySet(),
+                toneFamilies, maxResults);
+        if (!selected.isEmpty() || !toneRequest.explicitlyRequestedTone()) return selected;
+        // "black heart", "brown square" and "light bulb" denote colors or
+        // objects, not complexions. Revert to the literal query when no
+        // eligible skin-tone family answered the qualified interpretation.
+        return EmojiSkinToneSearchPolicy.select(
+                new EmojiSkinToneSearchPolicy.Request(input,
+                        EmojiSkinToneSearchPolicy.Mode.DEFAULT, 0),
+                searchRanked(input, poolSize), emojiId.keySet(), toneFamilies, maxResults);
+    }
+
+    private List<String> searchRanked(final String input, final int maxResults) {
         // A single offline knowledge base: CLDR names/keywords for broad
         // discovery plus the SAME reviewed phrase rules used by Smart Emoji
         // and the native suggestion strip. No second corpus or duplicated

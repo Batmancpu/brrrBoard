@@ -84,7 +84,16 @@ final class EmojiDescribeAliases {
                 .replace(" born today ", " birthday ")
                 .replace(" take a break ", " ")
                 .replace(" silly mistake ", " grimacing ")
-                .replace(" keeping a secret ", " shushing ");
+                .replace(" keeping a secret ", " shushing ")
+                // Spoken requests should not need the speaker to know CLDR's
+                // formal name for an ordinary approval/disapproval gesture.
+                .replace(" giving a thumbs up ", " thumbs up ")
+                .replace(" giving thumbs up ", " thumbs up ")
+                .replace(" showing a thumbs up ", " thumbs up ")
+                .replace(" show a thumbs up ", " thumbs up ")
+                .replace(" giving a thumbs down ", " thumbs down ")
+                .replace(" giving thumbs down ", " thumbs down ")
+                .replace(" making a thumbs up ", " thumbs up ");
         // CLDR includes the real guide-dog character, but no arbitrary
         // "man and pet dog" combination. Keep that distinction.
         if (phrase.contains(" dog ") && phrase.contains(" blind ")

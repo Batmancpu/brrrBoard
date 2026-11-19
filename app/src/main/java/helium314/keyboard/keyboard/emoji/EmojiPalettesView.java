@@ -1101,7 +1101,7 @@ public final class EmojiPalettesView extends LinearLayout
                     || !query.equals(mSearchQuery)) return;
             final java.util.LinkedHashSet<String> matches = new java.util.LinkedHashSet<>();
             for (final String candidate : found) {
-                matches.add(EmojiParserKt.getEmojiDefaultVersion(candidate));
+                matches.add(candidate);
             }
             // Preserve the existing optional locale dictionary for queries the
             // pinned English CLDR cannot answer. No dictionary I/O is needed
@@ -1110,11 +1110,25 @@ public final class EmojiPalettesView extends LinearLayout
                 if (!indexAvailable) {
                     final EmojiContextIndex legacy = getSearchAnnotations(getContext());
                     if (legacy != null) for (final String item : legacy.search(query, 24))
-                        matches.add(EmojiParserKt.getEmojiDefaultVersion(item));
+                        matches.add(item);
                 }
                 if (matches.isEmpty()) addLocalDictionaryMatches(query, matches);
             }
-            showEmojiSearchResults(query, new ArrayList<>(matches), true);
+            final boolean explicitTone = EmojiSkinToneSearchPolicy.parse(query)
+                    .explicitlyRequestedTone();
+            final java.util.LinkedHashSet<String> displayed = new java.util.LinkedHashSet<>();
+            final java.util.HashSet<String> families = new java.util.HashSet<>();
+            for (final String candidate : matches) {
+                // Explicit shade queries keep CLDR's precise variant; plain
+                // searches use the existing configured tone and one slot per
+                // person/hand family, including legacy-dictionary fallbacks.
+                final String base = EmojiSkinToneSearchPolicy.family(candidate);
+                if (!explicitTone && !families.add(base)) continue;
+                displayed.add(explicitTone ? candidate
+                        : EmojiParserKt.getEmojiDefaultVersion(base));
+                if (displayed.size() == 24) break;
+            }
+            showEmojiSearchResults(query, new ArrayList<>(displayed), true);
         });
     }
 
@@ -1127,7 +1141,7 @@ public final class EmojiPalettesView extends LinearLayout
             final List<String> tokens = StringUtilsKt.splitOnWhitespace(text);
             for (final SuggestedWords.SuggestedWordInfo suggestion : facilitator.getSuggestions(tokens)) {
                 if (suggestion.isEmoji()) {
-                    matches.add(EmojiParserKt.getEmojiDefaultVersion(suggestion.getWord()));
+                    matches.add(suggestion.getWord());
                     if (matches.size() >= 24) break;
                 }
             }
@@ -1139,23 +1153,43 @@ public final class EmojiPalettesView extends LinearLayout
     /** UI thread only; the existing Search keyboard and variant popups stay intact. */
     private void showEmojiSearchResults(final String text, final List<String> emojis,
             final boolean finalAnswer) {
+        // The empty-query contextual row has no explicit shade language;
+        // it must honor the user's preferred tone just like typed searches.
+        List<String> visibleEmojis = emojis;
+        if (text == null || text.isBlank()) {
+            final java.util.LinkedHashSet<String> defaults = new java.util.LinkedHashSet<>();
+            final java.util.HashSet<String> families = new java.util.HashSet<>();
+            for (final String emoji : emojis) {
+                final String base = EmojiSkinToneSearchPolicy.family(emoji);
+                if (families.add(base))
+                    defaults.add(EmojiParserKt.getEmojiDefaultVersion(base));
+            }
+            visibleEmojis = new ArrayList<>(defaults);
+        }
         final boolean noMatches = finalAnswer && text != null
-                && !text.isBlank() && emojis.isEmpty();
-        final boolean resultsChanged = !mDisplayedSearchEmojis.equals(emojis);
+                && !text.isBlank() && visibleEmojis.isEmpty();
+        final boolean resultsChanged = !mDisplayedSearchEmojis.equals(visibleEmojis);
         if (mSearchResultMorph != null && resultsChanged && mSearchMode && finalAnswer) {
             final View oldSurface = mSearchEmptyView.getVisibility() == View.VISIBLE
                     ? mSearchEmptyView : mSearchResultsScrollView;
             mSearchResultMorph.capture(oldSurface);
         }
-        final int keyboardWidth = getSearchResultsKeyboardWidth(emojis.size());
+        final int keyboardWidth = getSearchResultsKeyboardWidth(visibleEmojis.size());
         // Clearing the old query must not rebuild an entire keyboard layout
         // on every character. Only rebuild once the worker has final hits.
         if (finalAnswer && keyboardWidth != mSearchResultsKeyboardWidth) {
             setupSearchResultKeyboard(keyboardWidth);
         }
         mSearchResultsKeyboard.removeAllKeys();
-        for (final String emoji : emojis) {
-            final String popupSpec = EmojiParserKt.getEmojiPopupSpec(emoji);
+        for (final String emoji : visibleEmojis) {
+            String popupSpec = EmojiParserKt.getEmojiPopupSpec(emoji);
+            if (popupSpec == null) {
+                // An explicitly searched non-default shade should retain the
+                // usual long-press family picker rather than losing its popup.
+                final String base = EmojiSkinToneSearchPolicy.family(emoji);
+                if (!base.equals(emoji)) popupSpec = EmojiParserKt.getEmojiPopupSpec(
+                        EmojiParserKt.getEmojiDefaultVersion(base));
+            }
             final Key.KeyParams keyParams = new Key.KeyParams(
                     emoji,
                     EmojiParserKt.getCode(emoji),
@@ -1167,8 +1201,8 @@ public final class EmojiPalettesView extends LinearLayout
             keyParams.mAbsoluteHeight = mSearchKeyHeight;
             mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
         }
-        mSearchDisplayedResultCount = emojis.size();
-        mDisplayedSearchEmojis = List.copyOf(emojis);
+        mSearchDisplayedResultCount = visibleEmojis.size();
+        mDisplayedSearchEmojis = List.copyOf(visibleEmojis);
         if (mSearchEmptyView != null) {
             mSearchEmptyView.setVisibility(mSearchMode && noMatches ? View.VISIBLE : View.GONE);
             if (mSearchResultsScrollView != null)

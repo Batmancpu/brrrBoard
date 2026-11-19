@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — Emoji Search saved-tone dedupe and explicit shade queries (CI pending)
+
+After a monitored five-minute quiet GitHub gate (15:39:20–15:44:21 UTC; zero active runs and stable `e7a10db4`), owner authorized emoji search implementation. Default query `thumbs up` should produce ONE variant matching saved preference rather than six wasted slots; `dark thumbs up` / `thumbs up dark` chooses dark; `thumbs up skin tones` deliberately exposes all; ordinary `black heart`/`brown square` stay literal. Pure index/probe tests green; fresh Android CI, original-signed Obtainium APK and Reno10 physical verification remain mandatory. New Emoji changes must fast-forward from the voice-bundling HEAD, not erase it. Detailed plan/invariants: [docs/EMOJI_TONE_SMART_SEARCH_2026_11_19.md](docs/EMOJI_TONE_SMART_SEARCH_2026_11_19.md). **No Liquid Glass or voice changes.**
+
 ## 2026-11-19 — OWNER CHANGED MIC CONTRACT: offline-only tap + bundled normal APK
 
 Owner now requires **every single mic tap** to use only brrBoard's own English

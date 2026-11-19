@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — five-minute quiet gate and Emoji tone-smart Search (new CI REQUIRED)
+
+Owner explicitly asked to monitor workflows for **five minutes** and only then fix Emoji Search if no runs were active. Nine GitHub checks 15:39:20–15:44:21 UTC found NO active runs and unchanged `e7a10db4` HEAD. Source candidate deduplicates unqualified CLDR tone families (saved preferred tone displayed once), selects explicit complexion before/after the name, expands all real variants only on a `skin tones` request, protects literal color Emoji (`black heart`, `brown square`, `light bulb`), and improves reviewed natural-language thumbs phrases. The latest head contains a separate bundled-offline-voice commit; preserve it and publish an atomic fast-forward-only Emoji commit. **No Liquid Glass, new permissions, voice or signer changes.** Local Java index probe green, Android exact-commit debug + original-signed workflow and Reno10 appearance checks remain gates. Full contract: [docs/EMOJI_TONE_SMART_SEARCH_2026_11_19.md](docs/EMOJI_TONE_SMART_SEARCH_2026_11_19.md).
+
 ## 2026-11-19 — OWNER CHANGED MIC CONTRACT: offline-only tap + bundled normal APK
 
 Owner now requires **every single mic tap** to use only brrBoard's own English

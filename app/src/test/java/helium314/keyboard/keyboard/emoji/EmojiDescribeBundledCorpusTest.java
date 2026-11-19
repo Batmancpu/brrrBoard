@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.HashSet;
 import org.junit.Test;
 
 /** Verifies the real Unicode-17/CLDR-48.2 asset, not only hand-picked fixtures. */
@@ -93,5 +94,45 @@ public class EmojiDescribeBundledCorpusTest {
                 "I wanted to explain a few things but most of all let's order pizza", 8).get(0));
         assertTrue(engine.suggestFromContext("", 8).isEmpty());
         assertTrue(engine.suggestFromContext("pizza", 0).isEmpty());
+    }
+
+    @Test public void plainDescriptionsUseOneToneFamilyAndExplicitQualifiersAreOrderIndependent()
+            throws Exception {
+        Path asset = Path.of("src/main/assets/emoji_cldr48_en.tsv");
+        if (!Files.exists(asset)) asset = Path.of("app/src/main/assets/emoji_cldr48_en.tsv");
+        final EmojiDescribeIndex engine;
+        try (InputStream input = Files.newInputStream(asset)) {
+            engine = EmojiDescribeIndex.from(EmojiContextIndex.read(input));
+        }
+        final List<String> plain = engine.search("thumbs up", 24);
+        assertEquals("👍", plain.get(0));
+        assertEquals(1, plain.stream().filter(value -> value.startsWith("👍")).count());
+        assertEquals(plain.size(), new HashSet<>(plain.stream()
+                .map(EmojiSkinToneSearchPolicy::family).toList()).size());
+        assertEquals("👍🏿", engine.search("dark thumbs up", 24).get(0));
+        assertEquals("👍🏿", engine.search("thumbs up dark", 24).get(0));
+        assertEquals("👍🏿", engine.search("thumbs up black skin", 24).get(0));
+        assertEquals("👍🏻", engine.search("light thumbs up", 24).get(0));
+        assertEquals("👍🏼", engine.search("thumbs up medium light", 24).get(0));
+        assertEquals("👍🏾", engine.search("medium dark thumbs up", 24).get(0));
+        assertEquals("👍🏾", engine.search("brown thumbs up", 24).get(0));
+        assertEquals("🙏", engine.search("folded hands", 24).get(0));
+        assertEquals("🙏🏿", engine.search("dark folded hands", 24).get(0));
+        assertEquals("👩🏿‍⚕️", engine.search("dark woman doctor", 24).get(0));
+        assertEquals("👩🏿‍⚕️", engine.search("woman doctor dark", 24).get(0));
+        assertEquals("👍🏿", engine.search("thumbs up with a deep complexion", 24).get(0));
+        assertEquals("👍", engine.search("thumbs up neutral", 24).get(0));
+        assertEquals("👍", engine.search("thumbs up yellow", 24).get(0));
+
+        final List<String> allTones = engine.search("show all thumbs up skin tones", 24);
+        for (final String emoji : List.of("👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿"))
+            assertTrue("Explicit shade browsing must include " + emoji, allTones.contains(emoji));
+        assertEquals("👍", engine.search("someone giving a thumbs up", 24).get(0));
+        assertEquals("👍🏿", engine.search("someone giving a thumbs up dark", 24).get(0));
+        // Ordinary colors/objects must not be mistaken for skin-tone requests.
+        assertEquals("🖤", engine.search("black heart", 24).get(0));
+        assertEquals("🟫", engine.search("brown square", 24).get(0));
+        assertEquals("💡", engine.search("light bulb", 24).get(0));
+        assertTrue(engine.search("not real dark thumbs up blorple", 24).isEmpty());
     }
 }
