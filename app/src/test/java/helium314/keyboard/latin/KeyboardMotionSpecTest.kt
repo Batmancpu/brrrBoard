@@ -17,6 +17,8 @@ class KeyboardMotionSpecTest {
 
     @Test fun durationsAreShortAndVoicePulseIsSlower() {
         assertTrue(KeyboardMotionSpec.WORD_CROSSFADE_MS in 100L..200L)
+        assertTrue(KeyboardMotionSpec.IOS_SUGGESTION_REVEAL_DELAY_MS in 10L..50L)
+        assertTrue(KeyboardMotionSpec.IOS_SUGGESTION_SETTLE_MS in 130L..200L)
         assertTrue(KeyboardMotionSpec.SEARCH_RESULT_MS in 100L..220L)
         assertTrue(KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS > 1_300L)
     }

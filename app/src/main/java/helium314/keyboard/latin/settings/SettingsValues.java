@@ -271,10 +271,12 @@ public class SettingsValues {
         mSuggestionsEnabledPerUserSettings = suggestionsEnabled && (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
                 && !mSuggestionStripHiddenPerUserSettings;
         mSecondaryStripVisible = mToolbarMode != ToolbarMode.HIDDEN || ! mToolbarHidingGlobal;
-        mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE) || mInputAttributes.mNoLearning
-                || mInputAttributes.mIsPasswordField;
-        // The selected speech service may send audio off-device; never offer voice input in incognito.
-        mShowsVoiceInputKey = mInputAttributes.mShouldShowVoiceInputKey && !mIncognitoModeEnabled;
+        mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)
+                || mInputAttributes.mNoLearning || mInputAttributes.mIsPasswordField
+                || SecureAppsPolicy.isSecure(prefs, mInputAttributes.mTargetApplicationPackageName);
+        // User incognito preserves the mic for RAM-only OFFLINE decoding. Password,
+        // no-mic and protected fields keep their native no-dictation behavior.
+        mShowsVoiceInputKey = mInputAttributes.mShouldShowVoiceInputKey;
         mKeyboardHeightScale = Settings.readHeightScale(prefs, isLandscape, isFolded);
         mBottomRowScale = Settings.readBottomRowScale(prefs, isLandscape, isFolded);
         mSpaceSwipeHorizontal = Settings.readHorizontalSpaceSwipe(prefs);

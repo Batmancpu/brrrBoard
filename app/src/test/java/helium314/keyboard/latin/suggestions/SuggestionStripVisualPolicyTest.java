@@ -27,6 +27,21 @@ public class SuggestionStripVisualPolicyTest {
         assertFalse(SuggestionStripLayoutHelper.isCenterConfidenceActive(true, null));
     }
 
+    @Test public void quotedOriginalOnlyForActualIosTypingCorrection() {
+        assertTrue(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, true,
+                SuggestedWords.INPUT_STYLE_TYPING, "mot", "not"));
+        assertFalse(SuggestionStripLayoutHelper.shouldQuoteOriginal(false, true,
+                SuggestedWords.INPUT_STYLE_TYPING, "mot", "not"));
+        assertFalse(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, false,
+                SuggestedWords.INPUT_STYLE_TYPING, "mot", "not"));
+        assertFalse(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, true,
+                SuggestedWords.INPUT_STYLE_UPDATE_BATCH, "mot", "not"));
+        assertFalse(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, true,
+                SuggestedWords.INPUT_STYLE_TYPING, "not", "not"));
+        assertFalse(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, true,
+                SuggestedWords.INPUT_STYLE_TYPING, "", "not"));
+    }
+
     @Test public void pillIsDistinctAndLegibleInLightAndDarkThemes() {
         final int darkPill = SuggestionStripLayoutHelper.confidencePillColor(Color.WHITE);
         final int lightPill = SuggestionStripLayoutHelper.confidencePillColor(Color.BLACK);

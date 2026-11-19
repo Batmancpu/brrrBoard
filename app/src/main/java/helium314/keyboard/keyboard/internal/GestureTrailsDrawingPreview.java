@@ -144,7 +144,9 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
             mFrameScheduled = false;
             mFrameSynchronized = frameSynchronized;
         }
-        mDrawingParams.mIosMotion = frameSynchronized;
+        if (mDrawingParams.mIosMotion != frameSynchronized) {
+            mDrawingParams.setIosMotion(frameSynchronized);
+        }
         mayAllocateOffscreenBuffer();
         // Draw gesture trails to offscreen buffer.
         final boolean needsUpdatingGestureTrail = drawGestureTrails(

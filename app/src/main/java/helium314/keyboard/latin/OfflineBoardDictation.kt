@@ -179,8 +179,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private fun isAllowed(info: EditorInfo): Boolean =
         info.inputType != 0 &&
             !InputTypeUtils.isPasswordInputType(info.inputType) &&
-            !InputTypeUtils.isVisiblePasswordInputType(info.inputType) &&
-            info.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING == 0
+            !InputTypeUtils.isVisiblePasswordInputType(info.inputType)
 
     private fun containsDevanagari(text: String): Boolean = text.any {
         it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF'

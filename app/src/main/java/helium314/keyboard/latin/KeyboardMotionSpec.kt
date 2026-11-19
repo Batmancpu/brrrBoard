@@ -17,6 +17,11 @@ object KeyboardMotionSpec {
     const val PROFILE_IOS27 = "ios27"
     const val PROFILE_PREVIOUS_DEFAULT = "previous_default"
     const val WORD_CROSSFADE_MS = 150L
+    // A short quiet beat precedes the iOS-profile suggestion's fast ink reveal.
+    // The decoder and touch targets update immediately; only the glyph ink waits.
+    const val IOS_SUGGESTION_SETTLE_MS = 164L
+    const val IOS_SUGGESTION_REVEAL_DELAY_MS = 24L
+    const val IOS_SUGGESTION_REVEAL_MS = 92L
     const val SEARCH_RESULT_MS = 170L
     const val SEARCH_PENDING_MS = 90L
     const val FOOTER_ACTION_MS = 150L

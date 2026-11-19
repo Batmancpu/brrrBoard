@@ -33,6 +33,7 @@ import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.settings.SecureAppsPolicy
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.keyboard.KeyboardTheme
@@ -49,6 +50,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
+    private val passwordManagerButton get() = findViewById<ImageButton>(R.id.board_footer_password_manager)
     private val micUnderlight get() = findViewById<FooterMicUnderlightView>(R.id.board_footer_mic_underlight)
     private val discardGlyph get() = findViewById<FooterMicDiscardMorphView>(R.id.board_footer_discard)
     private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
@@ -61,6 +63,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationOffline = false
     private var offlineHoldActive = false
     private var returnToLetters = false
+    private var cachedPasswordManagerIntent: android.content.Intent? = null
+    private var passwordIntentCheckedAt = 0L
     private val privateEmojiIcon = FooterIncognitoEmojiDrawable(context)
     private var micPulse: ValueAnimator? = null
     private var micDiscardAnimator: ValueAnimator? = null
@@ -89,8 +93,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var lastEmojiUpY = 0f
     private var secondEmojiTap = false
     private val privacyListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE) {
-            post { if (ViewCompat.isAttachedToWindow(this)) syncEmojiPrivacy(animate = true) }
+        if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE || key == Settings.PREF_SECURE_APPS) {
+            post {
+                if (ViewCompat.isAttachedToWindow(this)) {
+                    syncEmojiPrivacy(animate = true)
+                    requestLayout()
+                }
+            }
         }
     }
     /** Idle single taps wait for the double-tap switch window; an active stop is immediate. */
@@ -186,7 +195,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Protected/password fields force private behavior regardless of the
         // user's preference; never imply that a double tap disabled it there.
         val inputAttributes = Settings.getValues().mInputAttributes
-        val wasForced = inputAttributes.mNoLearning || inputAttributes.mIsPasswordField
+        val wasForced = inputAttributes.mNoLearning || inputAttributes.mIsPasswordField ||
+            SecureAppsPolicy.isSecure(context.prefs(), inputAttributes.mTargetApplicationPackageName)
         if (wasForced) {
             emojiButton.announceForAccessibility(resources.getString(R.string.board_incognito_forced))
             return
@@ -195,6 +205,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             Defaults.PREF_ALWAYS_INCOGNITO_MODE)
         // Use the established Settings code path so all user-history, swipe,
         // Emoji and clipboard guards receive the updated effective mode.
+        ime.clearPendingPrivateLearning()
         Settings.getInstance().toggleAlwaysIncognitoMode()
         if (next && (dictationActive || dictationProcessing)) {
             if (dictationOffline) ime.cancelBoardOfflineDictation()
@@ -287,6 +298,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             if (discardGlyph.visibility == VISIBLE) clearMicDiscardFeedback()
             feedback(it)
             ime.toggleBoardOfflineDictation()
+        }
+        passwordManagerButton.setOnClickListener {
+            if (!Settings.getValues().mInputAttributes.mIsPasswordField) return@setOnClickListener
+            cachedPasswordManagerIntent?.let { target ->
+                if (PasswordManagerAction.open(context, target)) feedback(it)
+            }
         }
         // Touch-exploration double-taps activate an accessibility click, not the
         // IME-switch gesture. The dedicated accessibility switch action stays below.
@@ -431,6 +448,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         if (dictationProcessing) showDictationProcessing()
         else showDictationActive(dictationActive)
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
+        // Do not add a password icon on ordinary text, email, incognito, etc.
+        // Password fields naturally hide the mic, so reuse precisely that slot.
+        val passwordField = Settings.getValues().mInputAttributes.mIsPasswordField
+        if (passwordField && !showMicrophone) {
+            val now = android.os.SystemClock.uptimeMillis()
+            if (passwordIntentCheckedAt == 0L || now - passwordIntentCheckedAt > 5_000L) {
+                cachedPasswordManagerIntent = PasswordManagerAction.launchIntent(context)
+                passwordIntentCheckedAt = now
+            }
+        }
+        passwordManagerButton.visibility = if (passwordField && !showMicrophone &&
+            cachedPasswordManagerIntent != null) VISIBLE else GONE
+        passwordManagerButton.imageTintList = tint
     }
 
     fun showDictationActive(active: Boolean, offline: Boolean = false) {

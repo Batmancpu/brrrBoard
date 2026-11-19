@@ -49,6 +49,7 @@ import helium314.keyboard.settings.dialogs.TextInputDialog
 import helium314.keyboard.settings.preferences.BackupRestorePreference
 import helium314.keyboard.settings.preferences.LoadGestureLibPreference
 import helium314.keyboard.settings.preferences.TextInputPreference
+import helium314.keyboard.settings.preferences.SecureAppsPreference
 import helium314.keyboard.latin.utils.previewDark
 import androidx.core.content.edit
 import helium314.keyboard.latin.utils.Log
@@ -64,6 +65,7 @@ fun AdvancedSettingsScreen(
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
     val items = listOf(
         Settings.PREF_ALWAYS_INCOGNITO_MODE,
+        Settings.PREF_SECURE_APPS,
         Settings.PREF_KEY_LONGPRESS_TIMEOUT,
         Settings.PREF_SPACE_HORIZONTAL_SWIPE,
         Settings.PREF_SPACE_VERTICAL_SWIPE,
@@ -107,6 +109,10 @@ fun createAdvancedSettings(context: Context) = listOf(
         R.string.incognito, R.string.prefs_force_incognito_mode_summary)
     {
         SwitchPreference(it, Defaults.PREF_ALWAYS_INCOGNITO_MODE) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, Settings.PREF_SECURE_APPS,
+        R.string.board_secure_apps_title, R.string.board_secure_apps_summary) {
+        SecureAppsPreference(it)
     },
     Setting(context, Settings.PREF_KEY_LONGPRESS_TIMEOUT, R.string.prefs_key_longpress_timeout_settings) { setting ->
         SliderPreference(

@@ -134,6 +134,9 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     </application>
 
     <queries>
+        <!-- Optional launch shortcut in password-only footer. No credentials passed. -->
+        <package android:name="proton.android.pass" />
+        <package android:name="proton.android.pass.fdroid" />
         <!-- Explicit visibility of the independently installed brrSpeak Binder receiver. -->
         <package android:name="com.mangoloads.speak" />
         <intent>

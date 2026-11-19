@@ -66,8 +66,11 @@ internal class InlineDictation(private val ime: LatinIME) {
         footer?.clearDictationError()
         footer?.clearContextAction()
         val editor = ime.currentInputEditorInfo ?: return
+        // This path hands audio to another app/service. Even a single attempt is
+        // forbidden in incognito; only OfflineBoardDictation may run in RAM.
         if (!ime.isInputViewShown || !canDictate(editor) ||
-            !Settings.getValues().mShowsVoiceInputKey) return
+            !Settings.getValues().mShowsVoiceInputKey ||
+            Settings.getValues().mIncognitoModeEnabled) return
         val connection = ime.currentInputConnection ?: return
         // Do not reject an idle/cold brrSpeak process based on PackageManager's service list.
         // The authenticated no-data provider wake and explicit bind happen after capture.

@@ -16,6 +16,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -37,6 +38,7 @@ import helium314.keyboard.accessibility.AccessibilityUtils;
 import helium314.keyboard.keyboard.KeyboardTypeface;
 import helium314.keyboard.latin.PunctuationSuggestions;
 import helium314.keyboard.latin.R;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.SuggestedWords;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.common.ColorType;
@@ -95,6 +97,7 @@ final class SuggestionStripLayoutHelper {
     private final float mCenterSuggestionWeight;
     private final int mCenterPositionInStrip;
     private final int mTypedWordPositionWhenAutocorrect;
+    private final Context mContext;
 
     private static final CharacterStyle BOLD_SPAN = new StyleSpan(Typeface.BOLD);
     private static final CharacterStyle UNDERLINE_SPAN = new UnderlineSpan();
@@ -109,6 +112,7 @@ final class SuggestionStripLayoutHelper {
     public SuggestionStripLayoutHelper(final Context context, final AttributeSet attrs,
             final int defStyle, final ArrayList<TextView> wordViews,
             final ArrayList<View> dividerViews, final ArrayList<TextView> debugInfoViews) {
+        mContext = context;
         mWordViews = wordViews;
         mDividerViews = dividerViews;
         mDebugInfoViews = debugInfoViews;
@@ -195,8 +199,10 @@ final class SuggestionStripLayoutHelper {
                 && indexInSuggestedWords == SuggestedWords.INDEX_OF_AUTO_CORRECTION;
         final boolean isTypedWordValid = suggestedWords.mTypedWordValid
                 && indexInSuggestedWords == SuggestedWords.INDEX_OF_TYPED_WORD;
+        final boolean quoteOriginal = indexInSuggestedWords == SuggestedWords.INDEX_OF_TYPED_WORD
+                && shouldQuoteOriginal(suggestedWords);
         if (!isAutoCorrection && !isTypedWordValid) {
-            return word;
+            return quoteOriginal ? '"' + word + '"' : word;
         }
 
         final Spannable spannedWord = new SpannableString(word);
@@ -208,7 +214,26 @@ final class SuggestionStripLayoutHelper {
         if (isAutoCorrection && (options & AUTO_CORRECT_UNDERLINE) != 0) {
             addStyleSpan(spannedWord, UNDERLINE_SPAN);
         }
-        return spannedWord;
+        if (!quoteOriginal) return spannedWord;
+        // Quotes are PRESENTATION only: the TextView tag still references the
+        // unmodified typed SuggestedWordInfo, so tapping cannot insert quotes.
+        return new SpannableStringBuilder("\"").append(spannedWord).append('"');
+    }
+
+    /** Apple's literal-word escape hatch is shown only for a real pending correction. */
+    static boolean shouldQuoteOriginal(final boolean iosProfile, final boolean willAutoCorrect,
+            final int inputStyle, @Nullable final String typed, @Nullable final String correction) {
+        return iosProfile && willAutoCorrect && inputStyle == SuggestedWords.INPUT_STYLE_TYPING
+                && typed != null && correction != null && !typed.isEmpty()
+                && !correction.isEmpty() && !typed.equals(correction);
+    }
+
+    private boolean shouldQuoteOriginal(final SuggestedWords suggestedWords) {
+        return suggestedWords.size() > SuggestedWords.INDEX_OF_AUTO_CORRECTION
+                && shouldQuoteOriginal(KeyboardMotionSpec.isIos27(mContext),
+                        suggestedWords.mWillAutoCorrect, suggestedWords.mInputStyle,
+                        suggestedWords.getWord(SuggestedWords.INDEX_OF_TYPED_WORD),
+                        suggestedWords.getWord(SuggestedWords.INDEX_OF_AUTO_CORRECTION));
     }
 
     /**
@@ -222,7 +247,8 @@ final class SuggestionStripLayoutHelper {
             final SuggestedWords suggestedWords) {
         final SettingsValues settingsValues = Settings.getValues();
         final boolean shouldOmitTypedWord = shouldOmitTypedWord(suggestedWords.mInputStyle,
-                settingsValues.mGestureFloatingPreviewTextEnabled, true);
+                settingsValues.mGestureFloatingPreviewTextEnabled, true)
+                && !shouldQuoteOriginal(suggestedWords);
         return getPositionInSuggestionStrip(indexInSuggestedWords, suggestedWords.mWillAutoCorrect,
                 shouldOmitTypedWord, mCenterPositionInStrip, mTypedWordPositionWhenAutocorrect);
     }
@@ -421,7 +447,10 @@ final class SuggestionStripLayoutHelper {
                     (PunctuationSuggestions)suggestedWords, stripView);
         }
 
-        final int wordCountToShow = suggestedWords.getWordCountToShow();
+        // Normal typing omits index 0, but the quoted literal is an actual third
+        // tappable slot for a pending iOS-profile autocorrection.
+        final int wordCountToShow = suggestedWords.getWordCountToShow()
+                + (shouldQuoteOriginal(suggestedWords) ? 1 : 0);
         final int startIndexOfMoreSuggestions = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
                 suggestedWords, mSuggestionsCountInStrip);
         final TextView centerWordView = mWordViews.get(mCenterPositionInStrip);

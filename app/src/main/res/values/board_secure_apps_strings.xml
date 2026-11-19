@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="board_secure_apps_title">Secure apps</string>
+    <string name="board_secure_apps_summary">Automatically enter incognito in selected apps. Never learn text, swipes or emoji usage from them.</string>
+    <string name="board_secure_apps_add_package">Add app by package ID</string>
+    <string name="board_secure_apps_add_package_summary">For apps not in the launcher list. Example: org.example.app</string>
+    <plurals name="board_secure_apps_count">
+        <item quantity="one">%d protected app</item>
+        <item quantity="other">%d protected apps</item>
+    </plurals>
+    <string name="board_proton_pass_action">Open Proton Pass</string>
+</resources>

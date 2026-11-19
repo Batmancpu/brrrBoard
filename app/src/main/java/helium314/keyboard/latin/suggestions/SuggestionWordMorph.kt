@@ -13,6 +13,7 @@ import android.text.style.CharacterStyle
 import android.text.style.UpdateAppearance
 import android.view.ViewGroup
 import android.view.animation.PathInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import helium314.keyboard.latin.KeyboardMotionSpec
 import kotlin.math.min
@@ -33,7 +34,8 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
             // iOS-inspired: settle the actual glyph ink horizontally, WITHOUT
             // opacity ghosts. Previous Default retains the shipped subtle fade.
             if (iosMotion) {
-                paint.textScaleX *= .985f + .015f * progress
+                paint.alpha = (paint.alpha * (.10f + .90f * progress)).toInt()
+                paint.textScaleX *= .94f + .06f * progress
             } else {
                 paint.alpha = (paint.alpha * (.74f + .26f * progress)).toInt()
             }
@@ -94,16 +96,21 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
         }
 
         if (activeInk.isEmpty() && pill == null) return
+        val iosMotion = KeyboardMotionSpec.isIos27(owner.context)
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = KeyboardMotionSpec.WORD_CROSSFADE_MS
-            interpolator = easing
+            duration = if (iosMotion) KeyboardMotionSpec.IOS_SUGGESTION_SETTLE_MS
+                else KeyboardMotionSpec.WORD_CROSSFADE_MS
+            interpolator = if (iosMotion) LinearInterpolator() else easing
             addUpdateListener { update ->
-                val progress = update.animatedValue as Float
+                val fraction = update.animatedValue as Float
+                val progress = if (iosMotion)
+                    SuggestionInkTiming.reveal(fraction * duration.toFloat())
+                else fraction
                 activeInk.forEach { ink ->
                     ink.span.progress = progress
                     ink.view.invalidate()
                 }
-                pill?.setProgress(progress)
+                pill?.setProgress(if (iosMotion) easing.getInterpolation(fraction) else fraction)
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {

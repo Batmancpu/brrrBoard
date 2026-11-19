@@ -182,6 +182,21 @@
             android:contentDescription="@string/board_inline_dictation"
             android:background="?android:attr/selectableItemBackgroundBorderless" />
 
+        <!-- Only shown for password editors when Proton Pass is actually installed.
+             A launch shortcut, not a custom credential/autofill implementation. -->
+        <ImageButton
+            android:id="@+id/board_footer_password_manager"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="12dp"
+            android:paddingBottom="@dimen/config_board_footer_icon_optical_bottom_padding"
+            android:scaleType="center"
+            android:src="@drawable/ic_board_password_key"
+            android:contentDescription="@string/board_proton_pass_action"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:visibility="gone" />
+
         <!-- Event-scoped full drawing canvas: bin descends from the Enter-key region,
              opens, swallows the mic and morphs into the idle white mic. -->
         <helium314.keyboard.latin.FooterMicDiscardMorphView

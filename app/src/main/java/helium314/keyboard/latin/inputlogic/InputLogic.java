@@ -150,6 +150,16 @@ public final class InputLogic {
                 values.isSuggestionsEnabledPerUserSettings()) && !mConnection.hasSlowInputConnection();
     }
 
+    /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
+    public void clearPendingPrivateLearning() {
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
+        mRejectedSwipeAt = 0L;
+        mIgnoreOldContextUntilWordCommit = true;
+        mLastInteractionUptime = 0L;
+        if (mSuggest != null) mSuggest.clearNextWordSuggestionsCache();
+    }
+
     private void markContextInteraction(final long now) {
         if (SwipeContextWindow.expired(mLastInteractionUptime, now)) {
             mIgnoreOldContextUntilWordCommit = true;
@@ -2048,9 +2058,8 @@ public final class InputLogic {
         final boolean wasAutoCapitalized = mWordComposer.wasAutoCapitalized() && !mWordComposer.isMostlyCaps();
         final String word = stripWordSeparatorsFromEnd(suggestion, settingsValues);
         if (settingsValues.mIncognitoModeEnabled) {
-            // still adjust confidences, otherwise incognito input fields can be very
-            // annoying when wrong language is active
-            mDictionaryFacilitator.adjustConfidences(word, wasAutoCapitalized);
+            // Strict no-trace semantics: not even transient language-confidence
+            // adaptation may leak back to the next non-private editor.
             return;
         }
         if (mConnection.hasSlowInputConnection()) {

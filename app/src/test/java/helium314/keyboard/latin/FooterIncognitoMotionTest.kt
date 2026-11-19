@@ -16,6 +16,8 @@ class FooterIncognitoMotionTest {
         assertTrue(lookDown.nod > .75f)
         assertTrue(shades.glasses > .99f)
         assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).glint, .001f)
+        assertTrue(FooterIncognitoMotion.at(normal, true, .81f).colorSpread in 0f..1f)
+        assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).colorSpread, .001f)
     }
 
     @Test fun exitRevealsEyesBeforeHatFallsBehind() {
@@ -28,6 +30,7 @@ class FooterIncognitoMotionTest {
         assertEquals(1f, bareEyes.hat, .001f)
         assertTrue(fall.hatBehind > .95f)
         assertTrue(fall.hatDrop > 0f)
+        assertEquals(0f, FooterIncognitoMotion.at(incognito, false, 1f).colorSpread, .001f)
     }
 
     @Test fun reversalStartsAtLastDrawnPoseWithoutSnapping() {
@@ -48,6 +51,7 @@ class FooterIncognitoMotionTest {
             assertTrue(current.nod in 0f..1f)
             assertTrue(current.hatBehind in 0f..1f)
             assertTrue(current.glint in 0f..1f)
+            assertTrue(current.colorSpread in 0f..1f)
         }
     }
 }

@@ -1325,7 +1325,14 @@ public class LatinIME extends InputMethodService implements
         // reload
         // settings, so currentSettingsValues can't be final.
         SettingsValues currentSettingsValues = mSettings.getCurrent();
-        boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo);
+        boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo)
+                // Two apps can focus identical editor types during an IME
+                // restart. Secure-app membership must be recomputed for each
+                // target package, not inherited from the previous editor.
+                || !java.util.Objects.equals(
+                        currentSettingsValues.mInputAttributes.mTargetApplicationPackageName,
+                        editorInfo == null ? null : editorInfo.packageName);
+        if (inputTypeChanged) mInputLogic.clearPendingPrivateLearning();
         boolean isDifferentTextField = !restarting || inputTypeChanged;
 
         // we want to reload the settings before calling updateKeyboardTheme, because
@@ -2026,6 +2033,11 @@ public class LatinIME extends InputMethodService implements
         mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
                 mKeyboardSwitcher.getCurrentKeyboardScript());
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
+    void clearPendingPrivateLearning() {
+        mInputLogic.clearPendingPrivateLearning();
     }
 
     public void onStartBatchInput() {
