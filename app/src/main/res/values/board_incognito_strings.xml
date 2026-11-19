@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard incognito footer strings; base-locale accessibility labels. -->
+<resources>
+    <string name="board_emoji_normal_desc">Emoji. Double tap to enter incognito. Hold for shortcuts.</string>
+    <string name="board_emoji_private_desc">Incognito is on. Double tap to exit incognito. Hold for shortcuts.</string>
+    <string name="board_toggle_incognito">Toggle incognito mode</string>
+    <string name="board_incognito_on">Incognito on. Learning is paused.</string>
+    <string name="board_incognito_off">Incognito off. Private learning may resume.</string>
+    <string name="board_incognito_forced">This text field requires incognito mode.</string>
+</resources>

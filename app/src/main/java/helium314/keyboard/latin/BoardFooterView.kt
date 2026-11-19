@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.content.SharedPreferences
 import android.graphics.drawable.Drawable
 import android.content.Context
 import android.content.res.ColorStateList
@@ -60,6 +61,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationOffline = false
     private var offlineHoldActive = false
     private var returnToLetters = false
+    private val privateEmojiIcon = FooterIncognitoEmojiDrawable(context)
     private var micPulse: ValueAnimator? = null
     private var micDiscardAnimator: ValueAnimator? = null
     private var micDiscardRestartTouchArmed = false
@@ -77,6 +79,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var downY = 0f
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
+    // Consume DISJOINT tap PAIRS, never overlapping (1+2, 2+3, 3+4).
+    // This makes rapid double-double taps reverse the morph exactly once.
+    private val emojiTapTimeoutMs = ViewConfiguration.getDoubleTapTimeout().toLong()
+    private val emojiTapSlopPx = ViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
+    private var pendingEmojiClick: Runnable? = null
+    private var lastEmojiUpTime = 0L
+    private var lastEmojiUpX = 0f
+    private var lastEmojiUpY = 0f
+    private var secondEmojiTap = false
+    private val privacyListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE) {
+            post { if (ViewCompat.isAttachedToWindow(this)) syncEmojiPrivacy(animate = true) }
+        }
+    }
     /** Idle single taps wait for the double-tap switch window; an active stop is immediate. */
     private val micGestureDetector = GestureDetector(context,
         object : GestureDetector.SimpleOnGestureListener() {
@@ -127,6 +143,80 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         event.recycle()
         microphone.isPressed = false
     }
+
+    private fun cancelEmojiGesture() {
+        pendingEmojiClick?.let { removeCallbacks(it) }
+        pendingEmojiClick = null
+        secondEmojiTap = false
+        emojiButton.isPressed = false
+    }
+
+    private fun emojiTapDown(event: MotionEvent) {
+        val elapsed = android.os.SystemClock.uptimeMillis() - lastEmojiUpTime
+        secondEmojiTap = FooterEmojiTapPolicy.isSecondTap(
+            pendingEmojiClick != null, elapsed,
+            event.rawX - lastEmojiUpX, event.rawY - lastEmojiUpY,
+            emojiTapTimeoutMs, emojiTapSlopPx)
+        if (secondEmojiTap) pendingEmojiClick?.let { removeCallbacks(it) }
+    }
+
+    private fun emojiTapUp(event: MotionEvent) {
+        if (secondEmojiTap) {
+            cancelEmojiGesture()
+            if (returnToLetters) emojiButton.performClick()
+            else toggleFooterIncognito()
+            return
+        }
+        // A second spatially unrelated tap does not steal the first action.
+        // Finish that first pending click before starting the new pair window.
+        pendingEmojiClick?.let { old -> removeCallbacks(old); old.run() }
+        val click = Runnable {
+            pendingEmojiClick = null
+            if (emojiButton.isShown && ViewCompat.isAttachedToWindow(emojiButton))
+                emojiButton.performClick()
+        }
+        pendingEmojiClick = click
+        lastEmojiUpTime = android.os.SystemClock.uptimeMillis()
+        lastEmojiUpX = event.rawX
+        lastEmojiUpY = event.rawY
+        postDelayed(click, emojiTapTimeoutMs)
+    }
+
+    private fun toggleFooterIncognito() {
+        // Protected/password fields force private behavior regardless of the
+        // user's preference; never imply that a double tap disabled it there.
+        val inputAttributes = Settings.getValues().mInputAttributes
+        val wasForced = inputAttributes.mNoLearning || inputAttributes.mIsPasswordField
+        if (wasForced) {
+            emojiButton.announceForAccessibility(resources.getString(R.string.board_incognito_forced))
+            return
+        }
+        val next = !context.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
+            Defaults.PREF_ALWAYS_INCOGNITO_MODE)
+        // Use the established Settings code path so all user-history, swipe,
+        // Emoji and clipboard guards receive the updated effective mode.
+        Settings.getInstance().toggleAlwaysIncognitoMode()
+        if (next && (dictationActive || dictationProcessing)) {
+            if (dictationOffline) ime.cancelBoardOfflineDictation()
+            else ime.cancelBoardDictation()
+        }
+        feedback(emojiButton)
+        syncEmojiPrivacy(animate = true)
+        emojiButton.announceForAccessibility(resources.getString(
+            if (next) R.string.board_incognito_on else R.string.board_incognito_off))
+    }
+
+    private fun syncEmojiPrivacy(animate: Boolean) {
+        val privateMode = Settings.getValues().mIncognitoModeEnabled
+        privateEmojiIcon.setThemeInk(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        privateEmojiIcon.setIncognito(privateMode, animated = animate && isShown && !returnToLetters)
+        if (!returnToLetters) {
+            emojiButton.contentDescription = resources.getString(
+                if (privateMode) R.string.board_emoji_private_desc else R.string.board_emoji_normal_desc)
+        }
+        ViewCompat.setStateDescription(emojiButton,
+            resources.getString(if (privateMode) R.string.board_incognito_on else R.string.board_incognito_off))
+    }
     private val shortcuts = listOf(
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
         Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
@@ -143,6 +233,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Emoji, ABC and the mic keep their original unframed touch surfaces.
         // Recording/processing illuminate only the exact mic silhouette below.
         idleMicBackground = microphone.background
+        emojiButton.setImageDrawable(privateEmojiIcon)
         microphone.drawable?.let { original ->
             pulsingMicIcon = FooterMicPulseDrawable(original.mutate()).also {
                 microphone.setImageDrawable(it)
@@ -265,6 +356,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             ime.showInputPickerDialog()
             true
         }
+        ViewCompat.addAccessibilityAction(emojiButton, resources.getString(R.string.board_toggle_incognito)) { _, _ ->
+            toggleFooterIncognito()
+            true
+        }
         // The ordinary touch gesture deliberately consumes long-press events to allow
         // sliding through the arc. Expose each shortcut directly for touch exploration.
         shortcuts.forEach { shortcut ->
@@ -274,8 +369,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             }
         }
         emojiButton.setOnTouchListener { view, event ->
+            if (isMicTouchExplorationEnabled()) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    emojiTapDown(event)
                     tracking = true
                     downX = event.rawX
                     downY = event.rawY
@@ -287,6 +384,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                     else if (abs(event.rawX - downX) > ViewConfiguration.get(context).scaledTouchSlop ||
                         abs(event.rawY - downY) > ViewConfiguration.get(context).scaledTouchSlop) {
                         tracking = false
+                        if (secondEmojiTap) cancelEmojiGesture()
                         removeCallbacks(openShortcuts)
                         view.isPressed = false
                     }
@@ -295,11 +393,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                     val hadPopup = popup != null
                     if (hadPopup) updateSelection(event.rawX, event.rawY)
                     val actionToPerform = shortcuts.getOrNull(selected)?.action
-                    val tap = tracking && !hadPopup
+                    val tap = tracking && !hadPopup &&
+                        event.x >= 0f && event.x < view.width &&
+                        event.y >= 0f && event.y < view.height
                     dismissShortcutArc()
-                    if (actionToPerform != null) performShortcut(actionToPerform) else if (tap) view.performClick()
+                    if (actionToPerform != null) {
+                        cancelEmojiGesture()
+                        performShortcut(actionToPerform)
+                    } else if (tap) emojiTapUp(event)
                 }
-                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> dismissShortcutArc()
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                    cancelEmojiGesture()
+                    dismissShortcutArc()
+                }
             }
             true
         }
@@ -308,7 +414,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean) {
         visibility = if (show) VISIBLE else GONE
         returnToLetters = returnToAbc
-        emojiButton.setImageResource(if (returnToAbc) R.drawable.ic_board_abc else R.drawable.ic_board_emoji)
+        if (returnToAbc) emojiButton.setImageResource(R.drawable.ic_board_abc)
+        else emojiButton.setImageDrawable(privateEmojiIcon)
         emojiButton.contentDescription = resources.getString(
             if (returnToAbc) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
         )
@@ -318,7 +425,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         val dark = KeyboardTheme.isDarkThemeActive(context)
-        emojiButton.imageTintList = tint
+        emojiButton.imageTintList = if (returnToAbc) tint else null
+        syncEmojiPrivacy(animate = false)
         voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         if (dictationProcessing) showDictationProcessing()
         else showDictationActive(dictationActive)
@@ -581,6 +689,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
         cancelMicGesture()
+        cancelEmojiGesture()
         dismissShortcutArc()
     }
 
@@ -598,8 +707,16 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     override fun onDetachedFromWindow() {
+        context.prefs().unregisterOnSharedPreferenceChangeListener(privacyListener)
         reset()
+        privateEmojiIcon.stopAnimation()
         super.onDetachedFromWindow()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        context.prefs().registerOnSharedPreferenceChangeListener(privacyListener)
+        if (this::ime.isInitialized) syncEmojiPrivacy(animate = false)
     }
 
     private fun feedback(view: android.view.View, event: HapticEvent = HapticEvent.KEY_PRESS) {
