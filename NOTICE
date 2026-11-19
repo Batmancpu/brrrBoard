@@ -20,3 +20,20 @@ This bundled seed is a dated baseline, not a claim to represent every current re
 
 No user-typed text, clipboard content, or learning history is included in the generated asset.
 Personal learning remains in the app's existing local UserHistoryDictionary.
+
+Optional private English speech recognition assets (one-time opt-in APK only)
+
+The one-time brrBoard offline-voice bootstrap APK may bundle an ONNX export of
+NVIDIA Parakeet TDT 110M English recognition weights, under Creative Commons
+Attribution 4.0 (CC BY 4.0). Attribution: NVIDIA Corporation, Parakeet TDT 110M
+English ASR, https://huggingface.co/nvidia/parakeet-tdt-0.11b . The pinned
+four-file export used by this project is mirrored by the DictateKeyboard model
+release at https://github.com/DevEmperor/DictateKeyboard/releases/tag/whisper-models-v1 .
+Its source hashes and sizes appear in tools/offline-voice-model.lock.
+License: https://creativecommons.org/licenses/by/4.0/ . The source model is
+quantized/exported; no model training or automatic retraining is performed.
+
+The sherpa-onnx runtime is authored by the k2-fsa contributors and distributed
+under Apache License 2.0: https://github.com/k2-fsa/sherpa-onnx . brrBoard pins
+release v1.13.3 at build time. These speech assets are absent from the ordinary
+small Obtainium APK except the necessary speech runtime binaries.

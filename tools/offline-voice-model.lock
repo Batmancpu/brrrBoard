@@ -1,0 +1,7 @@
+# Source filename|APK asset filename|bytes|sha256; NVIDIA Parakeet TDT 110M English INT8
+# Model: CC-BY-4.0 (NVIDIA). Sherpa-ONNX export: Apache-2.0.
+# Source: https://github.com/DevEmperor/DictateKeyboard/releases/tag/whisper-models-v1
+parakeet-tdt-110m-en-encoder.int8.onnx|encoder.onnx|131113202|0f35509ddeb9b39002fb077d979a9fe74f06eb0bc4dd5c34f512f82e5111d657
+parakeet-tdt-110m-en-decoder.int8.onnx|decoder.onnx|3955863|f7c331c5504c2e593c76ed22b728e3f554af6c4a383dde862e719ced08b1da19
+parakeet-tdt-110m-en-joiner.int8.onnx|joiner.onnx|1411403|bf7dff69e9f2cdbe9943d70da358f38b361c115ba0105bae7e908e0d6ec782f6
+parakeet-tdt-110m-en-tokens.txt|tokens.txt|9953|450e56bd2f036fe5b6aa821865838cc5aa9d8b0106134ce9a9ba0664abe6cd10

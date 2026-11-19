@@ -495,7 +495,8 @@
     <string name="board_language_and_shortcuts">Emoji. Hold for clipboard, toolbar, or settings.</string>
     <string name="board_return_to_letters">Switch to letters. Hold for clipboard, toolbar, or settings.</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
-    <string name="board_inline_dictation">Start dictation. Double-tap to switch keyboards.</string>
+    <string name="board_inline_dictation">Tap for brrSpeak, hold for private offline English, double-tap to switch keyboards.</string>
+    <string name="board_voice_offline_accessibility">Start or stop private offline English dictation</string>
     <string name="board_dictation_stop">Stop dictation</string>
     <string name="board_dictation_processing">Dictation is processing</string>
     <string name="board_cancel_dictation">Cancel dictation</string>
@@ -506,6 +507,8 @@
     <string name="board_footer_action_removed">Removed</string>
     <string name="board_footer_action_retry">Voice failed</string>
     <string name="board_footer_action_retry_label">Retry</string>
+    <string name="board_voice_offline_ready">Private transcript ready</string>
+    <string name="board_footer_action_paste_offline">Paste offline</string>
     <string name="emoji_search_no_results">No matching emoji</string>
     <string name="emoji_describe_search_hint">Describe an emoji</string>
     <string name="emoji_describe_shortcuts_title">Import emoji search shortcuts</string>
@@ -545,6 +548,10 @@
     <string name="board_voice_listening">Recording…</string>
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
     <string name="board_voice_transcribing">Transcribing…</string>
+    <string name="board_voice_offline_model_missing">Private English voice model is not installed. Install the one-time model-inclusive brrBoard APK and open it once.</string>
+    <string name="board_voice_offline_listening">Private offline listening…</string>
+    <string name="board_voice_offline_processing">Transcribing privately on device…</string>
+    <string name="board_voice_offline_failed">Private English transcription failed</string>
     <string name="board_show_more_suggestions">Show more suggestions</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>

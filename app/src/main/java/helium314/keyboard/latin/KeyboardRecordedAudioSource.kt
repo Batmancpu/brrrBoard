@@ -27,6 +27,7 @@ internal class KeyboardRecordedAudioSource(
     private val onRecordingStarted: () -> Unit,
     private val onRecordingFinished: (File, Long) -> Unit,
     private val onCaptureFailure: (Failure) -> Unit,
+    private val onPcmFrame: ((ByteArray, Int) -> Unit)? = null,
 ) {
     enum class Failure { INITIALIZE, START, READ, WRITE, EMPTY, STOP }
 
@@ -95,6 +96,9 @@ internal class KeyboardRecordedAudioSource(
                         if (cancelled.get()) break
                         stage = Failure.WRITE
                         output.write(buffer, 0, count)
+                        // An optional local model sees the exact same microphone frames, without
+                        // changing the finalized PCM handed to brrSpeak. Never decode on this thread.
+                        onPcmFrame?.invoke(buffer, count)
                         written += count
                         if (!nonzero) nonzero = (0 until count).any { buffer[it].toInt() != 0 }
                     }

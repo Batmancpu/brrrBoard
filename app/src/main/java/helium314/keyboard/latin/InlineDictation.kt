@@ -23,6 +23,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.voice.VoiceModelInstaller
 import java.util.Locale
 import helium314.keyboard.latin.utils.Log
 
@@ -41,6 +42,8 @@ internal class InlineDictation(private val ime: LatinIME) {
     private val state = InlineVoiceSessionState()
     private var source: KeyboardRecordedAudioSource? = null
     private var client: BrrSpeakRecordedAudioClient? = null
+    private var offlineBackup: HybridVoiceBackup? = null
+    private var slowBackupPrompt: Runnable? = null
     private var footer: BoardFooterView? = null
     private var deadline: Runnable? = null
     private var generation = 0L
@@ -78,6 +81,15 @@ internal class InlineDictation(private val ime: LatinIME) {
         state.begin()
         generation++
         val currentGeneration = generation
+        val backup = if (VoiceModelInstaller.isInstalled(ime)) HybridVoiceBackup(
+            ime, footer, connection,
+        ) { phrase ->
+            if (generation == currentGeneration && isOriginalEditor(connection, editor)) {
+                cancel() // End the server session before inserting locally; never duplicate words.
+                ime.onPrivateVoiceTextInput(phrase)
+            }
+        } else null
+        offlineBackup = backup
         footer?.showDictationStatus(R.string.board_voice_starting)
         footer?.setDictationCancelAvailable(true)
         val newSource = KeyboardRecordedAudioSource(
@@ -110,6 +122,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                     footer?.showDictationActive(false)
                     footer?.showDictationProcessing()
                     footer?.showDictationStatus(R.string.board_voice_transcribing)
+                    backup?.finishCapture()
                     handoff(file, bytes, connection, editor, currentGeneration)
                 }
             },
@@ -118,6 +131,11 @@ internal class InlineDictation(private val ime: LatinIME) {
                     Log.w("InlineDictation", "microphone failure stage=" + reason.name)
                     fail(R.string.inline_voice_provider_audio_failure)
                 }
+            },
+            onPcmFrame = { frame, length ->
+                // Capture a bounded RAM copy of exactly the PCM brrSpeak receives.
+                // Failure of the optional backup never blocks server recording.
+                runCatching { backup?.appendFrame(frame, length) }
             },
         )
         source = newSource
@@ -164,14 +182,22 @@ internal class InlineDictation(private val ime: LatinIME) {
                     val accepted = text.trim().takeUnless { it.isBlank() || containsHindiScript(it) }
                     val rejectedHindi = containsHindiScript(text)
                     val statusFooter = footer
+                    // The local backup is never auto-inserted. The red/server result normally wins.
+                    val canCommit = if (accepted != null) {
+                        offlineBackup?.serverSucceeded() ?: true
+                    } else false
+                    val fallback = if (accepted == null) offlineBackup.also { offlineBackup = null }
+                        else null
                     cancel()
                     if (originalEditorActive) {
                         when {
-                            accepted != null -> ime.onTextInput(accepted)
+                            accepted != null && canCommit -> ime.onPrivateVoiceTextInput(accepted)
+                            accepted != null -> Unit // User had already chosen Paste offline.
                             rejectedHindi -> report(R.string.inline_voice_hindi_result, statusFooter)
                             else -> report(R.string.inline_voice_no_speech, statusFooter)
                         }
                     }
+                    fallback?.serverHasFailed()
                 }
             },
             onError = { code ->
@@ -187,6 +213,8 @@ internal class InlineDictation(private val ime: LatinIME) {
         }
         if (!request.start()) {
             fail(R.string.inline_voice_brrspeak_missing)
+        } else {
+            scheduleSlowBackup(currentGeneration)
         }
     }
 
@@ -197,12 +225,15 @@ internal class InlineDictation(private val ime: LatinIME) {
 
     fun cancel() {
         clearDeadline()
+        clearSlowBackup()
         generation++
         state.reset()
         client?.close()
         client = null
         source?.close()
         source = null
+        offlineBackup?.cancel()
+        offlineBackup = null
         footer?.showDictationActive(false)
         footer?.showDictationProcessing(false)
         footer?.setDictationCancelAvailable(false)
@@ -223,10 +254,30 @@ internal class InlineDictation(private val ime: LatinIME) {
         deadline = null
     }
 
+    private fun scheduleSlowBackup(currentGeneration: Long) {
+        clearSlowBackup()
+        slowBackupPrompt = Runnable {
+            if (client != null && generation == currentGeneration &&
+                state.phase == InlineVoiceSessionState.Phase.PROCESSING) {
+                offlineBackup?.serverIsSlow()
+            }
+        }.also { handler.postDelayed(it, 3_000L) }
+    }
+
+    private fun clearSlowBackup() {
+        slowBackupPrompt?.let { handler.removeCallbacks(it) }
+        slowBackupPrompt = null
+    }
+
     private fun fail(message: Int) {
         val statusFooter = footer
+        val fallback = offlineBackup
+        offlineBackup = null
         cancel()
         report(message, statusFooter)
+        // Completed captured PCM can still be pasted manually after a provider failure.
+        fallback?.finishCapture()
+        fallback?.serverHasFailed()
     }
 
     private fun report(message: Int, statusFooter: BoardFooterView? = footer) {

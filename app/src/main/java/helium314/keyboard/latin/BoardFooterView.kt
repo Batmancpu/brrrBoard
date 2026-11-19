@@ -52,6 +52,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var fadedKeys: View? = null
     private var dictationActive = false
     private var dictationProcessing = false
+    private var dictationOffline = false
+    private var offlineHoldActive = false
     private var returnToLetters = false
     private var micPulse: ValueAnimator? = null
     private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density)
@@ -80,6 +82,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
             override fun onDoubleTap(e: MotionEvent): Boolean = true
 
+            override fun onLongPress(e: MotionEvent) {
+                if (!micActionAvailable() || dictationActive || dictationProcessing) return
+                offlineHoldActive = true
+                microphone.isPressed = true
+                feedback(microphone)
+                ime.startBoardOfflineDictation()
+            }
+
             override fun onDoubleTapEvent(e: MotionEvent): Boolean {
                 // Wait for the second UP; a dragged/cancelled second touch must not switch IMEs.
                 if (e.actionMasked == MotionEvent.ACTION_UP && micActionAvailable()) {
@@ -100,6 +110,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             ?.isTouchExplorationEnabled == true
 
     private fun cancelMicGesture() {
+        offlineHoldActive = false
         // GestureDetector owns a delayed single-tap confirmation. Cancel it on
         // keyboard exit so an old tap cannot start Dictate in the next editor.
         val event = MotionEvent.obtain(0L, android.os.SystemClock.uptimeMillis(),
@@ -176,6 +187,21 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL,
                 MotionEvent.ACTION_POINTER_DOWN -> view.isPressed = false
             }
+            // A held mic is an explicit local-only mode. Releasing it finishes blue capture;
+            // it must never become an accidental red server click or keyboard double-tap.
+            if (offlineHoldActive) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_UP -> {
+                        offlineHoldActive = false
+                        ime.stopBoardOfflineDictation()
+                    }
+                    MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                        offlineHoldActive = false
+                        ime.cancelBoardOfflineDictation()
+                    }
+                }
+                return@setOnTouchListener true
+            }
             // Once capture really begins (or transcription is pending), the next tap
             // stops/cancels without the idle double-tap confirmation delay. A quick
             // idle double-tap still switches keyboards without ever opening a mic.
@@ -190,6 +216,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
             ime.switchBoardInputMethod()
+            true
+        }
+        ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_voice_offline_accessibility)) { _, _ ->
+            ime.toggleBoardOfflineDictation()
             true
         }
         ViewCompat.addAccessibilityAction(emojiButton, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
@@ -257,14 +287,16 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
     }
 
-    fun showDictationActive(active: Boolean) {
+    fun showDictationActive(active: Boolean, offline: Boolean = false) {
         // A layout/theme re-render must not erase the live voice status.
         if (active && !dictationActive) clearDictationError()
         dictationActive = active
         dictationProcessing = false
+        dictationOffline = active && offline
+        micRing.setOfflineMode(dictationOffline)
         val colors = Settings.getValues().mColors
         microphone.imageTintList = ColorStateList.valueOf(
-            if (active) FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context))
+            if (active) FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context), dictationOffline)
             else colors.get(ColorType.KEY_ICON),
         )
         microphone.contentDescription = resources.getString(
@@ -276,15 +308,17 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         if (active) startMicPulse() else stopMicPulse()
     }
 
-    fun showDictationProcessing(processing: Boolean = true) {
+    fun showDictationProcessing(processing: Boolean = true, offline: Boolean = dictationOffline) {
         dictationProcessing = processing
         if (processing) {
             showDictationActive(false)
             dictationProcessing = true
+            dictationOffline = offline
+            micRing.setOfflineMode(offline)
             micRing.setVoiceState(FooterStatusRingDrawable.VoiceState.PROCESSING)
             microphone.background = micRing
             microphone.imageTintList = ColorStateList.valueOf(
-                FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context)))
+                FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context), offline))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
             startMicPulse()
         }

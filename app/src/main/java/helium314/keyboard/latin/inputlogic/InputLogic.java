@@ -291,13 +291,32 @@ public final class InputLogic {
      */
     public InputTransaction onTextInput(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler) {
+        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, false);
+    }
+
+    /**
+     * Voice-origin text must still refresh suggestions/Emoji, but must not confirm a swipe,
+     * accept an unrelated pending autocorrection or add dictated content to personal history.
+     * No audio or transcript is ever stored by this insertion path.
+     */
+    public InputTransaction onPrivateVoiceTextInput(final SettingsValues settingsValues, final Event event,
+            final int keyboardShiftMode, final LatinIME.UIHandler handler) {
+        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, true);
+    }
+
+    private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
+            final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice) {
         mRejectedSwipeSkeleton = null; // pasted text cannot confirm a swipe correction
         final String rawText = event.getTextToCommit().toString();
         final InputTransaction inputTransaction = new InputTransaction(settingsValues, event,
                 SystemClock.uptimeMillis(), mSpaceState,
                 getActualCapsMode(settingsValues, keyboardShiftMode));
         mConnection.beginBatchEdit();
-        if (mWordComposer.isComposingWord()) {
+        if (fromVoice) {
+            // Don't run commitCurrentAutoCorrection on a user's already-recognized voice phrase.
+            mConnection.finishComposingText();
+            resetComposingState(true /* alsoResetLastComposedWord */);
+        } else if (mWordComposer.isComposingWord()) {
             if (mWordComposer.isCursorFrontOrMiddleOfComposingWord()) {
                 // stop composing, otherwise the text will end up at the end of the current word
                 mConnection.finishComposingText();
@@ -312,12 +331,12 @@ public final class InputLogic {
             resetComposingState(true /* alsoResetLastComposedWord */);
         }
         handler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
-        final String text = performSpecificTldProcessingOnTextInput(rawText);
+        final String text = fromVoice ? rawText : performSpecificTldProcessingOnTextInput(rawText);
         if (SpaceState.PHANTOM == mSpaceState) {
             insertAutomaticSpaceIfOptionsAndTextAllow(settingsValues);
         }
         mConnection.commitText(text, 1);
-        StatsUtils.onWordCommitUserTyped(mEnteredText, mWordComposer.isBatchMode());
+        if (!fromVoice) StatsUtils.onWordCommitUserTyped(mEnteredText, mWordComposer.isBatchMode());
         mConnection.endBatchEdit();
         // Space state must be updated before calling updateShiftState
         mSpaceState = SpaceState.NONE;

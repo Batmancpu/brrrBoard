@@ -236,6 +236,9 @@ android {
 }
 
 dependencies {
+    // One native on-device English ASR engine; native/Java binaries are checksum-pinned by
+    // tools/fetch-board-sherpa-onnx.sh. The ~137 MB model weights are NOT in regular APKs.
+    implementation(files("libs/sherpa-onnx-1.13.3.jar"))
     // androidx
     implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
     implementation("androidx.appcompat:appcompat:1.7.0")

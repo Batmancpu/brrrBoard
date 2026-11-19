@@ -21,4 +21,14 @@ class FooterIndicatorPolicyTest {
         assertTrue(FooterIndicatorPolicy.pulseIntensity(0.5f, true) <
             FooterIndicatorPolicy.pulseIntensity(0.5f, false))
     }
+
+    @Test fun blueOfflineNeverSharesTheRedServerColor() {
+        for (dark in listOf(false, true)) {
+            val red = FooterIndicatorPolicy.voiceTint(dark)
+            val blue = FooterIndicatorPolicy.voiceTint(dark, offline = true)
+            assertTrue(blue != red)
+            assertEquals(0xFF, blue ushr 24)
+            assertTrue((blue and 0xff) > ((blue shr 16) and 0xff))
+        }
+    }
 }

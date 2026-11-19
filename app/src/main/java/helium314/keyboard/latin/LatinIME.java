@@ -192,6 +192,7 @@ public class LatinIME extends InputMethodService implements
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
     private View mInputView;
     private final InlineDictation mInlineDictation = new InlineDictation(this);
+    private final OfflineBoardDictation mOfflineDictation = new OfflineBoardDictation(this);
     private InsetsOutlineProvider mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
     private boolean mInlineProviderViewActive;
@@ -1039,6 +1040,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onDestroy() {
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         mIsDestroyed = true;
         sInstance = null;
         mHandler.removeCallbacksAndMessages(null);
@@ -1141,6 +1143,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void setInputView(final View view) {
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         ViewTreeLifecycleOwner.set(view, this);
         ViewTreeSavedStateRegistryOwner.set(view, this);
         ViewTreeViewModelStoreOwner.set(view, this);
@@ -1196,6 +1199,7 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         mHandler.onStartInput(editorInfo, restarting);
     }
 
@@ -1212,6 +1216,7 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
@@ -1225,6 +1230,7 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         mHandler.onFinishInput();
     }
 
@@ -1494,6 +1500,7 @@ public class LatinIME extends InputMethodService implements
     public void onWindowHidden() {
         mKeyboardSwitcher.cancelPanelTransition();
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         super.onWindowHidden();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
         Log.i(TAG, "onWindowHidden");
@@ -1656,9 +1663,29 @@ public class LatinIME extends InputMethodService implements
 
     void cancelBoardDictation() {
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
+    }
+
+    void startBoardOfflineDictation() {
+        mInlineDictation.cancel();
+        mOfflineDictation.start(mInputView);
+    }
+
+    void stopBoardOfflineDictation() {
+        mOfflineDictation.stop();
+    }
+
+    void cancelBoardOfflineDictation() {
+        mOfflineDictation.cancel();
+    }
+
+    void toggleBoardOfflineDictation() {
+        mInlineDictation.cancel();
+        mOfflineDictation.toggle(mInputView);
     }
 
     void toggleBoardDictation() {
+        mOfflineDictation.cancel();
         if (mSettings.getCurrent().mShowsVoiceInputKey) {
             mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
         }
@@ -1893,6 +1920,7 @@ public class LatinIME extends InputMethodService implements
     // long-press comma)
     public void switchBoardInputMethod() {
         mInlineDictation.cancel();
+        mOfflineDictation.cancel();
         if (!ImeCompat.INSTANCE.switchInputMethod(this)) showInputPickerDialog();
     }
 
@@ -1985,6 +2013,17 @@ public class LatinIME extends InputMethodService implements
         final InputTransaction completeInputTransaction = mInputLogic.onTextInput(mSettings.getCurrent(), event,
                 mKeyboardSwitcher.getKeyboardShiftMode(), mHandler);
         updateStateAfterInputTransaction(completeInputTransaction);
+        mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
+                mKeyboardSwitcher.getCurrentKeyboardScript());
+        mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    /** Inserts a dictated phrase with native suggestion refresh but without transcript learning. */
+    void onPrivateVoiceTextInput(final String text) {
+        final Event event = Event.createSoftwareTextEvent(text, KeyCode.MULTIPLE_CODE_POINTS, null);
+        final InputTransaction transaction = mInputLogic.onPrivateVoiceTextInput(
+                mSettings.getCurrent(), event, mKeyboardSwitcher.getKeyboardShiftMode(), mHandler);
+        updateStateAfterInputTransaction(transaction);
         mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
                 mKeyboardSwitcher.getCurrentKeyboardScript());
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());

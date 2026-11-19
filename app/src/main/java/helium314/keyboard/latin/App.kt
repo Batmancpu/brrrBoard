@@ -15,6 +15,7 @@ import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.upgradeToolbarPrefs
+import helium314.keyboard.latin.voice.VoiceModelInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,6 +47,12 @@ class App : Application() {
                     packageInfo.versionCode
                 }) on Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})"
             )
+        }
+
+        // Special one-time APKs carry the English ASR weights. Extract/verify them off the UI
+        // thread into noBackup, where future ordinary same-package updates leave them alone.
+        scope.launch(Dispatchers.IO) {
+            VoiceModelInstaller.installBundledIfPresent(this@App)
         }
 
         RichInputMethodManager.init(this)

@@ -56,6 +56,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,6 +87,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.voice.VoiceModelInstaller
+import kotlinx.coroutines.delay
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
 import helium314.keyboard.latin.utils.SubtypeSettings
@@ -127,6 +130,16 @@ fun MainSettingsScreen(
     ) {
         val ctx = LocalContext.current
         val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
+        var offlineVoiceReady by remember { mutableStateOf(VoiceModelInstaller.isInstalled(ctx)) }
+        LaunchedEffect(ctx) {
+            // The one-time installer verifies and extracts the model on an I/O worker. Refresh
+            // this tiny status while Settings is visible without blocking composition.
+            repeat(40) {
+                if (offlineVoiceReady) return@LaunchedEffect
+                delay(1_500)
+                offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx)
+            }
+        }
 
         val enabledSubtypes = remember(b?.value) { SubtypeSettings.getEnabledSubtypes(true) }
         val enabledSubtypeNames = remember(enabledSubtypes) {
@@ -223,11 +236,21 @@ fun MainSettingsScreen(
         
         Md3ePreferenceGroup("More") {
             Md3ePreference(
+                icon = "mic",
+                title = "Private offline English dictation",
+                description = if (offlineVoiceReady)
+                    "Ready on this phone · Hold the mic for blue, on-device transcription"
+                else
+                    "Model not installed · One-time signed model-inclusive APK required",
+                onClick = { offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx) },
+                isFirst = true
+            )
+            Md3ePreference(
                 icon = "discover_tune",
                 title = stringResource(R.string.settings_screen_advanced),
                 description = "Debug settings, clipboard, and experimental features",
                 onClick = onClickAdvanced,
-                isFirst = true
+                isFirst = false
             )
             Md3ePreference(
                 icon = "flag",

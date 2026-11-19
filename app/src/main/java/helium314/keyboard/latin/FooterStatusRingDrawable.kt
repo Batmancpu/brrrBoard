@@ -16,6 +16,7 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var dark = false
     private var voiceState = VoiceState.IDLE
+    private var offline = false
     private var pulse = 0f
     private var drawableAlpha = 255
 
@@ -30,6 +31,11 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
         invalidateSelf()
     }
 
+    fun setOfflineMode(isOffline: Boolean) {
+        offline = isOffline
+        invalidateSelf()
+    }
+
     fun setPulse(level: Float) {
         pulse = level.coerceIn(0f, 1f)
         invalidateSelf()
@@ -40,7 +46,7 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
         val cx = bounds.exactCenterX()
         // Center on the icon's optical center, accounting for footer padding.
         val cy = bounds.exactCenterY() - 5f * density
-        val red = FooterIndicatorPolicy.voiceTint(dark)
+        val red = FooterIndicatorPolicy.voiceTint(dark, offline)
         val haloRadius = 25f * density
         val softHalo = RadialGradient(cx, cy, haloRadius, intArrayOf(
             withAlpha(red, (40f + 75f * pulse).toInt()),
@@ -77,8 +83,12 @@ internal class FooterStatusRingDrawable(private val density: Float) : Drawable()
 }
 
 internal object FooterIndicatorPolicy {
-    fun voiceTint(dark: Boolean): Int =
-        if (dark) 0xFFFF453A.toInt() else 0xFFFF3B30.toInt()
+    fun voiceTint(dark: Boolean, offline: Boolean = false): Int = when {
+        offline && dark -> 0xFF56B5FF.toInt()
+        offline -> 0xFF167BFF.toInt()
+        dark -> 0xFFFF453A.toInt()
+        else -> 0xFFFF3B30.toInt()
+    }
 
     /** Processing remains active but is less like an ongoing recording meter. */
     fun pulseIntensity(phase: Float, processing: Boolean): Float =
