@@ -32,6 +32,7 @@ import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.PanelGlassOverlayView
 import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
@@ -74,8 +75,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
     private val shortcuts = listOf(
-        Shortcut(R.string.emoji, R.drawable.ic_board_emoji, FooterShortcutPolicy.Action.EMOJI),
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
+        Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
         Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_rounded, FooterShortcutPolicy.Action.SETTINGS),
     )
 
@@ -365,8 +366,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             return
         }
         when (action) {
-            FooterShortcutPolicy.Action.EMOJI -> send(KeyCode.EMOJI)
             FooterShortcutPolicy.Action.CLIPBOARD -> switcher.setClipboardKeyboard()
+            // The normal expandable Toolbar button routes through a toggle
+            // which intentionally rejects Emoji/Clipboard origins. The footer
+            // shortcut is an explicit navigation command from any panel.
+            FooterShortcutPolicy.Action.TOOLBAR -> switcher.setAccessPointKeyboard()
             FooterShortcutPolicy.Action.SETTINGS -> send(KeyCode.SETTINGS)
         }
     }
@@ -374,17 +378,21 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private fun showShortcutArc() {
         if (windowToken == null || popup != null) return
         val colors = Settings.getValues().mColors
+        val iconColor = colors.get(ColorType.KEY_ICON)
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        val materialColor = if (dark) 0xFF292B31.toInt() else 0xFFF5F5F8.toInt()
         val panel = FrameLayout(context).apply {
             background = rounded(
-                ColorUtils.setAlphaComponent(colors.get(ColorType.MAIN_BACKGROUND), 236),
-                dp(24).toFloat(),
-                ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_ICON), 65))
+                ColorUtils.setAlphaComponent(materialColor, 248),
+                dp(29).toFloat(),
+                ColorUtils.setAlphaComponent(iconColor, if (dark) 46 else 30))
             clipToOutline = true
         }
-        val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_BACKGROUND), 178)
-        val active = ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 215)
-        // iOS-inspired single glass shelf: 80x82dp labeled hit targets, rather
-        // than a small unlabelled 48dp arc with diagonal motor demands.
+        val selectedFill = ColorUtils.blendARGB(materialColor,
+            colors.get(ColorType.ACTION_KEY_BACKGROUND), if (dark) 0.28f else 0.17f)
+        // A floating three-action island: no nested slabs or opaque tinted
+        // blocks. A generous whole-cell target, circular symbol, quiet label,
+        // and subtle selection feedback match the rest of the keyboard.
         val rtl = ViewCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL
         shortcuts.forEachIndexed { index, shortcut ->
             val button = LinearLayout(context).apply {
@@ -392,32 +400,42 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 background = android.graphics.drawable.StateListDrawable().apply {
-                    addState(intArrayOf(android.R.attr.state_selected), rounded(active, dp(18).toFloat()))
-                    addState(intArrayOf(), rounded(normal, dp(18).toFloat()))
+                    addState(intArrayOf(android.R.attr.state_selected),
+                        rounded(selectedFill, dp(21).toFloat()))
+                    addState(intArrayOf(), rounded(Color.TRANSPARENT, dp(21).toFloat()))
                 }
-                addView(ImageView(context).apply {
-                    setImageResource(shortcut.icon)
-                    imageTintList = ColorStateList.valueOf(colors.get(ColorType.KEY_ICON))
-                    scaleType = ImageView.ScaleType.FIT_CENTER
-                    setPadding(dp(3), dp(3), dp(3), dp(3))
-                }, LinearLayout.LayoutParams(dp(32), dp(32)))
+                addView(FrameLayout(context).apply {
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(ColorUtils.setAlphaComponent(
+                            colors.get(ColorType.KEY_BACKGROUND), if (dark) 212 else 232))
+                        setStroke(dp(1), ColorUtils.setAlphaComponent(iconColor, 24))
+                    }
+                    addView(ImageView(context).apply {
+                        setImageResource(shortcut.icon)
+                        imageTintList = ColorStateList.valueOf(iconColor)
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        setPadding(dp(2), dp(2), dp(2), dp(2))
+                    }, FrameLayout.LayoutParams(dp(29), dp(29), Gravity.CENTER))
+                }, LinearLayout.LayoutParams(dp(48), dp(48)))
                 addView(TextView(context).apply {
                     text = resources.getString(shortcut.label)
-                    setTextColor(colors.get(ColorType.KEY_ICON))
-                    textSize = 11f
+                    setTextColor(iconColor)
+                    textSize = 12f
                     gravity = Gravity.CENTER
+                    KeyboardTypeface.applyToTextView(this)
                     maxLines = 1
-                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(25)))
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(24)))
             }
             targets.add(button)
             val (x, y) = FooterShortcutPolicy.targetOffset(index, rtl)
-            panel.addView(button, LayoutParams(dp(80), dp(82)).apply {
+            panel.addView(button, LayoutParams(dp(88), dp(94)).apply {
                 leftMargin = dp(x)
                 topMargin = dp(y)
             })
         }
-        val popupWidth = dp(280)
-        val popupHeight = dp(100)
+        val popupWidth = dp(296)
+        val popupHeight = dp(112)
         emojiButton.getLocationInWindow(screenLocation)
         val anchorX = screenLocation[0]
         rootView.getLocationInWindow(screenLocation)
@@ -429,13 +447,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             isTouchable = false
             isOutsideTouchable = false
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = dp(14).toFloat()
+            elevation = dp(18).toFloat()
             showAsDropDown(
                 emojiButton,
                 left - anchorX,
-                -emojiButton.height - popupHeight - dp(8),
+                -emojiButton.height - popupHeight - dp(10),
                 Gravity.LEFT,
             )
+        }
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O ||
+            ValueAnimator.areAnimatorsEnabled()) {
+            panel.alpha = 0f
+            panel.translationY = dp(7).toFloat()
+            panel.animate().alpha(1f).translationY(0f)
+                .setDuration(150).setInterpolator(AccelerateDecelerateInterpolator()).start()
         }
         // A reversible trackpad-style focus cue. Hide only the keycaps, not
         // the keyboard's wallpaper glass or the active input field.
@@ -451,7 +476,18 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             target.isLaidOut && x >= screenLocation[0] && x < screenLocation[0] + target.width &&
                 y >= screenLocation[1] && y < screenLocation[1] + target.height
         }
-        targets.forEachIndexed { index, target -> target.isSelected = index == selected }
+        targets.forEachIndexed { index, target ->
+            val active = index == selected
+            if (target.isSelected != active) {
+                target.isSelected = active
+                target.animate().cancel()
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O ||
+                    ValueAnimator.areAnimatorsEnabled()) {
+                    target.animate().scaleX(if (active) 1.045f else 1f)
+                        .scaleY(if (active) 1.045f else 1f).setDuration(100).start()
+                }
+            }
+        }
         if (selected >= 0 && previous != selected) feedback(emojiButton)
     }
 

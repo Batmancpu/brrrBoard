@@ -3,7 +3,7 @@ package helium314.keyboard.latin
 
 /** Menu actions must be explicit, never a same-panel toggle or implicit paste. */
 object FooterShortcutPolicy {
-    enum class Action { EMOJI, CLIPBOARD, SETTINGS }
+    enum class Action { CLIPBOARD, TOOLBAR, SETTINGS }
 
     @JvmStatic
     fun isAllowed(action: Action, clipboardHistoryEnabled: Boolean): Boolean =
@@ -12,9 +12,10 @@ object FooterShortcutPolicy {
     @JvmStatic
     fun targetOffset(index: Int, rightToLeft: Boolean): Pair<Int, Int> {
         require(index in 0..2)
-        // Three equally sized 80dp glass targets with generous 8dp gaps.
-        val x = 12 + index * 88
-        return Pair(if (rightToLeft) 200 - x else x, 9)
+        // An Apple-style compact shelf: three comfortable 88x94dp targets,
+        // each with a circular symbol and small label. Whole cell is active.
+        val x = 10 + index * 94
+        return Pair(if (rightToLeft) 208 - x else x, 9)
     }
 
     @JvmStatic

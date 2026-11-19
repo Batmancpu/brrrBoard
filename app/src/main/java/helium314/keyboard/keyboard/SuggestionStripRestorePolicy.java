@@ -9,4 +9,10 @@ public final class SuggestionStripRestorePolicy {
             final boolean searchPanelActive) {
         return stripConfigured && !searchPanelActive && (!containerVisible || !stripVisible);
     }
+
+    /** A posted Emoji Browse callback must never steal the alphabet's strip. */
+    public static boolean canEmojiBrowseHideStrip(final boolean emojiPanelVisible,
+            final boolean emojiSearchActive) {
+        return emojiPanelVisible && !emojiSearchActive;
+    }
 }

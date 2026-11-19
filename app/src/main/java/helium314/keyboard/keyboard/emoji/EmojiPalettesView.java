@@ -63,6 +63,7 @@ import helium314.keyboard.keyboard.KeyboardId;
 import helium314.keyboard.keyboard.KeyboardLayoutSet;
 import helium314.keyboard.keyboard.KeyboardTheme;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
+import helium314.keyboard.keyboard.SuggestionStripRestorePolicy;
 import helium314.keyboard.keyboard.KeyboardView;
 import helium314.keyboard.keyboard.MainKeyboardView;
 import helium314.keyboard.keyboard.PanelMaterial;
@@ -206,7 +207,9 @@ public final class EmojiPalettesView extends LinearLayout
         // The fixed Emoji tabs are mounted IN the grid shell, not in the
         // alphabet suggestion strip. An asynchronously restored strip must not
         // reserve a second blank 48dp band above Compact or Expanded Browse.
-        if (!mSearchMode && strip != null && strip.getVisibility() == View.VISIBLE) {
+        if (SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(
+                getVisibility() == View.VISIBLE, mSearchMode)
+                && strip != null && strip.getVisibility() == View.VISIBLE) {
             strip.setVisibility(View.GONE);
         }
         final int availableHeight = switch (MeasureSpec.getMode(heightMeasureSpec)) {
@@ -1032,6 +1035,12 @@ public final class EmojiPalettesView extends LinearLayout
 
     private void restoreEmojiCategoryStrip() {
         final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
+        // Search exit also posts this work for the next frame. The footer's
+        // ABC exit may return to alphabet BEFORE that callback runs; hiding
+        // strip_container then removes live typing predictions indefinitely.
+        // Only an active Emoji Browse may own the external strip visibility.
+        if (!SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(
+                switcher.isShowingEmojiPalettes(), mSearchMode)) return;
         final View tabStripView = switcher.getEmojiTabStrip();
         // The shared suggestion strip stays GONE during Browse. Re-showing it
         // would reserve a second, empty header above the in-panel categories.

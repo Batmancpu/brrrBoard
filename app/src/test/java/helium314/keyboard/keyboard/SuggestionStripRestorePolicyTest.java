@@ -12,4 +12,11 @@ public class SuggestionStripRestorePolicyTest {
         assertFalse(SuggestionStripRestorePolicy.shouldRestore(false, false, false, false));
         assertFalse(SuggestionStripRestorePolicy.shouldRestore(true, true, true, false));
     }
+
+    @Test public void delayedEmojiSearchExitMustNotHideActiveTypingSuggestions() {
+        assertTrue(SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(true, false));
+        assertFalse(SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(true, true));
+        assertFalse(SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(false, false));
+        assertFalse(SuggestionStripRestorePolicy.canEmojiBrowseHideStrip(false, true));
+    }
 }
