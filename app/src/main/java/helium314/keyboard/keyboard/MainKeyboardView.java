@@ -405,7 +405,11 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     private void setKeyboardInternal(@NonNull final Keyboard keyboard, final boolean requestLayout) {
         mKeyPressMotions.clear();
-        mTrackpadVisualMode = false;
+        // Cursor moves trigger keyboard/case rebuilds. Preserve the unlabelled
+        // trackpad surface until the actual spacebar gesture ends, not until the
+        // next selection-driven redraw or suggestion update.
+        mTrackpadVisualMode = TouchpadHandler.isTouchpadModeRequested()
+                && KeyboardMotionSpec.isIos27(getContext());
         Trace.beginSection(requestLayout
                 ? "MainKeyboardView#setKeyboard" : "MainKeyboardView#setKeyboardForCase");
         try {

@@ -109,6 +109,8 @@ public interface KeyboardActionListener {
      */
     boolean onHorizontalSpaceSwipe(int steps);
     boolean onVerticalSpaceSwipe(int steps);
+    /** One batched, two-axis cursor move during an active spacebar trackpad. */
+    void onTouchpadCursorMove(int horizontalSteps, int verticalSteps);
     void onEndSpaceSwipe();
     boolean toggleNumpad(boolean withSliding, boolean forceReturnToAlpha);
 
@@ -159,6 +161,8 @@ public interface KeyboardActionListener {
         public boolean onVerticalSpaceSwipe(int steps) {
             return false;
         }
+        @Override
+        public void onTouchpadCursorMove(int horizontalSteps, int verticalSteps) {}
         @Override
         public boolean toggleNumpad(boolean withSliding, boolean forceReturnToAlpha) {
             return false;

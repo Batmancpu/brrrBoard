@@ -74,6 +74,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var protectedMicCancelled = false
     private var protectedMicDownX = 0f
     private var protectedMicDownY = 0f
+    private var trackpadVisualMode = false
     private val protectedMicHold = Runnable {
         if (protectedMicTouch && isMicProtected() && micActionAvailable()) {
             protectedMicHeld = true
@@ -256,6 +257,57 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         ViewCompat.setStateDescription(emojiButton,
             resources.getString(if (privateMode) R.string.board_incognito_on else R.string.board_incognito_off))
+    }
+
+    /**
+     * Genuine iOS-profile trackpad mode: the entire 48dp hitboxes stay laid
+     * out, while Emoji exits left and the mic/shield exits right together.
+     * Reversing during entry continues from the current rendered translation.
+     */
+    fun setTrackpadMode(active: Boolean) {
+        val desired = active && KeyboardMotionSpec.isIos27(context)
+        if (trackpadVisualMode == desired) return
+        trackpadVisualMode = desired
+        if (desired) {
+            cancelEmojiGesture()
+            dismissShortcutArc()
+            clearMicDiscardFeedback()
+        }
+        emojiButton.isEnabled = !desired
+        microphone.isEnabled = !desired
+        passwordManagerButton.isEnabled = !desired
+        val slide = dp(64).toFloat()
+        val smooth = KeyboardMotionSpec.easing(context)
+        val duration = if (desired) KeyboardMotionSpec.TRACKPAD_FOOTER_EXIT_MS
+            else KeyboardMotionSpec.TRACKPAD_FOOTER_RETURN_MS
+        val controls = arrayOf(emojiButton, microphone, micUnderlight, passwordManagerButton)
+        controls.forEachIndexed { index, view ->
+            val target = if (!desired) 0f else if (index == 0) -slide else slide
+            view.animate().cancel()
+            if (!KeyboardMotionSpec.enabled() || !isShown) {
+                view.translationX = target
+                view.alpha = if (desired) 0f else 1f
+            } else {
+                val animation = view.animate().translationX(target)
+                    .alpha(if (desired) 0f else 1f).setDuration(duration)
+                if (smooth != null) animation.setInterpolator(smooth)
+                animation.start()
+            }
+        }
+    }
+
+    private fun resetTrackpadVisuals() {
+        trackpadVisualMode = false
+        arrayOf(emojiButton, microphone, micUnderlight, passwordManagerButton).forEach { view ->
+            view.animate().cancel()
+            view.translationX = 0f
+            view.alpha = 1f
+        }
+        emojiButton.isEnabled = true
+        microphone.isEnabled = true
+        passwordManagerButton.isEnabled = true
+        // The effect layer is intentionally disabled/noninteractive in XML.
+        micUnderlight.isEnabled = false
     }
 
     /** A silent, non-recording rejection: the emoji glances down and flashes red. */
@@ -843,6 +895,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun reset() {
+        resetTrackpadVisuals()
         micDiscardRestartTouchArmed = false
         clearMicDiscardFeedback()
         clearDictationError()

@@ -44,6 +44,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var subtypeSwitchCount = 0
 
     override fun onPressKey(primaryCode: Int, repeatCount: Int, isSinglePointer: Boolean, hapticEvent: HapticEvent) {
+        if (TouchpadHandler.isTouchpadModeRequested()) return
         metaOnPressKey(primaryCode)
         keyboardSwitcher.onPressKey(primaryCode, isSinglePointer, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
         // we need to use LatinIME for handling of key-down audio and haptics
@@ -56,6 +57,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     }
 
     override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {
+        if (TouchpadHandler.isTouchpadModeRequested()) return
         metaOnReleaseKey(primaryCode)
         keyboardSwitcher.onReleaseKey(primaryCode, withSliding, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
     }
@@ -97,6 +99,11 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     }
 
     override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
+        // A second finger must not type an arbitrary key into the editor while
+        // the first finger is steering the caret across the blank trackpad.
+        if (TouchpadHandler.isTouchpadModeRequested() && primaryCode != KeyCode.ARROW_LEFT &&
+            primaryCode != KeyCode.ARROW_RIGHT && primaryCode != KeyCode.ARROW_UP &&
+            primaryCode != KeyCode.ARROW_DOWN) return
         when (primaryCode) {
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
@@ -120,7 +127,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         metaAfterCodeInput(primaryCode)
     }
 
-    override fun onTextInput(text: String?) = latinIME.onTextInput(text)
+    override fun onTextInput(text: String?) {
+        if (!TouchpadHandler.isTouchpadModeRequested()) latinIME.onTextInput(text)
+    }
 
     override fun onStartBatchInput() = latinIME.onStartBatchInput()
 
@@ -145,6 +154,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             if (view != null && helium314.keyboard.latin.KeyboardMotionSpec.isIos27(view.context)) {
                 view.alpha = 1f
                 view.setTrackpadVisualMode(true)
+                keyboardSwitcher.setFooterTrackpadMode(true)
             } else {
                 view?.alpha = 0.5f
             }
@@ -153,6 +163,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (requestCode == Constants.CODE_TOUCHPAD_OFF) {
             keyboardSwitcher.mainKeyboardView?.setTrackpadVisualMode(false)
             keyboardSwitcher.mainKeyboardView?.alpha = 1.0f
+            keyboardSwitcher.setFooterTrackpadMode(false)
             return true
         }
         if (requestCode == Constants.CODE_PERFORM_HAPTIC) {
@@ -167,6 +178,16 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         KeyboardActionListener.SwipeAction.SWITCH_LANGUAGE -> onLanguageSlide(steps)
         KeyboardActionListener.SwipeAction.TOGGLE_NUMPAD -> toggleNumpad(false, false)
         else -> false
+    }
+
+    override fun onTouchpadCursorMove(horizontalSteps: Int, verticalSteps: Int) {
+        if (!TouchpadHandler.isTouchpadModeRequested()) return
+        // One selection update can cover several characters. Avoid routing
+        // every tiny motion step through the full key-event/decoder pipeline.
+        if (horizontalSteps != 0) onMoveCursorHorizontally(horizontalSteps)
+        if (verticalSteps != 0) repeat(abs(verticalSteps)) {
+            onMoveCursorVertically(if (verticalSteps > 0) 1 else -1)
+        }
     }
 
     override fun onVerticalSpaceSwipe(steps: Int): Boolean = when (Settings.getValues().mSpaceSwipeVertical) {

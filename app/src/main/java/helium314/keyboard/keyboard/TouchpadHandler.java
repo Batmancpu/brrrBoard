@@ -5,12 +5,14 @@ import android.os.SystemClock;
 
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.Constants;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
 
 public class TouchpadHandler {
     private KeyboardActionListener mListener;
     private final android.os.Handler mHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final TouchpadMotionFilter mSmoothMotion = new TouchpadMotionFilter();
 
     private static boolean sTouchpadModeActive = false;
     private boolean mInTouchpadMode = false;
@@ -40,6 +42,11 @@ public class TouchpadHandler {
         sTouchpadModeActive = active;
     }
 
+    /** Survives selection-driven keyboard object rebuilds until finger UP. */
+    public static boolean isTouchpadModeRequested() {
+        return sTouchpadModeActive;
+    }
+
     public boolean isTouchpadModeActive() {
         return mInTouchpadMode;
     }
@@ -52,12 +59,16 @@ public class TouchpadHandler {
     }
 
     public void disableTouchpadMode() {
-        if (!mInTouchpadMode) return;
+        if (!mInTouchpadMode) {
+            sTouchpadModeActive = false;
+            return;
+        }
         stopEdgeScrolling();
         stopHapticRunnable();
         mInTouchpadMode = false;
         mTouchpadAccX = 0;
         mTouchpadAccY = 0;
+        mSmoothMotion.reset();
         sTouchpadModeActive = false;
         mListener.onCustomRequest(Constants.CODE_TOUCHPAD_OFF);
         mListener = null;
@@ -73,6 +84,7 @@ public class TouchpadHandler {
             mHasVibrated = false;
             mTouchpadLastX = x;
             mTouchpadLastY = y;
+            mSmoothMotion.reset();
             mTouchpadActivationTime = SystemClock.elapsedRealtime();
             mListener.onCustomRequest(Constants.CODE_TOUCHPAD_ON);
             SettingsValues sv = Settings.getValues();
@@ -90,6 +102,25 @@ public class TouchpadHandler {
         if (SystemClock.elapsedRealtime() - mTouchpadActivationTime < sv.mKeyLongpressTimeout) {
             mTouchpadLastX = x;
             mTouchpadLastY = y;
+            return;
+        }
+
+        final MainKeyboardView view = KeyboardSwitcher.getInstance().getMainKeyboardView();
+        if (view != null && KeyboardMotionSpec.isIos27(view.getContext())) {
+            // Consume the latest real pointer coordinate even during edge
+            // scrolling; returning from an edge must never jump the caret.
+            final int dx = x - mTouchpadLastX;
+            final int dy = y - mTouchpadLastY;
+            mTouchpadLastX = x;
+            mTouchpadLastY = y;
+            if (sv.mTouchpadEdgeScroll && handleEdgeScrolling(x, y)) {
+                mSmoothMotion.reset();
+                return;
+            }
+            mSmoothMotion.advance(dx, dy, SystemClock.elapsedRealtime(),
+                    Settings.getInstance().getCurrent().mTouchpadSensitivity);
+            mListener.onTouchpadCursorMove(mSmoothMotion.horizontalSteps(),
+                    mSmoothMotion.verticalSteps());
             return;
         }
 

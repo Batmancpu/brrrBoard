@@ -74,6 +74,11 @@ public final class InputView extends FrameLayout {
         mFooter.bind(owner);
     }
 
+    /** The footer remains the same physical layout while its controls slide away. */
+    public void setFooterTrackpadMode(final boolean active) {
+        if (mFooter != null) mFooter.setTrackpadMode(active);
+    }
+
     public void resetBoardGesture() {
         mMayDragToolbar = false;
         mDraggingToolbar = false;

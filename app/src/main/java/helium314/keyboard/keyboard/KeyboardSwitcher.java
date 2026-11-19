@@ -1853,6 +1853,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         return mKeyboardView;
     }
 
+    public void setFooterTrackpadMode(final boolean active) {
+        if (mCurrentInputView != null) mCurrentInputView.setFooterTrackpadMode(active);
+    }
+
     public boolean isKlipySearchModeActive() {
         return mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode();
     }
@@ -1912,6 +1916,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mKeyboardView.closing();
         }
         exitResizeMode();
+        // A torn-down IME view must never retain a stale spacebar hold.
+        TouchpadHandler.setTouchpadModeActive(false);
         PointerTracker.clearOldViewData();
         final SharedPreferences prefs = KtxKt.prefs(displayContext);
         if (mSuggestionStripView != null)

@@ -48,10 +48,14 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn('android:clipChildren="false"', layout)
         self.assertIn('android:enabled="false"', layout)
         self.assertIn("mOfflineDictation.cancelFromUser();", ime)
-        # A tap during the dismissal morph interrupts it on DOWN and starts a
-        # fresh dictation on the same UP, without the idle double-tap delay.
-        self.assertIn("micDiscardRestartTouchArmed = true", footer)
+        # A normal tap during the dismissal morph interrupts it on DOWN and
+        # starts a fresh dictation on the same UP. In incognito, a held mic
+        # must instead enter the protected denial path, never auto-record.
+        self.assertIn("micDiscardRestartTouchArmed = !isMicProtected()", footer)
         self.assertIn("if (micDiscardRestartTouchArmed)", footer)
+        self.assertIn("if (protectedMicTouch ||", footer)
+        self.assertLess(footer.index("if (protectedMicTouch ||"),
+                        footer.index("if (FooterMicTapPolicy.isImmediate"))
         self.assertIn("clearMicDiscardFeedback()", footer)
         self.assertIn("view.performClick()", footer)
 

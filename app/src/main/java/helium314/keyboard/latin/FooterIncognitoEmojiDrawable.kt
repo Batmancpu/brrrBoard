@@ -23,7 +23,9 @@ import kotlin.math.roundToInt
  * No bitmaps, blur layers, additional hitboxes or per-frame layout passes.
  */
 internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
-    private val iconPx = (31f * context.resources.displayMetrics.density).roundToInt()
+    // Optical size, not only intrinsic bounds: the tall 31dp mic reads larger
+    // than the 31dp filled smile. A 34dp emoji balances their visible weight.
+    private val iconPx = (34f * context.resources.displayMetrics.density).roundToInt()
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
@@ -252,10 +254,10 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         c.translate(0f, vertical + p.nod * .22f)
         c.rotate(-3.8f * (1f - p.hat), 12f, 6.3f)
         val crown = Path().apply {
-            moveTo(7.9f, 6.45f)
-            cubicTo(8.65f, 4.5f, 8.45f, 1.35f, 9.3f, .5f)
-            quadTo(12f, -.25f, 14.7f, .5f)
-            cubicTo(15.55f, 1.35f, 15.35f, 4.5f, 16.1f, 6.45f)
+            moveTo(7.05f, 6.65f)
+            cubicTo(7.9f, 4.55f, 7.9f, 1.3f, 8.65f, .35f)
+            quadTo(12f, .05f, 15.35f, .35f)
+            cubicTo(16.1f, 1.3f, 16.1f, 4.55f, 16.95f, 6.65f)
             close()
         }
         glass.style = Paint.Style.FILL
@@ -267,11 +269,11 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         c.drawPath(crown, ink)
         // Clearly separated dark hat band keeps the crown legible at 31dp.
         ink(color = Color.rgb(23, 33, 41), opacity = opacity, stroke = 1.3f)
-        c.drawLine(8.3f, 5.6f, 15.7f, 5.6f, ink)
+        c.drawLine(7.55f, 5.7f, 16.45f, 5.7f, ink)
         ink(opacity = opacity, stroke = 1.7f)
         val brim = Path().apply {
-            moveTo(4.7f, 7.35f)
-            quadTo(12f, 8.5f, 19.3f, 7.35f)
+            moveTo(3.4f, 7.55f)
+            quadTo(12f, 9.05f, 20.6f, 7.55f)
         }
         c.drawPath(brim, ink)
         c.restoreToCount(save)

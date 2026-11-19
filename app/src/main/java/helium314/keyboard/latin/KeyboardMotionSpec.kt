@@ -26,6 +26,8 @@ object KeyboardMotionSpec {
     const val SEARCH_PENDING_MS = 90L
     const val FOOTER_ACTION_MS = 150L
     const val VOICE_PULSE_CYCLE_MS = 1_600L
+    const val TRACKPAD_FOOTER_EXIT_MS = 220L
+    const val TRACKPAD_FOOTER_RETURN_MS = 220L
 
     // The legacy preset is deliberately immutable: selecting Previous Default must
     // reproduce the prior choreography, not merely recolor the current renderer.
