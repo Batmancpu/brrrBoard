@@ -183,7 +183,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.
-        microphone.setOnClickListener { feedback(it); ime.toggleBoardDictation() }
+        microphone.setOnClickListener { feedback(it); ime.toggleBoardOfflineDictation() }
         // Touch-exploration double-taps activate an accessibility click, not the
         // IME-switch gesture. The dedicated accessibility switch action stays below.
         microphone.setOnTouchListener { view, event ->
@@ -193,8 +193,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL,
                 MotionEvent.ACTION_POINTER_DOWN -> view.isPressed = false
             }
-            // A held mic is an explicit local-only mode. Releasing it finishes blue capture;
-            // it must never become an accidental red server click or keyboard double-tap.
+            // A held mic ends on release; a single tap toggles the SAME private engine.
+            // Neither gesture may bind to brrSpeak or accidentally switch keyboards.
             if (offlineHoldActive) {
                 when (event.actionMasked) {
                     MotionEvent.ACTION_UP -> {

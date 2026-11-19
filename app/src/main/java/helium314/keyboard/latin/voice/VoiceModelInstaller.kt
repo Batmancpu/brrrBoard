@@ -8,8 +8,8 @@ import java.io.InputStream
 import java.security.MessageDigest
 
 /**
- * Copies the one-time special APK's pinned model assets into private no-backup storage.
- * Regular brrBoard APKs contain no weights, and later signed app updates keep this dir.
+ * Copies the normal signed APK's pinned model assets into private no-backup storage.
+ * Offline speech works without a separate download, brrSpeak app or model installer.
  * Never downloads a model, opens a socket or writes microphone audio.
  * Call from a background worker only.
  */
@@ -37,7 +37,7 @@ internal object VoiceModelInstaller {
             return true
         }
         val appContext = context.applicationContext
-        // This asset exists ONLY in the separately selected one-time model-inclusive APK.
+        // Every signed release carries these assets; old pre-bundle APKs may not.
         val first = VoiceModelManifest.assets.first()
         val present = runCatching {
             appContext.assets.open("${VoiceModelManifest.ASSET_DIR}/${first.name}").use { }

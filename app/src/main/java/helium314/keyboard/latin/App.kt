@@ -55,8 +55,8 @@ class App : Application() {
             )
         }
 
-        // Special one-time APKs carry the English ASR weights. Extract/verify them off the UI
-        // thread into noBackup, where future ordinary same-package updates leave them alone.
+        // Regular brrBoard APKs carry the pinned English ASR weights. Verify and extract
+        // them off the UI thread into noBackup; never download any model on the phone.
         scope.launch(Dispatchers.IO) {
             VoiceModelInstaller.installBundledIfPresent(this@App)
         }

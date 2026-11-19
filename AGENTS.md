@@ -1,5 +1,23 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — OWNER CHANGED MIC CONTRACT: offline-only tap + bundled normal APK
+
+Owner now requires **every single mic tap** to use only brrBoard's own English
+ASR model, with no brrSpeak/server handoff; the model must arrive **inside the
+normal original-signed Obtainium update**, no separately downloaded model.
+Idle tap starts blue RAM-only recording, second tap finishes/transcribes;
+hold still records blue until release; processing tap cancels; idle double tap
+still switches keyboard. Hardware VOICE_INPUT also routes exclusively to blue.
+Preserve existing swipe/Emoji/suggestions, Apple motion, original signing,
+main-only development and privacy. CI fetches/verifies four pinned 130 MiB
+Parakeet files **on the runner** and requires their SHA-256s *inside* the
+shipped APK; the phone never downloads them separately. This makes each future
+normal APK larger unless owner revises packaging. All old red/backup code is
+retained but unreachable from the keyboard mic. Updated README/privacy and
+exact file/test/device gates: [docs/BUNDLED_OFFLINE_MIC_2026_11_19.md](docs/BUNDLED_OFFLINE_MIC_2026_11_19.md).
+**CURRENT RELEASE: CI PENDING FOR THIS SOURCE BATCH.** Never claim phone
+accuracy or successful APK install without evidence.
+
 ## 2026-11-19 — iOS-motion first CI repair (fresh exact-SHA CI required)
 
 First published source tree `47ab67c` failed debug compile in run 44521147323 solely because the new key-top scaling override duplicated `MainKeyboardView.onDrawKeyTopVisuals`. The follow-up merges pressure scaling and trackpad blanking into the EXISTING override, preserving spacebar language and popup-hint drawing; it also switches the gesture-tail scheduler live when Previous Default is selected. Never claim the first SHA passed, and wait for BOTH new exact-SHA CI gates. Frosted only, no Liquid Glass or signer/package changes.

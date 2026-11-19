@@ -1685,10 +1685,9 @@ public class LatinIME extends InputMethodService implements
     }
 
     void toggleBoardDictation() {
-        mOfflineDictation.cancel();
-        if (mSettings.getCurrent().mShowsVoiceInputKey) {
-            mInlineDictation.toggle(mInputView, mRichImm.getCurrentSubtypeLocale());
-        }
+        // All mic/VOICE_INPUT entry points are private and offline. Preserve the
+        // old method name for compatibility; never invoke the brrSpeak transport.
+        toggleBoardOfflineDictation();
     }
 
     @Override

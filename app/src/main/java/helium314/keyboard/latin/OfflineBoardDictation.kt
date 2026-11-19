@@ -34,7 +34,11 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var generation = 0L
 
     fun toggle(root: View?) {
-        if (phase == Phase.IDLE) start(root) else stop()
+        when (phase) {
+            Phase.IDLE -> start(root)
+            Phase.STARTING, Phase.CAPTURING -> stop()
+            Phase.DECODING -> cancel() // A tap during processing discards the pending result.
+        }
     }
 
     fun start(root: View?) {

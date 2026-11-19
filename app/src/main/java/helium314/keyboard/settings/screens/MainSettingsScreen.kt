@@ -245,13 +245,13 @@ fun MainSettingsScreen(
                 icon = "mic",
                 title = "Private offline English dictation",
                 description = if (offlineVoiceReady)
-                    "Ready on this phone · Hold the mic for blue, on-device transcription"
+                    "Ready · Tap mic to record, tap again to transcribe privately in English"
                 else when (offlineInstallState) {
                     VoiceModelInstaller.InstallState.INSTALLING ->
                         "Installing offline model · $offlineInstallPercent% · Keep brrBoard open"
                     VoiceModelInstaller.InstallState.FAILED ->
-                        "Model extraction failed · Tap to retry while the special APK is installed"
-                    else -> "Model not installed · One-time signed model-inclusive APK required"
+                        "Bundled voice-model setup failed · Tap to retry"
+                    else -> "Bundled English model is preparing · Open brrBoard once after updating"
                 },
                 onClick = {
                     if (offlineInstallState == VoiceModelInstaller.InstallState.FAILED) {

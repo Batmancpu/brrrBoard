@@ -11,7 +11,7 @@ brrBoard combines a fast, local-first typing engine with a restrained frosted-gl
 - **Expressive tools** — searchable Emoji, local Clipboard history, familiar editing shortcuts and an accessible microphone control.
 - **Choice and control** — local backup/restore for your keyboard settings, words and compatible gesture library. No advertising or in-app donations.
 
-brrBoard itself does not request internet access. If you use dictation, Android's selected speech recognition service manages audio processing and may use a network provider; see the [privacy policy](PRIVACY_POLICY.md).
+brrBoard itself does not request internet access. Its microphone uses a **bundled, offline English model**: tap once to record, tap again to transcribe, or hold and release the mic. No brrSpeak app, server or separate model download is needed; the mic shows blue. On first app start after updating, the model verifies/extracts privately in the background. The signed APK is larger because it includes roughly 130 MiB of model weights. See the [privacy policy](PRIVACY_POLICY.md).
 
 ## Install
 
@@ -28,7 +28,7 @@ Beginning with the Mangoloads identity release, the application ID is `com.mango
 
 Backup ZIPs may include learned words and Clipboard history. They are **not encrypted**; keep them private.
 
-For English-only transcription in an external Dictate service, set **Dictate → Languages → Active language → English**, disable Follow keyboard language, and verify its own privacy/settings. brrBoard cannot override upstream recognition behavior.
+English transcription is local to brrBoard. The bundled NVIDIA Parakeet 110M INT8 model is a compact candidate; Indian-English accuracy and cold-start latency must be verified on real devices, including Oppo Reno10 5G.
 
 ## Support and feedback
 

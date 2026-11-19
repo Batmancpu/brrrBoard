@@ -13,12 +13,6 @@ on:
       - 'gradlew'
       - '.github/workflows/obtainium-release.yml'
   workflow_dispatch:
-    inputs:
-      offline_model_bootstrap:
-        description: 'One-time signed APK including private English ASR model (manual install only)'
-        type: boolean
-        default: false
-        required: false
 
 permissions:
   contents: write
@@ -52,8 +46,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
-      - name: Embed verified model only for explicit one-time bootstrap
-        if: github.event_name == 'workflow_dispatch' && inputs.offline_model_bootstrap
+      - name: Bundle pinned English ASR model inside the regular APK
         run: bash tools/prepare-offline-voice-pack.sh
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
@@ -61,6 +54,9 @@ jobs:
         run: ./gradlew --no-daemon --stacktrace testRunTests
       - name: Validate deterministic brrPersonal seed generator (B16A)
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
+      - name: Verify offline-only mic routing and bundled-model contract
+        run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
+
       - name: Validate synthetic next-word comparison safety gate (B16B)
         run: python3 -m unittest discover -s tools -p 'test_evaluate_ngram_predictions.py' -v
       - name: Require same-commit debug CI success before signing or publishing
@@ -90,7 +86,6 @@ jobs:
       - name: Sign and verify APK
         shell: bash
         env:
-          MODEL_BOOTSTRAP: ${{ github.event_name == 'workflow_dispatch' && inputs.offline_model_bootstrap }}
           KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
           EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
@@ -132,18 +127,8 @@ jobs:
             echo "::error::The APK contains a full settings backup."
             exit 1
           fi
-          model_assets="$(unzip -Z1 "$apk" | grep '^assets/voice-model/parakeet-tdt-110m-en/' || true)"
-          if [[ "$MODEL_BOOTSTRAP" == 'true' ]]; then
-            for model_file in encoder.onnx decoder.onnx joiner.onnx tokens.txt; do
-              if ! grep -Fxq "assets/voice-model/parakeet-tdt-110m-en/$model_file" <<< "$model_assets"; then
-                echo "::error::The one-time model APK is missing $model_file."
-                exit 1
-              fi
-            done
-          elif [[ -n "$model_assets" ]]; then
-            echo "::error::A regular Obtainium APK accidentally contains model weights."
-            exit 1
-          fi
+          # Verify all four exact pinned weights inside the signed deliverable.
+          bash tools/verify-bundled-voice-model.sh "$apk"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done
@@ -153,7 +138,6 @@ jobs:
           [[ "$package" == "package: name='com.mangoloads.board' versionCode='$GITHUB_RUN_NUMBER' versionName='1.0.$GITHUB_RUN_NUMBER'"* ]]
           printf 'APK=%s\nSHA256=%s\n' "$apk" "$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - name: Publish GitHub release
-        if: github.event_name != 'workflow_dispatch' || !inputs.offline_model_bootstrap
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -169,17 +153,4 @@ jobs:
           fi
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "brrBoard Obtainium $version" --latest \
-            --notes "Commit: $GITHUB_SHA. APK SHA-256: $SHA256."
-      - name: Publish opt-in original-signed offline model bootstrap
-        if: github.event_name == 'workflow_dispatch' && inputs.offline_model_bootstrap
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          cp "$APK" "$RUNNER_TEMP/brrBoard-with-offline-model.apk"
-          gh release create "offline-voice-bootstrap-v1.0.$GITHUB_RUN_NUMBER" \
-            "$RUNNER_TEMP/brrBoard-with-offline-model.apk" \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
-            --title "One-time brrBoard private voice model v1.0.$GITHUB_RUN_NUMBER" \
-            --notes "Opt-in original-signed same-package install; open brrBoard once to extract the verified English model. Regular smaller Obtainium updates then preserve it. APK SHA-256: $SHA256."
+            --notes "Commit: $GITHUB_SHA. Includes verified offline English voice model; no separate download. APK SHA-256: $SHA256."

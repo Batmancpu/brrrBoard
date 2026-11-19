@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run only for the explicitly requested special APK. Ordinary builds never fetch model weights.
+# CI build-time fetch of pinned model weights bundled into each Android APK.
+# End-user devices never fetch or contact the model source independently.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -23,4 +24,4 @@ while IFS='|' read -r origin destination bytes checksum; do
   mv "$file.part" "$file"
 done < "$LOCK"
 
-echo 'Pinned model pack checked; the normal APK must never contain these assets.'
+echo 'Pinned model pack checked for the self-contained normal brrBoard APK.'

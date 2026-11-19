@@ -495,7 +495,7 @@
     <string name="board_language_and_shortcuts">Emoji. Hold for clipboard, toolbar, or settings.</string>
     <string name="board_return_to_letters">Switch to letters. Hold for clipboard, toolbar, or settings.</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
-    <string name="board_inline_dictation">Tap for brrSpeak, hold for private offline English, double-tap to switch keyboards.</string>
+    <string name="board_inline_dictation">Tap to record offline English, tap again to transcribe. Hold to record until release. Double-tap while idle to switch keyboards.</string>
     <string name="board_voice_offline_accessibility">Start or stop private offline English dictation</string>
     <string name="board_dictation_stop">Stop dictation</string>
     <string name="board_dictation_processing">Dictation is processing</string>
@@ -521,7 +521,7 @@
     <string name="emoji_glass_tone_title">Emoji glass light and dark tint</string>
     <string name="emoji_glass_tone_summary">Darken blurred emoji content in dark mode or brighten it in light mode. Does not tint the keyboard background.</string>
     <string name="inline_voice_setup">Microphone permission</string>
-    <string name="inline_voice_setup_summary">Allow brrBoard to record speech privately and send the audio to your installed brrSpeak transcription service.</string>
+    <string name="inline_voice_setup_summary">Allow brrBoard to record speech for its bundled private offline English engine. No other app or server receives the audio.</string>
     <string name="inline_voice_unavailable">No compatible Android speech-recognition service is available.</string>
     <string name="inline_voice_permission">Allow microphone access in brrBoard settings → About.</string>
     <string name="inline_voice_failure">Dictation failed. Check the provider configured in brrSpeak and try again.</string>
@@ -533,8 +533,8 @@
     <string name="inline_voice_brrspeak_requires_android_13">Inline brrSpeak audio-source recording requires Android 13 or newer.</string>
     <string name="inline_voice_select_dictate_service">Select Dictate as Android’s Voice input service to use its configured transcription engine inline.</string>
     <string name="inline_voice_open_settings_failed">Open Android Settings → Voice input and select Dictate, then tap the microphone again.</string>
-    <string name="inline_voice_configure">Configure Dictate voice input</string>
-    <string name="inline_voice_configure_summary">Explicitly open Android voice-input settings to select Dictate; tapping the keyboard microphone never opens settings.</string>
+    <string name="inline_voice_configure">Other apps’ voice-input setting</string>
+    <string name="inline_voice_configure_summary">Optional Android setting for other apps. brrBoard’s microphone always uses its own offline model.</string>
     <string name="board_voice_dictate_missing">Dictate service unavailable</string>
     <string name="board_voice_brrspeak_missing">brrSpeak receiver unavailable · update brrSpeak</string>
     <string name="board_voice_permission_missing">Allow brrBoard microphone permission</string>
@@ -549,7 +549,7 @@
     <string name="board_voice_cancel">Cancel</string>
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
     <string name="board_voice_transcribing">Transcribing…</string>
-    <string name="board_voice_offline_model_missing">Private English voice model is not installed. Install the one-time model-inclusive brrBoard APK and open it once.</string>
+    <string name="board_voice_offline_model_missing">Bundled English voice model is not ready. Open brrBoard after updating and allow setup to finish.</string>
     <string name="board_voice_offline_model_installing">Installing private English voice model. Please wait a moment.</string>
     <string name="board_voice_offline_model_install_failed">Private voice model setup failed. Open brrBoard Settings to retry.</string>
     <string name="board_voice_offline_listening">Private offline listening…</string>
