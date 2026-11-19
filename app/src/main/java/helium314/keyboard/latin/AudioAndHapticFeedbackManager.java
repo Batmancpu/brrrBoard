@@ -8,7 +8,9 @@ package helium314.keyboard.latin;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Vibrator;
+import android.os.VibrationEffect;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 
@@ -24,6 +26,7 @@ import helium314.keyboard.latin.settings.SettingsValues;
  * complexity of settings and the like.
  */
 public final class AudioAndHapticFeedbackManager {
+    public static final long PRIVACY_MIC_DENIAL_MILLIS = 112L;
     private AudioManager mAudioManager;
     private Vibrator mVibrator;
 
@@ -72,6 +75,34 @@ public final class AudioAndHapticFeedbackManager {
             return;
         }
         mVibrator.vibrate(milliseconds);
+    }
+
+    /**
+     * Three deliberately tiny privacy-mode confirmation ticks. A single
+     * waveform preserves spacing without posting three delayed UI callbacks.
+     * This is NOT key feedback: the emoji must not add a fourth click/sound.
+     */
+    public void performPrivacyModeConfirmation() {
+        vibratePrivacyPattern(new long[] { 0, 10, 32, 10, 32, 10 },
+            new int[] { 0, 82, 0, 90, 0, 98 });
+    }
+
+    /** One slightly longer, still restrained rejection pulse on a held shield. */
+    public void performPrivacyMicDenial() {
+        vibratePrivacyPattern(new long[] { 0, PRIVACY_MIC_DENIAL_MILLIS },
+            new int[] { 0, 112 });
+    }
+
+    private void vibratePrivacyPattern(final long[] durations, final int[] amplitudes) {
+        // Do not bypass the keyboard's privacy/haptic preferences or DND policy.
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn ||
+            (mDoNotDisturb && !mSettingsValues.mVibrateInDndMode) ||
+            mVibrator == null || !mVibrator.hasVibrator()) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mVibrator.vibrate(VibrationEffect.createWaveform(durations, amplitudes, -1));
+        } else {
+            mVibrator.vibrate(durations, -1);
+        }
     }
 
     private boolean reevaluateIfSoundIsOn() {

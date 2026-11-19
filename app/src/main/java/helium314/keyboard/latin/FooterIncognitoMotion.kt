@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
+import android.graphics.Color
 import kotlin.math.max
+
+/** The single exact turquoise shared by the privacy emoji reveal and mic shield. */
+internal object FooterPrivacyPalette {
+    val TURQUOISE: Int = Color.rgb(43, 204, 201)
+}
 
 /** The emoji stays in its 31dp cell; each channel has its own continuous timing. */
 internal object FooterIncognitoMotion {
@@ -16,6 +22,7 @@ internal object FooterIncognitoMotion {
         val hatBehind: Float = 0f,
         val glint: Float = 0f,
         val colorSpread: Float = 0f,
+        val shield: Float = 0f,
     )
 
     fun settled(incognito: Boolean) = Frame(
@@ -23,6 +30,7 @@ internal object FooterIncognitoMotion {
         glasses = if (incognito) 1f else 0f,
         glint = if (incognito) 1f else 0f,
         colorSpread = if (incognito) 1f else 0f,
+        shield = if (incognito) 1f else 0f,
     )
 
     private fun window(t: Float, start: Float, end: Float): Float {
@@ -47,6 +55,8 @@ internal object FooterIncognitoMotion {
                 hatBehind = blend(from.hatBehind, 0f, window(t, .02f, .34f)),
                 glint = blend(from.glint, 1f, window(t, .69f, .89f)),
                 colorSpread = blend(from.colorSpread, 1f, window(t, .75f, .99f)),
+                // Encompass the mic from the same animator as the emoji: no second clock.
+                shield = blend(from.shield, 1f, window(t, .20f, 1f)),
             )
         } else {
             val nod = window(t, .08f, .31f) * (1f - window(t, .52f, .77f))
@@ -58,6 +68,7 @@ internal object FooterIncognitoMotion {
                 hatBehind = blend(from.hatBehind, 1f, window(t, .72f, .92f)),
                 glint = blend(from.glint, 0f, window(t, .10f, .35f)),
                 colorSpread = blend(from.colorSpread, 0f, window(t, .05f, .42f)),
+                shield = blend(from.shield, 0f, window(t, .02f, 1f)),
             )
         }
     }

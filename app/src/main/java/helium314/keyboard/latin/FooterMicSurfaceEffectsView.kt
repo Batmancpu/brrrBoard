@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PathMeasure
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.ColorUtils
@@ -71,6 +72,52 @@ class FooterMicUnderlightView @JvmOverloads constructor(
     private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val shapePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val density = resources.displayMetrics.density
+    private var shieldProgress = 0f
+    private var shieldVisible = true
+    private val shieldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+    // A shield silhouette, not a circular badge. Its halves grow together from
+    // above the mic and meet beneath it, leaving the original mic unobstructed.
+    private val shieldLeft = Path().apply {
+        moveTo(24f, 1.7f)
+        cubicTo(20.4f, 2.2f, 12.2f, 7.7f, 6.4f, 8.5f)
+        cubicTo(5.9f, 18.2f, 6.2f, 28.5f, 12.4f, 34.6f)
+        cubicTo(16f, 38.7f, 20.6f, 41f, 24f, 42.2f)
+    }
+    private val shieldRight = Path().apply {
+        moveTo(24f, 1.7f)
+        cubicTo(27.6f, 2.2f, 35.8f, 7.7f, 41.6f, 8.5f)
+        cubicTo(42.1f, 18.2f, 41.8f, 28.5f, 35.6f, 34.6f)
+        cubicTo(32f, 38.7f, 27.4f, 41f, 24f, 42.2f)
+    }
+    private val shieldFill = Path().apply {
+        moveTo(24f, 1.7f)
+        cubicTo(20.4f, 2.2f, 12.2f, 7.7f, 6.4f, 8.5f)
+        cubicTo(5.9f, 18.2f, 6.2f, 28.5f, 12.4f, 34.6f)
+        cubicTo(16f, 38.7f, 20.6f, 41f, 24f, 42.2f)
+        cubicTo(27.4f, 41f, 32f, 38.7f, 35.6f, 34.6f)
+        cubicTo(41.8f, 28.5f, 42.1f, 18.2f, 41.6f, 8.5f)
+        cubicTo(35.8f, 7.7f, 27.6f, 2.2f, 24f, 1.7f)
+        close()
+    }
+    private val shieldSegment = Path()
+    private val leftMeasure = PathMeasure(shieldLeft, false)
+    private val rightMeasure = PathMeasure(shieldRight, false)
+
+    fun setPrivacyShield(progress: Float) {
+        val next = progress.coerceIn(0f, 1f)
+        if (shieldProgress == next) return
+        shieldProgress = next
+        postInvalidateOnAnimation()
+    }
+
+    fun setPrivacyShieldVisible(visible: Boolean) {
+        if (shieldVisible == visible) return
+        shieldVisible = visible
+        invalidate()
+    }
 
     fun setPhase(next: Phase, isDark: Boolean) {
         if (phase == next && dark == isDark) return
@@ -100,6 +147,8 @@ class FooterMicUnderlightView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (width <= 0 || height <= 0) return
+        drawPrivacyShield(canvas)
         if (phase == Phase.IDLE || width <= 0 || height <= 0) return
         val tint = if (phase == Phase.RECORDING)
             FooterIndicatorPolicy.voiceTint(dark) else FooterIndicatorPolicy.processingTint(dark)
@@ -112,6 +161,30 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         bitmapPaint.alpha = (if (phase == Phase.RECORDING) 35f + 16f * intensity
             else 29f + 10f * intensity).roundToInt()
         canvas.drawBitmap(glow, 0f, 0f, bitmapPaint)
+        canvas.restoreToCount(saved)
+    }
+
+    private fun drawPrivacyShield(canvas: Canvas) {
+        if (!shieldVisible || shieldProgress <= .001f) return
+        val saved = canvas.save()
+        canvas.scale(width / 48f, height / 48f)
+        val color = FooterPrivacyPalette.TURQUOISE
+        val fillAlpha = ((shieldProgress - .44f) / .56f).coerceIn(0f, 1f)
+        if (fillAlpha > 0f) {
+            shieldPaint.style = Paint.Style.FILL
+            shieldPaint.color = ColorUtils.setAlphaComponent(color, (15f * fillAlpha).roundToInt())
+            canvas.drawPath(shieldFill, shieldPaint)
+        }
+        shieldSegment.reset()
+        leftMeasure.getSegment(0f, leftMeasure.length * shieldProgress, shieldSegment, true)
+        rightMeasure.getSegment(0f, rightMeasure.length * shieldProgress, shieldSegment, true)
+        shieldPaint.style = Paint.Style.STROKE
+        shieldPaint.strokeWidth = 4.2f
+        shieldPaint.color = ColorUtils.setAlphaComponent(color, (22f * shieldProgress).roundToInt())
+        canvas.drawPath(shieldSegment, shieldPaint)
+        shieldPaint.strokeWidth = 1.45f
+        shieldPaint.color = ColorUtils.setAlphaComponent(color, (172f * shieldProgress).roundToInt())
+        canvas.drawPath(shieldSegment, shieldPaint)
         canvas.restoreToCount(saved)
     }
 

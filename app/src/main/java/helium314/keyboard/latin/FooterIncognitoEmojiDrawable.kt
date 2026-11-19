@@ -30,13 +30,15 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         strokeCap = Paint.Cap.ROUND
     }
     private val glass = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val incognitoCyan = Color.rgb(43, 204, 201) // already blended teal; not two colored halves
+    private val incognitoCyan = FooterPrivacyPalette.TURQUOISE
     private var themeInk = Color.WHITE
     private var alphaValue = 255
     private var suppliedFilter: ColorFilter? = null
     private var pose = FooterIncognitoMotion.Frame()
     private var wantedIncognito = false
     private var animator: ValueAnimator? = null
+    private var frameListener: ((FooterIncognitoMotion.Frame) -> Unit)? = null
+    private var denialFraction = 0f
 
     override fun getIntrinsicWidth(): Int = iconPx
     override fun getIntrinsicHeight(): Int = iconPx
@@ -46,17 +48,34 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         if (themeInk != color) { themeInk = color; invalidateSelf() }
     }
 
+    /** The mic shield consumes this exact rendered pose; it never owns a timer. */
+    fun setFrameListener(listener: ((FooterIncognitoMotion.Frame) -> Unit)?) {
+        frameListener = listener
+        listener?.invoke(pose)
+    }
+
+    fun setDenialFraction(amount: Float) {
+        denialFraction = amount.coerceIn(0f, 1f)
+        invalidateSelf()
+    }
+
+    private fun publishPose() {
+        frameListener?.invoke(pose)
+        invalidateSelf()
+    }
+
     fun setIncognito(enabled: Boolean, animated: Boolean) {
         if (enabled == wantedIncognito && animator?.isRunning == true) return
         if (enabled == wantedIncognito &&
             pose == FooterIncognitoMotion.settled(enabled)) return
         val from = pose // Preserve the EXACT rendered pose on rapid double-tap reversal.
-        animator?.cancel()
+        val oldAnimator = animator
         animator = null
+        oldAnimator?.cancel()
         wantedIncognito = enabled
         if (!animated || !KeyboardMotionSpec.enabled()) {
             pose = FooterIncognitoMotion.settled(enabled)
-            invalidateSelf()
+            publishPose()
             return
         }
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -65,14 +84,14 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
             interpolator = LinearInterpolator()
             addUpdateListener {
                 pose = FooterIncognitoMotion.at(from, enabled, it.animatedValue as Float)
-                invalidateSelf()
+                publishPose()
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (animator === animation) {
                         animator = null
                         pose = FooterIncognitoMotion.settled(enabled)
-                        invalidateSelf()
+                        publishPose()
                     }
                 }
             })
@@ -81,10 +100,12 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
     }
 
     fun stopAnimation() {
-        animator?.cancel()
+        val oldAnimator = animator
         animator = null
+        oldAnimator?.cancel()
         pose = FooterIncognitoMotion.settled(wantedIncognito)
-        invalidateSelf()
+        denialFraction = 0f
+        publishPose()
     }
 
     override fun draw(canvas: Canvas) {
@@ -118,8 +139,17 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         if (spread > .001f) {
             glass.style = Paint.Style.FILL
             glass.colorFilter = null
-            glass.color = Color.argb((26f * spread * alphaValue / 255f).roundToInt(), 43, 204, 201)
+            glass.color = ColorUtils.setAlphaComponent(incognitoCyan,
+                (26f * spread * alphaValue / 255f).roundToInt())
             c.drawCircle(12f, 12.45f, 9.5f + spread * 1.6f, glass)
+        }
+        if (denialFraction > .001f && p.glasses > .5f) {
+            // A restrained red attention flash; it never recolors the privacy shield.
+            glass.style = Paint.Style.FILL
+            glass.colorFilter = null
+            glass.color = Color.argb((34f * denialFraction * alphaValue / 255f).roundToInt(),
+                255, 73, 84)
+            c.drawCircle(12f, 12.45f, 10.7f, glass)
         }
         glass.style = Paint.Style.FILL
         glass.color = ColorUtils.setAlphaComponent(themeInk, (244f * alphaValue / 255f).roundToInt())
@@ -162,7 +192,8 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
 
     private fun drawSunglasses(c: Canvas, p: FooterIncognitoMotion.Frame) {
         val opacity = p.glasses.coerceIn(0f, 1f)
-        val y = 10f + p.nod * .75f
+        // On a denied protected hold, the sunglasses glance down briefly.
+        val y = 10f + p.nod * .75f + denialFraction * .72f
         val lenses = arrayOf(
             RectF(5.8f, y, 11f, y + 3.65f),
             RectF(13f, y, 18.2f, y + 3.65f),
@@ -203,6 +234,13 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
                 c.drawPath(glimmer, glass)
                 c.restoreToCount(save)
             }
+        }
+        if (denialFraction > .001f) {
+            glass.style = Paint.Style.FILL
+            glass.colorFilter = null
+            glass.color = Color.argb((190f * denialFraction * opacity * alphaValue / 255f).roundToInt(),
+                255, 92, 98)
+            c.drawRoundRect(RectF(13.3f, y + .3f, 17.9f, y + 3.35f), 1.1f, 1.1f, glass)
         }
     }
 

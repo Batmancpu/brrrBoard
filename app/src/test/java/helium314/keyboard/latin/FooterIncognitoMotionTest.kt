@@ -18,6 +18,7 @@ class FooterIncognitoMotionTest {
         assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).glint, .001f)
         assertTrue(FooterIncognitoMotion.at(normal, true, .81f).colorSpread in 0f..1f)
         assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).colorSpread, .001f)
+        assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).shield, .001f)
     }
 
     @Test fun exitRevealsEyesBeforeHatFallsBehind() {
@@ -31,6 +32,7 @@ class FooterIncognitoMotionTest {
         assertTrue(fall.hatBehind > .95f)
         assertTrue(fall.hatDrop > 0f)
         assertEquals(0f, FooterIncognitoMotion.at(incognito, false, 1f).colorSpread, .001f)
+        assertEquals(0f, FooterIncognitoMotion.at(incognito, false, 1f).shield, .001f)
     }
 
     @Test fun reversalStartsAtLastDrawnPoseWithoutSnapping() {
@@ -52,6 +54,25 @@ class FooterIncognitoMotionTest {
             assertTrue(current.hatBehind in 0f..1f)
             assertTrue(current.glint in 0f..1f)
             assertTrue(current.colorSpread in 0f..1f)
+            assertTrue(current.shield in 0f..1f)
         }
+    }
+
+    @Test fun privacyShieldUsesIdenticalEmojiClockAndFinishesExactlyTogether() {
+        val normal = FooterIncognitoMotion.settled(false)
+        val enter = FooterIncognitoMotion.at(normal, true, .72f)
+        assertTrue(enter.shield > 0f && enter.shield < 1f)
+        assertEquals(0f, normal.shield, .001f)
+        assertEquals(1f, FooterIncognitoMotion.at(normal, true, 1f).shield, .001f)
+
+        val full = FooterIncognitoMotion.settled(true)
+        val exit = FooterIncognitoMotion.at(full, false, .72f)
+        assertTrue(exit.shield > 0f && exit.shield < 1f)
+        assertEquals(0f, FooterIncognitoMotion.at(full, false, 1f).shield, .001f)
+        // Reversing the only driver preserves the MIC AND emoji channels.
+        assertEquals(exit, FooterIncognitoMotion.at(exit, true, 0f))
+        assertEquals(enter, FooterIncognitoMotion.at(enter, false, 0f))
+        assertEquals(760L, FooterIncognitoMotion.ENTER_MS)
+        assertEquals(700L, FooterIncognitoMotion.EXIT_MS)
     }
 }

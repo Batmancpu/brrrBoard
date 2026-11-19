@@ -43,6 +43,7 @@ import helium314.keyboard.keyboard.PanelGlassOverlayView
 import helium314.keyboard.keyboard.PanelMaterial
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
@@ -66,6 +67,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var cachedPasswordManagerIntent: android.content.Intent? = null
     private var passwordIntentCheckedAt = 0L
     private val privateEmojiIcon = FooterIncognitoEmojiDrawable(context)
+    private var lastSyncedPrivacy: Boolean? = null
+    private var micDenialAnimator: ValueAnimator? = null
+    private var protectedMicTouch = false
+    private var protectedMicHeld = false
+    private var protectedMicCancelled = false
+    private var protectedMicDownX = 0f
+    private var protectedMicDownY = 0f
+    private val protectedMicHold = Runnable {
+        if (protectedMicTouch && isMicProtected() && micActionAvailable()) {
+            protectedMicHeld = true
+            microphone.isPressed = false
+            showProtectedMicDenial()
+        }
+    }
     private var micPulse: ValueAnimator? = null
     private var micDiscardAnimator: ValueAnimator? = null
     private var micDiscardRestartTouchArmed = false
@@ -138,12 +153,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         microphone.visibility == VISIBLE && microphone.isShown &&
         ViewCompat.isAttachedToWindow(microphone)
 
+    private fun isMicProtected(): Boolean = this::ime.isInitialized &&
+        Settings.getValues().mIncognitoModeEnabled
+
     private fun isMicTouchExplorationEnabled(): Boolean =
         (context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager)
             ?.isTouchExplorationEnabled == true
 
     private fun cancelMicGesture() {
         offlineHoldActive = false
+        removeCallbacks(protectedMicHold)
+        protectedMicTouch = false
+        protectedMicHeld = false
+        protectedMicCancelled = false
         // GestureDetector owns a delayed single-tap confirmation. Cancel it on
         // keyboard exit so an old tap cannot start Dictate in the next editor.
         val event = MotionEvent.obtain(0L, android.os.SystemClock.uptimeMillis(),
@@ -211,7 +233,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             if (dictationOffline) ime.cancelBoardOfflineDictation()
             else ime.cancelBoardDictation()
         }
-        feedback(emojiButton)
+        // Three tiny ticks, never the ordinary fourth key-press tick or sound.
+        AudioAndHapticFeedbackManager.getInstance().performPrivacyModeConfirmation()
         syncEmojiPrivacy(animate = true)
         emojiButton.announceForAccessibility(resources.getString(
             if (next) R.string.board_incognito_on else R.string.board_incognito_off))
@@ -219,6 +242,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     private fun syncEmojiPrivacy(animate: Boolean) {
         val privateMode = Settings.getValues().mIncognitoModeEnabled
+        if (lastSyncedPrivacy != null && lastSyncedPrivacy != privateMode) {
+            // Flush delayed normal-mic double-tap callbacks before a privacy switch.
+            cancelMicGesture()
+            if (!privateMode) stopProtectedMicDenial()
+        }
+        lastSyncedPrivacy = privateMode
         privateEmojiIcon.setThemeInk(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         privateEmojiIcon.setIncognito(privateMode, animated = animate && isShown && !returnToLetters)
         if (!returnToLetters) {
@@ -227,6 +256,49 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         ViewCompat.setStateDescription(emojiButton,
             resources.getString(if (privateMode) R.string.board_incognito_on else R.string.board_incognito_off))
+    }
+
+    /** A silent, non-recording rejection: the emoji glances down and flashes red. */
+    private fun showProtectedMicDenial() {
+        AudioAndHapticFeedbackManager.getInstance().performPrivacyMicDenial()
+        val previous = micDenialAnimator
+        micDenialAnimator = null
+        previous?.cancel()
+        privateEmojiIcon.setDenialFraction(0f)
+        emojiButton.scaleX = 1f
+        emojiButton.scaleY = 1f
+        if (!KeyboardMotionSpec.enabled() || returnToLetters || !emojiButton.isShown) return
+        micDenialAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            // Exactly the duration of the rejection haptic waveform.
+            duration = AudioAndHapticFeedbackManager.PRIVACY_MIC_DENIAL_MILLIS
+            interpolator = LinearInterpolator()
+            addUpdateListener {
+                val pulse = sin(Math.PI * (it.animatedValue as Float)).toFloat().coerceAtLeast(0f)
+                privateEmojiIcon.setDenialFraction(pulse)
+                emojiButton.scaleX = 1f + .075f * pulse
+                emojiButton.scaleY = 1f + .075f * pulse
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (micDenialAnimator === animation) {
+                        micDenialAnimator = null
+                        privateEmojiIcon.setDenialFraction(0f)
+                        emojiButton.scaleX = 1f
+                        emojiButton.scaleY = 1f
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun stopProtectedMicDenial() {
+        val old = micDenialAnimator
+        micDenialAnimator = null
+        old?.cancel()
+        privateEmojiIcon.setDenialFraction(0f)
+        emojiButton.scaleX = 1f
+        emojiButton.scaleY = 1f
     }
     private val shortcuts = listOf(
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
@@ -245,6 +317,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Recording/processing illuminate only the exact mic silhouette below.
         idleMicBackground = microphone.background
         emojiButton.setImageDrawable(privateEmojiIcon)
+        privateEmojiIcon.setFrameListener { pose -> micUnderlight.setPrivacyShield(pose.shield) }
         microphone.drawable?.let { original ->
             pulsingMicIcon = FooterMicPulseDrawable(original.mutate()).also {
                 microphone.setImageDrawable(it)
@@ -299,6 +372,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             feedback(it)
             ime.toggleBoardOfflineDictation()
         }
+        // TalkBack's explicit long-click bypasses the raw touch detector.
+        microphone.setOnLongClickListener {
+            if (isMicProtected()) {
+                showProtectedMicDenial()
+                true
+            } else false
+        }
         passwordManagerButton.setOnClickListener {
             if (!Settings.getValues().mInputAttributes.mIsPasswordField) return@setOnClickListener
             cachedPasswordManagerIntent?.let { target ->
@@ -320,7 +400,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             if (event.actionMasked == MotionEvent.ACTION_DOWN &&
                 discardGlyph.visibility == VISIBLE) {
                 clearMicDiscardFeedback()
-                micDiscardRestartTouchArmed = true
+                // A held protected mic must still deny even during a discard morph.
+                micDiscardRestartTouchArmed = !isMicProtected()
             }
             if (micDiscardRestartTouchArmed) {
                 when (event.actionMasked) {
@@ -331,6 +412,55 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                     }
                     MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN ->
                         micDiscardRestartTouchArmed = false
+                }
+                return@setOnTouchListener true
+            }
+            // Private mic taps still use RAM-only offline transcription. No long
+            // hold or double tap can launch recording or switch input methods.
+            // The protected path must run BEFORE the active/processing fast-tap
+            // branch, otherwise a long hold during recording would stop it.
+            if (protectedMicTouch ||
+                (event.actionMasked == MotionEvent.ACTION_DOWN && isMicProtected())) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        protectedMicTouch = true
+                        protectedMicHeld = false
+                        protectedMicCancelled = false
+                        protectedMicDownX = event.x
+                        protectedMicDownY = event.y
+                        postDelayed(protectedMicHold,
+                            ViewConfiguration.getLongPressTimeout().toLong())
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val slop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+                        if (abs(event.x - protectedMicDownX) > slop ||
+                            abs(event.y - protectedMicDownY) > slop) {
+                            protectedMicCancelled = true
+                            removeCallbacks(protectedMicHold)
+                            view.isPressed = false
+                        }
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        removeCallbacks(protectedMicHold)
+                        if (!protectedMicHeld && !protectedMicCancelled && micActionAvailable() &&
+                            event.x >= 0f && event.x < view.width &&
+                            event.y >= 0f && event.y < view.height) view.performClick()
+                        protectedMicTouch = false
+                        protectedMicHeld = false
+                        protectedMicCancelled = false
+                    }
+                    MotionEvent.ACTION_POINTER_DOWN -> {
+                        removeCallbacks(protectedMicHold)
+                        protectedMicCancelled = true
+                        view.isPressed = false
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        removeCallbacks(protectedMicHold)
+                        protectedMicTouch = false
+                        protectedMicHeld = false
+                        protectedMicCancelled = false
+                        view.isPressed = false
+                    }
                 }
                 return@setOnTouchListener true
             }
@@ -362,7 +492,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             true
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
-            ime.switchBoardInputMethod()
+            if (isMicProtected()) showProtectedMicDenial()
+            else ime.switchBoardInputMethod()
             true
         }
         ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_voice_offline_accessibility)) { _, _ ->
@@ -448,6 +579,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         if (dictationProcessing) showDictationProcessing()
         else showDictationActive(dictationActive)
         microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
+        micUnderlight.setPrivacyShieldVisible(showMicrophone)
         // Do not add a password icon on ordinary text, email, incognito, etc.
         // Password fields naturally hide the mic, so reuse precisely that slot.
         val passwordField = Settings.getValues().mInputAttributes.mIsPasswordField
@@ -719,6 +851,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         showDictationProcessing(false)
         setDictationCancelAvailable(false)
         cancelMicGesture()
+        stopProtectedMicDenial()
         cancelEmojiGesture()
         dismissShortcutArc()
     }
