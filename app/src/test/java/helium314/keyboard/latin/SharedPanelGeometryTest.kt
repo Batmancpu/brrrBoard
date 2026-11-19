@@ -10,7 +10,10 @@ class SharedPanelGeometryTest {
         assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 0, 550))
         assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 700, 550))
         assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 350, 550))
-        assertEquals(400, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 492, 400))
+        // A saved viewport taller than the current window must be rejected,
+        // not clipped into a new artificial height.
+        assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 492, 400))
+        assertEquals(400, SharedPanelGeometry.alignCompactEmojiToTypingViewport(480, 492, 400))
     }
 
     @Test fun emojiAndClipboardHaveIdenticalHeightForIdenticalShell() {
