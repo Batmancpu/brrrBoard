@@ -55,6 +55,20 @@ public final class SwipeCorrectionLearnerTest {
         assertEquals(0, learner.snapshot().storedPairs);
     }
 
+    @Test public void conflictingConfirmedCorrectionsDoNotProduceUnstableRecall() {
+        final Context context = ApplicationProvider.getApplicationContext();
+        final SwipeCorrectionLearner learner = SwipeCorrectionLearner.get(context);
+        learner.clear();
+        learner.confirm("hapy", "happy");
+        learner.confirm("hapy", "happy");
+        learner.confirm("hapy", "happ");
+        learner.confirm("hapy", "happ");
+        assertNull("equal evidence must not suggest an arbitrary correction", learner.suggest("hapy"));
+        learner.confirm("hapy", "happy");
+        assertEquals("happy", learner.suggest("hapy"));
+        learner.clear();
+    }
+
     @Test public void isOptInAndBlockedInPrivateEditors() {
         final Context context = ApplicationProvider.getApplicationContext();
         final SharedPreferences prefs = KtxKt.prefs(context);

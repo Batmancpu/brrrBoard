@@ -1,5 +1,27 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — new owner Oppo recording: Toolbar/Clipboard/emoji hold follow-up
+
+Owner asks: fix inert Clipboard Search swipe, **live** (not static) luminous
+rainbow text/card glow, excess Toolbar blur bar masking rows above ABC/mic,
+ergonomic frosted 3-choice emoji-button long press with temporary key fade,
+plus safe prediction improvement and audit of outstanding issues. Inspected
+23.70s supplied recording (711 video frames, contact sheet and transition
+analysis; private screen content NOT committed). Based source on
+`main` `89f9b56`; original-signed v1.0.137 remains the known released baseline.
+Source candidate uses existing isolated Emoji/GIF Search gesture decoding for
+Clipboard query with stale-session gate, attached-only animated multicolor
+shader glows, hides redundant Toolbar bottom overlay while preserving the
+shared footer's live glass, larger labeled emoji/clipboard/settings hold shelf,
+reversible keyboard-key fade, and ambiguous brrBrain learned-word suppression.
+Added targeted regression tests. Full instructions, files, commands, Oppo
+acceptance and separate unclosed ledger:
+`docs/OWNER_VIDEO_TOOLBAR_CLIPBOARD_GESTURES_2026_11_19.md`.
+**PENDING until confirmed:** complete debug/unit/generator/safety workflow,
+original certificate signing/release workflow, owner physical Oppo acceptance.
+Do not touch Dictate integration, signer, package, privacy mode, branches or
+independently ongoing automation. Refresh current `main` before pushing.
+
 ## 2026-11-19 — nightly three-batch verified source and signed release checkpoint
 
 **LATEST CI VERIFIED: signed v1.0.137** from code commit `3766ae149e73015f8a1861b7898e21a1a247d7ea` (parent `fa27e4e2`), signed release https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.137 , direct original-signed APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.137/brrBoard.apk , 38,159,543 bytes, SHA256 `57a871463efe2f22c97e100bd467780a4f74895c6d7d87180c2e5645dc490ce4`. Debug workflow `44388090216` TERMINAL SUCCESS, original signing/release workflow `44388090135` TERMINAL SUCCESS. The single earlier dashboard compile issue in `41c1886` was the MainSettingsScreen @Preview missing its new callback; fixed in `dbf1e85e`. Historical failed workflows remain historical; both latest functional pipelines passed.

@@ -18,6 +18,8 @@ import android.view.ViewConfiguration
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
@@ -45,7 +47,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
     private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
     private var popup: PopupWindow? = null
-    private val targets = ArrayList<ImageButton>()
+    private val targets = ArrayList<View>()
+    private var fadedKeys: View? = null
     private var dictationActive = false
     private var dictationProcessing = false
     private var returnToLetters = false
@@ -71,7 +74,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
     private val shortcuts = listOf(
-        Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
+        Shortcut(R.string.emoji, R.drawable.ic_board_emoji, FooterShortcutPolicy.Action.EMOJI),
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
         Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_rounded, FooterShortcutPolicy.Action.SETTINGS),
     )
@@ -327,6 +330,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         removeCallbacks(openShortcuts)
         popup?.dismiss()
         popup = null
+        fadedKeys?.animate()?.cancel()
+        fadedKeys?.animate()?.alpha(1f)?.setDuration(130)?.start()
+        fadedKeys = null
         targets.clear()
         selected = -1
     }
@@ -359,40 +365,59 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             return
         }
         when (action) {
-            FooterShortcutPolicy.Action.TOOLBAR -> switcher.setAccessPointKeyboard()
+            FooterShortcutPolicy.Action.EMOJI -> send(KeyCode.EMOJI)
             FooterShortcutPolicy.Action.CLIPBOARD -> switcher.setClipboardKeyboard()
             FooterShortcutPolicy.Action.SETTINGS -> send(KeyCode.SETTINGS)
         }
     }
 
     private fun showShortcutArc() {
-        if (windowToken == null) return
+        if (windowToken == null || popup != null) return
         val colors = Settings.getValues().mColors
-        val panel = FrameLayout(context)
-        val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.MORE_SUGGESTIONS_BACKGROUND), 242)
-        val active = colors.get(ColorType.TOOL_BAR_EXPAND_KEY_BACKGROUND)
-        // Three 48dp targets form a compact arc above the lower-left button.
+        val panel = FrameLayout(context).apply {
+            background = rounded(
+                ColorUtils.setAlphaComponent(colors.get(ColorType.MAIN_BACKGROUND), 236),
+                dp(24).toFloat(),
+                ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_ICON), 65))
+            clipToOutline = true
+        }
+        val normal = ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_BACKGROUND), 178)
+        val active = ColorUtils.setAlphaComponent(colors.get(ColorType.ACTION_KEY_BACKGROUND), 215)
+        // iOS-inspired single glass shelf: 80x82dp labeled hit targets, rather
+        // than a small unlabelled 48dp arc with diagonal motor demands.
         val rtl = ViewCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL
         shortcuts.forEachIndexed { index, shortcut ->
-            val button = ImageButton(context).apply {
+            val button = LinearLayout(context).apply {
                 contentDescription = resources.getString(shortcut.label)
-                setImageResource(shortcut.icon)
-                imageTintList = ColorStateList.valueOf(colors.get(ColorType.KEY_ICON))
-                scaleType = android.widget.ImageView.ScaleType.CENTER
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
                 background = android.graphics.drawable.StateListDrawable().apply {
-                    addState(intArrayOf(android.R.attr.state_selected), circle(active))
-                    addState(intArrayOf(), circle(normal))
+                    addState(intArrayOf(android.R.attr.state_selected), rounded(active, dp(18).toFloat()))
+                    addState(intArrayOf(), rounded(normal, dp(18).toFloat()))
                 }
+                addView(ImageView(context).apply {
+                    setImageResource(shortcut.icon)
+                    imageTintList = ColorStateList.valueOf(colors.get(ColorType.KEY_ICON))
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    setPadding(dp(3), dp(3), dp(3), dp(3))
+                }, LinearLayout.LayoutParams(dp(32), dp(32)))
+                addView(TextView(context).apply {
+                    text = resources.getString(shortcut.label)
+                    setTextColor(colors.get(ColorType.KEY_ICON))
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(25)))
             }
             targets.add(button)
             val (x, y) = FooterShortcutPolicy.targetOffset(index, rtl)
-            panel.addView(button, LayoutParams(dp(48), dp(48)).apply {
+            panel.addView(button, LayoutParams(dp(80), dp(82)).apply {
                 leftMargin = dp(x)
                 topMargin = dp(y)
             })
         }
-        val popupWidth = dp(160)
-        val popupHeight = dp(86)
+        val popupWidth = dp(280)
+        val popupHeight = dp(100)
         emojiButton.getLocationInWindow(screenLocation)
         val anchorX = screenLocation[0]
         rootView.getLocationInWindow(screenLocation)
@@ -404,28 +429,37 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             isTouchable = false
             isOutsideTouchable = false
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = dp(8).toFloat()
+            elevation = dp(14).toFloat()
             showAsDropDown(
                 emojiButton,
                 left - anchorX,
-                -emojiButton.height - popupHeight,
+                -emojiButton.height - popupHeight - dp(8),
                 Gravity.LEFT,
             )
         }
+        // A reversible trackpad-style focus cue. Hide only the keycaps, not
+        // the keyboard's wallpaper glass or the active input field.
+        fadedKeys = KeyboardSwitcher.getInstance().mainKeyboardView?.takeIf { it.isShown }
+        fadedKeys?.animate()?.cancel()
+        fadedKeys?.animate()?.alpha(0f)?.setDuration(110)?.start()
     }
 
     private fun updateSelection(x: Float, y: Float) {
+        val previous = selected
         selected = targets.indexOfFirst { target ->
             target.getLocationOnScreen(screenLocation)
             target.isLaidOut && x >= screenLocation[0] && x < screenLocation[0] + target.width &&
                 y >= screenLocation[1] && y < screenLocation[1] + target.height
         }
         targets.forEachIndexed { index, target -> target.isSelected = index == selected }
+        if (selected >= 0 && previous != selected) feedback(emojiButton)
     }
 
-    private fun circle(color: Int) = GradientDrawable().apply {
-        shape = GradientDrawable.OVAL
+    private fun rounded(color: Int, radius: Float, stroke: Int = Color.TRANSPARENT) = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = radius
         setColor(color)
+        if (Color.alpha(stroke) > 0) setStroke(dp(1), stroke)
     }
 
     private fun dp(value: Int) = (value * resources.displayMetrics.density).roundToInt()

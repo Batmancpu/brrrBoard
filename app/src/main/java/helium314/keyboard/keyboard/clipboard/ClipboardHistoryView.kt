@@ -7,6 +7,7 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.SharedPreferences
 import android.text.Editable
 import android.text.TextWatcher
@@ -56,6 +57,9 @@ import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.ClipboardHistoryEntry
 import helium314.keyboard.latin.ClipboardHistoryManager
 import helium314.keyboard.latin.BoardFooterView
+import helium314.keyboard.latin.LatinIME
+import helium314.keyboard.latin.Suggest
+import helium314.keyboard.latin.SuggestedWords
 import helium314.keyboard.latin.KeyboardWrapperView
 import helium314.keyboard.latin.FrostedGlassHelper
 import helium314.keyboard.latin.R
@@ -105,6 +109,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private lateinit var searchMatchHaze: View
     private var searchClearRevealed = false
     private var searchMatchGeneration = 0L
+    private var searchGestureGeneration = 0L
     private var clipboardRowKeyboard: MainKeyboardView? = null
     private var searchShifted = false
     private var normalListState: Parcelable? = null
@@ -720,6 +725,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private fun showSearchMatch(found: Boolean) {
         val generation = ++searchMatchGeneration
         searchMatchHaze.animate().cancel()
+        (searchMatchHaze.background as? ClipboardRainbowGlowDrawable)?.apply {
+            if (found) start() else stop()
+        }
         val colors = Settings.getValues().mColors
         val accent = colors.get(ColorType.ACTION_KEY_BACKGROUND)
         searchInput.setTextColor(if (found) Color.WHITE else colors.get(ColorType.TOOL_BAR_KEY))
@@ -737,15 +745,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchMatchHaze.scaleX = (textWidth.coerceAtMost(maxWidth.toFloat()) /
             140.dpToPx(resources).toFloat()).coerceIn(0.20f, 1.25f)
         if (!heightMotionEnabled()) {
-            searchMatchHaze.alpha = 0.94f
+            searchMatchHaze.alpha = 0.78f
             return
         }
-        searchMatchHaze.alpha = 0.16f
-        searchMatchHaze.animate().alpha(0.61f).setDuration(290).withEndAction {
+        searchMatchHaze.alpha = 0.40f
+        searchMatchHaze.animate().alpha(0.82f).setDuration(290).withEndAction {
             if (generation != searchMatchGeneration) return@withEndAction
-            searchMatchHaze.animate().alpha(0.26f).setDuration(340).withEndAction {
+            searchMatchHaze.animate().alpha(0.60f).setDuration(340).withEndAction {
                 if (generation != searchMatchGeneration) return@withEndAction
-                searchMatchHaze.animate().alpha(0.42f).setDuration(360).start()
+                searchMatchHaze.animate().alpha(0.74f).setDuration(360).start()
             }.start()
         }.start()
     }
@@ -806,6 +814,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun openSearch() {
         if (searchMode || !::clipboardHistoryManager.isInitialized) return
+        searchGestureGeneration++
         val switcher = KeyboardSwitcher.getInstance()
         val typing = switcher.mainKeyboardView ?: return
         prepareHeightMotion()
@@ -835,6 +844,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun closeSearch(animate: Boolean = true) {
         if (!searchMode) return
+        searchGestureGeneration++
+        (searchMatchHaze.background as? ClipboardRainbowGlowDrawable)?.stop()
         if (animate) prepareHeightMotion() else cancelHeightMotion()
         searchMode = false
         searchHeader.visibility = View.GONE
@@ -932,10 +943,41 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 searchInput.dispatchKeyEvent(keyEvent)
             override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent): Boolean =
                 searchInput.dispatchKeyEvent(keyEvent)
-            // No host app composition or stored gesture paths while filtering Clipboard.
-            override fun onStartBatchInput() = Unit
+            // Decode the gesture against the same native dictionary as Emoji/GIF
+            // Search, but commit only into this private filter EditText. Never
+            // forward a batch event to the host application's InputConnection.
+            override fun onStartBatchInput() {
+                if (searchMode) searchInput.isCursorVisible = true
+            }
             override fun onUpdateBatchInput(batchPointers: helium314.keyboard.latin.common.InputPointers) = Unit
-            override fun onEndBatchInput(batchPointers: helium314.keyboard.latin.common.InputPointers) = Unit
+            override fun onEndBatchInput(batchPointers: helium314.keyboard.latin.common.InputPointers) {
+                if (!searchMode) return
+                val session = searchGestureGeneration
+                val keyboard = KeyboardSwitcher.getInstance().mainKeyboardView?.keyboard ?: return
+                getLatinIme()?.getKlipySearchGestureSuggestion(batchPointers, keyboard,
+                    object : Suggest.OnGetSuggestedWordsCallback {
+                        override fun onGetSuggestedWords(words: SuggestedWords?) {
+                            val text = words?.takeUnless { it.isEmpty }?.getWord(0)
+                                ?.takeIf { it.isNotBlank() } ?: return
+                            post {
+                                if (ClipboardSearchGestureGate.accepts(searchMode,
+                                    session, searchGestureGeneration,
+                                    isAttachedToWindow, searchInput.hasFocus())) {
+                                    insertSearchText(text)
+                                }
+                            }
+                        }
+                    })
+            }
+            override fun onCancelBatchInput() { searchGestureGeneration++ }
+        }
+    }
+
+    private fun getLatinIme(): LatinIME? {
+        var current: Context = context
+        while (true) {
+            if (current is LatinIME) return current
+            current = (current as? ContextWrapper)?.baseContext ?: return null
         }
     }
 

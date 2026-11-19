@@ -1,5 +1,26 @@
 # brrBoard project context
 
+## 2026-11-19 — owner recording follow-up, implementation prepared, not CI verified
+
+New 23.7s owner video exposes a fixed 56dp Toolbar glass bar clipping an extra
+tile row and a stationary gray/neon Clipboard Search effect; Clipboard search
+glides are inert because its batch gesture callbacks were intentionally no-op.
+Owner also wants the footer's emoji hold to use large iOS-like frosted choices,
+the keycaps to fade while holding, better prediction quality, and careful
+unresolved-work audit. Source changes now prepared on baseline `89f9b56`:
+isolated native suggestion callback for Clipboard-only search with session
+generation guard; moving cached multicolor shaders/soft outlines for matched
+cards, substrings and search query; remove redundant Toolbar bottom bar and
+adjust scroll clipping/end padding; large labeled Emoji/Clipboard/Settings
+hold controls and reversible 110ms key fade; ambiguity guard for competing
+brrBrain confirmed correction pairs. Pure regression tests added. Full work
+record and Oppo validation in
+`docs/OWNER_VIDEO_TOOLBAR_CLIPBOARD_GESTURES_2026_11_19.md`.
+No new model or claimed accuracy, no raw gesture persistence, no Dictate edit,
+no signer/package/network changes. **Unverified** until debug + original
+signed workflow success and owner ColorOS phone test; prior v1.0.137 remains
+the most recent known CI-green/signed APK. Other open ledger remains open.
+
 ## 2026-11-19 — nightly three-batch verified source and signed release checkpoint
 
 **LATEST CI VERIFIED: signed v1.0.137** from code commit `3766ae149e73015f8a1861b7898e21a1a247d7ea` (parent `fa27e4e2`), signed release https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.137 , direct original-signed APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.137/brrBoard.apk , 38,159,543 bytes, SHA256 `57a871463efe2f22c97e100bd467780a4f74895c6d7d87180c2e5645dc490ce4`. Debug workflow `44388090216` TERMINAL SUCCESS, original signing/release workflow `44388090135` TERMINAL SUCCESS. The single earlier dashboard compile issue in `41c1886` was the MainSettingsScreen @Preview missing its new callback; fixed in `dbf1e85e`. Historical failed workflows remain historical; both latest functional pipelines passed.

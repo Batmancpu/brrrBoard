@@ -264,12 +264,22 @@ public final class SwipeCorrectionLearner {
         final String seed = rawSeed.toLowerCase(Locale.ROOT);
         if (!valid(seed)) return null;
         Entry best = null;
+        Entry runnerUp = null;
         for (final Entry candidate : learned.values()) {
             if (candidate.count < 2 || !candidate.seed.equals(seed)
                     || !SwipeGeometryRescue.INSTANCE.couldMatchSeed(seed, candidate.word)) continue;
             if (best == null || candidate.count > best.count
-                    || (candidate.count == best.count && candidate.lastUsed > best.lastUsed)) best = candidate;
+                    || (candidate.count == best.count && candidate.lastUsed > best.lastUsed)) {
+                runnerUp = best;
+                best = candidate;
+            } else if (runnerUp == null || candidate.count > runnerUp.count) {
+                runnerUp = candidate;
+            }
         }
+        // Two equally supported corrections for the same thumb path mean the
+        // learned evidence is ambiguous. Do not inject an arbitrary alternative
+        // merely because one happened a few milliseconds more recently.
+        if (best != null && runnerUp != null && best.count == runnerUp.count) return null;
         if (best != null) sessionRecallOffers.incrementAndGet();
         return best == null ? null : best.word;
     }

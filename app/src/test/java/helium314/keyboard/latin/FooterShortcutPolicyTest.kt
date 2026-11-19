@@ -10,16 +10,17 @@ class FooterShortcutPolicyTest {
     @Test fun clipboardIsNeverImplicitPasteWhenHistoryDisabled() {
         assertFalse(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.CLIPBOARD, false))
         assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.CLIPBOARD, true))
-        assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.TOOLBAR, false))
+        assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.EMOJI, false))
         assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.SETTINGS, false))
     }
 
-    @Test fun threeArcTargetsMirrorWithoutChangingHeight() {
+    @Test fun threeLargeTargetsMirrorWithoutChangingHeight() {
         for (index in 0..2) {
             val normal = FooterShortcutPolicy.targetOffset(index, false)
             val mirrored = FooterShortcutPolicy.targetOffset(index, true)
-            assertEquals(112, normal.first + mirrored.first)
+            assertEquals(200, normal.first + mirrored.first)
             assertEquals(normal.second, mirrored.second)
+            assertTrue(normal.first >= 12 && normal.first + 80 <= 280)
         }
     }
 

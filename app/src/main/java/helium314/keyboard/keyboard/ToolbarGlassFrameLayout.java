@@ -42,18 +42,21 @@ public final class ToolbarGlassFrameLayout extends FrameLayout {
 
         final View topGlass = findViewById(R.id.access_point_header_scrim);
         final View bottomGlass = findViewById(R.id.access_point_bottom_glass);
-        if (topGlass == null || bottomGlass == null ||
-                topGlass.getVisibility() != View.VISIBLE ||
-                bottomGlass.getVisibility() != View.VISIBLE ||
-                topGlass.getBottom() <= 0 || bottomGlass.getTop() <= topGlass.getBottom()) {
+        if (topGlass == null || topGlass.getVisibility() != View.VISIBLE ||
+                topGlass.getBottom() <= 0) {
             return super.drawChild(canvas, child, drawingTime);
         }
 
         final int saved = canvas.save();
         try {
-            // The top title fade and bottom action region receive only the
-            // current, separately blurred pixels from this exact ScrollView.
-            canvas.clipRect(0, topGlass.getBottom(), getWidth(), bottomGlass.getTop());
+            // The old 56dp fixed bottom blur was hiding almost an entire
+            // toolbar tile row above ABC/mic. Only the *shared footer* now
+            // samples the scrolling source. Clip tiles at the real panel edge,
+            // never beneath the footer; the title keeps its live top fade.
+            final int bottom = bottomGlass != null && bottomGlass.getVisibility() == View.VISIBLE
+                    ? bottomGlass.getTop() : getHeight();
+            canvas.clipRect(0, topGlass.getBottom(), getWidth(),
+                    Math.max(topGlass.getBottom(), bottom));
             return super.drawChild(canvas, child, drawingTime);
         } finally {
             canvas.restoreToCount(saved);

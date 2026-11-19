@@ -80,9 +80,12 @@ class ClipboardAdapter(
         private const val ROUNDED_ENTRY_RADIUS_DP = 16f
     }
 
-    /** Match has a fixed rainbow background and readable white glyphs. */
+    /** Moving high-contrast rainbow ink below sharp white match letters. */
     private class RainbowMatchSpan(private val density: Float) : ReplacementSpan() {
         private val inset = 3f * density
+        private val shaderMatrix = android.graphics.Matrix()
+        private var cachedWidth = -1f
+        private var cachedShader: LinearGradient? = null
         override fun getSize(paint: Paint, text: CharSequence, start: Int, end: Int,
                 fm: Paint.FontMetricsInt?): Int =
             kotlin.math.ceil(paint.measureText(text, start, end) + 2f * inset).toInt()
@@ -102,17 +105,26 @@ class ClipboardAdapter(
                 paint.shader = null
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = 4f * density
-                paint.color = 0x667C59D8
+                paint.color = 0xA65D55CE.toInt()
                 canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
                 paint.style = Paint.Style.FILL
                 // Shader output is multiplied by Paint alpha. The previous
                 // translucent border color (0x66 alpha) had made the rainbow
                 // highlighter look like a faint gray wash. Restore full alpha.
                 paint.color = Color.WHITE
-                paint.shader = LinearGradient(rect.left, rect.top, rect.right, rect.top,
-                    intArrayOf(0xFF8233CB.toInt(), 0xFFAC278C.toInt(),
-                        0xFF116B94.toInt(), 0xFF6237B7.toInt()),
-                    null, Shader.TileMode.CLAMP)
+                if (cachedShader == null || cachedWidth != rect.width()) {
+                    cachedWidth = rect.width()
+                    cachedShader = LinearGradient(-cachedWidth, 0f, cachedWidth * 2f, 0f,
+                        intArrayOf(0xFFBA2FFF.toInt(), 0xFFFA4BA9.toInt(),
+                            0xFF3ABBE9.toInt(), 0xFF38D2B1.toInt(), 0xFFB565FF.toInt()),
+                        null, Shader.TileMode.MIRROR)
+                }
+                // The matched card's live foreground invalidates this span;
+                // no TextWatcher or query/recycler relayout is involved.
+                val travel = (android.os.SystemClock.uptimeMillis() % 5200L) / 5200f
+                shaderMatrix.setTranslate(rect.left + (travel * 2f - 1f) * rect.width(), rect.top)
+                cachedShader?.setLocalMatrix(shaderMatrix)
+                paint.shader = cachedShader
                 canvas.drawRoundRect(rect, 6f * density, 6f * density, paint)
                 paint.shader = null
                 paint.color = Color.WHITE
@@ -157,6 +169,21 @@ class ClipboardAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.setContent(getItem(position))
+    }
+
+    override fun onViewAttachedToWindow(holder: ViewHolder) {
+        super.onViewAttachedToWindow(holder)
+        (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.start()
+    }
+
+    override fun onViewDetachedFromWindow(holder: ViewHolder) {
+        (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
+        super.onViewDetachedFromWindow(holder)
+    }
+
+    override fun onViewRecycled(holder: ViewHolder) {
+        (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
+        super.onViewRecycled(holder)
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
@@ -262,9 +289,12 @@ class ClipboardAdapter(
             val imageClip = historyEntry?.text?.let { ClipboardHistoryManager.decodeImageHistoryClip(it) }
                 ?.takeIf { it.uri.scheme == "content" }
 
-            itemView.foreground = if (horizontalSearchRow && filterQuery.isNotBlank()
+            (itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
+            val glow = if (horizontalSearchRow && filterQuery.isNotBlank()
                     && historyEntry != null && imageClip == null)
                 ClipboardRainbowGlowDrawable(itemView.resources.displayMetrics.density, false) else null
+            itemView.foreground = glow
+            if (itemView.isAttachedToWindow) glow?.start()
 
             // Adjust StaggeredGridLayoutManager parameters so it stays in one column
             val lp = itemView.layoutParams
