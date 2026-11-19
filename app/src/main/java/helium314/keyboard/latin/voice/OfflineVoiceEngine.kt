@@ -50,7 +50,7 @@ internal class OfflineVoiceEngine(private val context: Context) {
                 try {
                     stream.acceptWaveform(samples, PrivatePcmBuffer.SAMPLE_RATE)
                     rec.decode(stream)
-                    stream.result.text.trim()
+                    rec.getResult(stream).text.trim()
                 } finally {
                     samples.fill(0f)
                     stream.release()

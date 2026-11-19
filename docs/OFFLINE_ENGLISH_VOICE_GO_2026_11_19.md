@@ -139,6 +139,10 @@ and the existing `FooterIndicatorPolicyTest.kt`.
 
 ## Verification before publishing
 
+- Initial remote integration `2426d9c4` failed Obtainium compile in run
+  `44504893722` at `OfflineVoiceEngine.kt:53` due the pinned sherpa API using
+  `rec.getResult(stream).text`, not `stream.result.text`. Exact-call repair
+  staged separately, new CI required. Failed run produced no signed APK.
 - Local `git diff --check`: pass at source checkpoint.
 - Local Android XML/YAML parse and both shell scripts `bash -n`: pass.
 - Local Android Gradle: unavailable (wrapper distribution and SDK not cached;

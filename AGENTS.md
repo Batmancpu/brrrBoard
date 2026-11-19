@@ -8,6 +8,8 @@
 
 **Release gate:** Stage and publish complete source + this checkpoint to `main` only after reconciling concurrent changes; test exact SHA via both GitHub workflows and repair failures before offering an APK. Physical Oppo Reno10 Android 15 accent/latency/IPC/privacy checks remain **PENDING**; do not claim device acceptance. Never overwrite original signer/package/Obtainium identity, existing brrSpeak provider, visual theme/animation, smart Emoji, suggestions or swipe. The optional special bootstrap must be deliberately dispatched only after regular CI green; it is not an automatic Obtainium update.
 
+**CI repair checkpoint (same source batch):** Initial offline source `2426d9c4791f9b15e6859c5dbcfc6fa89502bc14` triggered debug [44504893791](https://github.com/Batmancpu/brrrBoard/actions/runs/44504893791) and Obtainium [44504893722](https://github.com/Batmancpu/brrrBoard/actions/runs/44504893722). The Obtainium build FAILED compiling `OfflineVoiceEngine.kt:53` because sherpa-onnx exposes `OfflineRecognizer.getResult(stream)` rather than `stream.result`. The exact repair changes only that invocation to `rec.getResult(stream).text.trim()` (the already working brrSpeak Kotlin API form). Fresh debug/test/release gates are required after this correction; first failed run published no APK. Preserve the previous 25-minute monitoring evidence and original signer.
+
 ## 2026-11-19 — record-first brrSpeak handoff implementation (CI PENDING)
 
 # brrBoard + brrSpeak record-first dictation checkpoint (2026-11-19)
