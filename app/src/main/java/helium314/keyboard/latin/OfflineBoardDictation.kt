@@ -12,6 +12,7 @@ import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.voice.OfflineVoiceEngine
 import helium314.keyboard.latin.voice.PrivatePcmBuffer
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.VoiceDecodeRequest
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
@@ -27,6 +28,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var phase = Phase.IDLE
     private var source: KeyboardPcmAudioSource? = null
     private var pcmBuffer: PrivatePcmBuffer? = null
+    private var decodeRequest: VoiceDecodeRequest? = null
     private var footer: BoardFooterView? = null
     private var originalConnection: InputConnection? = null
     private var generation = 0L
@@ -60,7 +62,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         currentFooter.clearContextAction()
         currentFooter.clearDictationError()
         currentFooter.showDictationStatus(R.string.board_voice_starting)
-        currentFooter.setDictationCancelAvailable(true)
+        currentFooter.setDictationCancelAvailable(true, offline = true)
         val capture = KeyboardPcmAudioSource(
             onRecordingStarted = {
                 if (generation == id && phase == Phase.STARTING) {
@@ -109,8 +111,9 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             fail(R.string.board_voice_offline_failed)
             return
         }
-        engine.transcribe(bytes) { answer ->
+        decodeRequest = engine.transcribe(bytes) { answer ->
             if (id != generation || phase != Phase.DECODING) return@transcribe
+            decodeRequest = null
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
             val canCommit = validEditor && phrase.isNotEmpty() && !containsDevanagari(phrase)
@@ -127,6 +130,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     fun cancel() {
         generation++
         phase = Phase.IDLE
+        decodeRequest?.cancel()
+        decodeRequest = null
         source?.close()
         source = null
         pcmBuffer?.discard()

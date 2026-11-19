@@ -25,8 +25,8 @@ Optional private English speech recognition assets (one-time opt-in APK only)
 
 The one-time brrBoard offline-voice bootstrap APK may bundle an ONNX export of
 NVIDIA Parakeet TDT 110M English recognition weights, under Creative Commons
-Attribution 4.0 (CC BY 4.0). Attribution: NVIDIA Corporation, Parakeet TDT 110M
-English ASR, https://huggingface.co/nvidia/parakeet-tdt-0.11b . The pinned
+Attribution 4.0 (CC BY 4.0). Attribution: NVIDIA Corporation, Parakeet TDT-CTC
+110M English ASR (transducer head), https://huggingface.co/nvidia/parakeet-tdt_ctc-110m . The pinned
 four-file export used by this project is mirrored by the DictateKeyboard model
 release at https://github.com/DevEmperor/DictateKeyboard/releases/tag/whisper-models-v1 .
 Its source hashes and sizes appear in tools/offline-voice-model.lock.

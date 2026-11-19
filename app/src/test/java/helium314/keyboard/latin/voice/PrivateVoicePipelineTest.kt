@@ -69,4 +69,40 @@ class PrivateVoicePipelineTest {
         assertFalse(two.acceptOffline())
         assertEquals(VoiceResultArbiter.Winner.SERVER, two.winner)
     }
+
+    @Test fun queuedDecodeCancellationImmediatelyWipesPrivatePcm() {
+        val audio = byteArrayOf(1, 2, 3, 4)
+        val request = VoiceDecodeRequest(audio)
+        request.cancel()
+        assertTrue(request.isCancelled)
+        assertFalse(request.begin())
+        assertArrayEquals(byteArrayOf(0, 0, 0, 0), audio)
+    }
+
+    @Test fun activeDecodeCancellationDefersWipeUntilNativeWindowFinishes() {
+        val audio = byteArrayOf(1, 2, 3, 4)
+        val request = VoiceDecodeRequest(audio)
+        assertTrue(request.begin())
+        request.cancel()
+        assertTrue(request.isCancelled)
+        // Never mutate the bytes concurrently with the native recognizer.
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4), audio)
+        request.finish()
+        assertArrayEquals(byteArrayOf(0, 0, 0, 0), audio)
+    }
+
+    @Test fun formattingOnlyChangesUnambiguousCasingWithoutRewritingSpeech() {
+        assertEquals(
+            "I updated brrBoard using GitHub and Obtainium on Android.",
+            VoiceTranscriptFormatter.format(
+                "I updated brrboard using github and obtainium on android.",
+            ),
+        )
+        assertEquals(
+            "The board meeting is about obtaining results, not github.com or a Kotlin-based project.",
+            VoiceTranscriptFormatter.format(
+                "The board meeting is about obtaining results, not github.com or a kotlin-based project.",
+            ),
+        )
+    }
 }

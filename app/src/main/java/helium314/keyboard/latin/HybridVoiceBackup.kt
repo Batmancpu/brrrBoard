@@ -6,6 +6,7 @@ import helium314.keyboard.latin.voice.OfflineVoiceEngine
 import helium314.keyboard.latin.voice.PrivatePcmBuffer
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceResultArbiter
+import helium314.keyboard.latin.voice.VoiceDecodeRequest
 
 /**
  * Ephemeral offline transcription of the *same* audio sent to brrSpeak. Never gets the
@@ -21,6 +22,7 @@ internal class HybridVoiceBackup(
     private val engine = OfflineVoiceEngine.shared(ime)
     private val buffer = PrivatePcmBuffer()
     private val arbiter = VoiceResultArbiter()
+    private var decodeRequest: VoiceDecodeRequest? = null
     private var cancelled = false // main thread only
     private var captureFinished = false
     private var localPasted = false
@@ -44,7 +46,8 @@ internal class HybridVoiceBackup(
             bytes.fill(0)
             return
         }
-        engine.transcribe(bytes) { answer ->
+        decodeRequest = engine.transcribe(bytes) { answer ->
+            decodeRequest = null
             if (cancelled || localPasted) return@transcribe
             localText = answer.getOrNull()?.trim()?.takeIf {
                 it.isNotBlank() && !containsDevanagari(it)
@@ -74,6 +77,8 @@ internal class HybridVoiceBackup(
 
     fun cancel() {
         cancelled = true
+        decodeRequest?.cancel()
+        decodeRequest = null
         localText = null
         buffer.discard()
         footer?.clearContextAction(this)

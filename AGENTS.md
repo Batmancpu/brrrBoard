@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — OWNER GO: private English voice correctness and safety (CI PENDING)
+
+Owner explicitly resumed implementation after research-only pause. Baseline live main `a662e29143cde04ee117e72d014b1a45d81273dc` already includes the newer Apple glyph-only mic pulse, red Cancel action, cold brrSpeak lease and lazy offline engine. This focused main-only candidate protects that work: clears stale swipe-correction state and voice `mEnteredText`, cancels queued/running native jobs safely with PCM wipes, consolidates recognizer idle unloading, adds conservative URL-safe exact acronym/brand casing for OFFLINE ONLY, fixes blue Cancel accessibility/text routing, and corrects NVIDIA TDT-CTC 110M model attribution. Tests cover cancellation and formatter; **CI, original signer, special one-time bootstrap APK and Oppo real-device quality/performance acceptance are not yet verified**. No network permission, voice learning, extra LLM or automatic model download. Exact source/test/owner QA plan: [docs/OFFLINE_VOICE_PRIVACY_FOLLOWUP_GO_2026_11_19.md](docs/OFFLINE_VOICE_PRIVACY_FOLLOWUP_GO_2026_11_19.md). Do not replace unrelated Apple-effects commits or ship an unverified model-inclusive APK.
+
 ## 2026-11-19 — stable cold-start provider lease (CI PENDING)
 
 The wake-up call now uses a **stable** `ContentProviderClient` lease from `acquireContentProviderClient`, held only until `onServiceConnected` for the explicit recorded-audio service. Release on connection, bind/version error, cancellation and any late worker completion. This prevents an Android/OEM process-death gap after the provider handshake while still not keeping brrSpeak running after dictation. No audio or editor content enters the provider call; the existing read-only descriptor still moves across bound IPC. Tests/release must run on the new main SHA; prior run #254/#155 were for the earlier wake implementation.

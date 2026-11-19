@@ -26,42 +26,72 @@ internal class OfflineVoiceEngine(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: OfflineRecognizer? = null // worker thread only
     private var lastUsedAt = 0L // worker thread only
-
-    fun warm(): Future<*> = worker.submit {
-        if (VoiceModelInstaller.isInstalled(context)) runCatching { requireRecognizer() }
+    private val idleUnload = Runnable {
+        worker.execute {
+            if (SystemClock.elapsedRealtime() - lastUsedAt >= IDLE_UNLOAD_MS) {
+                recognizer?.release()
+                recognizer = null
+            }
+        }
     }
 
-    /** Takes ownership of [pcm16] and wipes its bytes after this attempt, including failures. */
-    fun transcribe(pcm16: ByteArray, callback: (Result<String>) -> Unit): Future<*> = worker.submit {
-        val result = runCatching {
-            require(pcm16.size % 2 == 0 && pcm16.isNotEmpty()) { "No speech was recorded" }
-            require(VoiceModelInstaller.isInstalled(context)) { "Install the one-time offline voice model first" }
-            val rec = requireRecognizer()
-            val windows = VoiceSegmenter.windows(pcm16)
-            val pieces = windows.map { window ->
-                val samples = FloatArray(window.endExclusive - window.startSample)
-                for (sampleIndex in samples.indices) {
-                    val byteIndex = (window.startSample + sampleIndex) * 2
-                    val lo = pcm16[byteIndex].toInt() and 0xff
-                    val hi = pcm16[byteIndex + 1].toInt()
-                    samples[sampleIndex] = ((hi shl 8) or lo).toShort().toFloat() / 32_768f
-                }
-                val stream = rec.createStream()
-                try {
-                    stream.acceptWaveform(samples, PrivatePcmBuffer.SAMPLE_RATE)
-                    rec.decode(stream)
-                    rec.getResult(stream).text.trim()
-                } finally {
-                    samples.fill(0f)
-                    stream.release()
-                }
-            }
-            lastUsedAt = SystemClock.elapsedRealtime()
-            VoiceTranscriptJoiner.merge(pieces)
+    fun warm(): Future<*> = worker.submit {
+        if (VoiceModelInstaller.isInstalled(context)) {
+            runCatching { requireRecognizer() }
+            scheduleIdleUnload()
         }
-        pcm16.fill(0)
-        handler.post { callback(result) }
-        scheduleIdleUnload()
+    }
+
+    /**
+     * Owns [pcm16] immediately. The returned handle can cancel queued work and wipe
+     * its bytes, or stop a running transcription at the next segment boundary.
+     */
+    fun transcribe(pcm16: ByteArray, callback: (Result<String>) -> Unit): VoiceDecodeRequest {
+        val request = VoiceDecodeRequest(pcm16)
+        worker.execute {
+            if (!request.begin()) return@execute
+            val result = try {
+                runCatching {
+                    require(pcm16.size % 2 == 0 && pcm16.isNotEmpty()) { "No speech was recorded" }
+                    check(!request.isCancelled) { "Dictation was cancelled" }
+                    require(VoiceModelInstaller.isInstalled(context)) { "Install the one-time offline voice model first" }
+                    val rec = requireRecognizer()
+                    val pieces = ArrayList<String>()
+                    for (window in VoiceSegmenter.windows(pcm16)) {
+                        check(!request.isCancelled) { "Dictation was cancelled" }
+                        val samples = FloatArray(window.endExclusive - window.startSample)
+                        try {
+                            for (sampleIndex in samples.indices) {
+                                val byteIndex = (window.startSample + sampleIndex) * 2
+                                val lo = pcm16[byteIndex].toInt() and 0xff
+                                val hi = pcm16[byteIndex + 1].toInt()
+                                samples[sampleIndex] = ((hi shl 8) or lo).toShort().toFloat() / 32_768f
+                            }
+                            val stream = rec.createStream()
+                            try {
+                                stream.acceptWaveform(samples, PrivatePcmBuffer.SAMPLE_RATE)
+                                rec.decode(stream)
+                                pieces += rec.getResult(stream).text.trim()
+                            } finally {
+                                stream.release()
+                            }
+                        } finally {
+                            samples.fill(0f)
+                        }
+                    }
+                    lastUsedAt = SystemClock.elapsedRealtime()
+                    check(!request.isCancelled) { "Dictation was cancelled" }
+                    VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(pieces))
+                }
+            } finally {
+                request.finish()
+            }
+            if (!request.isCancelled) {
+                handler.post { if (!request.isCancelled) callback(result) }
+            }
+            scheduleIdleUnload()
+        }
+        return request
     }
 
     /** Defer unloading while a native decode is active; release runs on the same worker. */
@@ -73,14 +103,8 @@ internal class OfflineVoiceEngine(private val context: Context) {
     }
 
     private fun scheduleIdleUnload() {
-        handler.postDelayed({
-            worker.execute {
-                if (SystemClock.elapsedRealtime() - lastUsedAt >= IDLE_UNLOAD_MS) {
-                    recognizer?.release()
-                    recognizer = null
-                }
-            }
-        }, IDLE_UNLOAD_MS)
+        handler.removeCallbacks(idleUnload)
+        handler.postDelayed(idleUnload, IDLE_UNLOAD_MS)
     }
 
     private fun requireRecognizer(): OfflineRecognizer {

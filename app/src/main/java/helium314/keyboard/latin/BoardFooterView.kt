@@ -331,13 +331,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
-    fun setDictationCancelAvailable(available: Boolean) {
+    fun setDictationCancelAvailable(available: Boolean, offline: Boolean = dictationOffline) {
         val mic = microphone
         if (available && cancelDictationActionId == null) {
             cancelDictationActionId = ViewCompat.addAccessibilityAction(
                 mic, resources.getString(R.string.board_cancel_dictation)
             ) { _, _ ->
-                ime.cancelBoardDictation()
+                if (offline) ime.cancelBoardOfflineDictation() else ime.cancelBoardDictation()
                 true
             }
         } else if (!available) {
@@ -358,10 +358,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     /** Stable footer status; changing state never changes the keyboard's measured height. */
     fun showDictationStatus(message: Int) {
         removeCallbacks(clearVoiceError)
-        val label = resources.getString(message)
+        val blueRecording = message == R.string.board_voice_offline_listening
+        val visibleMessage = if (blueRecording) R.string.board_voice_cancel else message
+        val label = resources.getString(visibleMessage)
         val changed = voiceError.text.toString() != label || voiceError.visibility != VISIBLE
-        configureVoiceStatusAction(message == R.string.board_voice_cancel)
-        voiceError.setText(message)
+        configureVoiceStatusAction(visibleMessage == R.string.board_voice_cancel,
+            offline = blueRecording || dictationOffline)
+        voiceError.setText(visibleMessage)
         voiceError.visibility = VISIBLE
         if (changed) voiceError.announceForAccessibility(label)
     }
@@ -373,12 +376,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     /** The center Cancel label stops and discards recording; a second MIC tap still stops/sends. */
-    private fun configureVoiceStatusAction(cancel: Boolean) {
+    private fun configureVoiceStatusAction(cancel: Boolean, offline: Boolean = false) {
         val status = voiceError
         if (cancel && this::ime.isInitialized) {
             status.setOnClickListener { view ->
                 feedback(view)
-                ime.cancelBoardDictation()
+                if (offline) ime.cancelBoardOfflineDictation() else ime.cancelBoardDictation()
             }
             status.contentDescription = resources.getString(R.string.board_cancel_dictation)
             status.isClickable = true

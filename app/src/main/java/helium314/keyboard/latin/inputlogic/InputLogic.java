@@ -306,7 +306,9 @@ public final class InputLogic {
 
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice) {
-        mRejectedSwipeSkeleton = null; // pasted text cannot confirm a swipe correction
+        // Dictated text must not confirm an unrelated swipe-correction candidate.
+        mRejectedSwipeSkeleton = null;
+        if (fromVoice) mCurrentSwipeSkeleton = null;
         final String rawText = event.getTextToCommit().toString();
         final InputTransaction inputTransaction = new InputTransaction(settingsValues, event,
                 SystemClock.uptimeMillis(), mSpaceState,
@@ -340,7 +342,8 @@ public final class InputLogic {
         mConnection.endBatchEdit();
         // Space state must be updated before calling updateShiftState
         mSpaceState = SpaceState.NONE;
-        mEnteredText = text;
+        // Voice text belongs to the editor, not to a lasting IME field.
+        mEnteredText = fromVoice ? null : text;
         mWordBeingCorrectedByCursor = null;
         inputTransaction.setDidAffectContents();
         inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
