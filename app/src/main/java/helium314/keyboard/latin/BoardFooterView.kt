@@ -47,6 +47,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
     private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
+    private val contextAction get() = findViewById<TextView>(R.id.board_footer_context_action)
     private var popup: PopupWindow? = null
     private val targets = ArrayList<View>()
     private var fadedKeys: View? = null
@@ -56,6 +57,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var micPulse: ObjectAnimator? = null
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
+    private val clearContextActionRunnable = Runnable { clearContextAction() }
+    private var contextActionOwner: Any? = null
+    private var contextActionCallback: (() -> Unit)? = null
     private var selected = -1
     private var tracking = false
     private var downX = 0f
@@ -289,6 +293,48 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         voiceError.visibility = GONE
     }
 
+    /** The footer's center is normally empty: one scoped, short-lived action only. */
+    fun showContextAction(owner: Any, message: Int, action: Int,
+        durationMs: Long = 6_000L, callback: () -> Unit) {
+        clearContextAction()
+        if (!isShown) return
+        contextActionOwner = owner
+        contextActionCallback = callback
+        val colors = Settings.getValues().mColors
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        val chip = contextAction
+        val label = resources.getString(message) + "  ·  " + resources.getString(action)
+        chip.text = label
+        chip.contentDescription = label
+        chip.setTextColor(colors.get(ColorType.KEY_ICON))
+        KeyboardTypeface.applyToTextView(chip)
+        chip.background = rounded(
+            ColorUtils.setAlphaComponent(if (dark) 0xFF41434A.toInt() else 0xFFE4E5E9.toInt(), 228),
+            dp(18).toFloat(),
+            ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_ICON), 32))
+        chip.setOnClickListener { view ->
+            feedback(view)
+            val onSelected = contextActionCallback
+            clearContextAction(owner)
+            onSelected?.invoke()
+        }
+        voiceError.visibility = GONE
+        chip.visibility = VISIBLE
+        chip.alpha = 1f
+        postDelayed(clearContextActionRunnable, FooterContextActionPolicy.durationMs(durationMs))
+    }
+
+    /** Only the original operation can revoke its action after mode changes. */
+    fun clearContextAction(owner: Any? = null) {
+        if (!FooterContextActionPolicy.mayClear(owner, contextActionOwner)) return
+        removeCallbacks(clearContextActionRunnable)
+        contextActionOwner = null
+        contextActionCallback = null
+        val chip = contextAction
+        chip.setOnClickListener(null)
+        chip.visibility = GONE
+    }
+
     private fun startMicPulse() {
         if (micPulse != null) return
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
@@ -318,6 +364,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun reset() {
         clearDictationError()
+        clearContextAction()
         showDictationActive(false)
         showDictationProcessing(false)
         setDictationCancelAvailable(false)

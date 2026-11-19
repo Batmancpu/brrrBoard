@@ -503,6 +503,9 @@
     <string name="board_paste_from_screenshots">Paste from screenshots</string>
     <string name="board_paste_file">Paste file</string>
     <string name="board_toolbar">Toolbar</string>
+    <string name="board_footer_action_removed">Removed</string>
+    <string name="board_footer_action_retry">Voice failed</string>
+    <string name="board_footer_action_retry_label">Retry</string>
     <string name="emoji_search_no_results">No matching emoji</string>
     <string name="emoji_describe_search_hint">Describe an emoji</string>
     <string name="emoji_describe_shortcuts_title">Import emoji search shortcuts</string>

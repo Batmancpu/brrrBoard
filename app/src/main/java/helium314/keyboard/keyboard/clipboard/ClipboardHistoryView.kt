@@ -100,6 +100,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private var undoButton: TextView? = null
     private var lastDismissedEntry: ClipboardHistoryEntry? = null
     private var lastDismissedPosition: Int = -1
+    private val footerUndoOwner = Any()
     private val hideUndoBarRunnable = Runnable { hideUndoBar() }
     private var searchMode = false
     private lateinit var searchHeader: View
@@ -616,6 +617,22 @@ class ClipboardHistoryView @JvmOverloads constructor(
         lastDismissedEntry = entry
         lastDismissedPosition = position
 
+        removeCallbacks(hideUndoBarRunnable)
+        val footer = rootView.findViewById<BoardFooterView>(R.id.board_footer)
+        if (footer != null && footer.isShown) {
+            // The old panel overlay floated above the card grid and sometimes
+            // occluded its live glass. The owner requested the temporary Undo
+            // action in the vacant fixed footer, between ABC and mic.
+            undoBar?.animate()?.cancel()
+            undoBar?.visibility = View.GONE
+            footer.showContextAction(footerUndoOwner,
+                R.string.board_footer_action_removed, R.string.undo) {
+                restoreLastDismissedEntry()
+            }
+            postDelayed(hideUndoBarRunnable, 6_000L)
+            return
+        }
+
         val bar = undoBar ?: return
         val text = undoText
         val button = undoButton
@@ -627,18 +644,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         text?.text = context.getString(R.string.clipboard_clip_deleted)
         button?.setOnClickListener {
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
-            val clipToRestore = lastDismissedEntry
-            val targetPos = lastDismissedPosition
-            if (clipToRestore != null) {
-                val restoredPos = clipboardHistoryManager.restoreEntry(clipToRestore, targetPos)
-                if (restoredPos >= 0) {
-                    clipboardAdapter.notifyItemInserted(restoredPos)
-                    clipboardRecyclerView.smoothScrollToPosition(restoredPos)
-                }
-                lastDismissedEntry = null
-                lastDismissedPosition = -1
-            }
-            hideUndoBar()
+            restoreLastDismissedEntry()
         }
 
         if (bar.visibility != View.VISIBLE) bar.alpha = 0f
@@ -647,12 +653,30 @@ class ClipboardHistoryView @JvmOverloads constructor(
         bar.postDelayed(hideUndoBarRunnable, 10000)
     }
 
+    private fun restoreLastDismissedEntry() {
+        val clip = lastDismissedEntry
+        if (clip != null) {
+            val restoredPos = clipboardHistoryManager.restoreEntry(clip, lastDismissedPosition)
+            if (restoredPos >= 0) {
+                clipboardAdapter.notifyItemInserted(restoredPos)
+                clipboardRecyclerView.smoothScrollToPosition(restoredPos)
+            }
+        }
+        hideUndoBar()
+    }
+
     private fun hideUndoBar() {
+        removeCallbacks(hideUndoBarRunnable)
+        rootView.findViewById<BoardFooterView>(R.id.board_footer)
+            ?.clearContextAction(footerUndoOwner)
+        // The modern footer path intentionally never inflates/displays the
+        // legacy floating bar. Expiry must still discard the clipboard entry
+        // reference even if that optional view was never created.
+        lastDismissedEntry = null
+        lastDismissedPosition = -1
         val bar = undoBar ?: return
         bar.removeCallbacks(hideUndoBarRunnable)
         bar.animate().cancel()
-        lastDismissedEntry = null
-        lastDismissedPosition = -1
         if (bar.visibility == View.VISIBLE) {
             bar.animate().alpha(0f).setDuration(180).withEndAction {
                 bar.visibility = View.GONE

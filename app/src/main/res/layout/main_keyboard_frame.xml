@@ -124,6 +124,25 @@
             android:importantForAccessibility="yes"
             android:visibility="gone" />
 
+        <!-- Normally absent. One ephemeral, owned action in the empty region
+             between the fixed Emoji/ABC and mic buttons. No extra footer row. -->
+        <TextView
+            android:id="@+id/board_footer_context_action"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:maxWidth="230dp"
+            android:minWidth="88dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textSize="12sp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/board_footer_globe"
             android:layout_width="48dp"

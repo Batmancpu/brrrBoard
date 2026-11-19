@@ -2,6 +2,8 @@
 package helium314.keyboard.latin
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InlineVoiceSessionStateTest {
@@ -44,5 +46,15 @@ class InlineVoiceSessionStateTest {
         // Caller enters STARTING only after service checks and recognizer creation succeed.
         assertEquals(InlineVoiceSessionState.Phase.IDLE, state.phase)
         assertEquals(InlineVoiceSessionState.Action.START, state.tap())
+    }
+
+    @Test fun retryChipOnlyForTransientRecognizerFailures() {
+        assertTrue(voiceFailureSupportsRetry(R.string.inline_voice_failure))
+        assertTrue(voiceFailureSupportsRetry(R.string.inline_voice_no_speech))
+        assertTrue(voiceFailureSupportsRetry(R.string.inline_voice_provider_audio_failure))
+        assertFalse(voiceFailureSupportsRetry(R.string.inline_voice_permission))
+        assertFalse(voiceFailureSupportsRetry(R.string.inline_voice_dictate_permission))
+        assertFalse(voiceFailureSupportsRetry(R.string.inline_voice_select_dictate_service))
+        assertFalse(voiceFailureSupportsRetry(R.string.inline_voice_unsupported_language))
     }
 }

@@ -56,6 +56,9 @@ internal class InlineDictation(private val ime: LatinIME) {
         val inputView = root ?: return
         footer = inputView.findViewById(R.id.board_footer)
         footer?.clearDictationError()
+        // Speaking is now the active intent; it supersedes any older Undo
+        // chip and gives the live voice status exclusive center ownership.
+        footer?.clearContextAction()
         val editor = ime.currentInputEditorInfo ?: return
         if (!ime.isInputViewShown || !canDictate(editor) || !Settings.getValues().mShowsVoiceInputKey) return
         val connection = ime.currentInputConnection ?: return
@@ -288,6 +291,15 @@ internal class InlineDictation(private val ime: LatinIME) {
             else -> R.string.board_voice_failed
         }
         statusFooter?.showDictationError(shortHint)
+        // A retry is meaningful for timeouts/transient recognizer/audio
+        // failures. Permission, provider-selection, and language/configuration
+        // errors need deliberate user action elsewhere, not a looping button.
+        if (voiceFailureSupportsRetry(message)) {
+            statusFooter?.showContextAction(this, R.string.board_footer_action_retry,
+                R.string.board_footer_action_retry_label) {
+                ime.toggleBoardDictation()
+            }
+        }
         val duration = if (message == R.string.inline_voice_hindi_result ||
             message == R.string.inline_voice_dictate_permission) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
         Toast.makeText(ime, message, duration).show()
@@ -382,4 +394,12 @@ internal fun recognitionFailureMessage(
         }
     SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> R.string.inline_voice_no_speech
     else -> R.string.inline_voice_failure
+}
+
+/** Only transient recognition failures may show a one-tap footer Retry. */
+internal fun voiceFailureSupportsRetry(message: Int): Boolean = when (message) {
+    R.string.inline_voice_failure,
+    R.string.inline_voice_no_speech,
+    R.string.inline_voice_provider_audio_failure -> true
+    else -> false
 }
