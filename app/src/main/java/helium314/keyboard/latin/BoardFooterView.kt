@@ -67,7 +67,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var downY = 0f
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
-    /** Single taps are confirmed only after the second-tap window has elapsed. */
+    /** Idle single taps wait for the double-tap switch window; an active stop is immediate. */
     private val micGestureDetector = GestureDetector(context,
         object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
@@ -175,6 +175,15 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 MotionEvent.ACTION_DOWN -> view.isPressed = true
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL,
                 MotionEvent.ACTION_POINTER_DOWN -> view.isPressed = false
+            }
+            // Once capture really begins (or transcription is pending), the next tap
+            // stops/cancels without the idle double-tap confirmation delay. A quick
+            // idle double-tap still switches keyboards without ever opening a mic.
+            if (FooterMicTapPolicy.isImmediate(dictationActive, dictationProcessing)) {
+                if (event.actionMasked == MotionEvent.ACTION_UP && micActionAvailable()) {
+                    view.performClick()
+                }
+                return@setOnTouchListener true
             }
             micGestureDetector.onTouchEvent(event)
             true

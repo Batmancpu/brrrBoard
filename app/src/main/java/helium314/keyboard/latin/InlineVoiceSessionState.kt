@@ -2,11 +2,11 @@
 package helium314.keyboard.latin
 
 /**
- * The caller-side lifecycle of one invisible Dictate RecognitionService request.
+ * The caller-side lifecycle of one invisible speech RecognitionService request.
  *
- * Dictate may emit onReadyForSpeech before its recorder has acquired the microphone.
+ * brrSpeak signals ready before brrBoard starts the foreground microphone.
  * Therefore readiness alone must never trigger a pending stop: an early second tap is
- * queued until onBeginningOfSpeech (detected audio activity) or a terminal callback.
+ * queued until AudioRecord confirms capture (or a terminal callback).
  * There is exactly one STOP action per request and a tap while processing cancels.
  */
 internal class InlineVoiceSessionState {
@@ -28,7 +28,7 @@ internal class InlineVoiceSessionState {
         Phase.IDLE -> Action.START
         Phase.STARTING -> {
             // The service can be ready before AudioRecord is initialized. Remember the
-            // user's intent without issuing a premature stop that Dictate may discard.
+            // user's intent without issuing a premature EOF while the sender starts.
             stopOnSpeech = true
             Action.NONE
         }
@@ -39,11 +39,15 @@ internal class InlineVoiceSessionState {
         Phase.PROCESSING -> Action.CANCEL
     }
 
-    fun onBeginningOfSpeech(): Action {
+    fun onAudioCaptureStarted(): Action {
         if (phase != Phase.STARTING) return Action.NONE
         phase = if (stopOnSpeech) Phase.PROCESSING else Phase.LISTENING
         return if (stopOnSpeech) Action.STOP else Action.NONE
     }
+
+    // Older tests/callers used the remote service's speech callback as a proxy for capture.
+    // The brrBoard PCM path instead invokes onAudioCaptureStarted after AudioRecord starts.
+    fun onBeginningOfSpeech(): Action = onAudioCaptureStarted()
 
     fun onEndOfSpeech() {
         if (phase == Phase.STARTING || phase == Phase.LISTENING) {

@@ -25,8 +25,8 @@ class InlineVoiceSessionStateTest {
         assertEquals(InlineVoiceSessionState.Action.NONE, state.tap())
         assertEquals(InlineVoiceSessionState.Action.NONE, state.tap())
         assertEquals(InlineVoiceSessionState.Phase.STARTING, state.phase)
-        assertEquals(InlineVoiceSessionState.Action.STOP, state.onBeginningOfSpeech())
-        assertEquals(InlineVoiceSessionState.Action.NONE, state.onBeginningOfSpeech())
+        assertEquals(InlineVoiceSessionState.Action.STOP, state.onAudioCaptureStarted())
+        assertEquals(InlineVoiceSessionState.Action.NONE, state.onAudioCaptureStarted())
         assertEquals(InlineVoiceSessionState.Phase.PROCESSING, state.phase)
     }
 
