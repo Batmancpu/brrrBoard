@@ -1,0 +1,20 @@
+# Batch 3C — Emoji Browse top-band geometry and focused dead-code cleanup
+
+Owner's latest report: the Emoji browser STILL contains a visible blank band before the fixed category tabs; its emoji rows start too low even after previous attempts to remove an outer strip, move the tabs into the scroll shell and remove the 8dp breathing padding. The Oppo Reno10 video/screenshot for this particular build is not yet attached. Do not claim hardware acceptance from CI.
+
+## Source audit and scoped correction
+
+1. `RoundedKeyboardFrameView.onMeasure` already hides the separate suggestion-strip/persistent-Emoji-row slots when Emoji is visible, and `EmojiPalettesView.attachFixedCategoryStrip` already mounts categories at the top of the same `emoji_grid_shell` used by the pager. `EmojiCategoryPagerAdapter.rowTopPadding` already has zero extra breathing inset. Existing `RoundedKeyboardFrameEmojiHeaderTest` / `EmojiBrowseHeaderMountTest` cover this architecture. Reapplying these changes cannot explain all remaining blank space.
+2. **Additional plausible gap**: `EmojiPalettesView` is bottom-aligned within `KeyboardWrapperView`. The native alphabet's real height is remembered, but `SharedPanelGeometry.retainExistingPanelViewport` only expands Emoji's nominal height when the difference is at most one suggestion-strip height. Device-specific keyboard scale, row and window measurements can exceed that arbitrary cutoff, leaving empty space above the fixed tabs. This was not tested before. In compact Browse, use the **measured typing+strip viewport** whenever it is greater than the nominal height and fits the current parent, even if the delta exceeds one strip. Guard that measurement by the **same observed width**; stale landscape/one-handed or Emoji Search heights cannot expand a portrait browser. Keep expanded/search as separate modes and cap at the height spec.
+3. The Emoji-only `ValueAnimator`/spring/clipping implementation had been disabled with `areHeightAnimationsEnabled() == false`, with no producer ever setting `mBodyHeightChangePending = true`. It was still maintained as a large dead conditional and cleanup pipeline. Remove those dead fields/branches/calls entirely, retaining native Android IME motion; **do not delete `EmojiPanelHeightMotion`**, which Clipboard still uses.
+
+## New gates and device matrix
+
+- `KeyboardViewportHeightMemoryTest` ensures only same-width real typing snapshots can be reused and Emoji Search/hidden alphabet cannot change them.
+- `SharedPanelGeometryTest` ensures compact Browse can match a real same-width native viewport beyond the old 36dp tolerance while rejecting stale/missing/oversized snapshots.
+- Retain existing exact hierarchy and row placement tests. Re-run complete Android debug/unit and original-signed release workflow, B16A/B16B seeds/next-word safety gates and certificate check.
+- On Oppo Reno10 check alphabet→Emoji and Emoji→alphabet in three themes, quick repeated toggles, first Recents row, other categories, Emoji Search→Browse→Alphabet, portrait/landscape/height-scale, persistent quick-Emoji row on/off, expanded Browse, mic/footer, and scroll under the fixed top glass. Specifically look for an empty gap between the editor and category strip and between categories and first real Emoji row.
+
+## Remaining code-audit candidates, not bundled here
+
+`KeyboardSwitcher` repeats panel-hide visibility assignments per transition, but changing their order risks resurrecting stale Search keyboard ownership (the reported missing suggestion strip). Audit in a separately tested, state-machine-style refactor; do not bulk delete. Clipboard currently retains its height animation helper, which needs its own physical/device review. Generic host text Undo/Redo requires keyboard-owned editor transactions. Emoji/Clipboard live blur and cache/performance improvements are separate GPU/physical acceptance work. No new permission, network, native decoder, package ID, signing key, Dictate provider or Clipboard payload persistence in this batch.

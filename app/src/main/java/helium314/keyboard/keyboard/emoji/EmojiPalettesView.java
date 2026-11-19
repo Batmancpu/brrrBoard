@@ -7,9 +7,6 @@
 package helium314.keyboard.keyboard.emoji;
 
 import android.annotation.SuppressLint;
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -18,7 +15,6 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -156,12 +152,6 @@ public final class EmojiPalettesView extends LinearLayout
     private long mSearchGeneration;
     private boolean mSearchResultsPending;
     private int mSearchDisplayedResultCount;
-    private ValueAnimator mHeightMotion;
-    private int mAnimatedBodyHeight = -1;
-    private int mPendingBodyFromHeight = -1;
-    private boolean mBodyHeightChangePending;
-    private boolean mShrinkClipAwaitingLayout;
-    private long mHeightMotionGeneration;
     private int mCurrentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET;
     private LinearLayout mContextSmartSection;
     private LinearLayout mContextSmartRow;
@@ -219,18 +209,18 @@ public final class EmojiPalettesView extends LinearLayout
         int finalHeight = helium314.keyboard.latin.SharedPanelGeometry.panelBodyHeight(
                 abcHeight, emojiRowHeight, accessoryHeight,
                 strip != null && strip.getVisibility() == View.VISIBLE, availableHeight);
-        // The FrameLayout places the Emoji view at the BOTTOM. If the actual
-        // typing key geometry was up to one accessory strip taller than the
-        // nominal ResourceUtils estimate, the missing pixels become a dead band
-        // ABOVE the fixed Emoji tabs. Reconcile only a bounded small difference
-        // against a real typing viewport (never the reparented Search keyboard).
+        // A bottom-aligned Emoji panel shorter than the *actual measured*
+        // alphabet+strip viewport leaves a detached empty region ABOVE its
+        // fixed categories. The prior one-strip-height tolerance still missed
+        // legitimate larger deltas from device/layout scaling. Use an actual
+        // same-width typing snapshot, never a relocated Search keyboard.
         if (!mSearchMode && !mExpandedMode && getParent() instanceof KeyboardWrapperView) {
+            final int panelWidth = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED
+                    ? 0 : MeasureSpec.getSize(widthMeasureSpec);
             final int established = ((KeyboardWrapperView) getParent())
-                    .getLastTypingPanelViewportHeight();
-            final int maxReconciliation = res.getDimensionPixelSize(
-                    R.dimen.config_suggestions_strip_height);
-            finalHeight = helium314.keyboard.latin.SharedPanelGeometry.retainExistingPanelViewport(
-                    finalHeight, established, availableHeight, maxReconciliation);
+                    .getLastTypingPanelViewportHeightForWidth(panelWidth);
+            finalHeight = helium314.keyboard.latin.SharedPanelGeometry.alignCompactEmojiToTypingViewport(
+                    finalHeight, established, availableHeight);
         }
         if (mExpandedMode && !mSearchMode) {
             // Real Expanded Browse, never a lingering Search measurement.
@@ -265,31 +255,8 @@ public final class EmojiPalettesView extends LinearLayout
             mCompactContextPanel = compact;
             updateContextSmartVisibility();
         }
-        // The target geometry is still computed exactly as before. Only an
-        // explicit Browse/Search/Expanded mode change can interpolate toward it;
-        // ordinary relayout, window resize and input keystrokes never animate.
-        if (mBodyHeightChangePending) {
-            mBodyHeightChangePending = false;
-            final int from = mPendingBodyFromHeight;
-            mPendingBodyFromHeight = -1;
-            if (EmojiPanelHeightMotion.canAnimate(from, finalHeight, availableHeight,
-                    isShown(), areHeightAnimationsEnabled())) {
-                // Keep a single measured viewport for the complete motion.
-                // The old implementation ran full IME/pager requestLayout()
-                // on EVERY animation frame, explaining the costly jank risk.
-                // Grow measures its final content once; shrink retains the
-                // larger viewport until the last frame then measures once.
-                mAnimatedBodyHeight = from > finalHeight ? from : -1;
-                final long generation = mHeightMotionGeneration;
-                final int targetHeight = finalHeight;
-                post(() -> launchBodyHeightMotion(from, targetHeight, generation));
-            } else {
-                mAnimatedBodyHeight = -1;
-                setClipBounds(null);
-            }
-        }
-        if (mAnimatedBodyHeight > 0)
-            finalHeight = EmojiPanelHeightMotion.bound(mAnimatedBodyHeight, availableHeight);
+        // Browse/Search/Expand snap to the measured endpoint. Android owns
+        // the IME window animation; no extra spring/clip layer is scheduled.
         super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(finalHeight, MeasureSpec.EXACTLY));
         final int requestedWidth = ResourceUtils.getKeyboardWidth(getContext(), settings)
                 + getPaddingLeft() + getPaddingRight();
@@ -302,93 +269,6 @@ public final class EmojiPalettesView extends LinearLayout
             mEmojiCategoryPageIndicatorView.mWidth = width;
         }
         setMeasuredDimension(width, finalHeight);
-        if (mHeightMotion != null && getClipBounds() != null) {
-            final Rect clip = getClipBounds();
-            setClipBounds(new Rect(0, clip.top, width, finalHeight));
-        }
-    }
-
-    /** Capture the visible height BEFORE changing the mode's child hierarchy. */
-    private void prepareBodyHeightMotion() {
-        // A third-party IME's internal resize fights the host/ColorOS window
-        // transition. Switch directly to the final measured endpoint instead.
-        cancelBodyHeightMotion();
-    }
-
-    @Override protected void onLayout(final boolean changed, final int left, final int top,
-            final int right, final int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-        if (mShrinkClipAwaitingLayout) {
-            // The short-to-tall layer must remain clipped until Android has
-            // committed the ONE new compact measure; clearing it earlier
-            // would expose a full-height flash for one traversal.
-            mShrinkClipAwaitingLayout = false;
-            setClipBounds(null);
-            setClipChildren(false);
-        }
-    }
-
-    private boolean areHeightAnimationsEnabled() {
-        return false; // Internal Emoji height changes always snap; system IME motion remains.
-    }
-
-    private void launchBodyHeightMotion(final int from, final int target, final long generation) {
-        if (generation != mHeightMotionGeneration || !isShown()
-                || !areHeightAnimationsEnabled()) {
-            if (generation == mHeightMotionGeneration) cancelBodyHeightMotion();
-            return;
-        }
-        final int distance = Math.abs(target - from);
-        final boolean growing = target > from;
-        final int renderHeight = Math.max(from, target);
-        setClipChildren(true);
-        setClipBounds(new Rect(0, growing ? distance : 0, getWidth(), renderHeight));
-        final ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-        mHeightMotion = animator;
-        animator.setDuration(EmojiPanelHeightMotion.DURATION_MS);
-        // A bounded, critically damped spring-shaped curve: smooth initial
-        // acceleration and a soft settle, with NO overshoot into the IME host.
-        animator.setInterpolator(EmojiPanelHeightMotion::springProgress);
-        animator.addUpdateListener(animation -> {
-            if (generation != mHeightMotionGeneration) return;
-            final float progress = (float) animation.getAnimatedValue();
-            final int top = EmojiPanelHeightMotion.topClipInset(from, target, progress);
-            setClipBounds(new Rect(0, top, getWidth(), renderHeight));
-        });
-        animator.addListener(new AnimatorListenerAdapter() {
-            @Override public void onAnimationEnd(final Animator animation) {
-                if (generation != mHeightMotionGeneration) return;
-                mHeightMotion = null;
-                mAnimatedBodyHeight = -1;
-                if (growing) {
-                    setClipBounds(null);
-                    setClipChildren(false);
-                } else {
-                    mShrinkClipAwaitingLayout = true;
-                    requestLayout();
-                }
-            }
-        });
-        animator.start();
-    }
-
-    private void cancelBodyHeightMotion() {
-        ++mHeightMotionGeneration;
-        mBodyHeightChangePending = false;
-        mPendingBodyFromHeight = -1;
-        mAnimatedBodyHeight = -1;
-        mShrinkClipAwaitingLayout = false;
-        setClipBounds(null);
-        setClipChildren(false);
-        if (mHeightMotion != null) {
-            mHeightMotion.cancel();
-            mHeightMotion = null;
-        }
-    }
-
-    @Override protected void onDetachedFromWindow() {
-        cancelBodyHeightMotion();
-        super.onDetachedFromWindow();
     }
 
     private void addTab(final LinearLayout host, final int categoryId) {
@@ -429,10 +309,8 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mPager = findViewById(R.id.emoji_pager);
-        // Reuse the next TWO categories during rapid horizontal swipes. The
-        // height spring no longer remeasures the full pager on every frame,
-        // so keeping this small bounded neighboring cache avoids allocating
-        // a new RecyclerView while the owner's finger is still dragging.
+        // Reuse the next TWO categories during rapid horizontal swipes;
+        // bounded neighboring cache avoids RecyclerView allocations mid-drag.
         mPager.setOffscreenPageLimit(2);
         mCategoryScrollRows.put(mEmojiCategory.getCurrentCategoryId(),
                 mEmojiCategory.getCurrentCategoryPageId() * Math.max(1, mEmojiCategory.getRowsPerPage()));
@@ -775,7 +653,6 @@ public final class EmojiPalettesView extends LinearLayout
     public void startEmojiPalettes(final KeyVisualAttributes keyVisualAttr,
                final EditorInfo editorInfo, final KeyboardActionListener keyboardActionListener) {
         initialize();
-        cancelBodyHeightMotion();
         // A new Emoji session always starts compact; expansion is user-driven.
         mExpandedMode = false;
         updateContextSmartVisibility();
@@ -829,7 +706,6 @@ public final class EmojiPalettesView extends LinearLayout
             focusSearchField(true);
             return;
         }
-        prepareBodyHeightMotion();
         // Capture only eligible text from the HOST editor, before focusing the
         // keyboard's own Search EditText. Never persist or log that text.
         final String hostContext = mSearchQuery.isBlank() ? prepareSearchIdleSuggestions() : "";
@@ -928,7 +804,6 @@ public final class EmojiPalettesView extends LinearLayout
         if (!mSearchMode && !clearQuery) {
             return;
         }
-        if (restoreViews && mSearchMode) prepareBodyHeightMotion();
         if (clearQuery) {
             setSearchText("", 0);
         }
@@ -1020,12 +895,7 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void collapseExpandedBrowse() {
-        collapseExpandedBrowse(true);
-    }
-
-    private void collapseExpandedBrowse(final boolean animate) {
         if (!mExpandedMode || mSearchMode) return;
-        if (animate) prepareBodyHeightMotion();
         mExpandedMode = false;
         updateContextSmartVisibility();
         if (mSearchBarContainer != null) mSearchBarContainer.setVisibility(View.GONE);
@@ -1055,7 +925,7 @@ public final class EmojiPalettesView extends LinearLayout
         // Opacity fades previously ran at the same time as the springing panel
         // height, momentarily exposing the host backdrop and causing a bright
         // pulse/glow on Search, Expand and Return-to-Browse transitions.
-        // Change content immediately; the single height spring owns motion.
+        // Change content immediately; Android owns the IME window motion.
         view.setAlpha(1f);
         view.setVisibility(View.VISIBLE);
     }
@@ -2100,7 +1970,6 @@ public final class EmojiPalettesView extends LinearLayout
     public void stopEmojiPalettes() {
         if (!initialized) return;
 
-        cancelBodyHeightMotion();
 
         ++mSearchGeneration;
         EmojiDescribeEngine.get().cancelPending();
@@ -2108,7 +1977,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchMode) {
             exitSearchMode(false, false);
         }
-        collapseExpandedBrowse(false);
+        collapseExpandedBrowse();
         getRecentsKeyboard().flushPendingRecentKeys();
         // Never retain even a reviewed trigger or selection across editors.
         mHasContextSmartPicks = false;

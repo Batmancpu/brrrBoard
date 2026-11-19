@@ -41,6 +41,10 @@ class KeyboardWrapperView @JvmOverloads constructor(
     /** Last native typing body + its real outer strip, excluding the shared footer. */
     fun getLastTypingPanelViewportHeight(): Int = typingViewportMemory.lastTypingHeight
 
+    /** A panel may only adopt real typing geometry recorded at the same width. */
+    fun getLastTypingPanelViewportHeightForWidth(viewportWidth: Int): Int =
+        typingViewportMemory.heightForWidth(viewportWidth)
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val alphabet = findViewById<View>(R.id.keyboard_view)
@@ -49,10 +53,10 @@ class KeyboardWrapperView @JvmOverloads constructor(
             // EmojiPalettesView. Never let its temporary Search geometry replace
             // the last real typing viewport; that made Browse vary after Search.
             val nativeTyping = alphabet.parent === this && alphabet.visibility == View.VISIBLE
-            typingHeightMemory.observe(alphabet.measuredHeight, nativeTyping)
+            typingHeightMemory.observe(alphabet.measuredHeight, nativeTyping, measuredWidth)
             val strip = rootView.findViewById<View>(R.id.strip_container)
             val stripHeight = if (strip?.visibility == View.VISIBLE) strip.measuredHeight else 0
-            typingViewportMemory.observe(alphabet.measuredHeight + stripHeight, nativeTyping)
+            typingViewportMemory.observe(alphabet.measuredHeight + stripHeight, nativeTyping, measuredWidth)
         }
     }
 

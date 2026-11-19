@@ -8,6 +8,25 @@ package helium314.keyboard.latin
  */
 object SharedPanelGeometry {
     /**
+     * Native typing geometry wins over the nominal resource calculation for
+     * same-width compact Emoji Browse. A fixed 36dp tolerance was insufficient
+     * when row scaling/ColorOS measured a larger native alphabet viewport:
+     * bottom-gravity then left the difference empty ABOVE the category tabs.
+     * The caller has already checked width; never enlarge beyond parent space.
+     */
+    @JvmStatic
+    fun alignCompactEmojiToTypingViewport(
+        nominalPx: Int,
+        sameWidthTypingViewportPx: Int,
+        availableBodyPx: Int,
+    ): Int {
+        val limit = availableBodyPx.coerceAtLeast(0)
+        val normal = nominalPx.coerceIn(0, limit)
+        val measured = sameWidthTypingViewportPx.coerceAtLeast(0)
+        return if (measured > normal && measured <= limit) measured else normal
+    }
+
+    /**
      * Expanded Emoji is an explicit, reversible browse mode. A transition
      * through Search must never silently turn compact Browse into this size.
      * The requested growth includes the 48dp toolbar shown in expanded mode;

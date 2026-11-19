@@ -5,6 +5,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SharedPanelGeometryTest {
+    @Test fun compactEmojiAdoptsSameWidthTypingViewportEvenBeyondFormerStripTolerance() {
+        assertEquals(492, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 492, 550))
+        assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 0, 550))
+        assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 700, 550))
+        assertEquals(380, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 350, 550))
+        assertEquals(400, SharedPanelGeometry.alignCompactEmojiToTypingViewport(380, 492, 400))
+    }
+
     @Test fun emojiAndClipboardHaveIdenticalHeightForIdenticalShell() {
         val emoji = SharedPanelGeometry.panelBodyHeight(642, 64, 108, false, 1100)
         val clipboard = SharedPanelGeometry.panelBodyHeight(642, 64, 108, false, 1100)

@@ -8,8 +8,16 @@ package helium314.keyboard.latin
 class KeyboardViewportHeightMemory {
     var lastTypingHeight: Int = 0
         private set
+    private var lastTypingWidth: Int = 0
 
-    fun observe(measuredHeight: Int, typingVisible: Boolean) {
-        if (typingVisible && measuredHeight > 0) lastTypingHeight = measuredHeight
+    fun observe(measuredHeight: Int, typingVisible: Boolean, viewportWidth: Int = 0) {
+        if (typingVisible && measuredHeight > 0) {
+            lastTypingHeight = measuredHeight
+            lastTypingWidth = viewportWidth
+        }
     }
+
+    /** Reject portrait/landscape or one-handed snapshots with different widths. */
+    fun heightForWidth(viewportWidth: Int): Int =
+        if (viewportWidth > 0 && viewportWidth == lastTypingWidth) lastTypingHeight else 0
 }

@@ -16,4 +16,16 @@ class KeyboardViewportHeightMemoryTest {
         cache.observe(648, true)
         assertEquals(648, cache.lastTypingHeight)
     }
+
+    @Test fun staleScreenWidthCannotExpandEmojiBrowseAfterRotationOrResize() {
+        val cache = KeyboardViewportHeightMemory()
+        cache.observe(810, true, 1080)
+        assertEquals(810, cache.heightForWidth(1080))
+        assertEquals(0, cache.heightForWidth(900))
+        assertEquals(0, cache.heightForWidth(0))
+        cache.observe(600, true, 900)
+        cache.observe(1010, false, 900)
+        assertEquals(0, cache.heightForWidth(1080))
+        assertEquals(600, cache.heightForWidth(900))
+    }
 }
