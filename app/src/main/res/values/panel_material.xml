@@ -8,6 +8,8 @@
     <dimen name="panel_content_top_inset">54dp</dimen>
     <dimen name="panel_content_bottom_extra">10dp</dimen>
     <dimen name="panel_toolbar_content_top_inset">50dp</dimen>
-    <dimen name="panel_toolbar_content_bottom_inset">56dp</dimen>
+    <!-- The shared ABC/mic footer already owns the glass. A second 56dp
+         content spacer presented as an empty blur bar above its boundary. -->
+    <dimen name="panel_toolbar_content_bottom_inset">12dp</dimen>
     <dimen name="panel_card_radius">13dp</dimen>
 </resources>

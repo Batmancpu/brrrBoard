@@ -55,8 +55,15 @@ public final class ToolbarGlassFrameLayout extends FrameLayout {
             // never beneath the footer; the title keeps its live top fade.
             final int bottom = bottomGlass != null && bottomGlass.getVisibility() == View.VISIBLE
                     ? bottomGlass.getTop() : getHeight();
-            canvas.clipRect(0, topGlass.getBottom(), getWidth(),
-                    Math.max(topGlass.getBottom(), bottom));
+            // The blur ramp is taller than the fixed 46dp toolbar title. If
+            // sharp tiles are clipped at the *ramp* bottom (72dp), the first
+            // row starts at 50dp and loses its leading 22dp permanently.
+            // Clip only beneath the solid title; the live overlay blurs the
+            // remaining pixels naturally while they scroll under its fade.
+            final View title = findViewById(R.id.access_point_title);
+            final int titleBottom = title != null ? title.getBottom() : topGlass.getBottom();
+            canvas.clipRect(0, titleBottom, getWidth(),
+                    Math.max(titleBottom, bottom));
             return super.drawChild(canvas, child, drawingTime);
         } finally {
             canvas.restoreToCount(saved);

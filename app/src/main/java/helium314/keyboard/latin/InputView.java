@@ -42,6 +42,7 @@ public final class InputView extends FrameLayout {
     private final int[] mStripLocation = new int[2];
     private boolean mMayDragToolbar;
     private boolean mDraggingToolbar;
+    private boolean mDraggingExpandedToolbar;
     private float mToolbarDownX;
     private float mToolbarDownY;
     private VelocityTracker mToolbarVelocity;
@@ -76,6 +77,7 @@ public final class InputView extends FrameLayout {
     public void resetBoardGesture() {
         mMayDragToolbar = false;
         mDraggingToolbar = false;
+        mDraggingExpandedToolbar = false;
         releaseToolbarVelocity();
         mFooter.reset();
     }
@@ -86,18 +88,27 @@ public final class InputView extends FrameLayout {
         if (action == MotionEvent.ACTION_DOWN) {
             releaseToolbarVelocity();
             mDraggingToolbar = false;
+            mDraggingExpandedToolbar = false;
             mToolbarDownX = event.getRawX();
             mToolbarDownY = event.getRawY();
-            mMayDragToolbar = mOwner != null && mSuggestionStrip.isShown()
+            final View expandedToolbar = findViewById(R.id.access_point_menu_view);
+            mDraggingExpandedToolbar = expandedToolbar != null && expandedToolbar.isShown();
+            final View swipeArea = mDraggingExpandedToolbar ? expandedToolbar : mSuggestionStrip;
+            final View toolbarScroll = mDraggingExpandedToolbar
+                    ? findViewById(R.id.access_point_scroll) : null;
+            mMayDragToolbar = mOwner != null && swipeArea != null && swipeArea.isShown()
                     && Settings.getValues().mToolbarSwipeDownToHide
                     && !AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
-                    && !KeyboardSwitcher.getInstance().isResizeModeActive();
+                    && !KeyboardSwitcher.getInstance().isResizeModeActive()
+                    // Scrollable toolbar tiles get first refusal until the list
+                    // reaches the top. A pull from any region can then dismiss.
+                    && (toolbarScroll == null || !toolbarScroll.canScrollVertically(-1));
             if (mMayDragToolbar) {
-                mSuggestionStrip.getLocationOnScreen(mStripLocation);
+                swipeArea.getLocationOnScreen(mStripLocation);
                 final float x = mToolbarDownX - mStripLocation[0];
                 final float y = mToolbarDownY - mStripLocation[1];
-                mMayDragToolbar = x >= 0 && x < mSuggestionStrip.getWidth()
-                        && y >= 0 && y < mSuggestionStrip.getHeight();
+                mMayDragToolbar = x >= 0 && x < swipeArea.getWidth()
+                        && y >= 0 && y < swipeArea.getHeight();
                 if (mMayDragToolbar) {
                     mToolbarVelocity = VelocityTracker.obtain();
                     mToolbarVelocity.addMovement(event);
@@ -140,8 +151,12 @@ public final class InputView extends FrameLayout {
                 // A deliberate slow pull still travels halfway. A quick downward
                 // flick can dismiss sooner without the abrupt reset seen on device.
                 final float flingVelocity = 850f * getResources().getDisplayMetrics().density;
+                final float heightThreshold = mDraggingExpandedToolbar
+                        ? Math.min(mBoardFrame.getHeight() * 0.5f,
+                                96f * getResources().getDisplayMetrics().density)
+                        : mBoardFrame.getHeight() * 0.5f;
                 final boolean dismiss = action == MotionEvent.ACTION_UP &&
-                        (distance >= mBoardFrame.getHeight() * 0.5f ||
+                        (distance >= heightThreshold ||
                         (distance >= ViewConfiguration.get(getContext()).getScaledTouchSlop() * 2
                                 && velocity > flingVelocity));
                 releaseToolbarVelocity();

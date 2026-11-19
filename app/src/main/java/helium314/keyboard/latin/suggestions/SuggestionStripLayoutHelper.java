@@ -43,7 +43,9 @@ import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Colors;
 import helium314.keyboard.latin.settings.Settings;
+import helium314.keyboard.latin.settings.Defaults;
 import helium314.keyboard.latin.settings.SettingsValues;
+import helium314.keyboard.latin.utils.KtxKt;
 import helium314.keyboard.latin.utils.ResourceUtils;
 import helium314.keyboard.latin.utils.ViewLayoutUtils;
 
@@ -670,18 +672,37 @@ final class SuggestionStripLayoutHelper {
                 && centerSuggestionIndex == SuggestedWords.INDEX_OF_AUTO_CORRECTION;
     }
 
-    // Text-driven, neutral mauve contrast tones: the pill is neither a keyboard-wide
-    // theme tint nor a new confidence/ranking decision.
+    // The owner prefers predictable neutral gray over the old hard-coded mauve.
+    // This is purely a visual choice, never a confidence/ranking decision.
     static int confidencePillColor(final int textColor) {
         final int opaqueText = ColorUtils.setAlphaComponent(textColor, 255);
         final boolean lightText = ColorUtils.calculateLuminance(opaqueText) >= 0.18;
-        final int mauve = lightText ? Color.rgb(125, 97, 123) : Color.rgb(216, 195, 212);
-        // Custom suggestion text shades may be medium gray, not pure black/white.
-        // In that case prefer legibility over decorative tint.
-        if (ColorUtils.calculateContrast(opaqueText, mauve) < 4.5) {
-            return lightText ? Color.rgb(33, 26, 33) : Color.rgb(252, 249, 252);
+        final int gray = lightText ? Color.rgb(68, 68, 68) : Color.rgb(220, 220, 220);
+        if (ColorUtils.calculateContrast(opaqueText, gray) < 4.5) {
+            return lightText ? Color.rgb(30, 30, 30) : Color.rgb(250, 250, 250);
         }
-        return mauve;
+        return gray;
+    }
+
+    static int confidencePillColor(final int textColor, final boolean matchThemeTint,
+            final int themeTint) {
+        final int neutral = confidencePillColor(textColor);
+        if (!matchThemeTint) return neutral;
+        final int text = ColorUtils.setAlphaComponent(textColor, 255);
+        final int tint = ColorUtils.setAlphaComponent(themeTint, 255);
+        if (ColorUtils.calculateContrast(text, tint) >= 4.5) return tint;
+        // Preserve the chosen Apple/material accent HUE. Lighten or darken only
+        // as much as necessary for the existing white/black suggestion glyph.
+        final float[] hsl = new float[3];
+        ColorUtils.colorToHSL(tint, hsl);
+        final boolean lightText = ColorUtils.calculateLuminance(text) >= 0.18;
+        for (int step = 0; step < 32; step++) {
+            hsl[2] = Math.max(0f, Math.min(1f,
+                    hsl[2] + (lightText ? -0.025f : 0.025f)));
+            final int candidate = ColorUtils.HSLToColor(hsl);
+            if (ColorUtils.calculateContrast(text, candidate) >= 4.5) return candidate;
+        }
+        return neutral;
     }
 
     private int getConfidencePillHorizontalInset(final int width) {
@@ -698,7 +719,12 @@ final class SuggestionStripLayoutHelper {
     private Drawable createConfidencePillBackground() {
         final GradientDrawable background = new GradientDrawable();
         background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(confidencePillColor(mColorAutoCorrect));
+        final Context context = mWordViews.get(0).getContext();
+        final boolean useTint = KtxKt.prefs(context).getBoolean(
+                Settings.PREF_CONFIDENT_SUGGESTION_MATCH_TINT,
+                Defaults.PREF_CONFIDENT_SUGGESTION_MATCH_TINT);
+        background.setColor(confidencePillColor(mColorAutoCorrect, useTint,
+                Settings.getValues().mColors.get(ColorType.ACTION_KEY_BACKGROUND)));
         background.setCornerRadius(mSuggestionsStripHeight / 2.0f);
         return background;
     }

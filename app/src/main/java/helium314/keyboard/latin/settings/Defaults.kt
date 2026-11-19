@@ -66,6 +66,7 @@ object Defaults {
     const val PREF_AUTOCORRECT_SHORTCUTS = true
     const val PREF_BACKSPACE_REVERTS_AUTOCORRECT = true
     const val PREF_CENTER_SUGGESTION_TEXT_TO_ENTER = true
+    const val PREF_CONFIDENT_SUGGESTION_MATCH_TINT = false
     const val PREF_SHOW_SUGGESTIONS = true
     const val PREF_ALWAYS_SHOW_SUGGESTIONS = true
     const val PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = false

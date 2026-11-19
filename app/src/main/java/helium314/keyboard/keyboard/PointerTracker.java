@@ -1163,6 +1163,16 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         }
         sListener.onLongPressKey(key.getCode());
         final int code = key.getCode();
+        if (code == KeyCode.SYMBOL_ALPHA) {
+            // Press normally opens Symbols immediately. A held 123 should
+            // instead open the actual large numpad, with a clean return to
+            // alphabet on exit. Stop tracking the original Symbols key so
+            // its eventual finger-up cannot switch the keyboard back.
+            cancelKeyTracking();
+            sListener.onReleaseKey(code, false);
+            sListener.toggleNumpad(false, true);
+            return;
+        }
         if (key.getCode() == Constants.CODE_SPACE && mKeySwipeAllowed
                 && Settings.getValues().mSpaceSwipeVertical == KeyboardActionListener.SwipeAction.TOUCHPAD_MODE) {
             setReleasedKeyGraphics(key, false);

@@ -33,5 +33,9 @@ class ToolbarPanelCompositionTest {
         assertEquals(panel, scroll.parent)
         assertTrue(panel.indexOfChild(scroll) < panel.indexOfChild(header))
         assertTrue(panel.indexOfChild(scroll) < panel.indexOfChild(footer))
+        // The real ABC/mic footer owns the live lower glass. The scrolling
+        // toolbar must not reserve another full-width 56dp dead strip above it.
+        assertTrue(scroll.paddingBottom < context.resources.getDimensionPixelSize(
+            R.dimen.panel_bottom_glass_height))
     }
 }

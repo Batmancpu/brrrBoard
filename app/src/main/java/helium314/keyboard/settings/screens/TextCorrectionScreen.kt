@@ -83,6 +83,7 @@ fun TextCorrectionScreen(
         if (suggestionsEnabled && prefs.getBoolean(Settings.PREF_ALWAYS_SHOW_SUGGESTIONS, Defaults.PREF_ALWAYS_SHOW_SUGGESTIONS))
             Settings.PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT else null,
         if (suggestionsEnabled) Settings.PREF_CENTER_SUGGESTION_TEXT_TO_ENTER else null,
+        if (suggestionsEnabled) Settings.PREF_CONFIDENT_SUGGESTION_MATCH_TINT else null,
         if (suggestionsEnabled) Settings.PREF_USE_5_WORD_SUGGESTION_CHIPS else null,
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_SUGGEST_EMOJIS else null,
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_INLINE_EMOJI_SEARCH else null,
@@ -250,6 +251,13 @@ fun createCorrectionSettings(context: Context) = listOf(
         R.string.center_suggestion_text_to_enter, R.string.center_suggestion_text_to_enter_summary
     ) {
         SwitchPreference(it, Defaults.PREF_CENTER_SUGGESTION_TEXT_TO_ENTER)
+    },
+    Setting(context, Settings.PREF_CONFIDENT_SUGGESTION_MATCH_TINT,
+        R.string.confident_suggestion_match_tint, R.string.confident_suggestion_match_tint_summary
+    ) {
+        SwitchPreference(it, Defaults.PREF_CONFIDENT_SUGGESTION_MATCH_TINT) {
+            KeyboardSwitcher.getInstance().setThemeNeedsReload()
+        }
     },
     Setting(context, Settings.PREF_USE_5_WORD_SUGGESTION_CHIPS,
         R.string.use_5_word_suggestion_chips, R.string.use_5_word_suggestion_chips_summary
