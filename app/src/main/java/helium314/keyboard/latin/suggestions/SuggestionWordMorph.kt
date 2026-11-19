@@ -28,10 +28,15 @@ import kotlin.math.min
 internal class SuggestionWordMorph(private val owner: ViewGroup) {
     data class Frame(val labels: List<String?>, val centerConfidence: Boolean, val centerPillWidth: Float)
 
-    private class SettlingInkSpan(var progress: Float) : CharacterStyle(), UpdateAppearance {
+    private class SettlingInkSpan(var progress: Float, private val iosMotion: Boolean) : CharacterStyle(), UpdateAppearance {
         override fun updateDrawState(paint: TextPaint) {
-            // Always one legible copy of the new text, never a faded outgoing word.
-            paint.alpha = (paint.alpha * (.74f + .26f * progress)).toInt()
+            // iOS-inspired: settle the actual glyph ink horizontally, WITHOUT
+            // opacity ghosts. Previous Default retains the shipped subtle fade.
+            if (iosMotion) {
+                paint.textScaleX *= .985f + .015f * progress
+            } else {
+                paint.alpha = (paint.alpha * (.74f + .26f * progress)).toInt()
+            }
         }
     }
 
@@ -61,7 +66,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
             if (!view.isShown || view.text.isNullOrBlank()) continue
             val range = SuggestionGlyphDiff.changedRange(previous.labels.getOrNull(index), view.text)
                 ?: continue
-            val span = SettlingInkSpan(0f)
+            val span = SettlingInkSpan(0f, KeyboardMotionSpec.isIos27(owner.context))
             val scale = view.textScaleX
             val styled = SpannableStringBuilder(view.text)
             styled.setSpan(span, range.start, range.endExclusive, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

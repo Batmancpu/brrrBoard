@@ -52,6 +52,7 @@ fun AppearanceScreen(
     val isFrostedActive = helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(ctx)
     val items = listOf(
         R.string.settings_screen_theme,
+        Settings.PREF_MOTION_PROFILE,
         Settings.PREF_THEME_ACTION_TINT,
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
@@ -101,6 +102,17 @@ fun AppearanceScreen(
 }
 
 fun createAppearanceSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_MOTION_PROFILE, R.string.motion_profile_title,
+        R.string.motion_profile_summary) { setting ->
+        ListPreference(
+            setting,
+            listOf(
+                stringResource(R.string.motion_profile_ios27) to "ios27",
+                stringResource(R.string.motion_profile_previous) to "previous_default"
+            ),
+            Defaults.PREF_MOTION_PROFILE
+        ) { KeyboardSwitcher.getInstance().reloadKeyboard() }
+    },
     Setting(context, Settings.PREF_EMOJI_GLASS_TONE,
         R.string.emoji_glass_tone_title, R.string.emoji_glass_tone_summary) {
         SwitchPreference(it, Defaults.PREF_EMOJI_GLASS_TONE) {

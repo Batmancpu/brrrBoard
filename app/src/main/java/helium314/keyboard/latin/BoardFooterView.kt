@@ -427,7 +427,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             chip.scaleX = 0.95f
             chip.scaleY = 0.95f
             chip.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                .setDuration(KeyboardMotionSpec.FOOTER_ACTION_MS).start()
+                .setDuration(if (KeyboardMotionSpec.isIos27(context)) 175L
+                    else KeyboardMotionSpec.FOOTER_ACTION_MS).start()
         } else {
             chip.alpha = 1f
             chip.scaleX = 1f

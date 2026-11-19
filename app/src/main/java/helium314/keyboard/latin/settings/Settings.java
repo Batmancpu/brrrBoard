@@ -59,6 +59,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_ICON_STYLE = "icon_style";
     public static final String PREF_THEME_COLORS = "theme_colors";
     public static final String PREF_THEME_COLORS_NIGHT = "theme_colors_night";
+    // Independent of the glass/color theme: changes only touch and content choreography.
+    public static final String PREF_MOTION_PROFILE = "keyboard_motion_profile";
     public static final String PREF_THEME_ACTION_TINT = "theme_action_tint";
     public static final String PREF_THEME_KEY_BORDERS = "theme_key_borders";
     public static final String PREF_THEME_DAY_NIGHT = "theme_auto_day_night";

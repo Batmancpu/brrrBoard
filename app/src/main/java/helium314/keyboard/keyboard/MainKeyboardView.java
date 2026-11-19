@@ -22,6 +22,7 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
+import android.os.SystemClock;
 import android.os.Trace;
 import android.util.AttributeSet;
 import android.view.ContextThemeWrapper;
@@ -55,6 +56,7 @@ import helium314.keyboard.keyboard.internal.SlidingKeyInputDrawingPreview;
 import helium314.keyboard.keyboard.internal.TimerHandler;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.R;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.SuggestedWords;
 import helium314.keyboard.latin.common.ColorType;
@@ -71,6 +73,9 @@ import helium314.keyboard.latin.utils.Log;
 import helium314.keyboard.latin.utils.TypefaceUtils;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 import java.util.WeakHashMap;
@@ -114,6 +119,93 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     // Key preview
     private final KeyPreviewDrawParams mKeyPreviewDrawParams;
     private final KeyPreviewChoreographer mKeyPreviewChoreographer;
+
+    /** Draw-only press motion; key geometry and touch hitboxes never move. */
+    private static final class KeyPressMotion {
+        final float from;
+        final float to;
+        final long started;
+        final long duration;
+
+        KeyPressMotion(final float from, final float to, final long started, final long duration) {
+            this.from = from;
+            this.to = to;
+            this.started = started;
+            this.duration = Math.max(1L, duration);
+        }
+
+        float value(final long now) {
+            final float progress = Math.max(0f, Math.min(1f, (now - started) / (float)duration));
+            final float eased = 1f - (1f - progress) * (1f - progress) * (1f - progress);
+            return from + (to - from) * eased;
+        }
+
+        boolean finished(final long now) { return now - started >= duration; }
+    }
+
+    private final IdentityHashMap<Key, KeyPressMotion> mKeyPressMotions = new IdentityHashMap<>();
+    private boolean mTrackpadVisualMode;
+
+    /** Match the iPhone's temporarily unlabelled trackpad without moving hitboxes. */
+    public void setTrackpadVisualMode(final boolean active) {
+        final boolean next = active && KeyboardMotionSpec.isIos27(getContext());
+        if (mTrackpadVisualMode == next) return;
+        mTrackpadVisualMode = next;
+        mKeyPressMotions.clear();
+        invalidateAllKeys();
+    }
+
+    private void startKeyPressMotion(final Key key, final boolean pressed) {
+        if (!KeyboardMotionSpec.enabled() || !KeyboardMotionSpec.isIos27(getContext())) return;
+        final long now = SystemClock.uptimeMillis();
+        final KeyPressMotion current = mKeyPressMotions.get(key);
+        final float from = current == null ? (pressed ? 0f : 1f) : current.value(now);
+        mKeyPressMotions.put(key, new KeyPressMotion(from, pressed ? 1f : 0f, now,
+                pressed ? KeyboardMotionSpec.keyDownMillis(getContext())
+                        : KeyboardMotionSpec.keyUpMillis(getContext())));
+        invalidateKey(key);
+        postInvalidateOnAnimation();
+    }
+
+    private float keyPressScale(final Key key) {
+        final KeyPressMotion motion = mKeyPressMotions.get(key);
+        if (motion == null) return 1f;
+        return 1f - .018f * motion.value(SystemClock.uptimeMillis());
+    }
+
+    @Override
+    protected void onDraw(@NonNull final Canvas canvas) {
+        final long now = SystemClock.uptimeMillis();
+        final Iterator<Map.Entry<Key, KeyPressMotion>> iterator = mKeyPressMotions.entrySet().iterator();
+        while (iterator.hasNext()) {
+            final Map.Entry<Key, KeyPressMotion> entry = iterator.next();
+            invalidateKey(entry.getKey());
+            if (entry.getValue().finished(now)) iterator.remove();
+        }
+        super.onDraw(canvas);
+        if (!mKeyPressMotions.isEmpty()) postInvalidateOnAnimation();
+    }
+
+    @Override
+    protected void onDrawKeyBackground(@NonNull final Key key, @NonNull final Canvas canvas,
+            @NonNull final android.graphics.drawable.Drawable background) {
+        final float scale = keyPressScale(key);
+        canvas.save();
+        canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
+        super.onDrawKeyBackground(key, canvas, background);
+        canvas.restore();
+    }
+
+    @Override
+    protected void onDrawKeyTopVisuals(@NonNull final Key key, @NonNull final Canvas canvas,
+            @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
+        if (mTrackpadVisualMode) return;
+        final float scale = keyPressScale(key);
+        canvas.save();
+        canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
+        super.onDrawKeyTopVisuals(key, canvas, paint, params);
+        canvas.restore();
+    }
 
     // More keys keyboard
     private final Paint mBackgroundDimAlphaPaint = new Paint(); // todo: not used at all
@@ -211,7 +303,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         mGestureFloatingTextDrawingPreview = new GestureFloatingTextDrawingPreview(mainKeyboardViewAttr);
         mGestureFloatingTextDrawingPreview.setDrawingView(drawingPreviewPlacerView);
 
-        mGestureTrailsDrawingPreview = new GestureTrailsDrawingPreview(mainKeyboardViewAttr);
+        mGestureTrailsDrawingPreview = new GestureTrailsDrawingPreview(mainKeyboardViewAttr, context);
         mGestureTrailsDrawingPreview.setDrawingView(drawingPreviewPlacerView);
 
         mSlidingKeyInputDrawingPreview = new SlidingKeyInputDrawingPreview(mainKeyboardViewAttr);
@@ -323,6 +415,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     private void setKeyboardInternal(@NonNull final Keyboard keyboard, final boolean requestLayout) {
+        mKeyPressMotions.clear();
+        mTrackpadVisualMode = false;
         Trace.beginSection(requestLayout
                 ? "MainKeyboardView#setKeyboard" : "MainKeyboardView#setKeyboardForCase");
         try {
@@ -440,6 +534,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     public void onKeyPressed(@NonNull final Key key, final boolean withPreview) {
         key.onPressed();
+        startKeyPressMotion(key, true);
         invalidateKey(key);
 
         final Keyboard keyboard = getKeyboard();
@@ -485,6 +580,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     public void onKeyReleased(@NonNull final Key key, final boolean withAnimation) {
         key.onReleased();
+        startKeyPressMotion(key, false);
         invalidateKey(key);
         if (key.hasPreview()) {
             if (withAnimation) {

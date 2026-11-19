@@ -141,10 +141,17 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             return latinIME.showInputPickerDialog()
         }
         if (requestCode == Constants.CODE_TOUCHPAD_ON) {
-            keyboardSwitcher.mainKeyboardView?.alpha = 0.5f
+            val view = keyboardSwitcher.mainKeyboardView
+            if (view != null && helium314.keyboard.latin.KeyboardMotionSpec.isIos27(view.context)) {
+                view.alpha = 1f
+                view.setTrackpadVisualMode(true)
+            } else {
+                view?.alpha = 0.5f
+            }
             return true
         }
         if (requestCode == Constants.CODE_TOUCHPAD_OFF) {
+            keyboardSwitcher.mainKeyboardView?.setTrackpadVisualMode(false)
             keyboardSwitcher.mainKeyboardView?.alpha = 1.0f
             return true
         }

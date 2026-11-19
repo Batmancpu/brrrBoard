@@ -20,6 +20,7 @@ import android.util.SparseArray;
 import androidx.annotation.NonNull;
 
 import helium314.keyboard.keyboard.PointerTracker;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 
 /**
  * Draw preview graphics of multiple gesture trails during gesture input.
@@ -38,9 +39,13 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
     private final Rect mGestureTrailBoundsRect = new Rect(); // per trail
 
     private final Handler mDrawingHandler = new Handler();
+    private final boolean mFrameSynchronized;
+    private boolean mFrameScheduled;
 
-    public GestureTrailsDrawingPreview(final TypedArray mainKeyboardViewAttr) {
-        mDrawingParams = new GestureTrailDrawingParams(mainKeyboardViewAttr);
+    public GestureTrailsDrawingPreview(final TypedArray mainKeyboardViewAttr,
+            final android.content.Context context) {
+        mFrameSynchronized = KeyboardMotionSpec.isIos27(context);
+        mDrawingParams = new GestureTrailDrawingParams(mainKeyboardViewAttr, mFrameSynchronized);
         final Paint gesturePaint = new Paint();
         gesturePaint.setAntiAlias(true);
         gesturePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
@@ -59,6 +64,10 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
 
     @Override
     public void onDeallocateMemory() {
+        mDrawingHandler.removeCallbacks(this);
+        removeDrawingViewCallback(this);
+        mFrameScheduled = false;
+        synchronized (mGestureTrails) { mGestureTrails.clear(); }
         freeOffscreenBuffer();
     }
 
@@ -110,6 +119,7 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
 
     @Override
     public void run() {
+        mFrameScheduled = false;
         // Update preview.
         invalidateDrawingView();
     }
@@ -128,8 +138,15 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
         final boolean needsUpdatingGestureTrail = drawGestureTrails(
                 mOffscreenCanvas, mGesturePaint, mDirtyRect);
         if (needsUpdatingGestureTrail) {
-            mDrawingHandler.removeCallbacks(this);
-            mDrawingHandler.postDelayed(this, mDrawingParams.mUpdateInterval);
+            if (mFrameSynchronized) {
+                if (!mFrameScheduled) {
+                    mFrameScheduled = true;
+                    postOnDrawingViewAnimation(this);
+                }
+            } else {
+                mDrawingHandler.removeCallbacks(this);
+                mDrawingHandler.postDelayed(this, mDrawingParams.mUpdateInterval);
+            }
         }
         // Transfer offscreen buffer to screen.
         if (!mDirtyRect.isEmpty()) {

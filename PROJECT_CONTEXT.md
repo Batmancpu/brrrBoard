@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — iOS motion/Frosted-only owner GO, quiet hold complete (CI PENDING)
+
+Owner authorizes implementation of iOS 27 touch, suggestion, swipe, Emoji/Clipboard, panel and feedback animations **using existing Frosted Glass, explicitly NO new Liquid Glass compositor**. A 20-minute GitHub HEAD/Actions quiet window concluded unchanged `6ec5918b` at 11:56 UTC before any code edit. Local source candidate adds a default `ios27` motion preset and fully selectable Previous Default retaining pre-existing timing and visuals; draw-only key reactions, detached popup choreography, fixed-slot suggestion real-glyph settling, frame-aligned gesture tail, mode transition timing and label-free trackpad mode. Does not touch signed identity, internet permissions, voice apps, model, decoder, Dictionary, or frosted material. CI and original signer verification and Oppo physical checks still pending. All source, source-vs-inferred timing, regression test/release gates and next steps: [docs/IOS27_FROSTED_MOTION_GO_2026_11_19.md](docs/IOS27_FROSTED_MOTION_GO_2026_11_19.md).
+
 ## 2026-11-19 — Owner GO follow-up: one-time model setup UX and crash-orphan audio cleanup (CI PENDING)
 
 Second isolated batch: off-UI SHA-256 verified one-time model extraction reports `NOT_INSTALLED / INSTALLING / READY / FAILED` and percent; Settings shows progress and can retry while the special APK remains installed. Blue hold explains installing or failed model. Ordinary Obtainium APKs never include model weights or automatically download them. On app startup an IO cleanup scans only exact `brrboard-voice-<UUID>.pcm` files in private cache created before startup, preserving live recordings and unrelated cache items. Blue audio remains RAM-only. Filename regression tests were added; Android debug/full unit, original signed release and real Oppo acceptance remain gates. Preserve same signer/package, Apple effects and brrSpeak provider.

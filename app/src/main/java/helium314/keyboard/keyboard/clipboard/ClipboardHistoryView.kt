@@ -218,7 +218,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
             clipboardRecyclerView.translationY = distance.toFloat()
         }
         heightMotion = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = EmojiPanelHeightMotion.DURATION_MS
+            duration = KeyboardMotionSpec.emojiHeightMillis(context)
             interpolator = android.animation.TimeInterpolator(EmojiPanelHeightMotion::springProgress)
             addUpdateListener { motion ->
                 if (generation == heightGeneration) {

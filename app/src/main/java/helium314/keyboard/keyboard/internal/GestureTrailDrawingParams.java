@@ -24,6 +24,8 @@ final class GestureTrailDrawingParams {
     private static final int FADEOUT_DURATION_FOR_DEBUG = 200; // millisecond
 
     public final int mTrailColor;
+    /** The visual renderer changes; native swipe recognition keeps its existing thresholds. */
+    public final boolean mIosMotion;
     public final float mTrailStartWidth;
     public final float mTrailEndWidth;
     public final float mTrailBodyRatio;
@@ -35,7 +37,8 @@ final class GestureTrailDrawingParams {
 
     public final int mTrailLingerDuration;
 
-    public GestureTrailDrawingParams(final TypedArray mainKeyboardViewAttr) {
+    public GestureTrailDrawingParams(final TypedArray mainKeyboardViewAttr, final boolean iosMotion) {
+        mIosMotion = iosMotion;
         mTrailColor = Settings.getValues().mColors.get(ColorType.GESTURE_TRAIL);
         mTrailStartWidth = mainKeyboardViewAttr.getDimension(
                 R.styleable.MainKeyboardView_gestureTrailStartWidth, 0.0f);

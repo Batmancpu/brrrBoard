@@ -1787,7 +1787,7 @@ class KlipyPalettesView @JvmOverloads constructor(
         if (searchBackButton != null) {
             searchBackButton.alpha = 0f
             searchBackButton.visibility = View.VISIBLE
-            searchBackButton.animate().alpha(1f).setDuration(350).start()
+            searchBackButton.animate().alpha(1f).setDuration(if (KeyboardMotionSpec.isIos27(context)) 210L else 350L).start()
         }
         viewPager.visibility = View.GONE
         emptyState.visibility = View.GONE
@@ -1801,7 +1801,7 @@ class KlipyPalettesView @JvmOverloads constructor(
         updateRecentSearchesUI()
         if (::recentSearchesContainer.isInitialized && recentSearchesContainer.visibility == View.VISIBLE) {
             recentSearchesContainer.alpha = 0f
-            recentSearchesContainer.animate().alpha(1f).setDuration(350).start()
+            recentSearchesContainer.animate().alpha(1f).setDuration(if (KeyboardMotionSpec.isIos27(context)) 210L else 350L).start()
         }
         currentSearchKeyboardElementId = KeyboardId.ELEMENT_ALPHABET
         updateSearchKeyboard()
@@ -1823,11 +1823,11 @@ class KlipyPalettesView @JvmOverloads constructor(
         if (header != null) {
             header.alpha = 0f
             header.visibility = View.VISIBLE
-            header.animate().alpha(1f).setDuration(350).start()
+            header.animate().alpha(1f).setDuration(if (KeyboardMotionSpec.isIos27(context)) 210L else 350L).start()
         }
         viewPager.alpha = 0f
         viewPager.visibility = View.VISIBLE
-        viewPager.animate().alpha(1f).setDuration(350).start()
+        viewPager.animate().alpha(1f).setDuration(if (KeyboardMotionSpec.isIos27(context)) 210L else 350L).start()
 
         pinnedGifsAdapter.setAnimationsRunning(true)
         pinnedStickersAdapter.setAnimationsRunning(true)
@@ -1837,7 +1837,7 @@ class KlipyPalettesView @JvmOverloads constructor(
         showClearHistoryButton()
         if (::clearHistoryButton.isInitialized && clearHistoryButton.visibility == View.VISIBLE) {
             clearHistoryButton.alpha = 0f
-            clearHistoryButton.animate().alpha(1f).setDuration(350).start()
+            clearHistoryButton.animate().alpha(1f).setDuration(if (KeyboardMotionSpec.isIos27(context)) 210L else 350L).start()
         }
 
         updateSearchQueryUI()

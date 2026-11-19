@@ -35,6 +35,15 @@ public abstract class AbstractDrawingPreview {
         }
     }
 
+    /** Schedule decorative drawing against the display clock, not an arbitrary fixed timer. */
+    protected final void postOnDrawingViewAnimation(@NonNull final Runnable runnable) {
+        if (mDrawingView != null) mDrawingView.postOnAnimation(runnable);
+    }
+
+    protected final void removeDrawingViewCallback(@NonNull final Runnable runnable) {
+        if (mDrawingView != null) mDrawingView.removeCallbacks(runnable);
+    }
+
     protected final boolean isPreviewEnabled() {
         return mPreviewEnabled && mHasValidGeometry;
     }

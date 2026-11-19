@@ -14,6 +14,7 @@ import android.view.ViewParent;
 
 import helium314.keyboard.keyboard.Key;
 import helium314.keyboard.keyboard.KeyboardTheme;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.R;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Colors;
@@ -36,6 +37,8 @@ public final class KeyPreviewChoreographer {
 
     // Free {@link KeyPreviewView} pool that can be used for key preview.
     private final ArrayDeque<KeyPreviewView> mFreeKeyPreviewViews = new ArrayDeque<>();
+    // A fading preview cannot be pooled until its exit animation has ended.
+    private final ArrayDeque<KeyPreviewView> mFadingKeyPreviewViews = new ArrayDeque<>();
     // Map from {@link Key} to {@link KeyPreviewView} that is currently being displayed as key
     // preview.
     private final HashMap<Key,KeyPreviewView> mShowingKeyPreviewViews = new HashMap<>();
@@ -67,12 +70,19 @@ public final class KeyPreviewChoreographer {
 
     public void clear() {
         for (final KeyPreviewView keyPreviewView : mShowingKeyPreviewViews.values()) {
+            keyPreviewView.animate().cancel();
+            removeFromParent(keyPreviewView);
+        }
+        for (final KeyPreviewView keyPreviewView : mFadingKeyPreviewViews) {
+            keyPreviewView.animate().cancel();
             removeFromParent(keyPreviewView);
         }
         for (final KeyPreviewView keyPreviewView : mFreeKeyPreviewViews) {
+            keyPreviewView.animate().cancel();
             removeFromParent(keyPreviewView);
         }
         mShowingKeyPreviewViews.clear();
+        mFadingKeyPreviewViews.clear();
         mFreeKeyPreviewViews.clear();
     }
 
@@ -86,9 +96,31 @@ public final class KeyPreviewChoreographer {
         }
         // Dismiss preview
         mShowingKeyPreviewViews.remove(key);
-        keyPreviewView.setTag(null);
-        keyPreviewView.setVisibility(View.INVISIBLE);
-        mFreeKeyPreviewViews.add(keyPreviewView);
+        keyPreviewView.animate().cancel();
+        final Context context = keyPreviewView.getContext();
+        if (KeyboardMotionSpec.isIos27(context) && KeyboardMotionSpec.enabled()
+                && keyPreviewView.isAttachedToWindow()) {
+            mFadingKeyPreviewViews.add(keyPreviewView);
+            keyPreviewView.animate().alpha(0f).scaleX(.96f).scaleY(.96f)
+                    .setDuration(KeyboardMotionSpec.keyPreviewExitMillis(context))
+                    .setInterpolator(KeyboardMotionSpec.easing(context))
+                    .withEndAction(() -> finishDismissing(keyPreviewView)).start();
+        } else {
+            finishDismissing(keyPreviewView);
+        }
+    }
+
+    private void finishDismissing(final KeyPreviewView view) {
+        mFadingKeyPreviewViews.remove(view);
+        view.setTag(null);
+        view.setVisibility(View.INVISIBLE);
+        view.setAlpha(1f);
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.setTranslationY(0f);
+        if (view.getParent() != null && !mFreeKeyPreviewViews.contains(view)) {
+            mFreeKeyPreviewViews.add(view);
+        }
     }
 
     public void placeAndShowKeyPreview(final Key key, final KeyboardIconsSet iconsSet,
@@ -103,7 +135,7 @@ public final class KeyPreviewChoreographer {
             final KeyboardIconsSet iconsSet, final KeyDrawParams drawParams,
             final int fullKeyboardViewWidth, final int[] originCoords) {
         final Colors colors = Settings.getValues().mColors;
-        keyPreviewView.setPreviewBackgroundResource(getPreviewBackgroundResId(colors));
+        keyPreviewView.setPreviewBackgroundResource(getPreviewBackgroundResId(colors, keyPreviewView.getContext()));
         keyPreviewView.setPreviewVisual(key, iconsSet, drawParams);
         keyPreviewView.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mParams.setGeometry(keyPreviewView);
@@ -127,8 +159,9 @@ public final class KeyPreviewChoreographer {
         final boolean hasPopupKeys = (key.getPopupKeys() != null);
         keyPreviewView.setPreviewBackground(hasPopupKeys, keyPreviewPosition);
 
-        final boolean isCircularPreview = isCircularPreviewStyle(colors);
-        if (isCircularPreview) {
+        final boolean isFloatingPreview = KeyboardMotionSpec.isIos27(keyPreviewView.getContext())
+                || isCircularPreviewStyle(colors);
+        if (isFloatingPreview) {
             keyPreviewView.setCircularPreviewBackgroundColor(
                     getCircularPreviewBackgroundColor(colors.get(ColorType.KEY_PREVIEW_BACKGROUND)));
         } else {
@@ -136,7 +169,7 @@ public final class KeyPreviewChoreographer {
         }
 
         // The circular LXX preview has no tail padding, so float it above the key.
-        final int previewY = isCircularPreview
+        final int previewY = isFloatingPreview
                 ? key.getY() - previewHeight - (int) (4 * keyPreviewView.getResources().getDisplayMetrics().density)
                     + CoordinateUtils.y(originCoords)
                 : key.getY() - previewHeight + key.getHeight() - mParams.mPreviewOffset
@@ -147,7 +180,8 @@ public final class KeyPreviewChoreographer {
         keyPreviewView.setPivotY(previewHeight);
     }
 
-    private int getPreviewBackgroundResId(final Colors colors) {
+    private int getPreviewBackgroundResId(final Colors colors, final Context context) {
+        if (KeyboardMotionSpec.isIos27(context)) return R.drawable.keyboard_key_feedback_ios_motion;
         return isCircularPreviewStyle(colors)
                 ? R.drawable.keyboard_key_feedback_circle
                 : mParams.mPreviewBackgroundResId;
@@ -161,8 +195,26 @@ public final class KeyPreviewChoreographer {
     }
 
     void showKeyPreview(final Key key, final KeyPreviewView keyPreviewView) {
+        keyPreviewView.animate().cancel();
+        keyPreviewView.setTag(key);
         keyPreviewView.setVisibility(View.VISIBLE);
         mShowingKeyPreviewViews.put(key, keyPreviewView);
+        final Context context = keyPreviewView.getContext();
+        if (KeyboardMotionSpec.isIos27(context) && KeyboardMotionSpec.enabled()
+                && keyPreviewView.isAttachedToWindow()) {
+            keyPreviewView.setAlpha(.35f);
+            keyPreviewView.setScaleX(.94f);
+            keyPreviewView.setScaleY(.90f);
+            keyPreviewView.setTranslationY(2f * context.getResources().getDisplayMetrics().density);
+            keyPreviewView.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f)
+                    .setDuration(KeyboardMotionSpec.keyPreviewEnterMillis(context))
+                    .setInterpolator(KeyboardMotionSpec.easing(context)).start();
+        } else {
+            keyPreviewView.setAlpha(1f);
+            keyPreviewView.setScaleX(1f);
+            keyPreviewView.setScaleY(1f);
+            keyPreviewView.setTranslationY(0f);
+        }
     }
 
     private static void removeFromParent(final View view) {

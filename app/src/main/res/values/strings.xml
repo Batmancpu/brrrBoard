@@ -878,6 +878,10 @@ New dictionary:
     <!-- Theme name for violette theme -->
     <string name="theme_name_violette" tools:keep="@string/theme_name_violette">Violette</string>
     <string name="theme_name_frosted_glass">OG Frosted Glass</string>
+    <string name="motion_profile_title">Keyboard motion &amp; behavior</string>
+    <string name="motion_profile_summary">Use iOS-inspired interactions or restore the previous default. Frosted Glass colors and blur stay unchanged.</string>
+    <string name="motion_profile_ios27">iOS 27 Motion — Frosted Glass</string>
+    <string name="motion_profile_previous">Previous Default — original motion</string>
     <string name="theme_name_og_frost_tinted">OG Frost Tinted</string>
     <string name="theme_name_frosted_ios_clear">iOS Clear</string>
     <string name="theme_name_frosted_ios_tinted">iOS Tinted</string>

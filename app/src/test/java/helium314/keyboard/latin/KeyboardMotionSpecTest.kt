@@ -20,4 +20,10 @@ class KeyboardMotionSpecTest {
         assertTrue(KeyboardMotionSpec.SEARCH_RESULT_MS in 100L..220L)
         assertTrue(KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS > 1_300L)
     }
+
+    @Test fun previousDefaultIsAnExplicitReversiblePreset() {
+        assertTrue(KeyboardMotionSpec.isIos27Profile(null))
+        assertTrue(KeyboardMotionSpec.isIos27Profile(KeyboardMotionSpec.PROFILE_IOS27))
+        assertFalse(KeyboardMotionSpec.isIos27Profile(KeyboardMotionSpec.PROFILE_PREVIOUS_DEFAULT))
+    }
 }

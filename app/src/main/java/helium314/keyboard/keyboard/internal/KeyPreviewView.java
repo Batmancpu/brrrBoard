@@ -24,6 +24,7 @@ import android.widget.TextView;
 
 import helium314.keyboard.keyboard.Key;
 import helium314.keyboard.keyboard.KeyboardTheme;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.keyboard.KeyboardTypeface;
 import helium314.keyboard.latin.R;
 import helium314.keyboard.latin.common.StringUtilsKt;
@@ -49,6 +50,15 @@ public class KeyPreviewView extends TextView {
                 public void getOutline(final android.view.View view,
                         final android.graphics.Outline outline) {
                     outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            };
+    private static final android.view.ViewOutlineProvider IOS_OUTLINE_PROVIDER =
+            new android.view.ViewOutlineProvider() {
+                @Override
+                public void getOutline(final android.view.View view,
+                        final android.graphics.Outline outline) {
+                    final float radius = 12f * view.getResources().getDisplayMetrics().density;
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
                 }
             };
 
@@ -81,7 +91,7 @@ public class KeyPreviewView extends TextView {
         }
 
         final String previewLabel = key.getPreviewLabel();
-        mNeedsCircularTextCentering = isCircularPreviewStyle() && !StringUtilsKt.isEmoji(previewLabel);
+        mNeedsCircularTextCentering = isFloatingPreviewStyle() && !StringUtilsKt.isEmoji(previewLabel);
         setIncludeFontPadding(!mNeedsCircularTextCentering);
         updateCircularPreviewPadding();
         setCompoundDrawables(null, null, null, null);
@@ -172,7 +182,7 @@ public class KeyPreviewView extends TextView {
         final int hasPopupKeysState = hasPopupKeys ? STATE_HAS_POPUPKEYS : STATE_NORMAL;
         background.setState(KEY_PREVIEW_BACKGROUND_STATE_TABLE[position][hasPopupKeysState]);
 
-        if (isCircularPreviewStyle()) {
+        if (isFloatingPreviewStyle()) {
             updateCircularPreviewPadding();
         }
     }
@@ -192,7 +202,15 @@ public class KeyPreviewView extends TextView {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        if (isCircularPreviewStyle()) {
+        if (KeyboardMotionSpec.isIos27(getContext())) {
+            final float density = getResources().getDisplayMetrics().density;
+            setMeasuredDimension(Math.max(getMeasuredWidth(), (int)(54f * density)),
+                    Math.max(getMeasuredHeight(), (int)(56f * density)));
+            setOutlineProvider(IOS_OUTLINE_PROVIDER);
+            setClipToOutline(false);
+            updateCircularPreviewShadow(false);
+            setElevation(3f * density);
+        } else if (isCircularPreviewStyle()) {
             final int width = getMeasuredWidth();
             final int height = getMeasuredHeight();
             final int minDiameter = (int) (56 * getResources().getDisplayMetrics().density);
@@ -252,6 +270,10 @@ public class KeyPreviewView extends TextView {
         }
     }
 
+    private boolean isFloatingPreviewStyle() {
+        return KeyboardMotionSpec.isIos27(getContext()) || isCircularPreviewStyle();
+    }
+
     private static boolean isCircularPreviewStyle() {
         final String themeStyle = Settings.getValues().mColors.getThemeStyle();
         return KeyboardTheme.STYLE_ROUNDED.equals(themeStyle)
@@ -268,7 +290,7 @@ public class KeyPreviewView extends TextView {
     }
 
     private void updateCircularPreviewPadding() {
-        if (!isCircularPreviewStyle()) {
+        if (!isFloatingPreviewStyle()) {
             return;
         }
         final float density = getResources().getDisplayMetrics().density;

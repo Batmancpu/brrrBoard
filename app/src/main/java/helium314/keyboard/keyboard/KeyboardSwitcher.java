@@ -54,6 +54,7 @@ import helium314.keyboard.latin.InputView;
 import helium314.keyboard.latin.KeyboardWrapperView;
 import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.R;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.RichInputMethodManager;
 import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.WordComposer;
@@ -344,7 +345,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mCurrentAnimatingPanel = targetPanel;
         mRunningAnimator = targetPanel.animate()
                 .alpha(1f)
-                .setDuration(PanelMaterial.TRANSITION_MS)
+                .setDuration(KeyboardMotionSpec.panelTransitionMillis(targetPanel.getContext()))
                 .withEndAction(new Runnable() {
                     @Override
                     public void run() {

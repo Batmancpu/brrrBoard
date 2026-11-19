@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Detached iPhone-inspired key preview. The existing Frosted Glass colors tint it. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/white" />
+    <corners android:radius="12dp" />
+    <size android:width="54dp" android:height="56dp" />
+    <padding android:left="8dp" android:top="8dp"
+        android:right="8dp" android:bottom="8dp" />
+</shape>

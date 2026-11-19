@@ -112,6 +112,13 @@ final class GestureTrailDrawingPoints {
         if (elapsedTime < params.mFadeoutStartDelay) {
             return fullAlpha;
         }
+        if (params.mIosMotion) {
+            final float fraction = Math.max(0f, Math.min(1f,
+                    (elapsedTime - params.mFadeoutStartDelay) / (float)Math.max(1, params.mFadeoutDuration)));
+            // A continuous single stroke with a quiet, smooth ending—no tail flash.
+            final float smooth = fraction * fraction * (3f - 2f * fraction);
+            return Math.round(fullAlpha * (1f - smooth));
+        }
         final int decreasingAlpha = fullAlpha
                 * (elapsedTime - params.mFadeoutStartDelay)
                 / params.mFadeoutDuration;

@@ -195,7 +195,12 @@ public class SettingsValues {
         mSuggestEmojis = prefs.getBoolean(Settings.PREF_SUGGEST_EMOJIS, Defaults.PREF_SUGGEST_EMOJIS);
         mInlineEmojiSearch = prefs.getBoolean(Settings.PREF_INLINE_EMOJI_SEARCH, Defaults.PREF_INLINE_EMOJI_SEARCH);
         mShowEmojiDescriptions = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, Defaults.PREF_SHOW_EMOJI_DESCRIPTIONS);
-        mKeyPreviewPopupOn = prefs.getBoolean(Settings.PREF_POPUP_ON, Defaults.PREF_POPUP_ON);
+        // New iOS-motion installations have visible Apple-like key previews.
+        // An explicit user popup setting always wins; Previous Default keeps its old OFF default.
+        mKeyPreviewPopupOn = prefs.getBoolean(Settings.PREF_POPUP_ON,
+                helium314.keyboard.latin.KeyboardMotionSpec.isIos27Profile(
+                        prefs.getString(Settings.PREF_MOTION_PROFILE, Defaults.PREF_MOTION_PROFILE))
+                        || Defaults.PREF_POPUP_ON);
         mSlidingKeyInputPreviewEnabled = prefs.getBoolean(
                 DebugSettings.PREF_SLIDING_KEY_INPUT_PREVIEW, Defaults.PREF_SLIDING_KEY_INPUT_PREVIEW);
         final String languagePref = prefs.getString(Settings.PREF_LANGUAGE_SWITCH_KEY, Defaults.PREF_LANGUAGE_SWITCH_KEY);

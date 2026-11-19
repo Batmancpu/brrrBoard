@@ -71,11 +71,12 @@ final class EmojiSearchResultMorph {
         target.animate().cancel();
         target.setAlpha(.12f);
         target.setTranslationX(offset);
+        final long duration = KeyboardMotionSpec.emojiSearchMillis(parent.getContext());
         target.animate().alpha(1f).translationX(0f)
-                .setInterpolator(EASE).setDuration(DURATION_MS).start();
+                .setInterpolator(EASE).setDuration(duration).start();
         final ImageView old = departing;
         old.animate().alpha(0f).translationX(-offset)
-                .setInterpolator(EASE).setDuration(DURATION_MS)
+                .setInterpolator(EASE).setDuration(duration)
                 .withEndAction(() -> {
                     if (departing == old) clearSnapshot();
                 }).start();
