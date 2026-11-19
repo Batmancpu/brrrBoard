@@ -107,4 +107,13 @@ class PrivateVoicePipelineTest {
         assertEquals("Android. GitHub! support@github.com",
             VoiceTranscriptFormatter.format("android. github! support@github.com"))
     }
+
+    @Test fun onlyOrphanedRedVoicePcmNamesCanBeRemoved() {
+        assertTrue(PrivateVoiceCacheCleanup.isOrphanName(
+            "brrboard-voice-123e4567-e89b-12d3-a456-426614174000.pcm"))
+        assertFalse(PrivateVoiceCacheCleanup.isOrphanName("brrboard-voice-123.pcm"))
+        assertFalse(PrivateVoiceCacheCleanup.isOrphanName("brrboard-voice-123e4567-e89b-12d3-a456-426614174000.txt"))
+        assertFalse(PrivateVoiceCacheCleanup.isOrphanName("clipboard-image.png"))
+        assertFalse(PrivateVoiceCacheCleanup.isOrphanName("../brrboard-voice-123e4567-e89b-12d3-a456-426614174000.pcm"))
+    }
 }

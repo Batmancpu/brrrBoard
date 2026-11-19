@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-19 — Owner GO follow-up: one-time model setup UX and crash-orphan audio cleanup (CI PENDING)
+
+Second isolated batch: off-UI SHA-256 verified one-time model extraction reports `NOT_INSTALLED / INSTALLING / READY / FAILED` and percent; Settings shows progress and can retry while the special APK remains installed. Blue hold explains installing or failed model. Ordinary Obtainium APKs never include model weights or automatically download them. On app startup an IO cleanup scans only exact `brrboard-voice-<UUID>.pcm` files in private cache created before startup, preserving live recordings and unrelated cache items. Blue audio remains RAM-only. Filename regression tests were added; Android debug/full unit, original signed release and real Oppo acceptance remain gates. Preserve same signer/package, Apple effects and brrSpeak provider.
+
 ## 2026-11-19 — Voice formatter punctuation CI repair (fresh CI REQUIRED)
 
 Initial voice follow-up `14a6d32` compiled successfully but debug run [44510814687](https://github.com/Batmancpu/brrrBoard/actions/runs/44510814687) executed 371 tests with one failure: `PrivateVoicePipelineTest.formattingOnlyChangesUnambiguousCasingWithoutRewritingSpeech`, first assertion at line 95. The URL/email guard excluded ALL trailing dots, accidentally preventing `android.` from becoming `Android.` at the end of an ordinary sentence. Narrow fix excludes only `.` followed by an alphanumeric domain component, and tests terminal punctuation plus `support@github.com`; neither core engine nor red brrSpeak integration changes. **Do not ship the first failed SHA; wait for BOTH exact new-SHA debug and original-signed release gates.**

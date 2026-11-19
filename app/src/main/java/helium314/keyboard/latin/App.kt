@@ -16,6 +16,7 @@ import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.upgradeToolbarPrefs
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.PrivateVoiceCacheCleanup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,6 +24,8 @@ import kotlinx.coroutines.launch
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Files written after this cold start may be active recordings. Never delete them.
+        val voiceCleanupBoundary = System.currentTimeMillis()
         if (BuildConfig.DEBUG) {
             StrictMode.setVmPolicy(
                 StrictMode.VmPolicy.Builder()
@@ -37,6 +40,9 @@ class App : Application() {
         SubtypeSettings.init(this)
 
         val scope = CoroutineScope(Dispatchers.Default)
+        scope.launch(Dispatchers.IO) {
+            PrivateVoiceCacheCleanup.removeOrphans(this@App, voiceCleanupBoundary)
+        }
         scope.launch { // do some uncritical work in background for faster startup
             SupportedEmojis.load(this@App)
             LayoutUtilsCustom.removeMissingLayouts(this@App)

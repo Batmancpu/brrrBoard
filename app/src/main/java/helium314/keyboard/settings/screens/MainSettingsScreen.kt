@@ -47,6 +47,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -131,6 +132,9 @@ fun MainSettingsScreen(
         val ctx = LocalContext.current
         val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
         var offlineVoiceReady by remember { mutableStateOf(VoiceModelInstaller.isInstalled(ctx)) }
+        var offlineInstallState by remember { mutableStateOf(VoiceModelInstaller.installState) }
+        var offlineInstallPercent by remember { mutableStateOf(VoiceModelInstaller.installPercent) }
+        val voiceInstallScope = rememberCoroutineScope()
         LaunchedEffect(ctx) {
             // The one-time installer verifies and extracts the model on an I/O worker. Refresh
             // this tiny status while Settings is visible without blocking composition.
@@ -138,6 +142,8 @@ fun MainSettingsScreen(
                 if (offlineVoiceReady) return@LaunchedEffect
                 delay(1_500)
                 offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx)
+                offlineInstallState = VoiceModelInstaller.installState
+                offlineInstallPercent = VoiceModelInstaller.installPercent
             }
         }
 
@@ -240,9 +246,23 @@ fun MainSettingsScreen(
                 title = "Private offline English dictation",
                 description = if (offlineVoiceReady)
                     "Ready on this phone · Hold the mic for blue, on-device transcription"
-                else
-                    "Model not installed · One-time signed model-inclusive APK required",
-                onClick = { offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx) },
+                else when (offlineInstallState) {
+                    VoiceModelInstaller.InstallState.INSTALLING ->
+                        "Installing offline model · $offlineInstallPercent% · Keep brrBoard open"
+                    VoiceModelInstaller.InstallState.FAILED ->
+                        "Model extraction failed · Tap to retry while the special APK is installed"
+                    else -> "Model not installed · One-time signed model-inclusive APK required"
+                },
+                onClick = {
+                    if (offlineInstallState == VoiceModelInstaller.InstallState.FAILED) {
+                        voiceInstallScope.launch(Dispatchers.IO) {
+                            VoiceModelInstaller.installBundledIfPresent(ctx)
+                        }
+                    }
+                    offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx)
+                    offlineInstallState = VoiceModelInstaller.installState
+                    offlineInstallPercent = VoiceModelInstaller.installPercent
+                },
                 isFirst = true
             )
             Md3ePreference(

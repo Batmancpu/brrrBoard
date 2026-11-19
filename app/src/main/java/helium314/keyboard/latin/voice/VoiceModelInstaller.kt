@@ -14,6 +14,13 @@ import java.security.MessageDigest
  * Call from a background worker only.
  */
 internal object VoiceModelInstaller {
+    enum class InstallState { NOT_INSTALLED, INSTALLING, READY, FAILED }
+
+    @Volatile var installState = InstallState.NOT_INSTALLED
+        private set
+    @Volatile var installPercent = 0
+        private set
+
     fun modelDir(context: Context): File = File(context.noBackupFilesDir, VoiceModelManifest.MODEL_DIR)
 
     fun isInstalled(context: Context): Boolean {
@@ -24,45 +31,74 @@ internal object VoiceModelInstaller {
 
     @Synchronized
     fun installBundledIfPresent(context: Context): Boolean {
-        if (isInstalled(context)) return true
+        if (isInstalled(context)) {
+            installPercent = 100
+            installState = InstallState.READY
+            return true
+        }
         val appContext = context.applicationContext
         // This asset exists ONLY in the separately selected one-time model-inclusive APK.
         val first = VoiceModelManifest.assets.first()
         val present = runCatching {
             appContext.assets.open("${VoiceModelManifest.ASSET_DIR}/${first.name}").use { }
         }.isSuccess
-        if (!present) return false
+        if (!present) {
+            installPercent = 0
+            installState = InstallState.NOT_INSTALLED
+            return false
+        }
+
+        installPercent = 0
+        installState = InstallState.INSTALLING
 
         val destination = modelDir(context)
         val parent = requireNotNull(destination.parentFile)
-        if (!parent.exists() && !parent.mkdirs()) return false
+        if (!parent.exists() && !parent.mkdirs()) {
+            installState = InstallState.FAILED
+            return false
+        }
         val stage = File(parent, ".installing-${VoiceModelManifest.ID}")
         if (stage.exists()) stage.deleteRecursively() // exact private staging path only
-        if (!stage.mkdirs()) return false
+        if (!stage.mkdirs()) {
+            installState = InstallState.FAILED
+            return false
+        }
         try {
+            val totalBytes = VoiceModelManifest.assets.sumOf { it.size }
+            var completedBytes = 0L
             for (asset in VoiceModelManifest.assets) {
                 val file = File(stage, asset.name)
                 appContext.assets.open("${VoiceModelManifest.ASSET_DIR}/${asset.name}").use { input ->
                     FileOutputStream(file).use { output ->
                         val digest = MessageDigest.getInstance("SHA-256")
-                        val transferred = copyAndDigest(input, output, digest)
+                        val transferred = copyAndDigest(input, output, digest) { currentBytes ->
+                            installPercent = (((completedBytes + currentBytes) * 100L) / totalBytes)
+                                .toInt().coerceIn(0, 99)
+                        }
                         require(transferred == asset.size) { "Offline voice model has an unexpected size" }
                         require(hex(digest.digest()) == asset.sha256) { "Offline voice model hash mismatch" }
                         output.fd.sync()
                     }
                 }
+                completedBytes += asset.size
             }
             File(stage, ".verified-${VoiceModelManifest.ID}").writeText("verified v1\n")
             if (destination.exists()) destination.deleteRecursively()
             require(stage.renameTo(destination)) { "Could not activate the offline voice model" }
-            return isInstalled(context)
+            val ready = isInstalled(context)
+            installState = if (ready) InstallState.READY else InstallState.FAILED
+            installPercent = if (ready) 100 else 0
+            return ready
         } catch (_: Exception) {
             stage.deleteRecursively()
+            installState = InstallState.FAILED
+            installPercent = 0
             return false
         }
     }
 
-    private fun copyAndDigest(input: InputStream, output: FileOutputStream, digest: MessageDigest): Long {
+    private fun copyAndDigest(input: InputStream, output: FileOutputStream,
+        digest: MessageDigest, progress: (Long) -> Unit): Long {
         val buffer = ByteArray(32 * 1024)
         var bytes = 0L
         while (true) {
@@ -72,6 +108,9 @@ internal object VoiceModelInstaller {
             digest.update(buffer, 0, count)
             output.write(buffer, 0, count)
             bytes += count
+            if ((bytes / (1024L * 1024L)) != ((bytes - count) / (1024L * 1024L))) {
+                progress(bytes)
+            }
         }
         buffer.fill(0)
         return bytes

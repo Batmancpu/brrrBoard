@@ -48,8 +48,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             return
         }
         if (!VoiceModelInstaller.isInstalled(ime)) {
-            currentFooter.showDictationError(R.string.board_voice_offline_model_missing)
-            Toast.makeText(ime, R.string.board_voice_offline_model_missing, Toast.LENGTH_LONG).show()
+            val message = when (VoiceModelInstaller.installState) {
+                VoiceModelInstaller.InstallState.INSTALLING -> R.string.board_voice_offline_model_installing
+                VoiceModelInstaller.InstallState.FAILED -> R.string.board_voice_offline_model_install_failed
+                else -> R.string.board_voice_offline_model_missing
+            }
+            currentFooter.showDictationError(message)
+            Toast.makeText(ime, message, Toast.LENGTH_LONG).show()
             return
         }
         generation++

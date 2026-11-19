@@ -550,6 +550,8 @@
     <string name="board_voice_waiting_for_audio">Waiting for speech…</string>
     <string name="board_voice_transcribing">Transcribing…</string>
     <string name="board_voice_offline_model_missing">Private English voice model is not installed. Install the one-time model-inclusive brrBoard APK and open it once.</string>
+    <string name="board_voice_offline_model_installing">Installing private English voice model. Please wait a moment.</string>
+    <string name="board_voice_offline_model_install_failed">Private voice model setup failed. Open brrBoard Settings to retry.</string>
     <string name="board_voice_offline_listening">Private offline listening…</string>
     <string name="board_voice_offline_processing">Transcribing privately on device…</string>
     <string name="board_voice_offline_failed">Private English transcription failed</string>
