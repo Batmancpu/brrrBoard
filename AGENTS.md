@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — CROSS-CHAT VOICE HANDOFF / WAIT FOR OWNER GO (read first)
+
+**Separate voice project remains ON HOLD** until the owner says a new explicit GO. The earlier owner GO for two visual/motion commits is **not** voice GO. Latest verified brrBoard main `c4e6527d6553f9368b06d456db32095f401a3fa8`, debug `44480771248` SUCCESS, original-signed release `44480771382` SUCCESS, v1.0.145. brrSpeak `com.mangoloads.speak` experiment v5 `49cb5d7` passed an actual Android 15 same-app two-process test (153596 nonzero PCM bytes, ~4.799 s, transcript “How is the transcription?”), **NOT yet cross-app/cross-UID brrBoard integration**. brrBoard `InlineDictation.kt` still targets original Dictate and lacks `EXTRA_AUDIO_SOURCE`. Existing double-tap mic to switch keyboards conflicts with rapid tap/tap voice recording; resolve before implementing. Hourly read-only workflow watch is configured. **Do not change voice code, rerun, release, or edit signing/IDs until new GO.** Full evidence, privacy rules, open risks, exact links, acceptance tests and resume prompt: [docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md](docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md). Preserve the historical ledger below and check live HEAD before acting.
+
 ## 2026-11-19 — Owner GO: iOS-inspired motion, split into two commits
 
 Owner supplied a 37.5667s/1127-frame 30fps YouTube keyboard video and an

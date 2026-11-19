@@ -1,5 +1,13 @@
 # brrBoard project context
 
+## 2026-11-19 — DURABLE CROSS-CHAT VOICE CHECKPOINT (read first)
+
+Owner asked to preserve all current brrBoard/Frost Keys and brrSpeak/Dictator- information on GitHub for a new chat, with **docs-only updates now** and a strict **WAIT FOR NEW GO** gate before brrBoard-to-brrSpeak voice implementation. Previous “GO” related only to the two-step iOS UI/motion batch.
+
+**Verified (2026-11-19):** brrBoard `main` = `c4e6527d6553f9368b06d456db32095f401a3fa8`, debug workflow `44480771248` SUCCESS, original-signed Obtainium workflow `44480771382` SUCCESS, signed https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.145 . brrSpeak `com.mangoloads.speak` released v5 on `49cb5d7bd70da5e9facf5cf41a802149c718a951`, CI `44477601929` SUCCESS. On Android 15 user physically obtained **“How is the transcription?”** from **153596 nonzero PCM bytes (~4799ms)** using a same-package separate-process probe. This is **NOT yet** the cross-UID brrBoard mic sender; brrBoard `InlineDictation.kt` still uses purchased Dictate service `net.devemperor.dictate` and doesn't send `EXTRA_AUDIO_SOURCE`. Current idle double-tap mic for switching keyboards conflicts with rapid voice start/stop tap-tap and requires explicit resolution. Both purchased original Dictate and forked brrSpeak must remain independently installable; never activate two mic recorders simultaneously. Hourly `brrBoard CI Watch` is read-only.
+
+**Canonical next-chat handoff:** [docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md](docs/VOICE_INTEGRATION_CROSS_CHAT_HANDOFF_2026_11_19.md) contains repositories, exact release/APK/issue/workflow links, PCM contract, known ColorOS issues, signing/privacy boundaries, test matrix, and explicit resume prompt. Read it before any voice source change; verify live GitHub status. Do not expose private device information or secrets. **No feature code change or app release is authorized by this checkpoint.**
+
 ## 2026-11-19 — Owner GO for two-commit iOS visual flow
 
 Current main before work: `4c8ce6f07fdb22c10a54930ef5b8d3190ecb742c`
