@@ -1,5 +1,10 @@
 # brrBoard agent instructions
 
+## 2026-11-19 — stable cold-start provider lease (CI PENDING)
+
+The wake-up call now uses a **stable** `ContentProviderClient` lease from `acquireContentProviderClient`, held only until `onServiceConnected` for the explicit recorded-audio service. Release on connection, bind/version error, cancellation and any late worker completion. This prevents an Android/OEM process-death gap after the provider handshake while still not keeping brrSpeak running after dictation. No audio or editor content enters the provider call; the existing read-only descriptor still moves across bound IPC. Tests/release must run on the new main SHA; prior run #254/#155 were for the earlier wake implementation.
+
+
 ## 2026-11-19 — targeted offline test harness initialization repair (CI PENDING)
 
 The pre-existing offline voice candidate in `47055d0` compiled, but debug run [44505620258](https://github.com/Batmancpu/brrrBoard/actions/runs/44505620258) failed 134 Robolectric tests at `Robolectric.setupService(LatinIME)`, including `InputLogicTest` and `SuggestTest`. Source trace: `LatinIME` constructs `new OfflineBoardDictation(this)` in a Java field initializer; its eager `OfflineVoiceEngine.shared(ime)` calls `ime.applicationContext` before `attachBaseContext`, causing NPE. Change `OfflineBoardDictation.engine` to `by lazy(LazyThreadSafetyMode.NONE)`, first used in `start()` after attachment. No offline audio/model behavior, signer or normal red-server path changed. New CI required; do not bypass 134 failures.

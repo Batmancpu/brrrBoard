@@ -2,6 +2,7 @@
 package helium314.keyboard.latin
 
 import android.content.ComponentName
+import android.content.ContentProviderClient
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
@@ -33,6 +34,7 @@ internal class BrrSpeakRecordedAudioClient(
     private val main = Handler(Looper.getMainLooper())
     private val closed = AtomicBoolean(false)
     private var bound = false
+    private var wakeClient: ContentProviderClient? = null
     private var remote: Messenger? = null
     private val callback = Messenger(object : Handler(Looper.getMainLooper()) {
         override fun handleMessage(message: Message) {
@@ -55,6 +57,9 @@ internal class BrrSpeakRecordedAudioClient(
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
             if (closed.get()) return
+            // Binder is connected: it now holds brrSpeak's process alive. Release the brief
+            // stable provider reference before transferring the completed PCM descriptor.
+            releaseWakeClient()
             try {
                 remote = Messenger(binder)
                 val descriptor = ParcelFileDescriptor.open(
@@ -106,18 +111,27 @@ internal class BrrSpeakRecordedAudioClient(
         // UID-verified ContentProvider starts a cold brrSpeak process on Android/ColorOS, without
         // requiring its activity to stay open or a permanent foreground/background service.
         Thread({
+            var client: ContentProviderClient? = null
             val awake = runCatching {
-                val answer = context.contentResolver.call(
+                // A stable provider client keeps the cold process alive through the subsequent
+                // main-thread bind, avoiding a short OEM kill race between call() and bindService().
+                client = context.contentResolver.acquireContentProviderClient(
                     android.net.Uri.parse("content://" + RecordedAudioWire.WAKE_AUTHORITY),
-                    RecordedAudioWire.WAKE_METHOD, null, null,
                 )
-                answer?.getBoolean(RecordedAudioWire.WAKE_READY, false) == true
+                client?.call(RecordedAudioWire.WAKE_METHOD, null, null)
+                    ?.getBoolean(RecordedAudioWire.WAKE_READY, false) == true
             }.onFailure {
                 Log.w("BrrSpeakRecordedIPC", "cold-start provider exception=" +
                     it.javaClass.simpleName)
             }.getOrDefault(false)
+            val retained = client
             main.post {
-                if (!closed.get()) bindReceiver(awake)
+                if (closed.get()) {
+                    runCatching { retained?.release() }
+                } else {
+                    wakeClient = retained
+                    bindReceiver(awake)
+                }
             }
         }, "brrBoard-brrSpeak-cold-start").apply { isDaemon = true }.start()
         return true
@@ -183,7 +197,15 @@ internal class BrrSpeakRecordedAudioClient(
         main.post { onError(error) }
     }
 
+    private fun releaseWakeClient() {
+        val client = wakeClient
+        wakeClient = null
+        @Suppress("DEPRECATION")
+        runCatching { client?.release() }
+    }
+
     private fun cleanup() {
+        releaseWakeClient()
         remote = null
         if (bound) {
             bound = false
