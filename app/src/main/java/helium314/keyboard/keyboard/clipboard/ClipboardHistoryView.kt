@@ -703,7 +703,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 if (::clipboardAdapter.isInitialized && ::clipboardRecyclerView.isInitialized) {
                     clipboardAdapter.setSearchQuery(query)
                     clipboardRecyclerView.scrollToPosition(0)
-                    showSearchMatch(query.isNotBlank() && clipboardAdapter.itemCount > 0)
+                    showSearchMatch(query.isNotBlank())
                     if (query.isNotBlank() && clipboardAdapter.itemCount > 0)
                         KeyboardMotionSpec.revealSearchResults(clipboardRecyclerView)
                 }
@@ -747,8 +747,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     /** Chromatic query glyphs, with normal selection and an uncolored capsule. */
-    private fun showSearchMatch(found: Boolean) {
-        searchChromaticInput.showMatchedInk(found)
+    private fun showSearchMatch(hasQuery: Boolean) {
+        searchChromaticInput.showMatchedInk(hasQuery)
     }
 
     private fun applySearchResultsLayout(search: Boolean) {

@@ -3,7 +3,7 @@ package helium314.keyboard.latin
 
 import android.annotation.SuppressLint
 import android.animation.ValueAnimator
-import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.Drawable
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -54,8 +54,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationProcessing = false
     private var returnToLetters = false
     private var micPulse: ValueAnimator? = null
-    private val emojiRing = FooterStatusRingDrawable(resources.displayMetrics.density, false)
-    private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density, true)
+    private val micRing = FooterStatusRingDrawable(resources.displayMetrics.density)
+    private var idleMicBackground: Drawable? = null
     private var cancelDictationActionId: Int? = null
     private val clearVoiceError = Runnable { voiceError.visibility = GONE }
     private val clearContextActionRunnable = Runnable { clearContextAction() }
@@ -121,9 +121,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Backdrop underlays the *existing* footer buttons; they never blur.
         addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         glass.visibility = GONE
-        val ripple = ColorStateList.valueOf(0x338A8D9B)
-        emojiButton.background = RippleDrawable(ripple, emojiRing, null)
-        microphone.background = RippleDrawable(ripple, micRing, null)
+        // Emoji, ABC and the idle mic keep their original unframed surfaces.
+        // Only active dictation receives the filled, animated mic capsule.
+        idleMicBackground = microphone.background
     }
 
     fun setPanelGlassSource(source: View?, emojiSource: Boolean = false) {
@@ -240,7 +240,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         val dark = KeyboardTheme.isDarkThemeActive(context)
-        emojiRing.setAppearance(dark)
         micRing.setAppearance(dark)
         emojiButton.imageTintList = tint
         voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
@@ -257,13 +256,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val colors = Settings.getValues().mColors
         microphone.imageTintList = ColorStateList.valueOf(
             if (active) FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context))
-            else Color.WHITE,
+            else colors.get(ColorType.KEY_ICON),
         )
         microphone.contentDescription = resources.getString(
             if (active) R.string.board_dictation_stop else R.string.board_inline_dictation,
         )
         micRing.setVoiceState(if (active) FooterStatusRingDrawable.VoiceState.LISTENING
             else FooterStatusRingDrawable.VoiceState.IDLE)
+        microphone.background = if (active) micRing else idleMicBackground
         if (active) startMicPulse() else stopMicPulse()
     }
 
@@ -273,6 +273,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             showDictationActive(false)
             dictationProcessing = true
             micRing.setVoiceState(FooterStatusRingDrawable.VoiceState.PROCESSING)
+            microphone.background = micRing
             microphone.imageTintList = ColorStateList.valueOf(
                 FooterIndicatorPolicy.voiceTint(KeyboardTheme.isDarkThemeActive(context)))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)

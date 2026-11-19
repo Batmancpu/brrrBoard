@@ -5,20 +5,19 @@ import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.RadialGradient
+import android.graphics.Shader
 import android.graphics.drawable.Drawable
 
-/** Noninteractive, theme-aware footer circles. The original 48dp hit targets remain. */
-internal class FooterStatusRingDrawable(
-    private val density: Float,
-    private val isMicrophone: Boolean,
-) : Drawable() {
+/** Active recording only. No idle Emoji/ABC/mic circles or hard outlines. */
+internal class FooterStatusRingDrawable(private val density: Float) : Drawable() {
     enum class VoiceState { IDLE, LISTENING, PROCESSING }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var dark = false
     private var voiceState = VoiceState.IDLE
     private var pulse = 0f
-    private var alpha = 255
+    private var drawableAlpha = 255
 
     fun setAppearance(isDark: Boolean) {
         dark = isDark
@@ -37,46 +36,32 @@ internal class FooterStatusRingDrawable(
     }
 
     override fun draw(canvas: Canvas) {
-        val drawableBounds = bounds
-        if (drawableBounds.isEmpty) return
-        val cx = drawableBounds.exactCenterX()
-        // The existing icons use 10dp optical-bottom padding. Center the
-        // circle on the actual glyph, not the full 48dp background bounds.
-        val cy = drawableBounds.exactCenterY() - 5f * density
-        val radius = (if (isMicrophone) 18.5f else 17f) * density
-        val active = isMicrophone && voiceState != VoiceState.IDLE
+        if (voiceState == VoiceState.IDLE || bounds.isEmpty) return
+        val cx = bounds.exactCenterX()
+        // Center on the icon's optical center, accounting for footer padding.
+        val cy = bounds.exactCenterY() - 5f * density
         val red = FooterIndicatorPolicy.voiceTint(dark)
-        if (active) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = (6f + 2f * pulse) * density
-            paint.color = withAlpha(red, if (voiceState == VoiceState.PROCESSING)
-                (32 + 40 * pulse).toInt() else (35 + 75 * pulse).toInt())
-            canvas.drawCircle(cx, cy, radius + 1.8f * density, paint)
-        }
-
-        if (isMicrophone) {
-            paint.style = Paint.Style.FILL
-            paint.color = if (dark) 0xFF292A32.toInt() else 0xFF292B33.toInt()
-            paint.alpha = alpha
-            canvas.drawCircle(cx, cy, radius, paint)
-        }
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = (if (isMicrophone) 1.35f else 1.25f) * density
-        paint.color = if (active) withAlpha(red,
-            if (voiceState == VoiceState.PROCESSING) (145 + 70 * pulse).toInt()
-            else (168 + 87 * pulse).toInt())
-        else if (isMicrophone) {
-            if (dark) 0x627E8292 else 0x65575B66
-        } else {
-            if (dark) 0xB7DCE0E8.toInt() else 0x9B50535D.toInt()
-        }
-        canvas.drawCircle(cx, cy, radius, paint)
+        val haloRadius = 25f * density
+        val softHalo = RadialGradient(cx, cy, haloRadius, intArrayOf(
+            withAlpha(red, (40f + 75f * pulse).toInt()),
+            withAlpha(red, (18f + 39f * pulse).toInt()),
+            withAlpha(red, 0),
+        ), floatArrayOf(0f, .76f, 1f), Shader.TileMode.CLAMP)
         paint.style = Paint.Style.FILL
+        paint.shader = softHalo
+        paint.alpha = drawableAlpha
+        canvas.drawCircle(cx, cy, haloRadius, paint)
+        paint.shader = null
+
+        // The larger filled surface is a soft dark button under the red glyph,
+        // not a stroke or permanent outline. Intensity follows one mic timer.
+        paint.color = if (dark) 0xFF29292E.toInt() else 0xFF292B32.toInt()
+        paint.alpha = drawableAlpha
+        canvas.drawCircle(cx, cy, 21.0f * density, paint)
     }
 
     override fun setAlpha(alpha: Int) {
-        this.alpha = alpha.coerceIn(0, 255)
+        drawableAlpha = alpha.coerceIn(0, 255)
         invalidateSelf()
     }
 
@@ -87,8 +72,8 @@ internal class FooterStatusRingDrawable(
 
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
-    private fun withAlpha(color: Int, alpha: Int): Int =
-        (color and 0x00FFFFFF) or (alpha.coerceIn(0, 255) shl 24)
+    private fun withAlpha(color: Int, opacity: Int): Int =
+        (color and 0x00FFFFFF) or (opacity.coerceIn(0, 255) shl 24)
 }
 
 internal object FooterIndicatorPolicy {

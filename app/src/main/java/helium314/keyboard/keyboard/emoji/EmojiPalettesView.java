@@ -76,7 +76,6 @@ import helium314.keyboard.latin.KeyboardWrapperView;
 import helium314.keyboard.latin.dictionary.Dictionary;
 import helium314.keyboard.latin.dictionary.DictionaryFactory;
 import helium314.keyboard.latin.R;
-import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.RichInputMethodManager;
 import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.Suggest;
@@ -136,6 +135,8 @@ public final class EmojiPalettesView extends LinearLayout
     private HorizontalScrollView mSearchResultsScrollView;
     private EmojiPageKeyboardView mSearchResultsView;
     private TextView mSearchEmptyView;
+    private EmojiSearchResultMorph mSearchResultMorph;
+    private List<String> mDisplayedSearchEmojis = List.of();
     private View mSearchKeyboardPlaceholder;
     private DynamicGridKeyboard mSearchResultsKeyboard;
     private KeyboardParams mSearchKeyboardParams;
@@ -180,6 +181,12 @@ public final class EmojiPalettesView extends LinearLayout
                 R.styleable.EmojiPalettesView, defStyle, R.style.EmojiPalettesView);
         mEmojiCategory = new EmojiCategory(context, layoutSet, emojiPalettesViewAttr);
         emojiPalettesViewAttr.recycle();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        if (mSearchResultMorph != null) mSearchResultMorph.cancel();
+        super.onDetachedFromWindow();
     }
 
     @Override
@@ -431,6 +438,8 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchResultsScrollView = findViewById(R.id.emoji_search_results_scroll);
         mSearchResultsView = findViewById(R.id.emoji_search_results_view);
         mSearchEmptyView = findViewById(R.id.emoji_search_empty);
+        mSearchResultMorph = new EmojiSearchResultMorph(
+                (ViewGroup) mSearchResultsScrollView.getParent());
         mSearchKeyboardPlaceholder = findViewById(R.id.emoji_search_keyboard_placeholder);
 
         setupSearchResultKeyboard();
@@ -802,6 +811,8 @@ public final class EmojiPalettesView extends LinearLayout
 
     public void exitSearchMode(final boolean clearQuery, final boolean restoreViews) {
 
+        if (mSearchResultMorph != null) mSearchResultMorph.cancel();
+
         if (!mSearchMode && !clearQuery) {
             return;
         }
@@ -809,6 +820,7 @@ public final class EmojiPalettesView extends LinearLayout
             setSearchText("", 0);
         }
         mSearchMode = false;
+        mDisplayedSearchEmojis = List.of();
         mSearchIdleSuggestions = List.of();
         mSearchIdleReviewed = List.of();
         mSearchIdleRecent = List.of();
@@ -1077,20 +1089,11 @@ public final class EmojiPalettesView extends LinearLayout
             showEmojiSearchResults(query, mSearchMode ? mSearchIdleSuggestions : List.of(), true);
             return;
         }
-        // Keep the already laid-out row in place while the asynchronous CLDR
-        // worker searches. Replacing it with an empty DynamicGridKeyboard on
-        // every keystroke caused the visible blank flash in the recording.
-        // The old row is faded and cannot be selected until the new answer
-        // arrives, so no stale Emoji can be sent to the host app.
-        if (mSearchDisplayedResultCount == 0 && !mSearchIdleSuggestions.isEmpty()) {
-            // Recover from a previous "No results" query without letting its
-            // empty keyboard persist through the next asynchronous request.
-            showEmojiSearchResults("", mSearchIdleSuggestions, true);
-        }
+        // Leave the previous row (or "No Results") visually stable while CLDR
+        // searches. Dimming it on each keystroke made the entire strip flash;
+        // substituting idle suggestions also created an unrelated intermediate
+        // state. Touches are gated until the actual new result arrives.
         setSearchResultsPending(true);
-        if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
-        if (mSearchResultsScrollView != null)
-            mSearchResultsScrollView.setVisibility(View.VISIBLE);
         // All asset I/O, token posting lookups and typo correction happen on
         // one bounded background worker, not inside the IME key event path.
         EmojiDescribeEngine.get().search(getContext(), query, 24, (found, indexAvailable) -> {
@@ -1136,6 +1139,14 @@ public final class EmojiPalettesView extends LinearLayout
     /** UI thread only; the existing Search keyboard and variant popups stay intact. */
     private void showEmojiSearchResults(final String text, final List<String> emojis,
             final boolean finalAnswer) {
+        final boolean noMatches = finalAnswer && text != null
+                && !text.isBlank() && emojis.isEmpty();
+        final boolean resultsChanged = !mDisplayedSearchEmojis.equals(emojis);
+        if (mSearchResultMorph != null && resultsChanged && mSearchMode && finalAnswer) {
+            final View oldSurface = mSearchEmptyView.getVisibility() == View.VISIBLE
+                    ? mSearchEmptyView : mSearchResultsScrollView;
+            mSearchResultMorph.capture(oldSurface);
+        }
         final int keyboardWidth = getSearchResultsKeyboardWidth(emojis.size());
         // Clearing the old query must not rebuild an entire keyboard layout
         // on every character. Only rebuild once the worker has final hits.
@@ -1157,9 +1168,8 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
         }
         mSearchDisplayedResultCount = emojis.size();
+        mDisplayedSearchEmojis = List.copyOf(emojis);
         if (mSearchEmptyView != null) {
-            final boolean noMatches = finalAnswer && text != null
-                    && !text.isBlank() && emojis.isEmpty();
             mSearchEmptyView.setVisibility(mSearchMode && noMatches ? View.VISIBLE : View.GONE);
             if (mSearchResultsScrollView != null)
                 mSearchResultsScrollView.setVisibility(mSearchMode && noMatches ? View.GONE : View.VISIBLE);
@@ -1167,9 +1177,10 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.scrollTo(0, 0);
         }
-        final boolean wasPending = mSearchResultsPending;
         setSearchResultsPending(false);
-        if (!wasPending && finalAnswer) KeyboardMotionSpec.revealSearchResults(mSearchResultsView);
+        if (resultsChanged && mSearchResultMorph != null && finalAnswer) {
+            mSearchResultMorph.reveal(noMatches ? mSearchEmptyView : mSearchResultsScrollView);
+        }
         mSearchResultsView.invalidate();
         mSearchResultsView.requestLayout();
     }
@@ -1186,8 +1197,8 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchResultsView.setImportantForAccessibility(pending
                 ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
-        if (pending) KeyboardMotionSpec.pendingSearchResults(mSearchResultsView);
-        else KeyboardMotionSpec.revealSearchResults(mSearchResultsView);
+        // Keep opacity constant: content animation belongs only to an actual
+        // result change, not to every query's pending / completed state.
     }
 
     private static synchronized void initSearchDictionaryFacilitator(final Context context) {

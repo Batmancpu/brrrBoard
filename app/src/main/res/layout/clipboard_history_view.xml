@@ -112,6 +112,8 @@
                     android:inputType="text|textNoSuggestions"
                     android:imeOptions="actionSearch|flagNoExtractUi"
                     android:singleLine="true"
+                    android:gravity="start|center_vertical"
+                    android:includeFontPadding="false"
                     android:paddingStart="15dp"
                     android:paddingEnd="42dp"
                     android:textSize="14sp"/>

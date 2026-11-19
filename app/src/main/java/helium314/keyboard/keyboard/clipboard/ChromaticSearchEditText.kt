@@ -10,6 +10,7 @@ import android.graphics.Shader
 import android.os.Build
 import android.util.AttributeSet
 import android.widget.EditText
+import androidx.core.graphics.ColorUtils
 import helium314.keyboard.keyboard.KeyboardTheme
 
 /** No selection/background color is part of this policy: only opaque glyph ink. */
@@ -40,13 +41,13 @@ class ChromaticSearchEditText(context: Context, attrs: AttributeSet?) : EditText
     private var matchActive = false
 
     fun showMatchedInk(active: Boolean) {
+        // The query's chromatic ink is a SEARCH affordance, not a match
+        // highlight. It also stays alive for queries with zero results.
         val shouldShow = ChromaticSearchInkPolicy.active(text, active)
         if (matchActive == shouldShow) return
         matchActive = shouldShow
         if (shouldShow) {
-            val glowColor = if (KeyboardTheme.isDarkThemeActive(context))
-                0x8C9E66EB.toInt() else 0x64713EB7
-            setShadowLayer(resources.displayMetrics.density * 1.7f, 0f, 0f, glowColor)
+            updateAmbientGlow()
             startInk()
         } else {
             stopInk()
@@ -59,11 +60,7 @@ class ChromaticSearchEditText(context: Context, attrs: AttributeSet?) : EditText
         shader = null
         shaderWidth = -1f
         if (matchActive) {
-            // Recompute shadow tint after a theme change without restarting the
-            // effect or losing text selection.
-            val glowColor = if (KeyboardTheme.isDarkThemeActive(context))
-                0x8C9E66EB.toInt() else 0x64713EB7
-            setShadowLayer(resources.displayMetrics.density * 1.7f, 0f, 0f, glowColor)
+            updateAmbientGlow()
         }
         invalidate()
     }
@@ -119,6 +116,7 @@ class ChromaticSearchEditText(context: Context, attrs: AttributeSet?) : EditText
             repeatMode = ValueAnimator.REVERSE
             addUpdateListener {
                 phase = it.animatedValue as Float
+                updateAmbientGlow()
                 postInvalidateOnAnimation()
             }
             start()
@@ -129,5 +127,15 @@ class ChromaticSearchEditText(context: Context, attrs: AttributeSet?) : EditText
         animator?.cancel()
         animator = null
         phase = 0f
+    }
+
+    private fun updateAmbientGlow() {
+        val dark = KeyboardTheme.isDarkThemeActive(context)
+        val pink = if (dark) 0x5BD167EC else 0x4DB336A0
+        val aqua = if (dark) 0x5B40C9D8 else 0x4D2589AE
+        val color = ColorUtils.blendARGB(pink, aqua, (phase + 1f) * .5f)
+        // A small, soft color spill around the letters influences the capsule
+        // surface without creating a colored selection rectangle behind them.
+        setShadowLayer(resources.displayMetrics.density * 3.8f, 0f, 0f, color)
     }
 }
