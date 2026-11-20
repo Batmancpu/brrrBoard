@@ -250,6 +250,7 @@ public class LatinIME extends InputMethodService implements
     private GestureConsumer mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
 
     private final ClipboardHistoryManager mClipboardHistoryManager = new ClipboardHistoryManager(this);
+    private final EditorSessionGeneration mEditorSessionGeneration = new EditorSessionGeneration();
 
     public static final class UIHandler extends LeakGuardHandlerWrapper<LatinIME> {
         private static final int MSG_UPDATE_SHIFT_STATE = 0;
@@ -300,6 +301,8 @@ public class LatinIME extends InputMethodService implements
             switch (msg.what) {
                 case MSG_UPDATE_SUGGESTION_STRIP:
                     cancelUpdateSuggestionStrip();
+                    if (!(msg.obj instanceof Long)
+                            || !latinIme.mEditorSessionGeneration.accepts((Long) msg.obj)) break;
                     latinIme.mInputLogic.performUpdateSuggestionStripSync(
                             latinIme.mSettings.getCurrent(), msg.arg1 /* inputStyle */);
                     break;
@@ -317,6 +320,8 @@ public class LatinIME extends InputMethodService implements
                     }
                     break;
                 case MSG_RESUME_SUGGESTIONS:
+                    if (!(msg.obj instanceof Long)
+                            || !latinIme.mEditorSessionGeneration.accepts((Long) msg.obj)) break;
                     latinIme.mInputLogic.restartSuggestionsOnWordTouchedByCursor(
                             latinIme.mSettings.getCurrent(),
                             latinIme.mKeyboardSwitcher.getCurrentKeyboardScript());
@@ -345,7 +350,11 @@ public class LatinIME extends InputMethodService implements
                     }
                     break;
                 case MSG_WAIT_FOR_DICTIONARY_LOAD:
-                    Log.i(TAG, "Timeout waiting for dictionary load");
+                    if (msg.obj instanceof Long
+                            && latinIme.mEditorSessionGeneration.accepts((Long) msg.obj)) {
+                        // No editor content or package identity enters diagnostics.
+                        Log.i(TAG, "Timeout waiting for dictionary load");
+                    }
                     break;
                 case MSG_DEALLOCATE_MEMORY:
                     latinIme.deallocateMemory();
@@ -357,8 +366,12 @@ public class LatinIME extends InputMethodService implements
         }
 
         public void postUpdateSuggestionStrip(final int inputStyle) {
+            final LatinIME ime = getOwnerInstance();
+            if (ime == null) return;
+            removeMessages(MSG_UPDATE_SUGGESTION_STRIP);
             sendMessageDelayed(obtainMessage(MSG_UPDATE_SUGGESTION_STRIP, inputStyle,
-                    0 /* ignored */), mDelayInMillisecondsToUpdateSuggestions);
+                    0 /* ignored */, ime.mEditorSessionGeneration.current()),
+                    mDelayInMillisecondsToUpdateSuggestions);
         }
 
         public void postReopenDictionaries() {
@@ -376,11 +389,16 @@ public class LatinIME extends InputMethodService implements
             removeMessages(MSG_RESUME_SUGGESTIONS);
             final int message = MSG_RESUME_SUGGESTIONS;
             if (shouldDelay) {
-                sendMessageDelayed(obtainMessage(message),
+                sendMessageDelayed(obtainMessage(message, latinIme.mEditorSessionGeneration.current()),
                         mDelayInMillisecondsToUpdateSuggestions);
             } else {
-                sendMessage(obtainMessage(message));
+                sendMessage(obtainMessage(message, latinIme.mEditorSessionGeneration.current()));
             }
+        }
+
+        public long editorGeneration() {
+            final LatinIME ime = getOwnerInstance();
+            return ime == null ? -1L : ime.mEditorSessionGeneration.current();
         }
 
         public void postResetCaches(final boolean tryResumeSuggestions, final int remainingTries) {
@@ -390,8 +408,11 @@ public class LatinIME extends InputMethodService implements
         }
 
         public void postWaitForDictionaryLoad() {
-            sendMessageDelayed(obtainMessage(MSG_WAIT_FOR_DICTIONARY_LOAD),
-                    DELAY_WAIT_FOR_DICTIONARY_LOAD_MILLIS);
+            final LatinIME ime = getOwnerInstance();
+            if (ime == null) return;
+            removeMessages(MSG_WAIT_FOR_DICTIONARY_LOAD);
+            sendMessageDelayed(obtainMessage(MSG_WAIT_FOR_DICTIONARY_LOAD,
+                    ime.mEditorSessionGeneration.current()), DELAY_WAIT_FOR_DICTIONARY_LOAD_MILLIS);
         }
 
         public void cancelWaitForDictionaryLoad() {
@@ -1292,6 +1313,9 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
+        mEditorSessionGeneration.invalidate();
+        mHandler.cancelUpdateSuggestionStrip();
+        mHandler.cancelResumeSuggestions();
         super.onStartInput(editorInfo, restarting);
 
         final RichInputMethodSubtype subtypeForApp = editorInfo == null
@@ -1310,7 +1334,6 @@ public class LatinIME extends InputMethodService implements
     void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
         mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
-        mClipboardHistoryManager.updatePrimaryClip();
 
         // Never switch an editor into the retired gesture-trace research mode.
         mDictionaryFacilitator.onStartInput();
@@ -1359,6 +1382,9 @@ public class LatinIME extends InputMethodService implements
             }
             return;
         }
+        // Load the target app's secure/incognito settings BEFORE reading any
+        // system clipboard data. The previous editor's privacy state is stale.
+        mClipboardHistoryManager.updatePrimaryClip();
         Log.i(TAG, (restarting ? "Res" : "S") + "tarting input. Cursor position = " + editorInfo.initialSelStart + ","
                 + editorInfo.initialSelEnd);
         if (DebugFlags.DEBUG_ENABLED) {
@@ -1505,6 +1531,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mEditorSessionGeneration.invalidate();
         mKeyboardSwitcher.cancelPanelTransition();
         mInlineDictation.cancel();
         mOfflineDictation.cancel();
@@ -1532,6 +1559,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onFinishInputInternal() {
+        mEditorSessionGeneration.invalidate();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onFinishInput();
         Log.i(TAG, "onFinishInput");
@@ -1551,6 +1579,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void cleanupInternalStateForFinishInput() {
+        mEditorSessionGeneration.invalidate();
         // Remove pending messages related to update suggestions
         mHandler.cancelUpdateSuggestionStrip();
         // Should do the following in onFinishInputInternal but until JB MR2 it's not
@@ -2037,8 +2066,13 @@ public class LatinIME extends InputMethodService implements
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
+        mEditorSessionGeneration.invalidate();
+        mHandler.cancelUpdateSuggestionStrip();
+        mHandler.cancelResumeSuggestions();
         mInputLogic.clearPendingPrivateLearning();
     }
+
+    public long editorGeneration() { return mEditorSessionGeneration.current(); }
 
     public void onStartBatchInput() {
         mInputLogic.onStartBatchInput(mSettings.getCurrent(), mKeyboardSwitcher, mHandler);

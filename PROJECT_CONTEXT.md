@@ -1,5 +1,37 @@
 # brrBoard project context
 
+## 2026-11-20 — Eight-stage privacy/intelligence batch 8/8 source integration checkpoint
+
+Full synthetic integration and device checklist in `docs/EIGHT_STAGE_INTELLIGENCE_PRIVACY_2026_11_20.md`. No local SDK/adb; Python 16 cases, XML and diff checks passed, Android tests/signing/phone all pending exact main SHA. No new model, network permission or UI design changes. Check CI/release source hash independently from Oppo acceptance; preserve data on in-place update.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 7/8 (source candidate)
+
+Encrypted swipe learner maintains the exact existing key/file identity; new read-after-write authenticated equality check before legacy file removal, RAM-only fail-closed on errors. Tests cover crypto header, nonce, size and migration policy fault cases. No learned-data reset, plaintext fallback or model change. Full Android CI/device migration still pending. Batch 8 integration/release gate next.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 6/8 (source candidate)
+
+13 authored Indian English/public exam spellings now enter static native seed as valid-only, with `brrPersonal_v3` cache separating old v2. Conservative casing whitelist expanded in existing offline formatter; no phonetic substitutions or data learning. Synthetic generator and voice tests added, full CI and phone unverified. Gold incognito/deep-red mic still separate. Batch 7 encrypted migration fault tests next.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 5/8 (source candidate)
+
+Added parity-only swipe/Emoji allocation experimental tests; production path unchanged pending real timing/heap evidence. Fixtures authored and synthetic, no user traces. See eight-stage ledger. Batch 6 lexicon/casing next; full CI/device parity not yet verified.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 4/8 (source candidate)
+
+NextWordCacheKey now separates copied n-gram state across layout/locale/style/settings; bypasses cache in private mode and preserves native scorer. Dictionary timeout coalesces and ignores stale epochs. Synthetic tests added; actual latency/correctness baseline and full Android CI outstanding. Batch 5 experiments next.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 3/8 (source candidate)
+
+All clipboard paths recorded in `docs/EIGHT_STAGE_INTELLIGENCE_PRIVACY_2026_11_20.md`. Private direct Paste now requires generic confirmation and rechecks editor epoch/connection/current clip. History collection/screenshot race and chip/history commits rechecked. Clear protects foreign current clipboard with process-local owned-copy provenance. No private content in prompts/logs, no new persistence; CI and actual attached-dialog behavior on Oppo pending. Batch 4 next.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 2/8 (source candidate)
+
+EditorSessionGeneration invalidates on field restart/start/finish, hide and manual incognito change; UI delayed suggestions and resume commands plus worker/batch callbacks check opaque generation. No input text stored in the epoch. Unit boundary test added. Requires whole-project Android compilation and real edit/rotation/rapid-swiping regression. Batch 3 clipboard next.
+
+## 2026-11-20 — Eight-stage privacy/intelligence batch 1/8 (source candidate)
+
+Base main `49756dc`. Debug-only RAM histogram `IntelligenceMetrics` with fixed paths/buckets plus deterministic synthetic bin-boundary test; no inputs retained, logged or persisted. This is instrumentation coverage, NOT a real baseline or speed improvement. Real Oppo profiling and full CI still pending. Batch 2: editor/privacy generation safeguards, no changes to the requested gold incognito or red mic visuals.
+
 ## 2026-11-20 (IST) — Spacebar trackpad label lock, two-axis smooth cursor and footer slides; filled Emoji optical sizing
 
 User specifically observed held trackpad labels disappearing only until the first cursor move. The selection/case rebuild path in `MainKeyboardView.setKeyboardInternal` reset the label-hidden flag; it now reads live `TouchpadHandler.isTouchpadModeRequested()`, protecting the entire hold through suggestions and keyboard redraws. iOS-default uses allocation-free fractional x/y pointer translation, 16.5–35.5px horizontal base thresholds, 1.4× vertical threshold, bounded 1.55× high-speed boost, and max3 actions/axis/event. Old Previous Default movement preserved. During spacebar trackpad mode, no ordinary key/text input can be emitted, Emoji slides left and microphone + turquoise privacy shield slide right 64dp for 220ms and both reverse on exit; widgets remain in original footer layout. Filled Emoji optical intrinsic 31→34dp and larger hat; glasses, morph color, privacy mic remain unchanged. Apple official user guide: https://support.apple.com/guide/iphone/select-edit-and-move-text-iph1a9cae52c/27/ios/27 ; Android `InputConnection` controls real editor caret but cannot force Apple's floating-caret drawing. Source/docs/tests: `docs/TOUCHPAD_SMOOTH_LABEL_LOCK_FOOTER_SLIDE_2026_11_20.md`. The previous shield run debug `44589898503` and signed release `44589898576` both FAILED a stale Python string assertion after Android source + JUnit passed; updated `tools/test_bundled_voice_contract.py` now enforces privacy-safe `!isMicProtected()` restart and passes locally. This combined source still needs new exact-SHA debug+signed CI and hands-on Oppo Reno10 check; preserve same data/package/signer/model.

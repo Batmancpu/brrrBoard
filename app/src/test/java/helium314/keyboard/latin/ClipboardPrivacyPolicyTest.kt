@@ -11,6 +11,10 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ClipboardPrivacyPolicyTest {
+    @Test fun noEditorMeansNoAmbientClipboardCollection() {
+        assertTrue(ClipboardPrivacyPolicy.isPrivateEditor(null, false))
+        assertFalse(ClipboardPrivacyPolicy.mayCollect(null, false, false))
+    }
     @Test fun ordinaryInputMayCollectOnlyNonSensitiveClips() {
         val text = EditorInfo().apply { inputType = InputType.TYPE_CLASS_TEXT }
         assertTrue(ClipboardPrivacyPolicy.mayCollect(text, incognito = false, sensitiveClip = false))

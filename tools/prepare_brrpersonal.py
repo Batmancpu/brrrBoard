@@ -135,6 +135,31 @@ def read_reviewed_social(path: Path, existing_rules: dict[str, str]) -> dict[str
     return words
 
 
+def read_english_valid_only(path: Path, reserved: set[str]) -> dict[str, int]:
+    """Authored spelling-valid tokens, deliberately excluded from proactive text."""
+    result: dict[str, int] = {}
+    with path.open("r", encoding="utf-8", newline="") as stream:
+        for line_number, line in enumerate(stream, 1):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            fields = line.rstrip("\r\n").split("\t")
+            if len(fields) != 2 or not re.fullmatch(r"[a-z]{2,24}", fields[0]):
+                raise ValueError(f"{path}:{line_number}: malformed English validity token")
+            word = fields[0]
+            if word in reserved or word in result:
+                raise ValueError(f"{path}:{line_number}: duplicate/conflicting valid-only token")
+            try:
+                frequency = int(fields[1])
+            except ValueError as error:
+                raise ValueError(f"{path}:{line_number}: invalid seed weight") from error
+            if frequency < 24 or frequency > 64:
+                raise ValueError(f"{path}:{line_number}: out-of-bound seed weight")
+            result[word] = frequency
+    if not 1 <= len(result) <= 64:
+        raise ValueError("English validity list outside reviewed bounds")
+    return result
+
+
 def build_seed_entries(
     rows: Iterable[dict[str, str]],
     hinglish_column: str,
@@ -142,6 +167,7 @@ def build_seed_entries(
     rules: dict[str, str],
     max_entries: int = MAX_TOTAL_ENTRIES,
     reviewed_social: dict[str, int] | None = None,
+    reviewed_english_valid_only: dict[str, int] | None = None,
 ) -> tuple[dict[str, tuple[int, str]], int, int]:
     """Pure, deterministic seed builder for disjoint synthetic quality fixtures.
 
@@ -165,13 +191,20 @@ def build_seed_entries(
     ]
     candidates.sort(key=lambda item: (-item[1], item[0]))
     reviewed_social = reviewed_social or {}
+    reviewed_english_valid_only = reviewed_english_valid_only or {}
     if set(reviewed_social) & set(rules):
         raise ValueError("reviewed social words must not overlap valid-only rules")
-    corpus_limit = max(0, max_entries - len(rules) - len(reviewed_social))
+    if set(reviewed_english_valid_only) & (set(rules) | set(reviewed_social)):
+        raise ValueError("English valid-only words must not overlap proactive sources")
+    corpus_limit = max(0, max_entries - len(rules) - len(reviewed_social)
+                       - len(reviewed_english_valid_only))
     entries: dict[str, tuple[int, str]] = {
         word: (min(255, count), "") for word, count in candidates[:corpus_limit]
     }
     for word, frequency in reviewed_social.items():
+        entries[word] = (max(frequency, entries.get(word, (0, ""))[0]), "")
+    for word, frequency in reviewed_english_valid_only.items():
+        # The app-side validity gate prevents silent/automatic replacement.
         entries[word] = (max(frequency, entries.get(word, (0, ""))[0]), "")
     for word, emoji in rules.items():
         corpus_frequency = entries.get(word, (0, ""))[0]
@@ -179,25 +212,29 @@ def build_seed_entries(
     return entries, row_count, len(candidates)
 
 def main() -> None:
-    if len(sys.argv) not in (3, 4):
-        raise SystemExit("usage: prepare_brrpersonal.py OUTPUT_TSV RULES_TSV [SOCIAL_TSV]")
+    if len(sys.argv) not in (3, 4, 5):
+        raise SystemExit("usage: prepare_brrpersonal.py OUTPUT_TSV RULES_TSV [SOCIAL_TSV] [ENGLISH_VALID_ONLY_TSV]")
     output_path = Path(sys.argv[1])
     rules_path = Path(sys.argv[2])
     rules = read_rules(rules_path)
-    reviewed_social = read_reviewed_social(Path(sys.argv[3]), rules) if len(sys.argv) == 4 else {}
+    reviewed_social = read_reviewed_social(Path(sys.argv[3]), rules) if len(sys.argv) >= 4 else {}
+    reviewed_english = read_english_valid_only(
+        Path(sys.argv[4]), set(rules) | set(reviewed_social)) if len(sys.argv) == 5 else {}
     reader = csv.DictReader(io.StringIO(download_csv(), newline=""))
     if not reader.fieldnames:
         raise ValueError("Pinned PHINC CSV has no header")
     hinglish_column, english_column = find_columns(reader.fieldnames)
 
     entries, row_count, candidate_count = build_seed_entries(
-        reader, hinglish_column, english_column, rules, reviewed_social=reviewed_social)
+        reader, hinglish_column, english_column, rules, reviewed_social=reviewed_social,
+        reviewed_english_valid_only=reviewed_english)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as output:
         output.write("# brrPersonal schema 1; generated from PHINC and reviewed local rules\n")
         output.write(f"# PHINC revision: {PHINC_REVISION} (CC-BY-4.0)\n")
         output.write(f"# Reviewed 2026 social/Hinglish additions: {len(reviewed_social)}\n")
+        output.write(f"# Authored English validity-only entries: {len(reviewed_english)}\n")
         output.write("# Columns: lowercase Latin token<TAB>native frequency<TAB>emoji shortcut\n")
         for word in sorted(entries, key=lambda item: (-entries[item][0], item)):
             frequency, emoji = entries[word]
@@ -209,7 +246,8 @@ def main() -> None:
         )
     print(
         f"brrPersonal: {len(entries)} entries from {row_count} PHINC rows; "
-        f"{len(rules)} valid-only shortcut rules, {len(reviewed_social)} safe social words"
+        f"{len(rules)} valid-only shortcut rules, {len(reviewed_social)} safe social words, "
+        f"{len(reviewed_english)} English validity-only words"
     )
 
 if __name__ == "__main__":

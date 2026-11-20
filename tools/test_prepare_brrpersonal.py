@@ -13,6 +13,7 @@ from prepare_brrpersonal import (
     build_seed_entries,
     find_columns,
     read_reviewed_social,
+    read_english_valid_only,
     read_rules,
 )
 
@@ -97,6 +98,23 @@ class BrrPersonalSeedTests(unittest.TestCase):
             path.write_text("solulu\t200\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "frequency"):
                 read_reviewed_social(path, {})
+
+    def test_reviewed_english_words_are_valid_only_with_bounded_weights(self):
+        with tempfile.TemporaryDirectory(prefix="brr-english-test-") as directory:
+            path = Path(directory, "english.tsv")
+            path.write_text("prepone\t42\nlakh\t55\n", encoding="utf-8")
+            valid = read_english_valid_only(path, {"wtf", "kya"})
+            entries, _, _ = build_seed_entries([], "h", "e", {},
+                reviewed_english_valid_only=valid)
+            self.assertEqual((42, ""), entries["prepone"])
+            self.assertEqual((55, ""), entries["lakh"])
+            self.assertNotIn("prepone", {"wtf", "kya"})
+            path.write_text("wtf\t42\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "conflicting"):
+                read_english_valid_only(path, {"wtf"})
+            path.write_text("prepone\t100\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "out-of-bound"):
+                read_english_valid_only(path, set())
 
 
 if __name__ == "__main__":

@@ -52,4 +52,24 @@ public class BrainLearningVaultTest {
             // Correct.
         }
     }
+
+    @Test public void changedVersionAndNonceAreAuthenticatedAndRejected() throws Exception {
+        final byte[] sealed = BrainLearningVault.sealWithKey(key,
+                "synthetic\tcorrection\t2\t1700000000000\n".getBytes(StandardCharsets.UTF_8));
+        final byte[] versionChanged = sealed.clone();
+        versionChanged[3] = 3;
+        assertThrows(GeneralSecurityException.class,
+                () -> BrainLearningVault.openWithKey(key, versionChanged));
+        final byte[] nonceChanged = sealed.clone();
+        nonceChanged[6] ^= 1;
+        assertThrows(GeneralSecurityException.class,
+                () -> BrainLearningVault.openWithKey(key, nonceChanged));
+    }
+
+    @Test public void oversizedOrEmptyRecordsFailClosed() {
+        assertThrows(GeneralSecurityException.class,
+                () -> BrainLearningVault.openWithKey(key, new byte[16 * 1024 + 1]));
+        assertThrows(GeneralSecurityException.class,
+                () -> BrainLearningVault.openWithKey(key, new byte[0]));
+    }
 }

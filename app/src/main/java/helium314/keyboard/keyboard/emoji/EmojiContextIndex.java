@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.keyboard.emoji;
 
+import helium314.keyboard.latin.IntelligenceMetrics;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,6 +65,15 @@ final class EmojiContextIndex {
      * Search is deliberately separate from context-triggered typing suggestions.
      */
     List<String> search(final String input, final int maxResults) {
+        final long started = IntelligenceMetrics.begin();
+        try {
+            return searchInternal(input, maxResults);
+        } finally {
+            IntelligenceMetrics.end(IntelligenceMetrics.Path.EMOJI_SEARCH, started);
+        }
+    }
+
+    private List<String> searchInternal(final String input, final int maxResults) {
         if (input == null || maxResults <= 0) return List.of();
         final String query = input.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
         if (query.isEmpty()) return List.of();

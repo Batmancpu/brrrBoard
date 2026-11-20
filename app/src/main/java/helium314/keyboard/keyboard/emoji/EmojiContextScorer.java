@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.keyboard.emoji;
 
+import helium314.keyboard.latin.IntelligenceMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -107,6 +108,15 @@ public final class EmojiContextScorer {
      * @return immutable highest-confidence results, empty for untrusted contexts.
      */
     static List<Candidate> rank(final String context, final boolean sensitiveField) {
+        final long started = IntelligenceMetrics.begin();
+        try {
+            return rankInternal(context, sensitiveField);
+        } finally {
+            IntelligenceMetrics.end(IntelligenceMetrics.Path.EMOJI_RANK, started);
+        }
+    }
+
+    private static List<Candidate> rankInternal(final String context, final boolean sensitiveField) {
         if (sensitiveField || context == null || context.isEmpty() || context.length() > 4096) {
             return List.of();
         }

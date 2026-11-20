@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 
 import helium314.keyboard.keyboard.emoji.EmojiContextEligibility;
 import helium314.keyboard.latin.settings.Settings;
+import helium314.keyboard.latin.IntelligenceMetrics;
 import helium314.keyboard.latin.utils.KtxKt;
 
 import java.io.BufferedReader;
@@ -156,30 +157,44 @@ public final class SwipeCorrectionLearner {
                 plain.write(line.getBytes(StandardCharsets.UTF_8));
             }
             final byte[] raw = plain.toByteArray();
-            final byte[] sealed;
+            byte[] sealed = null;
             try {
                 sealed = BrainLearningVault.seal(raw);
+                synchronized (this) {
+                    if (revision != version || vaultReadOnly) return;
+                    FileOutputStream out = null;
+                    try {
+                        out = file.startWrite();
+                        out.write(sealed);
+                        file.finishWrite(out);
+                        out = null; // finishWrite closed it; never failWrite afterwards.
+                        byte[] recovered = null;
+                        boolean verified = false;
+                        try {
+                            recovered = BrainLearningVault.open(readBounded(file, MAX_FILE_BYTES + 1024));
+                            verified = Arrays.equals(raw, recovered);
+                        } finally {
+                            if (recovered != null) Arrays.fill(recovered, (byte) 0);
+                        }
+                        if (!verified) throw new IOException("Encrypted learning verification failed");
+                        encryptedPersisted = true;
+                        if (SwipeLearningMigrationGate.mayDeleteLegacy(true, true, verified)) {
+                            legacyPending = false;
+                            // Never delete the old store until the new one was
+                            // written, authenticated, and checked byte-for-byte.
+                            legacyFile.delete();
+                        }
+                    } catch (Exception ignored) {
+                        if (out != null) file.failWrite(out);
+                        // Preserve both the legacy and unreadable sealed bytes.
+                        // Never fall back to disk plaintext or overwrite v2.
+                        vaultReadOnly = true;
+                    }
+                }
             } finally {
                 Arrays.fill(raw, (byte) 0);
+                if (sealed != null) Arrays.fill(sealed, (byte) 0);
             }
-            synchronized (this) {
-                if (revision != version || vaultReadOnly) return;
-                FileOutputStream out = null;
-                try {
-                    out = file.startWrite();
-                    out.write(sealed);
-                    file.finishWrite(out);
-                    encryptedPersisted = true;
-                    legacyPending = false;
-                    // Delete old plaintext only AFTER authenticated writing finishes.
-                    legacyFile.delete();
-                } catch (Exception ignored) {
-                    if (out != null) file.failWrite(out);
-                    // Never fall back to plaintext.
-                    vaultReadOnly = true;
-                }
-            }
-            Arrays.fill(sealed, (byte) 0);
         } catch (Exception ignored) {
             // If the Keystore is unavailable, new learning remains in RAM only.
             vaultReadOnly = true;
@@ -261,6 +276,8 @@ public final class SwipeCorrectionLearner {
 
     /** Require two separate explicit corrections before a word can be recalled. */
     public synchronized @Nullable String suggest(final String rawSeed) {
+        final long started = IntelligenceMetrics.begin();
+        try {
         final String seed = rawSeed.toLowerCase(Locale.ROOT);
         if (!valid(seed)) return null;
         Entry best = null;
@@ -282,6 +299,9 @@ public final class SwipeCorrectionLearner {
         if (best != null && runnerUp != null && best.count == runnerUp.count) return null;
         if (best != null) sessionRecallOffers.incrementAndGet();
         return best == null ? null : best.word;
+        } finally {
+            IntelligenceMetrics.end(IntelligenceMetrics.Path.SWIPE_RECALL, started);
+        }
     }
 
     public void confirm(final String rawSeed, final String rawWord) {

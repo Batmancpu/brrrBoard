@@ -7,4 +7,9 @@
     <string name="board_incognito_on">Incognito on. Learning is paused.</string>
     <string name="board_incognito_off">Incognito off. Private learning may resume.</string>
     <string name="board_incognito_forced">This text field requires incognito mode.</string>
+    <string name="board_private_paste_title">Paste into a private field?</string>
+    <string name="board_private_paste_explanation">Clipboard content may be sensitive. Only paste if you trust the selected text field.</string>
+    <string name="board_private_paste_confirm">Paste</string>
+    <string name="board_private_paste_cancel">Cancel</string>
+    <string name="board_private_paste_unavailable">Paste confirmation unavailable. Nothing was inserted.</string>
 </resources>

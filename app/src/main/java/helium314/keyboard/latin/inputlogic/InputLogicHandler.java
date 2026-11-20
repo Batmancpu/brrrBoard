@@ -23,6 +23,7 @@ class InputLogicHandler implements Handler.Callback {
     final InputLogic mInputLogic;
     private final Object mLock = new Object();
     private boolean mInBatchInput; // synchronized using {@link #mLock}.
+    private volatile long mBatchEditorGeneration = -1L;
 
     private static final int MSG_GET_SUGGESTED_WORDS = 1;
 
@@ -37,6 +38,7 @@ class InputLogicHandler implements Handler.Callback {
 
     public void reset() {
         mNonUIThreadHandler.removeCallbacksAndMessages(null);
+        mBatchEditorGeneration = -1L;
     }
 
     /**
@@ -55,6 +57,7 @@ class InputLogicHandler implements Handler.Callback {
     public void onStartBatchInput() {
         synchronized (mLock) {
             mInBatchInput = true;
+            mBatchEditorGeneration = mLatinIMEHandler.editorGeneration();
         }
     }
 
@@ -77,7 +80,7 @@ class InputLogicHandler implements Handler.Callback {
     private void updateBatchInput(final InputPointers batchPointers,
             final int sequenceNumber, final boolean isTailBatchInput) {
         synchronized (mLock) {
-            if (!mInBatchInput) {
+            if (!mInBatchInput || mBatchEditorGeneration != mLatinIMEHandler.editorGeneration()) {
                 // Batch input has ended or canceled while the message was being delivered.
                 return;
             }
@@ -91,6 +94,7 @@ class InputLogicHandler implements Handler.Callback {
 
     private void showGestureSuggestionsWithPreviewVisuals(final SuggestedWords suggestedWordsForBatchInput,
             final boolean isTailBatchInput) {
+        if (mBatchEditorGeneration != mLatinIMEHandler.editorGeneration()) return;
         final SuggestedWords suggestedWordsToShowSuggestions;
         // We're now inside the callback. This always runs on the Non-UI thread,
         // no matter what thread updateBatchInput was originally called on.
@@ -137,6 +141,7 @@ class InputLogicHandler implements Handler.Callback {
     public void onCancelBatchInput() {
         synchronized (mLock) {
             mInBatchInput = false;
+            mBatchEditorGeneration = -1L;
         }
     }
 
@@ -159,7 +164,12 @@ class InputLogicHandler implements Handler.Callback {
 
     public void getSuggestedWords(final Runnable callback) {
         mNonUIThreadHandler.removeMessages(MSG_GET_SUGGESTED_WORDS);
-        mNonUIThreadHandler.obtainMessage(MSG_GET_SUGGESTED_WORDS, callback).sendToTarget();
+        final long expectedGeneration = mLatinIMEHandler.editorGeneration();
+        mNonUIThreadHandler.obtainMessage(MSG_GET_SUGGESTED_WORDS,
+                (Runnable) () -> {
+                    if (expectedGeneration != mLatinIMEHandler.editorGeneration()) return;
+                    callback.run();
+                }).sendToTarget();
     }
 
     public void onDestroy() {

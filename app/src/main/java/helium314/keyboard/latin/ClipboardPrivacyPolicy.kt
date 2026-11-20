@@ -9,7 +9,9 @@ object ClipboardPrivacyPolicy {
     @JvmStatic
     fun isPrivateEditor(editor: EditorInfo?, incognito: Boolean): Boolean {
         if (incognito) return true
-        val input = editor ?: return false
+        // A newly created IME has no trusted editor yet. Never ingest the
+        // system clipboard merely because the keyboard service was started.
+        val input = editor ?: return true
         return InputTypeUtils.isAnyPasswordInputType(input.inputType) ||
             input.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING != 0
     }

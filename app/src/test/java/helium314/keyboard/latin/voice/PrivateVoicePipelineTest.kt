@@ -106,6 +106,10 @@ class PrivateVoicePipelineTest {
         )
         assertEquals("Android. GitHub! support@github.com",
             VoiceTranscriptFormatter.format("android. github! support@github.com"))
+        assertEquals("UPSC NCERT ISRO ColorOS OPPO WhatsApp YouTube",
+            VoiceTranscriptFormatter.format("upsc ncert isro coloros oppo whatsapp youtube"))
+        assertEquals("upsc.gov.in ncert.nic.in support@oppo.com and tiffin",
+            VoiceTranscriptFormatter.format("upsc.gov.in ncert.nic.in support@oppo.com and tiffin"))
     }
 
     @Test fun onlyOrphanedRedVoicePcmNamesCanBeRemoved() {

@@ -26,9 +26,11 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
     private static final String TAG = "brrPersonal";
     // Rebuild the on-device expandable cache after adding the reviewed social lexicon.
     // Keep the old v1 cache untouched for rollback and backup compatibility.
-    private static final String NAME = "brrPersonal_v2";
+    // Separate cache for the extended static validity lexicon; preserve v2/learned data.
+    private static final String NAME = "brrPersonal_v3";
     private static final String DATA_ASSET = "brrPersonal.tsv";
     private static final String RULES_ASSET = "brrPersonal_rules.tsv";
+    private static final String ENGLISH_VALID_ONLY_ASSET = "brrPersonal_english_valid_only.tsv";
     private static final int SHORTCUT_FREQUENCY = 14;
 
     private static volatile Set<String> noSuggestionWords = Collections.emptySet();
@@ -57,17 +59,19 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
         synchronized (BrrPersonalDictionary.class) {
             if (noSuggestionWordsLoaded) return;
             final Set<String> words = new HashSet<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    context.getAssets().open(RULES_ASSET), StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.isEmpty() || line.startsWith("#")) continue;
-                    final String[] fields = line.split("\\t", 2);
-                    final String word = fields[0].trim().toLowerCase(Locale.ROOT);
-                    if (word.matches("[a-z]{2,24}")) words.add(word);
+            for (final String asset : new String[]{RULES_ASSET, ENGLISH_VALID_ONLY_ASSET}) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        context.getAssets().open(asset), StandardCharsets.UTF_8))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.isEmpty() || line.startsWith("#")) continue;
+                        final String[] fields = line.split("\\t", 2);
+                        final String word = fields[0].trim().toLowerCase(Locale.ROOT);
+                        if (word.matches("[a-z]{2,24}")) words.add(word);
+                    }
+                } catch (IOException e) {
+                    Log.e(TAG, "Could not load brrPersonal no-suggest rules", e);
                 }
-            } catch (IOException e) {
-                Log.e(TAG, "Could not load brrPersonal no-suggest rules", e);
             }
             noSuggestionWords = Collections.unmodifiableSet(words);
             noSuggestionWordsLoaded = true;

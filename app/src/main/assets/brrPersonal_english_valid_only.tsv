@@ -1,0 +1,18 @@
+# Reviewed 2026-11-20 common Indian English tokens (word<TAB>frequency).
+# Authored short lexical list; spelling validation only, NEVER proactive/silent correction.
+# Frequencies are conservative seed weights, not corpus-derived measurements.
+# Terms: Indian English usage (prepone/lakh/crore/tiffin/rickshaw/pincode),
+# the Indian public-exam domain (upsc/ncert), not copied from owner input.
+prepone	42
+preponed	38
+preponing	34
+lakh	55
+lakhs	48
+crore	56
+crores	49
+tiffin	42
+rickshaw	46
+autorickshaw	39
+pincode	45
+upsc	40
+ncert	38

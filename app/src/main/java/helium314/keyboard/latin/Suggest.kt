@@ -40,7 +40,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     private var mAutoCorrectionThreshold = 0f
     private val mPlausibilityThreshold = 0f
     private val nextWordSuggestionsCache =
-        LruCache<NgramContext, SuggestionResults>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
+        LruCache<NextWordCacheKey, SuggestionResults>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
 
     // cache cleared whenever LatinIME.loadSettings is called, notably on changing layout and switching input fields
     fun clearNextWordSuggestionsCache() = nextWordSuggestionsCache.evictAll()
@@ -413,11 +413,22 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     /** get suggestions based on the current ngram context, with an empty typed word (that's what next word suggestions do)  */
     private fun getNextWordSuggestions(ngramContext: NgramContext, keyboard: Keyboard, inputStyle: Int,
                                        settingsValuesForSuggestion: SettingsValuesForSuggestion): SuggestionResults {
-        val cachedResults = nextWordSuggestionsCache.get(ngramContext)
-        if (cachedResults != null) return cachedResults
-        val newResults = mDictionaryFacilitator.getSuggestionResults(ComposedData(InputPointers(1),
-            false, ""), ngramContext, keyboard, settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyle)
-        nextWordSuggestionsCache.put(ngramContext, newResults)
+        // The old context-only cache could reuse a result from another locale,
+        // keyboard layout or input style. Do not retain a private context at all.
+        val cacheable = Settings.getValues()?.mIncognitoModeEnabled != true
+        val key = NextWordCacheKey.from(ngramContext, mDictionaryFacilitator.mainLocale.toLanguageTag(),
+            keyboard.mId.hashCode(), inputStyle,
+            settingsValuesForSuggestion.mBlockPotentiallyOffensive,
+            settingsValuesForSuggestion.mSpaceAwareGesture)
+        if (cacheable) nextWordSuggestionsCache.get(key)?.let { return it }
+        val started = IntelligenceMetrics.begin()
+        val newResults = try {
+            mDictionaryFacilitator.getSuggestionResults(ComposedData(InputPointers(1),
+                false, ""), ngramContext, keyboard, settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyle)
+        } finally {
+            IntelligenceMetrics.end(IntelligenceMetrics.Path.NEXT_WORD, started)
+        }
+        if (cacheable) nextWordSuggestionsCache.put(key, newResults)
         return newResults
     }
 

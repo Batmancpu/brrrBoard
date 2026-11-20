@@ -2,6 +2,7 @@
 
 package helium314.keyboard.latin
 
+import android.app.AlertDialog
 import android.Manifest
 import android.content.ClipDescription
 import android.content.ClipboardManager
@@ -19,6 +20,7 @@ import android.provider.MediaStore
 import android.text.InputType
 import android.text.TextUtils
 import android.view.LayoutInflater
+import android.view.WindowManager
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -40,6 +42,7 @@ import helium314.keyboard.latin.permissions.PermissionsUtil
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.latin.utils.getPlatformDialogThemeContext
 import java.io.File
 import java.security.MessageDigest
 import java.util.ArrayDeque
@@ -64,6 +67,10 @@ class ClipboardHistoryManager(
     private var latestImageSuggestion: RecentClip.Image? = null
     @Volatile
     private var latestScreenshotSuggestion: RecentClip.Image? = null
+    // Provenance is deliberately process-local and content-free. Unknown origin
+    // means the system clipboard is never cleared when history is cleared.
+    private data class OwnedClip(val fingerprint: String, val timestamp: Long)
+    private var ownedPrimaryClip: OwnedClip? = null
 
     fun onCreate() {
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -168,14 +175,15 @@ class ClipboardHistoryManager(
     }
 
     private fun checkForNewScreenshot() {
+        val editorEpoch = latinIME.editorGeneration()
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                if (!shouldObserveScreenshots()) return@launch
+                if (!shouldObserveScreenshots() || editorEpoch != latinIME.editorGeneration()) return@launch
                 val dao = clipboardDao
                 var processedAny = false
 
                 for (screenshot in queryRecentScreenshots().asReversed()) {
-                    if (!shouldObserveScreenshots()) break
+                    if (!shouldObserveScreenshots() || editorEpoch != latinIME.editorGeneration()) break
                     val uriString = screenshot.uri.toString()
                     if (!claimScreenshotUri(uriString)) continue
 
@@ -193,7 +201,8 @@ class ClipboardHistoryManager(
                         )
 
                         val cachedUri = cacheImageClip(imageClip)
-                        if (cachedUri != null && dao != null && shouldObserveScreenshots()) {
+                        if (cachedUri != null && dao != null && shouldObserveScreenshots()
+                            && editorEpoch == latinIME.editorGeneration()) {
                             dao.addClip(
                                 timeStamp,
                                 false,
@@ -478,6 +487,8 @@ class ClipboardHistoryManager(
 
     override fun onPrimaryClipChanged() {
         dontShowCurrentSuggestion = false
+        val owned = ownedPrimaryClip
+        if (owned != null && currentClipReceipt() != owned) ownedPrimaryClip = null
         // Make sure we read clipboard history content only if history settings is set.
         if (latinIME.mSettings.current.mClipboardHistoryEnabled) {
             fetchPrimaryClip(clipChanged = true)
@@ -497,6 +508,7 @@ class ClipboardHistoryManager(
 
     private fun fetchPrimaryClip(clipChanged: Boolean = false) {
         try {
+            if (isHistoryPrivate()) return
             val clipData = clipboardManager.primaryClip ?: run {
                 if (clipChanged) latestImageSuggestion = null
                 return
@@ -549,8 +561,87 @@ class ClipboardHistoryManager(
 
     fun clearHistory() {
         clipboardDao?.clearNonPinned()
-        ClipboardManagerCompat.clearPrimaryClip(clipboardManager)
+        // User explicitly cleared *brrBoard history*, not some other app's
+        // clipboard. Clear the system clip only for a still-matching copy made
+        // through brrBoard in this process. Never use label-only provenance.
+        val owned = ownedPrimaryClip
+        if (ClipboardPasteSafety.mayClearOwned(true,
+                owned != null && owned == currentClipReceipt())) {
+            ClipboardManagerCompat.clearPrimaryClip(clipboardManager)
+        }
+        ownedPrimaryClip = null
         removeClipboardSuggestion()
+    }
+
+    /** Only called after brrBoard itself successfully sets the system clipboard. */
+    fun rememberOwnedCopy() {
+        ownedPrimaryClip = currentClipReceipt()
+    }
+
+    private fun currentClipReceipt(): OwnedClip? {
+        return try {
+            val clip = clipboardManager.primaryClip ?: return null
+            if (clip.itemCount == 0 || clip.description?.hasMimeType("text/plain") != true) return null
+            val value = clip.getItemAt(0).text?.toString() ?: return null
+            val digest = MessageDigest.getInstance("SHA-256")
+                .digest(value.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            OwnedClip(digest, ClipboardManagerCompat.getClipTimestamp(clip))
+        } catch (_: Exception) {
+            null // Clipboard access can be denied when IME loses foreground.
+        }
+    }
+
+    /** Explicit Paste key. Private/sensitive text is never inserted before confirmation. */
+    fun requestPrimaryPaste() {
+        val editor = latinIME.currentInputEditorInfo
+        val connection = latinIME.currentInputConnection
+        val clip = clipboardManager.primaryClip ?: return
+        val sourceText = if (clip.itemCount > 0 && clip.description?.hasMimeType("text/*") == true)
+            clip.getItemAt(0).text?.toString() else null
+        val privateEditor = ClipboardPrivacyPolicy.isPrivateEditor(
+            editor, latinIME.mSettings.current.mIncognitoModeEnabled)
+        val action = ClipboardPasteSafety.action(!sourceText.isNullOrEmpty(),
+            editor != null && connection != null, privateEditor,
+            ClipboardManagerCompat.getClipSensitivity(clip.description) == true)
+        when (action) {
+            ClipboardPasteSafety.Action.REJECT -> return
+            ClipboardPasteSafety.Action.INSERT -> {
+                latinIME.onTextInput(sourceText!!)
+                return
+            }
+            ClipboardPasteSafety.Action.CONFIRM -> Unit
+        }
+
+        // Capture only identity/epoch, never the clipboard's plaintext, in a
+        // deferred callback. If either editor or clipboard changes, fail closed.
+        val expectedReceipt = currentClipReceipt() ?: return
+        val expectedEpoch = latinIME.editorGeneration()
+        try {
+            val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(latinIME))
+                .setTitle(R.string.board_private_paste_title)
+                .setMessage(R.string.board_private_paste_explanation)
+                .setNegativeButton(R.string.board_private_paste_cancel, null)
+                .setPositiveButton(R.string.board_private_paste_confirm) { _, _ ->
+                    if (latinIME.editorGeneration() != expectedEpoch ||
+                        latinIME.currentInputConnection !== connection ||
+                        currentClipReceipt() != expectedReceipt) return@setPositiveButton
+                    val confirmedText = clipboardManager.primaryClip?.getItemAt(0)?.text?.toString()
+                    if (!confirmedText.isNullOrEmpty()) latinIME.onTextInput(confirmedText)
+                }
+                .create()
+            val window = dialog.window ?: return
+            val token = latinIME.window?.window?.attributes?.token ?: return
+            window.attributes = window.attributes.apply {
+                this.token = token
+                type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+            }
+            window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            dialog.show()
+        } catch (_: Exception) {
+            latinIME.mKeyboardSwitcher.showToast(
+                latinIME.getString(R.string.board_private_paste_unavailable), true)
+        }
     }
 
     fun canRemove(index: Int) = clipboardDao?.isPinned(index) == false
@@ -584,12 +675,6 @@ class ClipboardHistoryManager(
 
     fun setHistoryChangeListener(listener: ClipboardDao.Listener?) {
         clipboardDao?.listener = listener
-    }
-
-    fun retrieveClipboardContent(): CharSequence {
-        val clipData = clipboardManager.primaryClip ?: return ""
-        if (clipData.itemCount == 0) return ""
-        return clipData.getItemAt(0)?.coerceToText(latinIME) ?: ""
     }
 
     private sealed class RecentClip(open val timeStamp: Long) {
@@ -740,6 +825,7 @@ class ClipboardHistoryManager(
         val rich = if (clip == null) screenshot ?: recentRichPaste(editorInfo) else null
         if (clip == null && rich == null) return null
         val connection = latinIME.currentInputConnection ?: return null
+        val editorEpoch = latinIME.editorGeneration()
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
         val textView = binding.clipboardSuggestionText
@@ -768,7 +854,10 @@ class ClipboardHistoryManager(
         )
         textView.setCompoundDrawablesRelativeWithIntrinsicBounds(if (isImageChip) null else clipIcon, null, null, null)
         textView.setOnClickListener {
-            if (latinIME.currentInputConnection !== connection ||
+            if (latinIME.editorGeneration() != editorEpoch ||
+                ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo,
+                    latinIME.mSettings.current.mIncognitoModeEnabled) ||
+                latinIME.currentInputConnection !== connection ||
                 (if (clip != null) currentTextSuggestionChanged(clip)
                 else (if (rich?.isScreenshot == true) recentScreenshotPaste(latinIME.currentInputEditorInfo)
                       else recentRichPaste(latinIME.currentInputEditorInfo)) != rich)) {
@@ -839,6 +928,7 @@ class ClipboardHistoryManager(
     }
 
     fun pasteHistoryEntry(entry: ClipboardHistoryEntry): ClipboardHistoryPasteOutcome {
+        if (isHistoryPrivate()) return ClipboardHistoryPasteOutcome.REJECTED
         val outcome = ClipboardHistoryPastePolicy.paste(entry.text) { clip ->
             latinIME.commitKlipyContent(clip.uri, clip.label, normalizeImageMimeType(clip.mimeType).mimeType)
         }

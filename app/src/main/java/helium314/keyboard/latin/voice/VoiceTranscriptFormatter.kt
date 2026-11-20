@@ -19,6 +19,14 @@ internal object VoiceTranscriptFormatter {
         "github" to "GitHub",
         "kotlin" to "Kotlin",
         "obtainium" to "Obtainium",
+        // High-confidence English proper names/acronyms: exact casing only.
+        "upsc" to "UPSC",
+        "ncert" to "NCERT",
+        "isro" to "ISRO",
+        "coloros" to "ColorOS",
+        "oppo" to "OPPO",
+        "whatsapp" to "WhatsApp",
+        "youtube" to "YouTube",
     )
     // Exclude URLs/email addresses without treating ordinary sentence-ending periods
     // as part of a domain. For example, "android." is a word, "android.com" is not.

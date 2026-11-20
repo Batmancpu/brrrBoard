@@ -1,5 +1,37 @@
 # brrBoard agent instructions
 
+## 2026-11-20 — Eight-stage intelligence/privacy batch 8/8 source integration checkpoint
+
+Added synthetic cross-boundary integration tests and complete owner/device QA matrix in `docs/EIGHT_STAGE_INTELLIGENCE_PRIVACY_2026_11_20.md`. Local `git diff --check`, XML parse, Python seed generator (7), n-gram comparison (5), offline mic contract (4) passed; **Android Kotlin/Java/Robolectric, GitHub debug CI, original-signed Obtainium release, exact APK SHA and Oppo acceptance are not yet verified** at this source checkpoint. Publish fast-forward only to `main`, check exact source SHA/debug/full-unit and pinned original signer to terminal; repair failures on new main SHA without weakening tests. Never claim measured gains from test-only allocation candidates or certify device from GitHub. Existing newer gold-incognito/deep-red mic designs remain separately pending/unmodified.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 7/8
+
+Hardened `SwipeCorrectionLearner` background v1→v2 AES-256-GCM migration: finish AtomicFile, authenticate/read back v2, compare bytes, only THEN remove v1 plaintext. On faults keep source/ciphertext and RAM-only mode; never overwrite unreadable encrypted store. Preserve original AndroidKeyStore alias, AES encrypted filename, current learning values, and older native personal/Emoji data. Added fault matrix tests for migration gate, version/nonce corruption, oversized/truncated/wrong-key. CI and actual Oppo Keystore reboot/migration tests pending. Next integration QA and exact-SHA gates.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 6/8
+
+Reviewed authored Indian English/exam lexicon in `brrPersonal_english_valid_only.tsv` (13 tokens, 24–64 source weights) and deterministic generator tests. These are **valid-only**, excluded from unsolicited autocorrection; existing AOSP dictionaries/ranker untouched. Static binary cache name becomes v3, preserving old v2 and separate encrypted learning. Offline voice formatter adds exact acronym/brand casing only, with URL/email regression; no word replacement/model retraining/voice UI changes. Actual data generation, app tests, dictionary acceptance and Oppo results pending. Next: encrypted migration/fault tests.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 5/8
+
+Two **test-only** allocation candidates: swipe Levenshtein two reusable row buffers versus existing per-row `IntArray`, and Emoji CLDR search with pre-normalized metadata versus current repeated lowercase/split. Tests compare synthetic inputs and exact Unicode/ordering outcomes. No runtime candidate switch, no model/dictionary changes and no invented memory/latency reduction. Device/heap profiling is a later gate. Next: narrowly reviewed English lexical validity and conservative offline voice casing.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 4/8
+
+Replaced context-only next-word LRU key with immutable context snapshot + locale, keyboard ID digest, input style and suggestion flags. Incognito/password/no-learning settings bypass caching. Dictionary-load timeout now coalesces and checks current editor epoch; synthetic key scope tests added. Debug-only aggregate instrumentation around native next-word lookup; no output log of user input. No dictionary/score changes or speed claims. CI/Oppo gate pending. Next: allocation parity experiments for swipe and Emoji, no decoder replacement.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 3/8
+
+Completed entry-point inventory in `docs/EIGHT_STAGE_INTELLIGENCE_PRIVACY_2026_11_20.md`. Direct keyboard Paste now uses explicit attached confirmation for private or sensitive contents, with epoch/connection/clipboard fingerprint recheck and no text preview; failure is a no-op. Clipboard chip/history final commit and screenshot observer tightened. Clearing brrBoard history conditionally clears only a still-matching **known brrBoard copy**, never another app's primary clipboard. Private content, typed text, provenance hash and source labels are not logged. Unit policy tests added. **Android dialog, permissions and ColorOS acceptance pending**; next: suggestion cache and timeout.
+
+## 2026-11-20 — Eight-stage intelligence/privacy batch 2/8
+
+Added `EditorSessionGeneration`: opaque epoch, invalidated at editor start/finish/hide and manual privacy toggle. Delayed suggestions/resume callbacks carry the epoch; non-UI prediction and batch gesture entry points reject stale epochs without preserving editor content. Synthetic tests assert rejection. This does not change suggestion candidate lists, language assets, voice mode or red/gold UI. Next: clipboard entry-point/provenance review, private direct-paste confirmation and fail-closed cleanup. Android CI/device checks pending.
+
+## 2026-11-20 — Eight-stage intelligence/privacy implementation, batch 1/8
+
+Started from clean `main` `49756dcacefceaca875eb9dba4d2099fcc549fd9`. Added debug-only, in-memory, content-free timing buckets (`IntelligenceMetrics`) and synthetic boundary tests. No private text/gesture/audio or clipboard data enters the probe; no disk/log/network output and no performance gain asserted. Baselines on Oppo and exact-SHA CI remain unmeasured. Next: editor/privacy generation guards. Preserve native decoder, swipe learner, CLDR, Parakeet, package/signer/private model/encrypted data and separate premium-gold incognito/deep-red recording-mic design.
+
 ## 2026-11-20 (IST) — CURRENT NEXT BATCH: Apple-style spacebar trackpad + larger filled Emoji + shield CI test repair
 
 Owner reports the touchpad **starts blank correctly but key characters return as soon as cursor moves**; cursor feels stepped. Apple official iOS 27 guide confirms hidden characters for whole hold, free drag and optional second-finger selection. Root cause: `MainKeyboardView.setKeyboardInternal` unconditionally reset `mTrackpadVisualMode=false` on selection-driven case rebuild. New iOS-default implementation preserves true held state, uses allocation-free fractional two-axis motion with velocity-limited gain and up to three cursor steps/axis/event, and blocks other key insertion while trackpad active. Footer Emoji slides left and mic with privacy shield slides right 64dp over same reversible 220ms, no layout change; normal on release. Liked filled Emoji expands from 31 to34dp and gets a wider hat; sunglasses unchanged. Previous Default motion and swipe/voice/privacy engine untouched. Shield predecessor `72e3740a22ac71875572f09f9c748c801f29e098` debug `44589898503` and signed Obtainium `44589898576` FAILED only an obsolete Python contract assertion requiring unconditional trash-morph restart: privacy-safe code intentionally gates restart with `!isMicProtected()`. The updated test checks that policy and passes all four tests locally. Complete owner contract and blind spots: `docs/TOUCHPAD_SMOOTH_LABEL_LOCK_FOOTER_SLIDE_2026_11_20.md`. **New exact-SHA debug/unit and original signer Obtainium release still required; physical Oppo QA pending.** All updates `main` only; no Liquid Glass, model weights, signing/keystore/learned-data changes.
