@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+### 2026-11-20 — First Settings CI compile repair
+
+Premium Settings initial commit `d15c571a30f74ffdb603f05a7716002fe12c81cd` failed **both** same-SHA debug and Obtainium workflows at `SettingsContainer.kt` unresolved `R` (six diagnostics, no other Kotlin errors). Corrected by importing `helium314.keyboard.latin.R`; extended the source-contract check to catch the regression. Source edits stay within Settings and handoff; signed CI rerun is mandatory before calling the release successful. Do not mistake the earlier green `99fbec9` workflows for the Settings release.
+
 ## 2026-11-20 — Premium Settings redesign implementation in progress
 
 Owner explicitly authorized implementation following successful on-device MangoLoads identity testing. New clean baseline is GitHub `main` `99fbec94560e2336f96195dc444a129c4ff96be8` (includes concurrent Emoji/panel header safety changes); do not revert unrelated work. Scope: Settings-only pearl/midnight sapphire brand theme independent of the typing theme, outlined native icons, contextual search with routes, restructured Settings groups and focused subpages (keys, feedback, clipboard, privacy, backup, voice), no redundant “Setup complete!” card, Appearance/Glass Studio refinement, accessibility and meaningful animation restraint. Preserve preference keys, keyboard runtime behavior, full-color MangoLoads identity, signer/package and all protected-app security rules. Verify by exact-main-SHA Android debug and signed CI; do not silently publish a release if CI fails. Keep this handoff current until shipped.

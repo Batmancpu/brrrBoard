@@ -1,5 +1,9 @@
 # brrBoard project context
 
+### 2026-11-20 — CI correction after premium Settings implementation
+
+The owner asked to fix failed workflows and poll to success. Same-commit `d15c571` debug run `44698292233` and Obtainium run `44698292284` both failed only on Kotlin unresolved `R` at six `SettingsContainer.kt` virtual-page resource expressions. A one-line `helium314.keyboard.latin.R` import repairs the proven compiler fault; `tools/check_premium_settings_contract.py` now asserts the import. Await new SHA build and original-signed release success before providing APK.
+
 ## 2026-11-20 — Owner GO: premium native Settings overhaul
 
 Owner is actively testing successfully installed MangoLoads identity APK and explicitly requested the full planned premium Settings redesign. Starting clean from remote main `99fbec9` after Emoji geometry audit, with no changes to existing IME renderer, keyboard color themes, or protected-app privacy enforcement. A new `SettingsBrandTheme` fixes premium sapphire/pearl color roles only inside `SettingsActivity`. Settings home groups settings under Make it yours, Typing, Everyday tools, Privacy & data, More; adds focused destinations and truthful offline voice status. The old optional gestures/dictionary "Setup is complete" card must never render once Android reports brrBoard enabled and current. Search must show destination context and navigate safely. Frosted Glass Studio must preserve staged Save/Cancel semantics, reduce expensive bitmap decoding and unnecessary keyboard resets. Finish with same-SHA debug/release CI evidence and documented rollback. Do not discard this plan or the other conversation's panel header fixes.

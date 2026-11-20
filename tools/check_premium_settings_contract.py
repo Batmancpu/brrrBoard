@@ -32,6 +32,7 @@ assert "SettingsWithoutKey.SETUP_WIZARD" in ABOUT
 assert "Settings.PREF_SECURE_APPS" in FOCUSED and "Settings.PREF_ENABLE_CLIPBOARD_HISTORY" in FOCUSED
 assert "Settings.PREF_SOUND_ON" in FOCUSED and "SettingsWithoutKey.BACKUP_RESTORE" in FOCUSED
 assert "fun breadcrumbFor" in SEARCH and "fun routeFor" in SEARCH
+assert "import helium314.keyboard.latin.R" in SEARCH, "Resource ID use requires generated R import"
 assert "inJustDecodeBounds = true" in GLASS and "inSampleSize = sample" in GLASS
 assert "if (previewTouched || isSaved) requestFinalFrostedSync()" in GLASS
 assert "writeSnapshotToPrefs(initialSnapshot)" not in GLASS
