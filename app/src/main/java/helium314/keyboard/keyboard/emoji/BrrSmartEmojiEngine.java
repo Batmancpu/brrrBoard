@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import helium314.keyboard.latin.brain.BrainLearningVault;
 import helium314.keyboard.latin.settings.Settings;
+import helium314.keyboard.latin.utils.KtxKt;
 
 /**
  * The single offline Emoji recommender feeding typing, Smart/Recent and idle Search.
@@ -82,14 +83,21 @@ public final class BrrSmartEmojiEngine {
     private static String scope(final EditorInfo editor) {
         if (editor == null) return "";
         // fieldId is hashed with the package: no raw app name or field ID on disk.
-        return BrrEmojiPatternModel.appScope(editor.packageName + "#" + editor.fieldId,
+        final String app = editor.packageName == null ? "" : editor.packageName;
+        if (app.isEmpty()) return "";
+        return BrrEmojiPatternModel.appScope(app + "#" + editor.fieldId,
                 editor.inputType & InputType.TYPE_MASK_VARIATION);
+    }
+
+    private static boolean personalizationAllowed(final Context context) {
+        return KtxKt.prefs(context).getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true);
     }
 
     /** Called exactly once after the user actually selects an Emoji in an eligible host field. */
     public static void learn(@NonNull final Context context, final EditorInfo editor,
             final CharSequence previousContext, final String emoji) {
         if (!EmojiContextEligibility.isEligible(editor, Settings.getValues().mIncognitoModeEnabled)
+                || !personalizationAllowed(context)
                 || previousContext == null || emoji == null || emoji.isEmpty()) return;
         final String appScope = scope(editor);
         // Only the bounded ephemeral suffix reaches the worker. It is hashed before persistence.
@@ -139,7 +147,8 @@ public final class BrrSmartEmojiEngine {
                         candidate.matchedTrigger, confidence));
             }
         }
-        if (loaded) {
+        final boolean personal = personalizationAllowed(context);
+        if (personal && loaded) {
             final List<BrrEmojiPatternModel.Prediction> learned;
             synchronized (LOCK) {
                 learned = MODEL.predict(scope(editor), text, System.currentTimeMillis());
@@ -153,7 +162,7 @@ public final class BrrSmartEmojiEngine {
                     choices.put(candidate.emoji, new Pick(candidate.emoji, "your recent phrasing", confidence));
             }
         }
-        if (!stripOnly) {
+        if (!stripOnly && personal) {
             final List<String> personal = EmojiPalettesView.AdaptiveEmojiEngine
                     .getFastRowEmojis(context, Math.max(max, 10));
             for (int i = 0; i < personal.size(); ++i) {

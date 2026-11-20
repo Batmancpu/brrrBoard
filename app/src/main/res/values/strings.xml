@@ -1403,6 +1403,6 @@ New dictionary:
     <string name="brr_category_advanced_interactions">Advanced interactions</string>
     <string name="brr_voice_page_title">Offline voice</string>
     <string name="brr_voice_page_summary">On-device English dictation and model status</string>
-    <string name="brr_brain_page_title">brrBrain learning dashboard</string>
-    <string name="brr_brain_page_summary">Review local swipe corrections and learning activity</string>
+    <string name="brr_brain_page_title">BR Brain</string>
+    <string name="brr_brain_page_summary">Your private typing, swipe and Smart Emoji learning</string>
 </resources>

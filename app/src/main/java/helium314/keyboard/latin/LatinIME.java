@@ -2356,8 +2356,17 @@ public class LatinIME extends InputMethodService implements
                 if (emojiPalettesView != null) {
                     emojiPalettesView.addRecentEmoji(suggestionInfo.mWord);
                 } else {
-                    // The Emoji panel is lazily created; strip usage must still
-                    // train the same local prior before its first open.
+                    // The Emoji panel is lazy. A strip-only Emoji selection
+                    // still teaches the SAME context model as an Emoji-page tap.
+                    CharSequence preceding = null;
+                    try {
+                        final android.view.inputmethod.InputConnection connection =
+                                getCurrentInputConnection();
+                        if (connection != null) preceding = connection.getTextBeforeCursor(160, 0);
+                    } catch (RuntimeException ignored) { // Never interrupt the insertion.
+                    }
+                    BrrSmartEmojiEngine.learn(this, getCurrentInputEditorInfo(),
+                            preceding, suggestionInfo.mWord);
                     EmojiPalettesView.AdaptiveEmojiEngine.recordEmojiUsage(this, suggestionInfo.mWord);
                 }
             }

@@ -98,7 +98,7 @@ class SettingsContainer(context: Context) {
         SettingsDestination.Toolbar -> "Make it yours · Toolbar"
         SettingsDestination.TextCorrection -> "Typing · Correction & suggestions"
         SettingsDestination.GestureTyping -> "Typing · Swipe typing"
-        SettingsDestination.BrainDashboard -> "Typing · Dictionary & learning"
+        SettingsDestination.BrainDashboard -> "BR Brain"
         SettingsDestination.Languages -> "Make it yours · Languages & layouts"
         SettingsDestination.Voice -> "Everyday tools · Offline voice"
         SettingsDestination.Sound -> "Everyday tools · Sound & haptics"

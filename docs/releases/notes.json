@@ -24,11 +24,11 @@
     },
     {
       "title": "One Emoji brain across three places",
-      "detail": "The suggestion strip, Smart/Recent Emoji opening section, and initial Emoji Search suggestions now share context-aware ranking while keeping your original Recents and text predictions."
+      "detail": "The typing strip (including selections before opening Emoji), Smart/Recent Emoji section and initial Emoji Search suggestions share the same context-aware engine. Existing text predictions and Recents are preserved."
     },
     {
       "title": "BR Brain privacy and erasure",
-      "detail": "Renamed the learning dashboard to BR Brain and added slide-confirmed erasure for contextual Emoji patterns. Protected and incognito fields do not participate; offline speech remains unchanged."
+      "detail": "Renamed the dashboard and Settings entry to BR Brain, with slide-confirmed erasure of contextual Emoji patterns. The keyboard respects the personal-learning switch and protected/incognito fields; offline speech remains unchanged."
     }
   ]
 }

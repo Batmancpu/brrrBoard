@@ -62,7 +62,11 @@ public class BrrEmojiPatternModelTest {
 
     @Test public void boundedAndMalformedPersistedEntriesIgnored() {
         final BrrEmojiPatternModel model = new BrrEmojiPatternModel();
-        for (int i = 0; i < 200; ++i) model.learn("", "hello hello word" + i, "🎉", NOW);
+        for (int i = 0; i < 200; ++i) {
+            final String varied = "hello hello word" + (char) ('a' + i % 26)
+                    + (char) ('a' + i / 26);
+            model.learn("", varied, "🎉", NOW);
+        }
         assertTrue(model.size() <= BrrEmojiPatternModel.MAX_RECORDS);
         model.deserialize("v1\nnot-valid\t10000\tno-time\n", NOW);
         assertEquals(0, model.size());

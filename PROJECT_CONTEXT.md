@@ -1,5 +1,10 @@
 # brrBoard project context
 
+## 2026-11-20 — Smart Emoji integration follow-up
+
+After `7812a3e` compiled, the second code batch wires **strip-origin Emoji selections even when the Emoji panel was never instantiated** into the same encrypted pattern learner. Personal dictionary OFF now suppresses adaptive Emoji learning/retrieval while reviewed nonpersonal phrase rules remain. Navigation entry and breadcrumb use exact label **BR Brain**, matching the dashboard. Tests now generate unique phrases to exercise the bounded 144-entry cache. No neural English/Hinglish model weights yet, and no change to the existing Parakeet 110M. Current CI, signed release and real Oppo results must be verified and appended, not presumed.
+
+
 ## 2026-11-20 — BR Brain intelligence GO, three Smart Emoji consumers
 
 User approved **implementation**, changing the previous BR Brain research-only hold. New shared Emoji ranker targets: text strip contextual Emoji chip, top Smart/Recent grid, and nonblank initial Emoji Search row. Local learning binds last 1–3 English/Romanized Hindi tokens to actually selected Emoji, with global plus hashed app/field scopes and time decay; persisted only as bounded encrypted fingerprints in no-backup AndroidKeystore storage. Secure/incognito/no-learning field exclusions; no clipboard/audio/raw transcript tracking. BR Brain dashboard exact title and confirmed contextual-pattern erase action included in source batch. Original Recents/frequency still work. The *actual trained* 1.5M-class English/Hinglish neural word ContextLM remains **unbuilt/unvalidated**; existing AOSP nextword/swipe intelligence and Parakeet 110M stay. See §13 of [topic contract](docs/BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md). **Current batch source candidate, CI/signing/Oppo outcome pending.** Every agent must update AGENTS/context/handoff/topic with tested-vs-pending evidence after any new material change.
