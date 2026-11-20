@@ -4,6 +4,8 @@ package helium314.keyboard.latin.voice
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import com.k2fsa.sherpa.onnx.OfflineSpeechDenoiser
 import com.k2fsa.sherpa.onnx.OfflineSpeechDenoiserConfig
@@ -22,6 +24,12 @@ class GtcrnProbeService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!launched.compareAndSet(false, true)) return START_NOT_STICKY
+        // Hard deadline even if native ONNX inference deadlocks on a device.
+        // A timeout kills only :brr_voice_probe, not LatinIME or a call.
+        Handler(Looper.getMainLooper()).postDelayed({
+            VoiceNativeCrashProbe.stage(this, "FAILED", "TIMEOUT")
+            Process.killProcess(Process.myPid())
+        }, MAX_PROBE_DURATION_MS)
         Thread({
             Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
             try {
@@ -73,4 +81,6 @@ class GtcrnProbeService : Service() {
         }, "brrBoard-one-shot-native-probe").apply { isDaemon = true }.start()
         return START_NOT_STICKY
     }
+
+    companion object { private const val MAX_PROBE_DURATION_MS = 20_000L }
 }

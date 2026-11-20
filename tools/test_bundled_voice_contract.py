@@ -146,6 +146,8 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn('":brr_voice_probe"', report)
         self.assertIn("Process.killProcess(Process.myPid())", child_code)
         self.assertIn("THREAD_PRIORITY_BACKGROUND", child_code)
+        self.assertIn("MAX_PROBE_DURATION_MS", child_code)
+        self.assertIn("MODE_IN_COMMUNICATION", report)
         self.assertIn("FloatArray(16_000)", child_code)
         self.assertIn("Run one private check", dashboard)
         self.assertIn("Copy safe result", dashboard)

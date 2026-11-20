@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "One-shot private voice crash check in BR Brain",
-      "detail": "A new explicit Run one private check button tests the bundled GTCRN engine with synthetic audio in a separate Android process. It cannot open the microphone and cannot run automatically; the keyboard stays in its crash-safe Parakeet mode."
+      "detail": "A new explicit Run one private check button tests the bundled GTCRN engine with synthetic audio in a separate Android process. It cannot open the microphone and cannot run automatically; the keyboard stays in its crash-safe Parakeet mode. A 20-second hard watchdog terminates a stalled probe without keeping a model running in the background."
     },
     {
       "title": "Useful crash categories without private logs",

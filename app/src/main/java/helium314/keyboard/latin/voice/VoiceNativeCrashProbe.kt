@@ -3,6 +3,7 @@ package helium314.keyboard.latin.voice
 
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
+import android.media.AudioManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -24,7 +25,7 @@ internal object VoiceNativeCrashProbe {
     private const val FILE_NAME = "voice-gtcrn-one-shot-v1.state"
     private const val PROBE_PROCESS = ":brr_voice_probe"
     private val stages = setOf("REQUESTED", "LOADING_MODEL", "RUNNING_SYNTHETIC", "PASSED", "FAILED", "START_FAILED")
-    private val details = setOf("NONE", "MISSING_MODEL", "MODEL_EXCEPTION", "INVALID_OUTPUT", "SERVICE_ERROR", "UNAVAILABLE")
+    private val details = setOf("NONE", "MISSING_MODEL", "MODEL_EXCEPTION", "INVALID_OUTPUT", "SERVICE_ERROR", "UNAVAILABLE", "TIMEOUT")
     private val lock = Any()
 
     data class Snapshot(val message: String, val started: Boolean, val finished: Boolean)
@@ -33,6 +34,10 @@ internal object VoiceNativeCrashProbe {
 
     fun start(context: Context): Boolean = synchronized(lock) {
         if (read(context) != null) return@synchronized false // One-shot until explicit erasure.
+        // Do not compete with a WhatsApp/Instagram/phone call for CPU or audio.
+        val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (audio.mode == AudioManager.MODE_IN_CALL ||
+            audio.mode == AudioManager.MODE_IN_COMMUNICATION) return@synchronized false
         val timestamp = System.currentTimeMillis()
         if (!write(context, State("REQUESTED", timestamp, "NONE"))) return@synchronized false
         val started = runCatching {
