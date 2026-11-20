@@ -111,12 +111,14 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
         mic = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
         self.assertIn("assetManager = context.assets", enhancer)
-        self.assertIn("enhanceIfNoisy(samples)", recognizer)
-        self.assertIn("enhanced ?: samples", recognizer)
+        # Emergency rollback: native denoiser is *not* initialized or called
+        # from the live blue-mic path until ARM64 device tests prove stability.
+        self.assertNotIn("PrivateGtcrnDenoiser(", recognizer)
+        self.assertNotIn("enhanceIfNoisy(", recognizer)
         self.assertIn("shouldDenoise(samples: FloatArray)", gate)
-        self.assertIn("VoiceDenoiseMetrics.snapshot()", dashboard)
-        self.assertIn("microphone.routedDevice", mic)
-        self.assertIn("lastInputRoute", dashboard)
+        self.assertIn("GTCRN filtering paused", dashboard)
+        self.assertNotIn("microphone.routedDevice", mic)
+        self.assertNotIn("VoiceDenoiseMetrics.snapshot()", dashboard)
         self.assertNotIn("setPreferredDevice(", mic)
         for banned in ("http://", "https://", "HttpURLConnection", "Socket("):
             self.assertNotIn(banned, enhancer)

@@ -1,5 +1,8 @@
 # BR Brain — functional code-level implementation plan (English, Hinglish, Smart Emoji)
 
+> **20 Nov 2026 voice-crash hotfix:** Earlier GTCRN native-enhancement/route telemetry caused or coincided with an owner-reported IME crash 1–2 s after mic tap. For the next release, live capture and Parakeet engine revert to pre-GTCRN code, and BR Brain accurately says “GTCRN filtering paused”. GTCRN stays packaged but inactive. The 0.6B Ultra switch is deferred pending measured North Indian WER, Oppo RAM and latency. This does not change the separate neural ContextLM plan.
+
+
 > **20 Nov 2026 audio GO (separate implementation):** The built-in GTCRN 535 KB offline denoiser and BR Brain voice-filter performance card are implemented as a source candidate. They do **not** imply the planned neural ContextLM is trained, nor that microphone WER gains or Oppo installation are verified. See [audio-engine contract](GTCRN_AUDIO_ENGINE_IMPLEMENTATION_2026_11_20.md) and current AGENTS/handoff. Original Parakeet stays; new tiny GTCRN lives inside every APK by build-time pinned fetch.
 
 > **Latest owner GO (20 Nov 2026): IMPLEMENTATION AUTHORIZED.** Previous planning pause is historical; begin in tested batches. **Batch 1 source candidate** instruments native per-request typing/after-Space/swipe/Smart-Emoji latency (last/mean/p95 window), manual suggestion taps, honest dashboard explanation and a RAM-only test field; the trained bilingual neural ContextLM is still pending model/data provenance, measurements and device QA. Do not call measured native timing neural-model latency. Further training, score fusion, HMAC and model packaging remain open. See latest AGENTS.md and handoff for live CI state.

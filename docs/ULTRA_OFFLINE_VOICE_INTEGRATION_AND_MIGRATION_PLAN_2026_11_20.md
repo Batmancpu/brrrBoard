@@ -1,5 +1,8 @@
 # brrBoard — high-accuracy North Indian English offline voice: integration and one-time model migration
 
+> **20 Nov 2026 conditional owner approval, NOT YET SHIPPED:** Owner will accept a one-time 600–700 MB Parakeet Ultra INT8 APK only if evidence shows meaningful North Indian English accuracy gain and acceptable Oppo memory/latency. This crash-hotfix release **does not** modify Parakeet or its on-disk model. Primary sherpa export FLEURS-English Ultra 8.51% WER versus v2 6.48% suggests Ultra is **not automatically the best English ASR**; compare identical audio against brrBoard 110M before migration. No claims of a tested Ultra engine without device evidence.
+
+
 **Date:** 2026-11-20  
 **Status:** **PLAN / DESIGN ONLY — NO IMPLEMENTATION AUTHORIZED.** Owner will explicitly say **“go”** before source, model, build-workflow, APK, or device changes. The current task authorizes only this plan and repository handoff documentation.  
 **Repository:** `Batmancpu/brrrBoard`, `main`. This is an independent future voice-engine batch; do not treat older GOs for Settings, UI, brrSpeak, or mic animations as a GO for this proposal.

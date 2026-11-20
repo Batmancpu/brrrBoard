@@ -1,5 +1,8 @@
 # BR Brain — Parakeet-era intelligence and dashboard implementation contract
 
+> **20 Nov 2026 voice-crash hotfix:** Earlier GTCRN native-enhancement/route telemetry caused or coincided with an owner-reported IME crash 1–2 s after mic tap. For the next release, live capture and Parakeet engine revert to pre-GTCRN code, and BR Brain accurately says “GTCRN filtering paused”. GTCRN stays packaged but inactive. The 0.6B Ultra switch is deferred pending measured North Indian WER, Oppo RAM and latency. This does not change the separate neural ContextLM plan.
+
+
 > **20 Nov 2026 voice enhancement update:** Owner GO authorizes a separate bundled-GTCRN noise-filter integration and a BR Brain voice diagnostic card; this does not authorize or imply trained English/Hinglish neural ContextLM weights. See [GTCRN audio contract](GTCRN_AUDIO_ENGINE_IMPLEMENTATION_2026_11_20.md). North Indian English WER and Oppo/mic routing validation remain open.
 
 > **Owner GO resumed on 20 Nov 2026.** Previous planning freeze is historical. First implementation candidate adds release-safe, RAM-only native typing/nextword/swipe/Emoji latency metrics and truthful live BR Brain dashboard; **trained bilingual neural ContextLM weights are still absent**. See [function-level implementation plan](BR_BRAIN_FUNCTIONAL_CODE_LEVEL_IMPLEMENTATION_PLAN_2026_11_20.md), AGENTS.md and handoff for exact code, CI and later provenance/validation gates.

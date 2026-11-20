@@ -25,14 +25,12 @@ internal class OfflineVoiceEngine(private val context: Context) {
     }
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: OfflineRecognizer? = null // worker thread only
-    private val denoiser = PrivateGtcrnDenoiser(context) // same worker; GTCRN lives in the APK
     private var lastUsedAt = 0L // worker thread only
     private val idleUnload = Runnable {
         worker.execute {
             if (SystemClock.elapsedRealtime() - lastUsedAt >= IDLE_UNLOAD_MS) {
                 recognizer?.release()
                 recognizer = null
-                denoiser.release()
             }
         }
     }
@@ -40,7 +38,6 @@ internal class OfflineVoiceEngine(private val context: Context) {
     fun warm(): Future<*> = worker.submit {
         if (VoiceModelInstaller.isInstalled(context)) {
             runCatching { requireRecognizer() }
-            denoiser.warm() // Tiny enhancement model warms while the user is still speaking.
             scheduleIdleUnload()
         }
     }
@@ -72,13 +69,8 @@ internal class OfflineVoiceEngine(private val context: Context) {
                             }
                             val stream = rec.createStream()
                             try {
-                                val enhanced = denoiser.enhanceIfNoisy(samples)
-                                try {
-                                    stream.acceptWaveform(enhanced ?: samples, PrivatePcmBuffer.SAMPLE_RATE)
-                                    rec.decode(stream)
-                                } finally {
-                                    enhanced?.fill(0f)
-                                }
+                                stream.acceptWaveform(samples, PrivatePcmBuffer.SAMPLE_RATE)
+                                rec.decode(stream)
                                 pieces += rec.getResult(stream).text.trim()
                             } finally {
                                 stream.release()
@@ -107,7 +99,6 @@ internal class OfflineVoiceEngine(private val context: Context) {
         worker.execute {
             recognizer?.release()
             recognizer = null
-            denoiser.release()
         }
     }
 

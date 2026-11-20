@@ -30,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
-import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -64,7 +63,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     val wordSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.NEXT_WORD) }
     val swipeSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SWIPE) }
     val emojiSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SMART_EMOJI) }
-    val voiceNoise = remember(refresh) { VoiceDenoiseMetrics.snapshot() }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
     ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
@@ -107,25 +105,19 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             Text("The 95th percentile uses up to the most recent 128 eligible requests. A dash means this process hasn't measured that activity yet. Protected and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
-            Text("Voice noise reduction · on-device", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                EvidenceMetric("GTCRN filtered", voiceNoise.enhancedWindows.toString(),
-                    "Noisy 16-kHz speech windows", Modifier.weight(1f))
-                EvidenceMetric("Clean bypass", voiceNoise.cleanBypasses.toString(),
-                    "Raw speech kept", Modifier.weight(1f))
+            Text("Voice noise reduction · crash-safe mode",
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
+                Column(modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("GTCRN filtering paused", fontWeight = FontWeight.SemiBold)
+                    Text("A reported keyboard crash shortly after tapping the mic is being investigated. The last known working private 16-kHz capture and Parakeet transcription path is restored. GTCRN weights remain included in the APK for future verified activation, but no native noise-filter code is called in this build.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Speech still stays on-device. This is a stability rollback, not evidence that filtering improved or worsened recognition accuracy.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                EvidenceMetric("Raw fallback", voiceNoise.fallbacks.toString(),
-                    "Model/error safety", Modifier.weight(1f))
-                EvidenceMetric("Last filter", if (voiceNoise.lastEnhancementMs < 0) "—"
-                    else "${voiceNoise.lastEnhancementMs} ms",
-                    "Processing time, not STT latency", Modifier.weight(1f))
-            }
-            Text("Last Android microphone route: ${voiceNoise.lastInputRoute}. Android chooses the available input; earbud microphone channels are generally not exposed separately.",
-                color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            Text("GTCRN's ~535 KB weights are included in every APK. The keyboard filters only clearly noisy windows and uses original audio for clean or failed windows; Parakeet still transcribes locally. These are RAM-only diagnostic counts, not recognition accuracy. Bluetooth earbuds usually expose one hardware-processed input, not each microphone separately.",
-                color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
             Text("Suggestions · actual activity",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

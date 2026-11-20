@@ -1,5 +1,7 @@
 # brrBoard — GTCRN APK-integrated voice enhancement (20 Nov 2026)
 
+> **LATEST EMERGENCY STATUS: INACTIVE/PAUSED IN NEXT SIGNED HOTFIX.** Owner reported a keyboard/process crash 1–2 seconds after tapping voice in v1.0.195. Until ARM64 native startup is root-caused and device-proven, both live capture source and OfflineVoiceEngine are restored from d856244. The 535 KB GTCRN model remains bundled but its native engine must **not** be instantiated or called. BR Brain explicitly shows “GTCRN filtering paused”. The active integration description below is a historical design, **not current runtime behavior**.
+
 Status: **OWNER GO — implementation source staged for exact-SHA Android CI**. Do not claim the owner installed the new APK or the Oppo microphone was tested until real observations exist. This feature is independent of the deferred Ultra ASR replacement and BR ContextLM.
 
 ## Decided stack, provenance, license

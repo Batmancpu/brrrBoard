@@ -1,22 +1,18 @@
 {
   "schema": 1,
-  "summary": "Built-in offline GTCRN noise reduction for brrBoard dictation, automatic clean-microphone bypass and BR Brain voice diagnostics.",
+  "summary": "Emergency voice crash protection: restore the verified private Parakeet voice pipeline and pause GTCRN native processing.",
   "changes": [
     {
-      "title": "Built-in GTCRN microphone noise reduction",
-      "detail": "Every new APK carries the ~535 KB MIT-licensed GTCRN model. The keyboard applies noise reduction to measurably noisy speech before the existing private Parakeet recognizer, with no download or audio upload."
+      "title": "Fix voice-button keyboard shutdown",
+      "detail": "Reverted the newly introduced native GTCRN startup and Android input-route probe from the live microphone path after a reported crash within 1–2 seconds. Restored the previously working private PCM capture and Parakeet recognition code."
     },
     {
-      "title": "Protect clear recordings and your speech",
-      "detail": "A conservative offline noise gate leaves clean microphone and earbud audio untouched. Unexpected model errors or invalid enhanced samples fall back to original audio without aborting dictation; microphone capture remains in the app."
+      "title": "GTCRN paused for safety",
+      "detail": "The lightweight offline GTCRN weights remain packaged for future verified activation, but are not loaded or run in this release. BR Brain now clearly states the filter is paused instead of showing misleading activity counters."
     },
     {
-      "title": "BR Brain explains the voice filter",
-      "detail": "See real on-device counts of enhanced speech windows, clean bypasses and raw fallbacks, plus the latest measured filter processing time; no transcript or audio is kept in diagnostics."
-    },
-    {
-      "title": "APK model integrity and attribution",
-      "detail": "Both debug and original-signed release builds verify the bundled GTCRN weight bytes against a pinned upstream Git blob and include the MIT notice. Parakeet packaging rejects all other unapproved ONNX files; the optional Parakeet model and signing identity are unchanged."
+      "title": "Privacy and existing models preserved",
+      "detail": "No cloud recognition, network permissions, signing-key changes, or new model downloads. The installed Parakeet 110M and its private data remain untouched. Larger Parakeet Ultra is deferred pending accent-specific accuracy and Oppo stability verification."
     }
   ]
 }
