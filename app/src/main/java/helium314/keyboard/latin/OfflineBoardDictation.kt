@@ -13,6 +13,7 @@ import helium314.keyboard.latin.voice.OfflineVoiceEngine
 import helium314.keyboard.latin.voice.PrivatePcmBuffer
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceDecodeRequest
+import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
@@ -20,7 +21,7 @@ import helium314.keyboard.latin.voice.VoiceDecodeRequest
  * ends it, and a private background worker returns one English transcript to this editor.
  */
 internal class OfflineBoardDictation(private val ime: LatinIME) {
-    private enum class Phase { IDLE, STARTING, CAPTURING, DECODING }
+    private enum class Phase { IDLE, STARTING, CAPTURING, DECODING, RECOVERING }
     // LatinIME constructs this member before Service.attachBaseContext(). Initializing the
     // singleton here dereferences a null applicationContext in Robolectric and cold startup.
     // Resolve it on first offline action, after the IME has an attached Android Context.
@@ -41,7 +42,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         when (phase) {
             Phase.IDLE -> start(root)
             Phase.STARTING, Phase.CAPTURING -> stop()
-            Phase.DECODING -> cancelFromUser() // A tap discards the pending result.
+            Phase.DECODING -> cancelFromUser() // A tap explicitly discards the pending result.
+            Phase.RECOVERING -> Unit // Detached from the old field, completing privately.
         }
     }
 
@@ -112,7 +114,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     fun stop() {
         when (phase) {
-            Phase.IDLE, Phase.DECODING -> return
+            Phase.IDLE, Phase.DECODING, Phase.RECOVERING -> return
             Phase.STARTING, Phase.CAPTURING -> {
                 phase = Phase.DECODING
                 footer?.showDictationProcessing(offline = true)
@@ -122,7 +124,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     }
 
     private fun finishCapture(connection: InputConnection) {
-        if (phase != Phase.DECODING) {
+        if (phase != Phase.DECODING && phase != Phase.RECOVERING) {
             cancel()
             return
         }
@@ -136,18 +138,36 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             return
         }
         decodeRequest = engine.transcribe(bytes) { answer ->
-            if (id != generation || phase != Phase.DECODING) return@transcribe
+            if (id != generation || (phase != Phase.DECODING && phase != Phase.RECOVERING)) return@transcribe
             decodeRequest = null
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
             val validDestination = validEditor && destinationUnchanged()
-            val canCommit = validDestination && phrase.isNotEmpty() && !containsDevanagari(phrase)
+            val outcome = VoiceTranscriptDeliveryPolicy.choose(
+                detached = phase == Phase.RECOVERING,
+                sameEditor = validEditor,
+                sameSelection = validDestination,
+                validTranscript = phrase.isNotEmpty() && !containsDevanagari(phrase),
+            )
             val statusFooter = footer
             cancel()
-            if (canCommit) {
+            if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
                 ime.onPrivateVoiceTextInput(phrase)
-            } else if (validEditor && !validDestination) {
-                statusFooter?.showDictationError(R.string.board_voice_destination_changed)
+            } else if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.RECOVER &&
+                ime.clipboardHistoryManager.saveUndeliveredTranscript(phrase)) {
+                val visibleFooter = ime.mKeyboardSwitcher.wrapperView
+                    ?.findViewById<BoardFooterView>(R.id.board_footer)?.takeIf { it.isShown }
+                if (visibleFooter != null) {
+                    visibleFooter.showContextAction(recoveryNoticeOwner,
+                        R.string.board_voice_saved_for_recovery, R.string.board_voice_open_clipboard) {
+                        ime.mKeyboardSwitcher.setClipboardKeyboard()
+                    }
+                } else {
+                    Toast.makeText(ime, R.string.board_voice_saved_for_recovery, Toast.LENGTH_SHORT).show()
+                }
+            } else if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.RECOVER) {
+                if (validEditor) statusFooter?.showDictationError(R.string.board_voice_recovery_unavailable)
+                else Toast.makeText(ime, R.string.board_voice_recovery_unavailable, Toast.LENGTH_SHORT).show()
             } else if (validEditor) {
                 statusFooter?.showDictationError(R.string.board_voice_offline_failed)
             }
@@ -159,6 +179,26 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     /** Editor loss, IME dismissal, failures and successful commits never imply Cancel. */
     fun cancel() = finish(OfflineDictationExit.OTHER)
+
+    /**
+     * The destination disappeared *after* recording was stopped. The recognizer
+     * may finish, but is permanently forbidden from committing into an editor.
+     * Only explicit Cancel, a privacy boundary or service destruction destroys
+     * the pending result. This state is bounded to one in-flight recognition.
+     */
+    fun onEditorLost() {
+        if (phase != Phase.DECODING && phase != Phase.RECOVERING) {
+            cancel()
+            return
+        }
+        phase = Phase.RECOVERING
+        val oldFooter = footer
+        footer = null
+        oldFooter?.showDictationActive(false)
+        oldFooter?.showDictationProcessing(false)
+        oldFooter?.setDictationCancelAvailable(false)
+        oldFooter?.clearDictationError()
+    }
 
     private fun finish(reason: OfflineDictationExit) {
         val wasActive = phase != Phase.IDLE
@@ -215,4 +255,6 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private fun containsDevanagari(text: String): Boolean = text.any {
         it in '\u0900'..'\u097F' || it in '\uA8E0'..'\uA8FF'
     }
+
+    private val recoveryNoticeOwner = Any()
 }

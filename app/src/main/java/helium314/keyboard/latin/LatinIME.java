@@ -1168,7 +1168,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void setInputView(final View view) {
         mInlineDictation.cancel();
-        mOfflineDictation.cancel();
+        mOfflineDictation.onEditorLost();
         ViewTreeLifecycleOwner.set(view, this);
         ViewTreeSavedStateRegistryOwner.set(view, this);
         ViewTreeViewModelStoreOwner.set(view, this);
@@ -1224,7 +1224,14 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
-        mOfflineDictation.cancel();
+        // Entering a protected editor is a privacy boundary, not a recoverable
+        // destination change. Do not keep an old audio decode running there.
+        if (ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
+                mSettings.getCurrent().mIncognitoModeEnabled)
+                || SecureAppsPolicy.isSecure(KtxKt.prefs(this),
+                        editorInfo == null ? null : editorInfo.packageName))
+            mOfflineDictation.cancel();
+        else mOfflineDictation.onEditorLost();
         mHandler.onStartInput(editorInfo, restarting);
     }
 
@@ -1241,7 +1248,7 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
-        mOfflineDictation.cancel();
+        mOfflineDictation.onEditorLost();
         if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         StatsUtils.onFinishInputView();
         mHandler.onFinishInputView(finishingInput);
@@ -1255,7 +1262,7 @@ public class LatinIME extends InputMethodService implements
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
-        mOfflineDictation.cancel();
+        mOfflineDictation.onEditorLost();
         mHandler.onFinishInput();
     }
 
@@ -1555,7 +1562,7 @@ public class LatinIME extends InputMethodService implements
         // that reopen without a fresh onStartInputView callback.
         mKeyboardSwitcher.beginEmojiEditorSession();
         mInlineDictation.cancel();
-        mOfflineDictation.cancel();
+        mOfflineDictation.onEditorLost();
         super.onWindowHidden();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
         Log.i(TAG, "onWindowHidden");
@@ -2085,6 +2092,16 @@ public class LatinIME extends InputMethodService implements
         mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
                 mKeyboardSwitcher.getCurrentKeyboardScript());
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    /** Only a deliberate tap in Clipboard may place an undelivered transcript. */
+    public boolean insertRecoveredVoiceText(final String text) {
+        if (text == null || text.isEmpty() || !isInputViewShown()
+                || getCurrentInputConnection() == null
+                || ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(),
+                        mSettings.getCurrent().mIncognitoModeEnabled)) return false;
+        onPrivateVoiceTextInput(text);
+        return true;
     }
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */

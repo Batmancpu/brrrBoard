@@ -257,13 +257,13 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         // In a selection, getTextBefore/AfterCursor addresses the outside of
         // the selected range. Moving the head *toward* the anchor must instead
         // measure a grapheme from the selected range itself.
-        val text = if ((steps < 0 && head > anchor) || (steps > 0 && head < anchor)) {
+        val text = (if ((steps < 0 && head > anchor) || (steps > 0 && head < anchor)) {
             connection.getSelectedText(0)
         } else if (steps < 0) {
             connection.getTextBeforeCursor(-steps * 8, 0)
         } else {
             connection.getTextAfterCursor(steps * 8, 0)
-        } ?: return
+        }) ?: return
         // Editors may return unexpectedly huge or partial selection snapshots.
         // Bail out, preserving the existing selection, rather than allocating
         // or placing a head in a guessed position.

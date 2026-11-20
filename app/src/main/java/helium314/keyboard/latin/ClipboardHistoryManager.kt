@@ -37,6 +37,9 @@ import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.database.ClipboardDao
+import helium314.keyboard.latin.voice.RecoveredTranscript
+import helium314.keyboard.latin.voice.RecoveredTranscriptRepository
+import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.databinding.ClipboardSuggestionBinding
 import helium314.keyboard.latin.permissions.PermissionsUtil
 import helium314.keyboard.latin.utils.Log
@@ -71,6 +74,9 @@ class ClipboardHistoryManager(
     // means the system clipboard is never cleared when history is cleared.
     private data class OwnedClip(val fingerprint: String, val timestamp: Long)
     private var ownedPrimaryClip: OwnedClip? = null
+    // Recognized but undelivered speech is not an OS clip and must not enter
+    // the ordinary plaintext SQLite clipboard table.
+    private val recoveredTranscripts by lazy { RecoveredTranscriptRepository(latinIME) }
 
     fun onCreate() {
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -502,6 +508,11 @@ class ClipboardHistoryManager(
 
     fun updatePrimaryClip() {
         if (isHistoryPrivate()) {
+            // A secure *destination* should hide recovery, not erase a result
+            // saved in an earlier ordinary editor. Explicit global incognito
+            // is a different privacy boundary and purges the encrypted cache.
+            if (latinIME.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
+                    Defaults.PREF_ALWAYS_INCOGNITO_MODE)) clearRecoveredTranscripts()
             suppressPrivateClipboardSuggestions()
             syncScreenshotObserver()
             return
@@ -577,6 +588,7 @@ class ClipboardHistoryManager(
 
     fun clearHistory() {
         clipboardDao?.clearNonPinned()
+        clearRecoveredTranscripts()
         // User explicitly cleared *brrBoard history*, not some other app's
         // clipboard. Clear the system clip only for a still-matching copy made
         // through brrBoard in this process. Never use label-only provenance.
@@ -703,6 +715,23 @@ class ClipboardHistoryManager(
     // We do not want to update history while user is visualizing it, so we check retention only
     // when history is about to be shown
     fun prepareClipboardHistory() = clipboardDao?.clearOldClips(true)
+
+    /** Only a successful recognition with a stale destination enters this area. */
+    fun saveUndeliveredTranscript(text: String): Boolean {
+        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled) return false
+        return recoveredTranscripts.add(text) != null
+    }
+
+    fun getRecoveredTranscripts(): List<RecoveredTranscript> =
+        if (isHistoryPrivate()) emptyList() else recoveredTranscripts.all()
+
+    fun getRecoveredTranscript(id: Long): RecoveredTranscript? =
+        if (isHistoryPrivate()) null else recoveredTranscripts.get(id)
+
+    /** Called only after the user has explicitly tapped and inserted this result. */
+    fun consumeRecoveredTranscript(id: Long): Boolean = recoveredTranscripts.consume(id)
+
+    fun clearRecoveredTranscripts() = recoveredTranscripts.clear()
 
     fun getHistorySize() = if (isHistoryPrivate()) 0 else clipboardDao?.count() ?: 0
 

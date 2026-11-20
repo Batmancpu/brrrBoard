@@ -556,6 +556,13 @@
     <string name="board_voice_offline_listening">Private offline listening…</string>
     <string name="board_voice_offline_failed">Private English transcription failed</string>
     <string name="board_voice_destination_changed">Speech not inserted: cursor or selection changed</string>
+    <string name="board_voice_saved_for_recovery">Speech saved because the cursor moved</string>
+    <string name="board_voice_open_clipboard">Open Clipboard</string>
+    <string name="board_voice_recovery_unavailable">Speech could not be saved; check Clipboard history or privacy mode</string>
+    <string name="board_recovered_transcripts">Recovered transcripts · newest first</string>
+    <string name="board_recovered_transcript_insert_a11y">Insert recovered transcript from %1$s</string>
+    <string name="board_recovered_transcript_remove_a11y">Remove recovered transcript</string>
+    <string name="board_recovered_transcript_inserted">Recovered transcript inserted</string>
     <string name="board_show_more_suggestions">Show more suggestions</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>

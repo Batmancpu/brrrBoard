@@ -26,6 +26,13 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
     /** Search uses horizontal paging; don't mistake a scroll for swipe-to-delete. */
     var horizontalSearchMode: Boolean = false
     var placeholderView: View? = null
+    /** The transcript recovery rail is a sibling, not an ordinary clip card. */
+    var hasExternalContent: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            checkAdapterContentChange()
+        }
     var onEmptyStateChanged: ((Boolean) -> Unit)? = null
     val historyManager: ClipboardHistoryManager? get() = (adapter as? ClipboardAdapter?)?.clipboardHistoryManager
     @Suppress("unused")
@@ -71,7 +78,7 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
 
     private fun checkAdapterContentChange() {
         if (placeholderView == null) return
-        val adapterIsEmpty = adapter == null || adapter?.itemCount == 0
+        val adapterIsEmpty = (adapter == null || adapter?.itemCount == 0) && !hasExternalContent
         onEmptyStateChanged?.invoke(adapterIsEmpty)
         if (isVisible && adapterIsEmpty) {
             placeholderView!!.visibility = VISIBLE

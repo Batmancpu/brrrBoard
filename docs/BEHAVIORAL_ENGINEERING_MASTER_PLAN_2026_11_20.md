@@ -59,6 +59,13 @@ At recording start, bind a private recognition generation to the editor epoch, c
 
 ## Execution ledger
 
+### 2026-11-20 — recovered transcript owner extension and first CI compiler repair (source candidate)
+
+- GitHub main first behavior commit `00e730f7f7ab528377c97d4194c27fd3f420cd6f`, debug run `44710070328` and original signer run `44710070303` each **FAILED** at Kotlin compilation (`KeyboardActionListenerImpl.kt` nullable `CharSequence` lines 270–271). No signed APK was produced. Fixed nullable `if` expression parenthesization locally; next commit CI pending.
+- User added an explicit new rule: only **successfully recognized** blue dictation that cannot reach its intended host editor because caret/selection/editor changed gets recovered, not ordinary successful transcripts and not recognizer errors or explicit Cancel. Up to five, latest first, date/time and source-matched blue accent, explicit paste into the currently focused eligible editor, individual deletion, dedicated Clipboard rail.
+- In-flight decoder now changes to `RECOVERING` on editor lifecycle loss (not on Cancel). It cannot auto-commit across editor boundaries. A testable delivery policy chooses `INSERT`, `RECOVER`, `DROP`. Recovered text uses separate AES-256-GCM AndroidKeystore alias and atomic `noBackupFilesDir` file, with maximum 24-hour retention, no OS clipboard or ordinary clipboard SQLite insertion. Recovery is hidden in private fields and purged on explicit global incognito; full speech remains unlearned. Tests cover cache order, bound/expiry/consumption, cryptographic tamper, and delivery routing.
+- This is a **source candidate** until exact-SHA debug/full-unit and original-signed Obtainium CI succeed. Physical Oppo card geometry, reduced motion, TalkBack action, process-restart recovery, and field-switch timing are still PENDING. Full B3 vertical selection and B6 concurrent typing policy remain open; do not claim full ten-batch completion.
+
 ### 2026-11-20 — source batches B1/B3/B4/B6 plus concurrent B2 reconciliation (CI/Oppo pending)
 
 - Started from clean baseline `7de71e3`, whose debug and original-signed workflows had both completed successfully. No other workflow was running at the baseline check.

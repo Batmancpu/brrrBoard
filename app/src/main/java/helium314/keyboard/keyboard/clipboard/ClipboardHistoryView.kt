@@ -91,6 +91,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private val keyBackgroundId: Int
 
     private lateinit var clipboardRecyclerView: ClipboardHistoryRecyclerView
+    private lateinit var recoveredSection: RecoveredTranscriptSectionView
     private lateinit var headerScrim: View
     private lateinit var placeholderView: TextView
     private lateinit var clearButton: ImageButton
@@ -299,6 +300,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
                 }
             })
         }
+        recoveredSection = findViewById(R.id.clipboard_recovered_transcripts)
         PanelMaterial.extendIntoFooterUnless(clipboardRecyclerView.parent as View,
             clipboardRecyclerView) { searchMode }
         clearButton = findViewById(R.id.clipboard_clear_button)
@@ -325,7 +327,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val extra = resources.getDimensionPixelSize(R.dimen.panel_content_bottom_extra)
         val reserved = rowHeight + extra +
             resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
-        val topInset = resources.getDimensionPixelSize(R.dimen.panel_content_top_inset)
+        val topInset = resources.getDimensionPixelSize(R.dimen.panel_content_top_inset) +
+            if (::recoveredSection.isInitialized && recoveredSection.visibility == View.VISIBLE && !searchMode)
+                recoveredSection.layoutParams.height else 0
         if (clipboardRecyclerView.paddingTop != topInset || clipboardRecyclerView.paddingBottom != reserved) {
             clipboardRecyclerView.setPadding(
                 clipboardRecyclerView.paddingLeft, topInset,
@@ -552,6 +556,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         this.keyboardActionListener = keyboardActionListener
         clipboardHistoryManager = historyManager
         initialize()
+        refreshRecoveredTranscriptSection()
         val settings = Settings.getInstance()
         setupHeader(settings.current.mColors)
         setupUndoBar(settings.current.mColors)
@@ -605,6 +610,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         undoBar?.removeCallbacks(hideUndoBarRunnable)
         lastDismissedEntry = null
         lastDismissedPosition = -1
+        if (::recoveredSection.isInitialized) recoveredSection.bind(emptyList(), {}, {})
+        if (::clipboardRecyclerView.isInitialized) clipboardRecyclerView.hasExternalContent = false
         if (!this::clipboardAdapter.isInitialized) return
         // Do not retain transient Clipboard pixels in the offscreen GPU list.
         PanelMaterial.apply(context, Settings.getValues().mColors, headerScrim,
@@ -783,7 +790,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
             params.gravity = if (search) Gravity.TOP else Gravity.CENTER_HORIZONTAL
             list.layoutParams = params
         }
-        val top = if (search) 0 else resources.getDimensionPixelSize(R.dimen.panel_content_top_inset)
+        val top = if (search) 0 else resources.getDimensionPixelSize(R.dimen.panel_content_top_inset) +
+            if (::recoveredSection.isInitialized && recoveredSection.visibility == View.VISIBLE)
+                recoveredSection.layoutParams.height else 0
         list.setPadding(list.paddingLeft, top, list.paddingRight,
             if (search) 0 else list.paddingBottom)
         (placeholderView.layoutParams as FrameLayout.LayoutParams).let { params ->
@@ -818,6 +827,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val typing = switcher.mainKeyboardView ?: return
         prepareHeightMotion()
         searchMode = true
+        recoveredSection.visibility = View.GONE
         searchShifted = false
         applySearchTheme(Settings.getValues().mColors)
         applySearchResultsLayout(true)
@@ -848,6 +858,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchChromaticInput.showMatchedInk(false)
         if (animate) prepareHeightMotion() else cancelHeightMotion()
         searchMode = false
+        refreshRecoveredTranscriptSection()
         searchHeader.visibility = View.GONE
         titleView.visibility = View.VISIBLE
         searchInput.setText("")
@@ -1024,6 +1035,43 @@ class ClipboardHistoryView @JvmOverloads constructor(
         if (outcome != null && outcome != helium314.keyboard.latin.ClipboardHistoryPasteOutcome.REJECTED &&
             Settings.getValues().mAlphaAfterClipHistoryEntry)
             keyboardActionListener.onCodeInput(KeyCode.ALPHA, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+    }
+
+    private fun refreshRecoveredTranscriptSection() {
+        if (!::recoveredSection.isInitialized || !::clipboardHistoryManager.isInitialized) return
+        val items = if (searchMode) emptyList() else clipboardHistoryManager.getRecoveredTranscripts()
+        recoveredSection.bind(items, ::insertRecoveredTranscript, ::dismissRecoveredTranscript)
+        if (::clipboardRecyclerView.isInitialized)
+            clipboardRecyclerView.hasExternalContent = recoveredSection.visibility == View.VISIBLE
+        if (::clipboardRecyclerView.isInitialized) {
+            val top = resources.getDimensionPixelSize(R.dimen.panel_content_top_inset) +
+                if (recoveredSection.visibility == View.VISIBLE) recoveredSection.layoutParams.height else 0
+            if (!searchMode && clipboardRecyclerView.paddingTop != top) {
+                clipboardRecyclerView.setPadding(clipboardRecyclerView.paddingLeft, top,
+                    clipboardRecyclerView.paddingRight, clipboardRecyclerView.paddingBottom)
+            }
+        }
+    }
+
+    private fun insertRecoveredTranscript(id: Long) {
+        val item = clipboardHistoryManager.getRecoveredTranscript(id) ?: return
+        val ime = getLatinIme() ?: return
+        // The tap is an explicit new destination choice. Unlike a delayed
+        // decoder callback, it may commit only to the *current* eligible field.
+        if (ime.insertRecoveredVoiceText(item.text)) {
+            clipboardHistoryManager.consumeRecoveredTranscript(id)
+            refreshRecoveredTranscriptSection()
+            announceForAccessibility(context.getString(R.string.board_recovered_transcript_inserted))
+            if (Settings.getValues().mAlphaAfterClipHistoryEntry) {
+                keyboardActionListener.onCodeInput(KeyCode.ALPHA,
+                    Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
+            }
+        }
+    }
+
+    private fun dismissRecoveredTranscript(id: Long) {
+        clipboardHistoryManager.consumeRecoveredTranscript(id)
+        refreshRecoveredTranscriptSection()
     }
 
     override fun onClipInserted(position: Int) {

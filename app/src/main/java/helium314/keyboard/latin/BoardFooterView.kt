@@ -251,10 +251,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Emoji and clipboard guards receive the updated effective mode.
         ime.clearPendingPrivateLearning()
         Settings.getInstance().toggleAlwaysIncognitoMode()
-        if (next && (dictationActive || dictationProcessing)) {
-            if (dictationOffline) ime.cancelBoardOfflineDictation()
-            else ime.cancelBoardDictation()
-        }
+        if (next) ime.clipboardHistoryManager.clearRecoveredTranscripts()
+        if (next) ime.cancelBoardDictation()
         // Three tiny ticks, never the ordinary fourth key-press tick or sound.
         AudioAndHapticFeedbackManager.getInstance().performPrivacyModeConfirmation()
         syncEmojiPrivacy(animate = true)
