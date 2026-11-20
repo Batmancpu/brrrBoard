@@ -59,6 +59,10 @@ At recording start, bind a private recognition generation to the editor epoch, c
 
 ## Execution ledger
 
+### 2026-11-20 — owner GO for one consolidated next APK; prediction glyph continuity candidate
+
+Current signed baseline is v1.0.201. The requested earlier behavioral work already ships in prior versions; do not duplicate or reset it. This consolidated source batch adds per-glyph retained-letter movement, bounded incoming/outgoing word replacements and interrupted-animation retargeting in each stable suggestion slot, plus a first-screen BR Brain dashboard card. Full code/method constraints and tests are in [iOS glyph motion ledger](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md). `docs/releases/notes.json` now describes ONLY the post-v1.0.201 delta. Local Android wrapper blocked at Gradle distribution download; exact-SHA Android tests, original-signer release, and Oppo hardware acceptance remain pending until actually verified. No Ultra model or native GTCRN activation.
+
 ### 2026-11-20 — B5/B8 protected gesture cancellation and TalkBack source candidate
 
 **Verified release:** Shipped from `95ae0683` in original-signed Obtainium **v1.0.198**, published 2026-11-20T17:08:06Z, debug `44778971808`/signer `44778971949` full Android test gates successful; SHA-256 `999e21cfbbd1ebffb485b19c508d543e1dc4539166b5ef227bb8b5de7de58dfe`. Still needs actual Oppo TalkBack/reduced-motion acceptance. Next release notes begin after v1.0.198.

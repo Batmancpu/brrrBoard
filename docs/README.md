@@ -16,6 +16,7 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**iOS-style prediction glyph motion** — source implementation, evidence, timing limitations and one-APK acceptance matrix](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md)
 - [**Private blue-mic crash diagnostics and Android noise suppression** — owner Oppo EXIT_SELF/255 evidence, real-session one-shot stages, privacy and accuracy testing](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md)
 - [**BR Brain** — implementation-ready function-level contract, English/Hinglish next-word + swipe fusion and three Smart Emoji surfaces — **implementation started; neural weights pending**](BR_BRAIN_FUNCTIONAL_CODE_LEVEL_IMPLEMENTATION_PLAN_2026_11_20.md)
 - [**BR Brain**: GO-authorized Smart Emoji integration (typing strip, Smart/Recent, Search), bilingual model design and dashboard — **code candidate; neural weights still pending tests**](BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md)

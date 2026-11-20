@@ -192,6 +192,18 @@ fun MainSettingsScreen(
             }
         }
 
+        // Intelligence is a primary feature, not a submenu hidden under Dictionary.
+        Md3ePreferenceGroup("BR Brain") {
+            Md3ePreference(
+                icon = "psychology",
+                title = "BR Brain",
+                description = "Live prediction speed, offline learning and Smart Emoji",
+                onClick = onClickBrainDashboard,
+                isFirst = true,
+                isLast = true,
+            )
+        }
+
         Md3ePreferenceGroup("Make it yours") {
             Md3ePreference(
                 icon = "palette",

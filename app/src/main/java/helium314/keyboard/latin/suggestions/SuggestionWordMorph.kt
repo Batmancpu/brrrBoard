@@ -27,7 +27,9 @@ import kotlin.math.min
  * cancels the old clock before capturing the next settled text.
  */
 internal class SuggestionWordMorph(private val owner: ViewGroup) {
-    data class Frame(val labels: List<String?>, val centerConfidence: Boolean, val centerPillWidth: Float)
+    data class Frame(val labels: List<String?>, val centerConfidence: Boolean,
+                     val centerPillWidth: Float,
+                     val visibleGlyphs: List<List<SuggestionGlyphSnapshot>>)
 
     private class SettlingInkSpan(var progress: Float, private val iosMotion: Boolean) : CharacterStyle(), UpdateAppearance {
         override fun updateDrawState(paint: TextPaint) {
@@ -46,6 +48,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
 
     private val easing = PathInterpolator(.20f, 0f, .20f, 1f)
     private val activeInk = ArrayList<ActiveInk>(3)
+    private val activeMotion = ArrayList<MorphingSuggestionTextView>(3)
     private var animator: ValueAnimator? = null
     private var pill: SuggestionConfidencePillDrawable? = null
     private var pillView: TextView? = null
@@ -53,10 +56,18 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
     private var pillFallbackBackground: Drawable? = null
 
     fun capture(words: List<TextView>, centerConfidence: Boolean): Frame {
+        // Read the *currently drawn* glyph positions before ending an interrupted
+        // animation. A faster prediction can retarget smoothly from that frame.
+        val canAnimate = owner.isShown && KeyboardMotionSpec.enabled() &&
+            KeyboardMotionSpec.isIos27(owner.context)
+        val visible = words.map { view ->
+            if (canAnimate) (view as? MorphingSuggestionTextView)?.snapshot().orEmpty()
+            else emptyList()
+        }
         stopMotion()
         val width = words.getOrNull(1)?.let { pillWidth(it) } ?: 0f
         return Frame(words.map { it.text?.toString()?.takeIf { text -> text.isNotBlank() } },
-            centerConfidence, width)
+            centerConfidence, width, visible)
     }
 
     fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
@@ -66,6 +77,13 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
         for (index in 0 until min(3, words.size)) {
             val view = words[index]
             if (!view.isShown || view.text.isNullOrBlank()) continue
+            val next = view.text.toString()
+            if (previous.labels.getOrNull(index) == next) continue
+            if (KeyboardMotionSpec.isIos27(owner.context) && view is MorphingSuggestionTextView &&
+                view.begin(previous.visibleGlyphs.getOrNull(index).orEmpty(), next)) {
+                activeMotion.add(view)
+                continue
+            }
             val range = SuggestionGlyphDiff.changedRange(previous.labels.getOrNull(index), view.text)
                 ?: continue
             val span = SettlingInkSpan(0f, KeyboardMotionSpec.isIos27(owner.context))
@@ -95,7 +113,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
             pillEndingInactive = !centerConfidence
         }
 
-        if (activeInk.isEmpty() && pill == null) return
+        if (activeInk.isEmpty() && activeMotion.isEmpty() && pill == null) return
         val iosMotion = KeyboardMotionSpec.isIos27(owner.context)
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = if (iosMotion) KeyboardMotionSpec.IOS_SUGGESTION_SETTLE_MS
@@ -110,6 +128,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
                     ink.span.progress = progress
                     ink.view.invalidate()
                 }
+                activeMotion.forEach { it.advance(fraction) }
                 pill?.setProgress(if (iosMotion) easing.getInterpolation(fraction) else fraction)
             }
             addListener(object : AnimatorListenerAdapter() {
@@ -141,6 +160,8 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
             ink.view.invalidate()
         }
         activeInk.clear()
+        activeMotion.forEach { it.end() }
+        activeMotion.clear()
         pill?.setProgress(1f)
         if (pillEndingInactive) pillView?.background = pillFallbackBackground
         pill = null

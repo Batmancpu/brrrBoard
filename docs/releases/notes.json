@@ -1,22 +1,22 @@
 {
   "schema": 1,
-  "summary": "One-session private voice crash trail and optional Android noise suppression, retaining the existing offline Parakeet 110M recognizer.",
+  "summary": "One consolidated behavior release: smoother suggestion-letter continuity and BR Brain at the top of Settings, preserving previously shipped editor, Emoji, trackpad, correction and private voice safeguards.",
   "changes": [
     {
-      "title": "Find the failure stage in a real private voice session",
-      "detail": "BR Brain can arm one blue-mic attempt and store only bounded fixed-code processing stages/timings during microphone setup, model loading, speech decoding and completion. Android's own sanitized process-exit category may reveal a crash on the next launch. No raw audio, transcript, app/editor identity, trace or automatic upload; explicit copy and erase."
+      "title": "Prediction letters now move into their new positions",
+      "detail": "On the iOS-style motion profile, the three existing suggestion slots render unchanged English letters shifting smoothly, replacing only outgoing and incoming glyphs. Expansion such as they to they're, contraction, inner-word replacements and fast consecutive predictions no longer depend on a suffix-only fade. Actual suggestions and tappable targets update immediately; no new predictive-engine delay. Complex-script and long-word suggestions retain the native TextView fallback. Precise iOS 27 frame measurements are not claimed."
     },
     {
-      "title": "Optional Android microphone noise reduction",
-      "detail": "A new BR Brain ON/OFF switch tries the phone's built-in NoiseSuppressor on the existing 16-kHz blue offline microphone stream. Unsupported devices keep the original audio. The effect is released after each recording and its state is displayed honestly, without claiming an unmeasured accuracy gain. GTCRN remains native-isolated after the owner observed EXIT_SELF/255 during model loading."
+      "title": "Interrupted suggestion animations retarget from visible letters",
+      "detail": "When a newer prediction arrives mid-animation, the next transition begins at the currently drawn glyph positions and transparency, keeping the real latest word authoritative with one renderer per slot. Existing center confidence capsule, reduced-motion policy, no-cross-slot behavior and Previous Default preset remain intact."
     },
     {
-      "title": "Refuse blue dictation when Android reports an active call",
-      "detail": "The blue microphone refuses to start or pre-warm the speech recognizer during phone/video communication mode, preserving normal typing and call responsiveness. Android's audio-input sharing is not assumed to prevent every concurrent recording."
+      "title": "BR Brain appears at the top of the Settings home",
+      "detail": "A dedicated first-screen BR Brain card opens existing live offline prediction and learning diagnostics directly, without hiding the dashboard under Dictionary. Version history remains available in About with release-specific detail and publication time."
     },
     {
-      "title": "Existing 110M recognizer and BR Brain intelligence preserved",
-      "detail": "Following the owner's newest request, this update retains Parakeet TDT 110M and the existing native keyboard/Emoji learners. It does not download/bundle the larger 0.6B model, delete old weights, invent a trained Hinglish ContextLM, add Internet permissions or change signing identity."
+      "title": "Earlier behavioral and privacy work preserved",
+      "detail": "Retains session-scoped Emoji category navigation, guarded two-finger trackpad selection, safe autocorrection reversal, five encrypted undelivered-transcript recovery cards, field privacy checks and original offline Parakeet 110M voice path. No new network permission, model or migration; no data reset or change to signing identity. Oppo visual and TalkBack acceptance is still required."
     }
   ]
 }
