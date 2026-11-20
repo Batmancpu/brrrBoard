@@ -54,6 +54,7 @@ fun AboutScreen(
     val items = listOf(
         SettingsWithoutKey.APP,
         SettingsWithoutKey.VERSION,
+        SettingsWithoutKey.VERSION_HISTORY,
         SettingsWithoutKey.SETUP_WIZARD,
         SettingsWithoutKey.MANGOLOADS,
         SettingsWithoutKey.GITHUB,
@@ -106,6 +107,16 @@ fun createAboutSettings(context: Context) = listOf(
                 Toast.makeText(ctx, R.string.prefs_debug_settings_enabled, Toast.LENGTH_LONG).show()
             },
             icon = R.drawable.ic_settings_about
+        )
+    },
+    Setting(context, SettingsWithoutKey.VERSION_HISTORY,
+        R.string.version_history, R.string.version_history_summary) {
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { helium314.keyboard.settings.SettingsDestination.navigateTo(
+                helium314.keyboard.settings.SettingsDestination.VersionHistory) },
+            icon = R.drawable.ic_settings_about_log
         )
     },
     Setting(context, SettingsWithoutKey.PRIVACY_POLICY, R.string.privacy_policy, R.string.privacy_policy_summary) {

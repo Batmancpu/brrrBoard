@@ -43,7 +43,12 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             Phase.IDLE -> start(root)
             Phase.STARTING, Phase.CAPTURING -> stop()
             Phase.DECODING -> cancelFromUser() // A tap explicitly discards the pending result.
-            Phase.RECOVERING -> Unit // Detached from the old field, completing privately.
+            Phase.RECOVERING -> {
+                // A new mic tap must not silently do nothing or replace the
+                // previous in-flight recognition before its recovery decision.
+                root?.findViewById<BoardFooterView>(R.id.board_footer)
+                    ?.showDictationError(R.string.board_voice_finishing_previous)
+            }
         }
     }
 

@@ -50,4 +50,44 @@ public class InputAttributesRestartTest {
         info.imeOptions |= EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING;
         assertTrue(new InputAttributes(info, false, null).mNoLearning);
     }
+
+    @Test public void uriEmailAndPasswordFieldsDoNotInsertAutomaticSpaces() {
+        final EditorInfo info = editor();
+        for (final int variation : new int[]{
+                InputType.TYPE_TEXT_VARIATION_URI,
+                InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+                InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+                InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+                InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD}) {
+            info.inputType = InputType.TYPE_CLASS_TEXT | variation;
+            final InputAttributes attributes = new InputAttributes(info, false, null);
+            assertFalse(attributes.mShouldInsertSpacesAutomatically);
+            assertFalse(attributes.mInputTypeShouldAutoCorrect);
+            if (attributes.mIsPasswordField) {
+                assertFalse(attributes.mShouldShowSuggestions);
+                assertFalse(attributes.mShouldShowVoiceInputKey);
+            }
+        }
+    }
+
+    @Test public void numberDecimalAndTypeNullNeverRunWordPrediction() {
+        final EditorInfo info = editor();
+        for (final int inputType : new int[]{InputType.TYPE_CLASS_NUMBER,
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL,
+                InputType.TYPE_NULL}) {
+            info.inputType = inputType;
+            final InputAttributes attributes = new InputAttributes(info, false, null);
+            assertFalse(attributes.mShouldShowSuggestions);
+            assertFalse(attributes.mInputTypeShouldAutoCorrect);
+            assertFalse(attributes.mShouldShowVoiceInputKey);
+        }
+    }
+
+    @Test public void appCompletionsAreRestrictedToFullscreenEditors() {
+        final EditorInfo info = editor();
+        info.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE;
+        assertFalse(new InputAttributes(info, false, null).mApplicationSpecifiedCompletionOn);
+        assertTrue(new InputAttributes(info, true, null).mApplicationSpecifiedCompletionOn);
+    }
 }

@@ -22,8 +22,15 @@ internal class RecoveredTranscriptRepository(context: Context) {
 
     fun add(text: String): RecoveredTranscript? {
         loadOnce()
-        val item = queue.add(text, System.currentTimeMillis()) ?: return null
-        persist()
+        val now = System.currentTimeMillis()
+        val previous = queue.all(now)
+        val item = queue.add(text, now) ?: return null
+        // An unsealed, process-local copy must never be described as "saved".
+        // Preserve the prior queue if the Keystore or atomic file write fails.
+        if (!persist()) {
+            queue.restore(previous, now)
+            return null
+        }
         return item
     }
 
@@ -39,8 +46,13 @@ internal class RecoveredTranscriptRepository(context: Context) {
 
     fun consume(id: Long): Boolean {
         loadOnce()
+        val now = System.currentTimeMillis()
+        val previous = queue.all(now)
         if (!queue.remove(id)) return false
-        persist()
+        if (!persist()) {
+            queue.restore(previous, now)
+            return false
+        }
         return true
     }
 
@@ -85,13 +97,13 @@ internal class RecoveredTranscriptRepository(context: Context) {
         }
     }
 
-    private fun persist() {
+    private fun persist(): Boolean {
         val current = queue.all(System.currentTimeMillis())
-        if (current.isEmpty()) {
-            file.delete()
-            return
-        }
         try {
+            if (current.isEmpty()) {
+                file.delete()
+                return true
+            }
             val payload = ByteArrayOutputStream()
             DataOutputStream(payload).use { output ->
                 output.writeInt(VERSION)
@@ -117,9 +129,11 @@ internal class RecoveredTranscriptRepository(context: Context) {
                 if (stream != null) file.failWrite(stream)
                 throw e
             }
+            return true
         } catch (e: Exception) {
-            // Still recoverable in this IME process; never persist plaintext.
+            // Never claim success or keep a newly undeliverable cache receipt.
             Log.w("RecoveredTranscriptRepository", "Could not seal transcript recovery (${e.javaClass.simpleName})")
+            return false
         }
     }
 

@@ -18,6 +18,7 @@ import helium314.keyboard.latin.common.LocaleUtils.constructLocale
 import helium314.keyboard.latin.settings.SettingsSubtype.Companion.toSettingsSubtype
 import helium314.keyboard.latin.settings.getTransitionAnimationScale
 import helium314.keyboard.settings.screens.AboutScreen
+import helium314.keyboard.settings.screens.VersionHistoryScreen
 import helium314.keyboard.settings.screens.AdvancedSettingsScreen
 import helium314.keyboard.settings.screens.AppearanceScreen
 import helium314.keyboard.settings.screens.ColorsScreen
@@ -98,6 +99,9 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.About) {
             AboutScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.VersionHistory) {
+            VersionHistoryScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.TextCorrection) {
             TextCorrectionScreen(onClickBack = ::goBack)
@@ -184,6 +188,7 @@ object SettingsDestination {
     const val Settings = "settings"
     const val WelcomeWizard = "welcome_wizard"
     const val About = "about"
+    const val VersionHistory = "version_history"
     const val TextCorrection = "text_correction"
     const val Preferences = "preferences"
     const val Keys = "keys_layout"

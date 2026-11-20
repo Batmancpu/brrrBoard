@@ -63,6 +63,7 @@ class SettingsContainer(context: Context) {
 
     /** Context-aware destinations reuse the original preference objects without duplicating them. */
     fun routeFor(key: String): String = when (key) {
+        SettingsWithoutKey.VERSION_HISTORY -> SettingsDestination.VersionHistory
         SettingsWithoutKey.BACKUP_RESTORE -> SettingsDestination.Backup
         helium314.keyboard.latin.settings.Settings.PREF_ALWAYS_INCOGNITO_MODE,
         helium314.keyboard.latin.settings.Settings.PREF_SECURE_APPS,
@@ -105,6 +106,7 @@ class SettingsContainer(context: Context) {
         SettingsDestination.Privacy -> "Privacy & data · Protected apps"
         SettingsDestination.Backup -> "Privacy & data · Backup & restore"
         SettingsDestination.About -> "More · About brrBoard"
+        SettingsDestination.VersionHistory -> "More · About brrBoard · Version history"
         else -> "More · Advanced controls"
     }
 
@@ -175,6 +177,7 @@ object SettingsWithoutKey {
     const val LANGUAGE_PAGE = "language_settings_page"
     const val SECONDARY_LAYOUTS_PAGE = "secondary_layouts_settings_page"
     const val VERSION = "version"
+    const val VERSION_HISTORY = "version_history_page"
     const val PRIVACY_POLICY = "privacy_policy"
     const val LICENSE = "license"
     const val HIDDEN_FEATURES = "hidden_features"

@@ -559,6 +559,14 @@
     <string name="board_voice_saved_for_recovery">Speech saved because the cursor moved</string>
     <string name="board_voice_open_clipboard">Open Clipboard</string>
     <string name="board_voice_recovery_unavailable">Speech could not be saved; check Clipboard history or privacy mode</string>
+    <string name="board_voice_finishing_previous">Finishing previous speech; try the mic again shortly</string>
+    <string name="version_history">Version History</string>
+    <string name="version_history_summary">Updates, release dates and what changed in each version</string>
+    <string name="version_history_select">Choose a version</string>
+    <string name="version_history_changes">What changed</string>
+    <string name="version_history_published_at">Published on GitHub · shown in your local time</string>
+    <string name="version_history_prepared_at">Release build started · shown in your local time</string>
+    <string name="version_history_empty">No version history is bundled in this build yet.</string>
     <string name="board_recovered_transcripts">Recovered transcripts · newest first</string>
     <string name="board_recovered_transcript_insert_a11y">Insert recovered transcript from %1$s</string>
     <string name="board_recovered_transcript_remove_a11y">Remove recovered transcript</string>

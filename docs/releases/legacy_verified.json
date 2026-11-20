@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "releases": [
+    {
+      "version": "1.0.186",
+      "releaseTimeUtc": "2026-11-20T09:52:58Z",
+      "timeSource": "github_published",
+      "commit": "5c8169546f7ee26c438234a47a0c171d789aff0a",
+      "summary": "Behavioral safeguards and recoverable offline dictation.",
+      "changes": [
+        {
+          "title": "Recover undelivered speech in Clipboard",
+          "detail": "Recognized blue-mic dictation that could not safely reach its original field is held in a separate, encrypted five-item Clipboard rail with timestamps and manual insertion."
+        },
+        {
+          "title": "Safer editor transitions",
+          "detail": "Restarting editors now recheck action keys and no-learning flags; delayed voice results cannot auto-insert into a changed field or selection."
+        },
+        {
+          "title": "Trackpad selection and correction undo",
+          "detail": "Added second-finger horizontal trackpad selection with pointer ownership and Unicode stepping; autocorrection reversal checks the editor text before changing it."
+        }
+      ]
+    },
+    {
+      "version": "1.0.183",
+      "releaseTimeUtc": "2026-11-20T09:10:34Z",
+      "timeSource": "github_published",
+      "commit": "ca1044857a1840a13b9a435e2d5fc9ae088a56c7",
+      "summary": "Emoji navigation remembered within a typing session, reset across new sessions.",
+      "changes": [
+        {
+          "title": "Emoji session navigation",
+          "detail": "Browsing a category and returning to ABC remembers the position within the editor session. Focusing a new session starts at Recents or Smart instead of an old category."
+        },
+        {
+          "title": "Emoji geometry diagnostics",
+          "detail": "Added non-content diagnostic checks for the reported Emoji top-gap. The remaining physical Oppo gap requires direct on-device verification."
+        }
+      ]
+    }
+  ]
+}

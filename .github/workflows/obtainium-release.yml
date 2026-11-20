@@ -59,6 +59,21 @@ jobs:
         run: bash tools/prepare-offline-voice-pack.sh
       - name: Validate premium Settings navigation and resource contract
         run: python3 tools/check_premium_settings_contract.py
+      - name: Assemble offline Version History from signed GitHub releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/brrBoard-prior-releases.json"
+          python3 -m unittest discover -s tools -p 'test_generate_version_history.py' -v
+          python3 tools/generate_version_history.py \
+            --releases-json "$RUNNER_TEMP/brrBoard-prior-releases.json" \
+            --version "1.0.$GITHUB_RUN_NUMBER" \
+            --timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --commit "$GITHUB_SHA" \
+            --output app/src/main/assets/version_history.json \
+            --release-notes-output "$RUNNER_TEMP/brrBoard-release-notes.md"
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
       - name: Run complete Android unit test gate before publishing
@@ -121,6 +136,7 @@ jobs:
           unsigned=(app/build/outputs/apk/obtainium/*.apk)
           test "${#unsigned[@]}" -eq 1
           test -s "${unsigned[0]}"
+          unzip -p "${unsigned[0]}" assets/version_history.json | python3 -c 'import json,os,sys; assert json.load(sys.stdin)["releases"][0]["version"] == "1.0." + os.environ["GITHUB_RUN_NUMBER"]'
           "$sdk_tools/zipalign" -P 16 -f 4 "${unsigned[0]}" "$work/aligned.apk"
           apk="$RUNNER_TEMP/brrBoard.apk"
           "$sdk_tools/apksigner" sign --ks "$work/signing.p12" --ks-key-alias brrrboard \
@@ -169,6 +185,7 @@ jobs:
           if [[ "$BUNDLE_VOICE" == 'bundled' ]]; then
             model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
           fi
+          printf '\n%s\nAPK SHA-256: %s.\n' "$model_note" "$SHA256" >> "$RUNNER_TEMP/brrBoard-release-notes.md"
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "brrBoard Obtainium $version" --latest \
-            --notes "Commit: $GITHUB_SHA. $model_note APK SHA-256: $SHA256."
+            --notes-file "$RUNNER_TEMP/brrBoard-release-notes.md"

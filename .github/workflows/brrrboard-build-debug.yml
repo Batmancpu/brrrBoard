@@ -52,6 +52,25 @@ jobs:
             echo "No application or build inputs changed; CI will run without publishing a release."
           fi
 
+      - name: Require per-release change notes for application updates
+        if: github.event_name == 'push' && steps.release_scope.outputs.product_changed == 'true'
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then exit 0; fi
+          changes="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
+          if ! grep -Fx 'docs/releases/notes.json' <<< "$changes"; then
+            echo '::error::Update docs/releases/notes.json with exact user-visible changes for this application release.'
+            exit 1
+          fi
+
+      - name: Validate bundled Version History catalog
+        run: |
+          python3 -m unittest discover -s tools -p 'test_generate_version_history.py' -v
+          python3 tools/generate_version_history.py --output app/src/main/assets/version_history.json
+
       - name: Restore persistent debug signing key
         shell: bash
         run: |
@@ -97,6 +116,7 @@ jobs:
           APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*-debug.apk' | head -n 1)"
           test -n "$APK"
           test -s "$APK"
+          unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
