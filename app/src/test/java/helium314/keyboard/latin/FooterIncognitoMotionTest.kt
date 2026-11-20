@@ -6,6 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FooterIncognitoMotionTest {
+    @Test fun privacyGestureMayAnimateDuringImmediateEmojiToAbcReturn() {
+        // While the first Emoji tap is open, the button renders ABC. The
+        // second tap must still start the single emoji + mic shield clock.
+        assertTrue(FooterIncognitoMotion.shouldAnimatePrivacyChange(true, true))
+        assertEquals(false, FooterIncognitoMotion.shouldAnimatePrivacyChange(false, true))
+        assertEquals(false, FooterIncognitoMotion.shouldAnimatePrivacyChange(true, false))
+    }
+
     @Test fun entranceHasHatThenNodThenGlassesAndFinalGlint() {
         val normal = FooterIncognitoMotion.settled(false)
         val hat = FooterIncognitoMotion.at(normal, true, .30f)

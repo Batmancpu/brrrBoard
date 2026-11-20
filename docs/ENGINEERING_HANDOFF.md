@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — Repair implementation A, CI/Oppo pending
+
+The current owner explicitly authorized the previously proposed A→D repair and continuous workflow checks. The v1.0.171 first-tap change left the second privacy tap on the ABC footer icon; `!returnToLetters` suppressed the Emoji pose animator and mic privacy shield. Batch A repairs source ordering and the animation gate, with a new pure JVM policy test; do not report physical acceptance from source inspection. Batch B must address the persistent ~top band structurally. Batch C adds premium gold and deep-red recording only. Final signed release requires debug/full unit and original signer on the **exact app SHA**. Durable ledger: `docs/FOOTER_PRIVACY_EMOJI_GOLD_REPAIR_2026_11_20.md`.
+
 ## CURRENT OWNER P0 (2026-11-17) — live internal blur, pager gesture and Search height
 
 Latest inspected main baseline `41643b2840635cf1bf1be709008721102ff9f887`; three reference recordings available/sampled. Source work underway for a shared `PanelGlassOverlayView` RenderNode backdrop over Clipboard/Toolbar/Emoji/footer, true full-width Emoji `ViewPager2` swipe, complete Emoji Search height/one-row result geometry, and removal of duplicate Clipboard ABC and thin footer icons. See [full checkpoint, code owners, limitations and acceptance](P0_LIVE_PANEL_GLASS_2026_11_17.md). Current source is not yet CI signed or accepted on the Oppo. First check git diff/XML/JSON, guard remote main, push only main, monitor full Android tests + original production signer, repair any failures, verify release tag/cert/hash. Local Gradle 8.14.4 wrapper cannot download. Do not silently continue B17 glide or B18 voice while this P0 owner mission is active. Historical B17A/B16B notes below are preserved for continuity.

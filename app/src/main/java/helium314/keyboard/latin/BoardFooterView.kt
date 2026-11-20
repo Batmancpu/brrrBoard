@@ -196,10 +196,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         when (FooterEmojiTapPolicy.action(secondEmojiTap, firstEmojiTapOpenedPanel)) {
             FooterEmojiTapPolicy.Action.PRIVACY_AND_RETURN -> {
                 cancelEmojiGesture()
-                // Preserve the original double-tap incognito shortcut, ending
-                // on ABC as before. No delayed first tap or double insertion.
-                toggleFooterIncognito()
+                // Restore the alphabet before starting the shared privacy
+                // artwork clock. Otherwise the emoji drawable is temporarily
+                // replaced by ABC for the first frames of its entrance.
                 send(KeyCode.ALPHA)
+                toggleFooterIncognito()
                 return
             }
             FooterEmojiTapPolicy.Action.CONSUME_SECOND -> {
@@ -253,7 +254,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         lastSyncedPrivacy = privateMode
         privateEmojiIcon.setThemeInk(Settings.getValues().mColors.get(ColorType.KEY_ICON))
-        privateEmojiIcon.setIncognito(privateMode, animated = animate && isShown && !returnToLetters)
+        // A double-tap starts on Emoji, whose footer currently displays ABC.
+        // The original !returnToLetters guard skipped the entire 760/700ms
+        // motion and snapped BOTH the smile and mic shield to their endpoints.
+        // The same drawable survives the panel return, so its clock must run
+        // regardless of which of the two footer icons is temporarily visible.
+        privateEmojiIcon.setIncognito(privateMode, animated =
+            FooterIncognitoMotion.shouldAnimatePrivacyChange(animate, isShown))
         if (!returnToLetters) {
             emojiButton.contentDescription = resources.getString(
                 if (privateMode) R.string.board_emoji_private_desc else R.string.board_emoji_normal_desc)

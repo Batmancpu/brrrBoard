@@ -14,6 +14,10 @@ internal object FooterIncognitoMotion {
     const val ENTER_MS = 760L
     const val EXIT_MS = 700L
 
+    /** Visibility of the footer, not its current Emoji/ABC icon, gates motion. */
+    fun shouldAnimatePrivacyChange(requested: Boolean, footerVisible: Boolean): Boolean =
+        requested && footerVisible
+
     data class Frame(
         val hat: Float = 0f,
         val glasses: Float = 0f,
