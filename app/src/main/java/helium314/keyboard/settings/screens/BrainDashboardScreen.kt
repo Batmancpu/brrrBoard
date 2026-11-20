@@ -16,6 +16,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.voice.VoiceNativeCrashProbe
+import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
+import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
+import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -50,6 +54,10 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     var erasingEmoji by remember { mutableStateOf(false) }
     var trialText by remember { mutableStateOf("") }
     var probeCopied by remember { mutableStateOf(false) }
+    var voiceTrailCopied by remember { mutableStateOf(false) }
+    var noiseReductionEnabled by remember(context) {
+        mutableStateOf(VoiceCaptureNoiseReduction.enabled(context))
+    }
     // Settings can stay open alongside the IME. Refresh RAM-only diagnostic counters while visible.
     LaunchedEffect(Unit) {
         while (true) {
@@ -66,6 +74,8 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     val swipeSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SWIPE) }
     val emojiSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SMART_EMOJI) }
     val voiceProbe = remember(refresh) { VoiceNativeCrashProbe.snapshot(context) }
+    val voiceTrail = remember(refresh) { VoiceSessionCrashTrail.snapshot(context) }
+    val voiceNoise = remember(refresh) { VoiceDenoiseMetrics.snapshot() }
     val priorVoiceCrash = remember(context) { VoiceNativeCrashProbe.recentKeyboardExit(context) }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
@@ -109,16 +119,65 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             Text("The 95th percentile uses up to the most recent 128 eligible requests. A dash means this process hasn't measured that activity yet. Protected and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
-            Text("Voice noise reduction · crash-safe mode",
+            Text("Private mic noise reduction",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("GTCRN filtering paused", fontWeight = FontWeight.SemiBold)
-                    Text("A reported keyboard crash shortly after tapping the mic is being investigated. The last known working private 16-kHz capture and Parakeet transcription path is restored. GTCRN weights remain included in the APK for future verified activation, but no native noise-filter code is called in this build.",
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Use Android noise suppression", fontWeight = FontWeight.SemiBold)
+                            Text("Tries your phone's built-in microphone effect on the next blue offline recording. If unsupported, original audio is used. No extra neural model runs during typing.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(checked = noiseReductionEnabled, onCheckedChange = { selected ->
+                            noiseReductionEnabled = selected
+                            VoiceCaptureNoiseReduction.setEnabled(context, selected)
+                        })
+                    }
+                    Text("Last capture: ${voiceNoise.platformNoiseSuppression}. ACTIVE means Android accepted the effect, not that recognition became more accurate.",
                         style = MaterialTheme.typography.bodySmall)
-                    Text("Speech still stays on-device. This is a stability rollback, not evidence that filtering improved or worsened recognition accuracy.",
+                    Text("GTCRN filtering paused", fontWeight = FontWeight.SemiBold)
+                    Text("Your diagnostic stopped at GTCRN model loading, so its native filter remains isolated. This option uses Android's audio system instead and preserves Parakeet 110M.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Noise suppression may help in steady background noise, but can also distort speech on some earbuds. Turn it off here for a direct comparison. Voice typing is blocked when Android reports an active audio/video call.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
+                Column(modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("One-session private voice crash trail",
+                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Arm once, then return to a normal text field and try the blue offline mic. This records only stages such as mic initialized, noise effect status, ASR loaded and decoded, with relative timings. It never stores what you said, the audio, the app or the text field.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text(voiceTrail.message, style = MaterialTheme.typography.bodySmall)
+                    if (!voiceTrail.armed) {
+                        Button(onClick = {
+                            VoiceSessionCrashTrail.arm(context)
+                            voiceTrailCopied = false
+                            refresh++
+                        }) { Text("Arm next blue-mic test") }
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                voiceTrailCopied = VoiceSessionCrashTrail.copy(context)
+                            }) { Text(if (voiceTrailCopied) "Copied" else "Copy safe stages") }
+                            if (voiceTrail.canErase) {
+                                OutlinedButton(onClick = {
+                                    VoiceSessionCrashTrail.erase(context)
+                                    voiceTrailCopied = false
+                                    refresh++
+                                }) { Text("Erase test") }
+                            }
+                        }
+                    }
+                    Text("All data stays in this app's private no-backup storage until erased. Android may reveal a sanitized process-exit category after a crash; no raw crash memory or exception messages are inspected.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }

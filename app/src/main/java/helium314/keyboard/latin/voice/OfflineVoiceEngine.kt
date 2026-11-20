@@ -56,6 +56,7 @@ internal class OfflineVoiceEngine(private val context: Context) {
                     check(!request.isCancelled) { "Dictation was cancelled" }
                     require(VoiceModelInstaller.isInstalled(context)) { "Install the one-time offline voice model first" }
                     val rec = requireRecognizer()
+                    VoiceSessionCrashTrail.note(context, "ASR_DECODING")
                     val pieces = ArrayList<String>()
                     for (window in VoiceSegmenter.windows(pcm16)) {
                         check(!request.isCancelled) { "Dictation was cancelled" }
@@ -80,6 +81,7 @@ internal class OfflineVoiceEngine(private val context: Context) {
                         }
                     }
                     lastUsedAt = SystemClock.elapsedRealtime()
+                    VoiceSessionCrashTrail.note(context, "ASR_DECODED")
                     check(!request.isCancelled) { "Dictation was cancelled" }
                     VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(pieces))
                 }
@@ -124,9 +126,11 @@ internal class OfflineVoiceEngine(private val context: Context) {
                 modelType = "nemo_transducer",
             ),
         )
+        VoiceSessionCrashTrail.note(context, "ASR_LOADING")
         return OfflineRecognizer(config = config).also {
             recognizer = it
             lastUsedAt = SystemClock.elapsedRealtime()
+            VoiceSessionCrashTrail.note(context, "ASR_READY")
         }
     }
 

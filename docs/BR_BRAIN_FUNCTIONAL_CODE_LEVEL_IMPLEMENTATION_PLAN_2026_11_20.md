@@ -1,5 +1,8 @@
 # BR Brain — functional code-level implementation plan (English, Hinglish, Smart Emoji)
 
+> **Latest owner voice update, 20 Nov 2026:** Keep Parakeet 110M, trial optional Android platform noise suppression and opt-in one-session blue mic stage diagnostics under BR Brain; native GTCRN stays disabled after observed isolated LOADING_MODEL/EXIT_SELF/255. Existing native typing, next-word, swipe, Emoji intelligence remains; the proposed DFSMN English/Hinglish neural ContextLM is still **untrained, not bundled, and not claimed**. Voice safety/diagnostic code cannot be portrayed as a deployed neural predictor. See [voice diagnostic plan](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md).
+
+
 > **20 Nov 2026 voice-crash hotfix:** Earlier GTCRN native-enhancement/route telemetry caused or coincided with an owner-reported IME crash 1–2 s after mic tap. For the next release, live capture and Parakeet engine revert to pre-GTCRN code, and BR Brain accurately says “GTCRN filtering paused”. GTCRN stays packaged but inactive. The 0.6B Ultra switch is deferred pending measured North Indian WER, Oppo RAM and latency. This does not change the separate neural ContextLM plan.
 
 

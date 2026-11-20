@@ -1,5 +1,8 @@
 # brrBoard — high-accuracy North Indian English offline voice: integration and one-time model migration
 
+> **Owner decision after real-device v1.0.200 result (20 Nov 2026):** For the next release **KEEP existing Parakeet 110M** and trial Android system noise suppression + safe in-app voice diagnostic. Do **not** bundle/remove/switch to Ultra 0.6B in this batch. This latest instruction supersedes older 600 MB GO wording in this plan. If later re-authorized, recheck paired Indian-English WER, Android RSS, install-storage, native runtime and signer/model migration before packaging; a larger model is not a noise filter. The owner observed GTCRN child `EXIT_SELF/255` while loading, plus older main-IME `NATIVE_CRASH/0`; exact native cause unknown. See current `AGENTS.md` and [diagnostic contract](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md).
+
+
 > **20 Nov 2026 one-shot privacy update:** Owner approved an explicit BR Brain `Run one private check` in a dedicated non-exported `:brr_voice_probe` process, with synthetic audio only, fixed noBackup stage codes, Android own-process exit category and no raw tombstone/data collection. Live GTCRN remains paused and 110M unchanged. The ~600–700 MB Ultra migration is postponed until real North Indian English WER, memory and call-jank gates pass; no heavy weights in the diagnostic APK. [See safety contract](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md).
 
 

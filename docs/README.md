@@ -16,11 +16,12 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**Private blue-mic crash diagnostics and Android noise suppression** — owner Oppo EXIT_SELF/255 evidence, real-session one-shot stages, privacy and accuracy testing](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md)
 - [**BR Brain** — implementation-ready function-level contract, English/Hinglish next-word + swipe fusion and three Smart Emoji surfaces — **implementation started; neural weights pending**](BR_BRAIN_FUNCTIONAL_CODE_LEVEL_IMPLEMENTATION_PLAN_2026_11_20.md)
 - [**BR Brain**: GO-authorized Smart Emoji integration (typing strip, Smart/Recent, Search), bilingual model design and dashboard — **code candidate; neural weights still pending tests**](BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md)
 - [Behavioral engineering master plan and active implementation ledger](BEHAVIORAL_ENGINEERING_MASTER_PLAN_2026_11_20.md)
 - [Emoji per-session navigation reset and unresolved Oppo top-gap diagnostic ledger](EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md)
-- [Future Ultra offline voice, personal dictionary, and one-time full APK migration — **PLAN ONLY**](ULTRA_OFFLINE_VOICE_INTEGRATION_AND_MIGRATION_PLAN_2026_11_20.md)
+- [Future Ultra offline voice, personal dictionary, and one-time full APK migration — **DEFERRED; latest owner chose to keep 110M**](ULTRA_OFFLINE_VOICE_INTEGRATION_AND_MIGRATION_PLAN_2026_11_20.md)
 - [Current roadmap](BRR_BOARD_ROADMAP.md)
 - [Current engineering handoff](ENGINEERING_HANDOFF.md)
 - [Source architecture audit](SOURCE_ARCHITECTURE_AUDIT.md)

@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
+import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.media.audiofx.NoiseSuppressor
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
+import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
+import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
 import java.io.IOException
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * worker owns the pipe writer, so service backpressure cannot block keyboard touch input.
  */
 internal class KeyboardPcmAudioSource(
+    private val context: Context,
     private val onRecordingStarted: () -> Unit,
     private val onCaptureFailure: () -> Unit,
     private val onPcmFrame: ((ByteArray, Int) -> Unit)? = null,
@@ -45,8 +50,13 @@ internal class KeyboardPcmAudioSource(
         wanted.set(true)
         Thread({
             var microphone: AudioRecord? = null
+            var suppression: NoiseSuppressor? = null
             try {
                 if (!wanted.get() || closed.get()) return@Thread
+                if (!toBrrSpeak && VoiceCaptureNoiseReduction.callIsActive(context)) {
+                    throw IOException("Microphone unavailable during a call")
+                }
+                if (!toBrrSpeak) VoiceSessionCrashTrail.note(context, "MIC_INITIALIZING")
                 val minBytes = AudioRecord.getMinBufferSize(
                     SAMPLE_RATE_HZ, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT,
                 )
@@ -65,7 +75,16 @@ internal class KeyboardPcmAudioSource(
                     throw IOException("Microphone did not initialize")
                 }
                 recorder = microphone
+                if (!toBrrSpeak) {
+                    suppression = VoiceCaptureNoiseReduction.attach(context, microphone)
+                    val noiseStage = if (!VoiceCaptureNoiseReduction.enabled(context)) "NOISE_OFF"
+                        else if (suppression != null) "NOISE_ACTIVE" else "NOISE_UNAVAILABLE"
+                    VoiceSessionCrashTrail.note(context, noiseStage)
+                }
                 if (!wanted.get() || closed.get()) return@Thread
+                if (!toBrrSpeak && VoiceCaptureNoiseReduction.callIsActive(context)) {
+                    throw IOException("Call took microphone ownership")
+                }
                 microphone.startRecording()
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("Microphone could not start")
@@ -109,6 +128,7 @@ internal class KeyboardPcmAudioSource(
                     if (microphone?.recordingState == AudioRecord.RECORDSTATE_RECORDING)
                         microphone.stop()
                 }
+                runCatching { suppression?.release() }
                 runCatching { microphone?.release() }
                 if (recorder === microphone) recorder = null
                 if (!closed.get()) mainHandler.post {

@@ -118,7 +118,10 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("shouldDenoise(samples: FloatArray)", gate)
         self.assertIn("GTCRN filtering paused", dashboard)
         self.assertNotIn("microphone.routedDevice", mic)
-        self.assertNotIn("VoiceDenoiseMetrics.snapshot()", dashboard)
+        # Platform AudioRecord noise suppression is now observable, but native
+        # GTCRN enhancement counters must never imply active filtering.
+        self.assertIn("voiceNoise.platformNoiseSuppression", dashboard)
+        self.assertNotIn("voiceNoise.enhancedWindows", dashboard)
         self.assertNotIn("setPreferredDevice(", mic)
         for banned in ("http://", "https://", "HttpURLConnection", "Socket("):
             self.assertNotIn(banned, enhancer)
@@ -172,6 +175,40 @@ class BundledOfflineMicContractTest(unittest.TestCase):
             if element.get(tools_node) == "remove"
         }
         self.assertTrue(forbidden.issubset(removed))
+
+    def test_owner_armed_blue_voice_diagnostic_records_only_fixed_stage_codes(self):
+        report = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceSessionCrashTrail.kt")
+        controller = self.read("app/src/main/java/helium314/keyboard/latin/OfflineBoardDictation.kt")
+        model = self.read("app/src/main/java/helium314/keyboard/latin/voice/OfflineVoiceEngine.kt")
+        dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        self.assertIn('"voice-session-one-shot-v1.state"', report)
+        self.assertIn("noBackupFilesDir", report)
+        self.assertIn("getHistoricalProcessExitReasons", report)
+        self.assertIn("AtomicFile", report)
+        self.assertIn("VoiceSessionCrashTrail.arm(context)", dashboard)
+        self.assertIn("VoiceSessionCrashTrail.begin(ime)", controller)
+        self.assertIn('"ASR_LOADING"', model)
+        self.assertIn('"ASR_READY"', model)
+        self.assertIn('"ASR_DECODING"', model)
+        self.assertIn("MAX_STEPS = 20", report)
+        for bad in ("getTraceInputStream", "getDescription(", "getTextBeforeCursor(",
+                    "AudioRecord(", "MediaRecorder", "HttpURLConnection", "Socket(",
+                    "getStackTrace(", "android.util.Log"):
+            self.assertNotIn(bad, report)
+
+    def test_noise_suppression_is_optional_local_and_never_calls_gtcrn_native(self):
+        source = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
+        effect = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceCaptureNoiseReduction.kt")
+        dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        self.assertIn("VOICE_RECOGNITION", source)
+        self.assertIn("VoiceCaptureNoiseReduction.attach(context, microphone)", source)
+        self.assertIn("suppression?.release()", source)
+        self.assertIn("NoiseSuppressor.isAvailable()", effect)
+        self.assertIn("NoiseSuppressor.create(recorder.audioSessionId)", effect)
+        self.assertIn("MODE_IN_COMMUNICATION", effect)
+        self.assertIn("Use Android noise suppression", dashboard)
+        self.assertNotIn("PrivateGtcrnDenoiser", source)
+        self.assertNotIn("PrivateGtcrnDenoiser", effect)
 
 
 if __name__ == "__main__":

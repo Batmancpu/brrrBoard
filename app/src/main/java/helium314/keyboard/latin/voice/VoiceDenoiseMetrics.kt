@@ -12,12 +12,14 @@ internal object VoiceDenoiseMetrics {
         val fallbacks: Long,
         val lastEnhancementMs: Long,
         val lastInputRoute: String,
+        val platformNoiseSuppression: String,
     )
     private val enhanced = AtomicLong()
     private val bypassed = AtomicLong()
     private val fallback = AtomicLong()
     private val lastMs = AtomicLong(-1L)
     private val route = AtomicReference("Not measured")
+    private val platform = AtomicReference("Not measured")
 
     fun enhanced(elapsedMs: Long) {
         lastMs.set(elapsedMs.coerceAtLeast(0))
@@ -26,5 +28,6 @@ internal object VoiceDenoiseMetrics {
     fun bypassed() { bypassed.incrementAndGet() }
     fun fallback() { fallback.incrementAndGet() }
     fun inputRoute(description: String) { route.set(description) }
-    fun snapshot() = Snapshot(enhanced.get(), bypassed.get(), fallback.get(), lastMs.get(), route.get())
+    fun platformState(code: String) { platform.set(code) }
+    fun snapshot() = Snapshot(enhanced.get(), bypassed.get(), fallback.get(), lastMs.get(), route.get(), platform.get())
 }

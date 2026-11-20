@@ -1,22 +1,22 @@
 {
   "schema": 1,
-  "summary": "One-shot, privacy-first offline GTCRN crash diagnosis with isolated native process and Android exit categories, without changing live dictation.",
+  "summary": "One-session private voice crash trail and optional Android noise suppression, retaining the existing offline Parakeet 110M recognizer.",
   "changes": [
     {
-      "title": "One-shot private voice crash check in BR Brain",
-      "detail": "A new explicit Run one private check button tests the bundled GTCRN engine with synthetic audio in a separate Android process. It cannot open the microphone and cannot run automatically; the keyboard stays in its crash-safe Parakeet mode. A 20-second hard watchdog terminates a stalled probe without keeping a model running in the background."
+      "title": "Find the failure stage in a real private voice session",
+      "detail": "BR Brain can arm one blue-mic attempt and store only bounded fixed-code processing stages/timings during microphone setup, model loading, speech decoding and completion. Android's own sanitized process-exit category may reveal a crash on the next launch. No raw audio, transcript, app/editor identity, trace or automatic upload; explicit copy and erase."
     },
     {
-      "title": "Useful crash categories without private logs",
-      "detail": "Android process-exit history can show a previous keyboard native/Java crash or memory pressure, and the isolated check reports its last processing stage and exit category. No raw tombstones, typed text, transcripts, recordings or app identities are saved."
+      "title": "Optional Android microphone noise reduction",
+      "detail": "A new BR Brain ON/OFF switch tries the phone's built-in NoiseSuppressor on the existing 16-kHz blue offline microphone stream. Unsupported devices keep the original audio. The effect is released after each recording and its state is displayed honestly, without claiming an unmeasured accuracy gain. GTCRN remains native-isolated after the owner observed EXIT_SELF/255 during model loading."
     },
     {
-      "title": "Controlled erasure and user sharing",
-      "detail": "The tiny diagnostic status is kept only in app-private no-backup storage, with an explicit copy-safe-result action and erase button. No background telemetry or network permission was added."
+      "title": "Refuse blue dictation when Android reports an active call",
+      "detail": "The blue microphone refuses to start or pre-warm the speech recognizer during phone/video communication mode, preserving normal typing and call responsiveness. Android's audio-input sharing is not assumed to prevent every concurrent recording."
     },
     {
-      "title": "Parakeet Ultra stays gated",
-      "detail": "The contemplated 0.6B/600–700 MB Parakeet migration awaits measured Indian-English accuracy and Oppo memory/latency results. Existing Parakeet model, signed update identity and everyday typing remain unchanged."
+      "title": "Existing 110M recognizer and BR Brain intelligence preserved",
+      "detail": "Following the owner's newest request, this update retains Parakeet TDT 110M and the existing native keyboard/Emoji learners. It does not download/bundle the larger 0.6B model, delete old weights, invent a trained Hinglish ContextLM, add Internet permissions or change signing identity."
     }
   ]
 }

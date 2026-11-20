@@ -14,6 +14,8 @@ import helium314.keyboard.latin.voice.PrivatePcmBuffer
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceDecodeRequest
 import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
+import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
+import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
@@ -70,6 +72,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             currentFooter.showDictationError(R.string.board_voice_permission_missing)
             return
         }
+        // Never start a second audio capture or warm an ASR model while Android
+        // has reported an ongoing voice/video call. OEM microphone isolation is
+        // not a reliable contract on every device.
+        if (VoiceCaptureNoiseReduction.callIsActive(ime)) {
+            currentFooter.showDictationError(R.string.board_voice_offline_failed)
+            return
+        }
         if (!VoiceModelInstaller.isInstalled(ime)) {
             val message = when (VoiceModelInstaller.installState) {
                 VoiceModelInstaller.InstallState.INSTALLING -> R.string.board_voice_offline_model_installing
@@ -91,14 +100,17 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         val buffer = PrivatePcmBuffer()
         pcmBuffer = buffer
         phase = Phase.STARTING
+        VoiceSessionCrashTrail.begin(ime) // No-op unless the owner armed one real-mic test.
         currentFooter.clearContextAction()
         currentFooter.clearDictationError()
         currentFooter.showDictationStatus(R.string.board_voice_starting)
         currentFooter.setDictationCancelAvailable(true, offline = true)
         val capture = KeyboardPcmAudioSource(
+            context = ime,
             onRecordingStarted = {
                 if (generation == id && phase == Phase.STARTING) {
                     if (!sameEditor(connection)) cancel() else {
+                        VoiceSessionCrashTrail.note(ime, "MIC_READY")
                         phase = Phase.CAPTURING
                         footer?.showDictationActive(true, offline = true)
                         footer?.showDictationStatus(R.string.board_voice_offline_listening)
@@ -106,7 +118,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
                 }
             },
             onCaptureFailure = {
-                if (generation == id) fail(R.string.board_voice_offline_failed)
+                if (generation == id) {
+                    VoiceSessionCrashTrail.note(ime, "FAILED")
+                    fail(R.string.board_voice_offline_failed)
+                }
             },
             onPcmFrame = { bytes, count -> buffer.append(bytes, 0, count) },
             onCaptureFinished = { if (generation == id) finishCapture(connection) },
@@ -134,6 +149,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             return
         }
         val id = generation
+        VoiceSessionCrashTrail.note(ime, "MIC_CAPTURE_STOPPED")
         val bytes = pcmBuffer?.drain()
         pcmBuffer = null
         source = null
@@ -154,6 +170,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
                 sameSelection = validDestination,
                 validTranscript = phrase.isNotEmpty() && !containsDevanagari(phrase),
             )
+            VoiceSessionCrashTrail.note(ime, "RESULT_CHECK")
+            // Completion means the private recognition pipeline returned;
+            // it does not record the transcript, editor, or insertion contents.
+            VoiceSessionCrashTrail.note(ime, if (answer.isSuccess) "COMPLETE" else "FAILED")
             val statusFooter = footer
             cancel()
             if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
@@ -207,6 +227,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     private fun finish(reason: OfflineDictationExit) {
         val wasActive = phase != Phase.IDLE
+        if (wasActive) VoiceSessionCrashTrail.note(ime, "CANCELLED")
         val wasProcessing = phase == Phase.DECODING
         val statusFooter = footer
         generation++
@@ -236,6 +257,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     private fun fail(message: Int) {
         val f = footer
+        VoiceSessionCrashTrail.note(ime, "FAILED")
         cancel()
         f?.showDictationError(message)
     }
