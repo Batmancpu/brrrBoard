@@ -1,5 +1,8 @@
 # brrBoard — privacy-safe one-shot GTCRN native crash diagnosis (20 Nov 2026)
 
+> **Verified distribution:** Source `29d3903dd6d33c44b05394a10bc1333ad3dc26b9` passed exact-SHA debug `44788261280` and original-signed Obtainium `44788261329` workflows (both completed success), published v1.0.201 at `2026-11-20T18:06:13Z`, `https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.201/brrBoard.apk`. Unit/privacy/build/signing **passed**, owner Oppo noise/mic/call/accuracy **pending physical test**. Existing Parakeet 110M retained; no Ultra bundle, no native GTCRN in live IME.
+
+
 ## Actual Oppo result; next diagnostic program (20 Nov 2026)
 
 Owner installed v1.0.200 and photographed an isolated GTCRN child process exit: `last stage=LOADING_MODEL`, `reason=EXIT_SELF`, `status=255`. Historical *main IME* crash was `reason=NATIVE_CRASH`, `status=0`. Separate processes and events: GTCRN appears to exit abnormally before its model loader returns, but a second native SIGSEGV **is not proven** by `EXIT_SELF`; old native crash frame unknown. Never read a raw tombstone or re-enable JNI GTCRN in LatinIME until isolated Android evidence permits it.
