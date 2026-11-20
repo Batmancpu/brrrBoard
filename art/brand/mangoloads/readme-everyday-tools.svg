@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" role="img" aria-labelledby="title description">
+  <title id="title">Useful tools, less clutter</title>
+  <desc id="description">Three premium editorial cards illustrate local Clipboard, personal typing controls, and a private on-device keyboard. These illustrations are not application screenshots.</desc>
+  <defs>
+    <linearGradient id="pearl" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#EDF4FF"/><stop offset=".6" stop-color="#F9FBFF"/><stop offset="1" stop-color="#DFEBFF"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#EBF3FF"/></linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2873D8"/><stop offset="1" stop-color="#174599"/></linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFDA93"/><stop offset="1" stop-color="#EF993D"/></linearGradient>
+  </defs>
+  <rect width="1440" height="560" rx="36" fill="url(#pearl)"/>
+  <path d="M40 115C430-30 980 145 1440 0" fill="none" stroke="#96BAF3" stroke-opacity=".25" stroke-width="2"/>
+  <path d="M0 515C480 360 1010 650 1440 430" fill="none" stroke="#85AEEF" stroke-opacity=".16" stroke-width="3"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="86" y="80" font-size="16" font-weight="750" letter-spacing="3.5" fill="#547DBD">THE LITTLE THINGS</text>
+    <text x="83" y="126" font-size="38" font-weight="750" letter-spacing="-1.5" fill="#153767">Closer when you need them.</text>
+    <!-- Card one: clipboard history; no actual typed data depicted. -->
+    <g><rect x="81" y="179" width="405" height="335" rx="30" fill="#285A9B" opacity=".12"/><rect x="77" y="165" width="405" height="335" rx="30" fill="url(#card)" stroke="#FFFFFF" stroke-width="3"/></g>
+    <circle cx="153" cy="240" r="43" fill="#DCEAFF"/>
+    <g stroke="#2360BB" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="134" y="224" width="38" height="42" rx="7"/><rect x="143" y="215" width="19" height="13" rx="5" fill="#DCEAFF"/><path d="M143 241h18M143 251h13"/></g>
+    <text x="112" y="345" font-size="30" font-weight="740" letter-spacing="-.8" fill="#173A6D">Clipboard</text>
+    <text x="114" y="384" font-size="20" fill="#58749F">Useful history, kept local.</text>
+    <path d="M114 423h308" stroke="#D7E4F5" stroke-width="2"/>
+    <text x="114" y="459" font-size="16" font-weight="700" fill="#3268B4">NEARBY WHEN NEEDED</text>
+    <!-- Card two: personal words, no promise of an AI/cloud model. -->
+    <g><rect x="522" y="179" width="405" height="335" rx="30" fill="#285A9B" opacity=".12"/><rect x="518" y="165" width="405" height="335" rx="30" fill="url(#card)" stroke="#FFFFFF" stroke-width="3"/></g>
+    <circle cx="594" cy="240" r="43" fill="#FFF0D5"/>
+    <g stroke="#BD7023" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M574 224h40v29h-17l-9 9v-9h-14z"/><path d="M584 236h20M584 244h13"/></g>
+    <text x="553" y="345" font-size="30" font-weight="740" letter-spacing="-.8" fill="#173A6D">Your words</text>
+    <text x="555" y="384" font-size="20" fill="#58749F">A keyboard that feels familiar.</text>
+    <path d="M555 423h308" stroke="#D7E4F5" stroke-width="2"/>
+    <text x="555" y="459" font-size="16" font-weight="700" fill="#3268B4">PERSONAL TO YOU</text>
+    <!-- Card three: local private operation; shield is schematic. -->
+    <g><rect x="963" y="179" width="405" height="335" rx="30" fill="#285A9B" opacity=".12"/><rect x="959" y="165" width="405" height="335" rx="30" fill="url(#card)" stroke="#FFFFFF" stroke-width="3"/></g>
+    <circle cx="1035" cy="240" r="43" fill="#DCEFFF"/>
+    <g stroke="#235CB2" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="m1035 214 24 9v17c0 16-11 26-24 33-13-7-24-17-24-33v-17Z"/><path d="m1025 242 7 7 15-16"/></g>
+    <text x="994" y="345" font-size="30" font-weight="740" letter-spacing="-.8" fill="#173A6D">On your device</text>
+    <text x="996" y="384" font-size="20" fill="#58749F">Local by design, no ad tracking.</text>
+    <path d="M996 423h308" stroke="#D7E4F5" stroke-width="2"/>
+    <text x="996" y="459" font-size="16" font-weight="700" fill="#3268B4">PRIVACY IS THE POINT</text>
+  </g>
+  <rect x="2" y="2" width="1436" height="556" rx="34" stroke="#C0D8FC" stroke-opacity=".56" stroke-width="3" fill="none"/>
+</svg>

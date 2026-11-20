@@ -5,37 +5,50 @@
 
 # brrBoard
 
-**Your keyboard, thoughtfully made.**
+### Your keyboard, thoughtfully made.
 
-A fast, local-first Android keyboard with a frosted-glass interface, familiar typing and useful everyday tools. Independently made by [MangoLoads](https://batmancpu.github.io/mangoloads/).
+Beautifully familiar. Quietly capable. Unmistakably yours.
 
-[![Android build and unit tests](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml/badge.svg?branch=main)](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml)
+brrBoard is a local-first Android keyboard by [MangoLoads](https://batmancpu.github.io/mangoloads/), made for the moments when you just want to type. Considered glass surfaces, responsive controls, English and Hinglish typing, and everyday essentials—without turning your keyboard into a spectacle.
 
-### [Download the latest signed APK](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk)
+[**⬇ Download the latest signed APK**](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk) &nbsp;·&nbsp; [**Get updates with Obtainium**](docs/OBTAINIUM.md) &nbsp;·&nbsp; [Explore releases](https://github.com/Batmancpu/brrrBoard/releases)
 
-[**Install and update with Obtainium**](docs/OBTAINIUM.md) · [All releases](https://github.com/Batmancpu/brrrBoard/releases) · [Privacy policy](PRIVACY_POLICY.md)
+[![Android build and unit tests](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml/badge.svg?branch=main)](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml) &nbsp; [Privacy policy](PRIVACY_POLICY.md) &nbsp;·&nbsp; [Open-source licenses](#made-possible-by-open-source)
 
 ---
 
-## Made for how you type
+## A little more feeling. A lot less noise.
 
-### A calmer keyboard
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="art/brand/mangoloads/readme-material-dark.webp">
+  <img src="art/brand/mangoloads/readme-material-light.webp" width="100%" alt="An illustrative stack of subtly translucent, softly lit glass sheets in the MangoLoads sapphire and pearl design palette" />
+</picture>
 
-Frosted surfaces, considered spacing and responsive interactions make brrBoard feel coherent without asking your phone to render an animation for every keystroke. Its keyboard, Toolbar, Emoji and Clipboard surfaces use materials suited to their roles.
+The frosted look has a purpose: a comfortable visual rhythm that feels at home on Android without slowing the typing path. Clear hierarchy, useful contrast, restrained movement. The keyboard, Toolbar, Emoji and Clipboard surfaces each get the treatment they need—not the same effect everywhere.
 
-### Comfort in the details
+> *Design imagery throughout this page is illustrative brand artwork, not a claimed device screenshot. Real product screenshots will follow device verification.*
 
-English and Hinglish layouts, smart suggestions, a personal dictionary, editing shortcuts and optional imported gesture-typing libraries. Your selected keyboard layout and theme remain yours to control.
+## Everything in its place.
 
-### Everyday tools, close at hand
+![A conceptual brrBoard settings sheet with Appearance, Typing, Everyday tools and Privacy and data grouped into a calm premium interface](art/brand/mangoloads/readme-settings-studio.svg)
 
-Searchable Emoji, locally stored Clipboard history, keyboard configuration and a microphone control for on-device English transcription when the offline model is provisioned.
+The Settings home groups what belongs together: **Make it yours**, **Typing**, **Everyday tools**, and **Privacy & data**. Find a control with Settings search; fine-tune appearance and frosted glass without making a simple preference feel complicated.
 
-The design uses a single blue-keyboard-and-mango identity across the app icon, first-run setup and About. Functional keyboard controls stay functional; brand motion stays away from the typing path.
+**Personalization is there when you want it.** The keyboard should disappear into your day when you don't.
 
-> **A note on visuals:** The marketing banner is brand artwork, not a simulated keyboard screenshot. Authentic screenshots of the signed identity build will be added after device verification. We won't present a mockup as a shipped feature.
+## The little things are the big things.
 
-## Install in three steps
+![Three illustrated feature cards for on-device Clipboard history, personal words and local-first privacy](art/brand/mangoloads/readme-everyday-tools.svg)
+
+| Thoughtful typing | Close-at-hand tools | Yours to control |
+| :--- | :--- | :--- |
+| English and Hinglish layouts, suggestions, a personal dictionary and editing shortcuts. | Searchable Emoji, locally stored Clipboard history and optional offline voice transcription when a model is provisioned. | Keyboard appearance, layout, privacy choices and separately imported gesture-typing support. |
+
+One blue keyboard. One mango. An identity carried through the launcher, first-run setup, and About—without unnecessary animation in the typing path.
+
+---
+
+## Make it your keyboard.
 
 1. **[Download `brrBoard.apk`](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk)** from the latest GitHub release. Android may ask your browser or file manager for permission to install the APK.
 2. Open brrBoard and follow **Enable keyboard** in the setup wizard. Android's input-method warning is a normal security reminder; please review the [privacy policy](PRIVACY_POLICY.md) before enabling any keyboard.
@@ -43,7 +56,9 @@ The design uses a single blue-keyboard-and-mango identity across the app icon, f
 
 For straightforward signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates.
 
-## Privacy, in plain language
+## Privacy isn't a feature toggle.
+
+The words you type belong to you. brrBoard is built around on-device behavior and straightforward permissions.
 
 - **No internet permission requested by brrBoard.** It does not include ad tracking or a payment/donation feature.
 - **Keyboard data is local.** Settings, learned words, personal dictionaries and Clipboard history are stored on your device. Some optional features may access contacts only with appropriate device permissions.
@@ -58,7 +73,7 @@ The standard signed update is designed to **reuse** an offline voice model alrea
 
 Gesture typing can use a separately imported, compatible offline library. It is not silently bundled into every install. See the in-app Gesture Typing setup for your device's available options.
 
-## Moving from an older brrBoard
+## Coming from an older brrBoard?
 
 The current app package is **`com.mangoloads.board`**. Older installations using `com.orion.frostkeys.brrrboard` are a *different* Android package and cannot be upgraded in place to the new ID.
 
@@ -69,7 +84,7 @@ The current app package is **`com.mangoloads.board`**. Older installations using
 
 Do not share the unencrypted ZIP publicly.
 
-## Questions
+## Good to know
 
 <details>
 <summary>Does brrBoard require internet access?</summary>
@@ -106,13 +121,13 @@ No. A backup may include learned words and Clipboard history. Treat it as sensit
 
 </details>
 
-## Build and contribute
+## Under the hood
 
 brrBoard is an open-source Android project. The [contribution guide](CONTRIBUTING.md) explains the current repository and privacy-conscious testing approach. For technical details, see the [documentation index](docs/README.md) and the [current engineering checkpoint](PROJECT_CONTEXT.md).
 
 The repository currently has public GitHub Issues disabled. We won't send people to a nonworking issue form; please check this repository for an available support channel. If a public tracker is enabled later, that section will be updated.
 
-## Built on the work of others
+## Made possible by open source
 
 brrBoard is a MangoLoads continuation of open-source [FrostKeys](https://github.com/AshwinSoni-01/FrostKeys), HeliBoard, OpenBoard and AOSP LatinIME. We keep their required source and asset attributions intact. See [GPL-3.0](LICENSE), [Apache notices](LICENSE-Apache-2.0), [asset license](LICENSE-CC-BY-SA-4.0) and [NOTICE](NOTICE).
 

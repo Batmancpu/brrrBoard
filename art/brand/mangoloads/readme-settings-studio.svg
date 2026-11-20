@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="640" viewBox="0 0 1440 640" role="img" aria-labelledby="title description">
+  <title id="title">A thoughtfully organized settings experience</title>
+  <desc id="description">Editorial illustration of a sapphire-blue brrBoard settings environment with a pearl-white settings sheet and clear grouped controls. Concept illustration, not a captured application screen.</desc>
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081C48"/><stop offset=".5" stop-color="#113C88"/><stop offset="1" stop-color="#092354"/></linearGradient>
+    <radialGradient id="light" cx="75%" cy="35%" r="70%"><stop stop-color="#467DE0" stop-opacity=".66"/><stop offset="1" stop-color="#3367C8" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#E7F0FF"/></linearGradient>
+    <linearGradient id="sapphire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2F78E8"/><stop offset="1" stop-color="#1245A4"/></linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF" stop-opacity=".63"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".02"/></linearGradient>
+  </defs>
+  <rect width="1440" height="640" rx="38" fill="url(#night)"/>
+  <rect width="1440" height="640" rx="38" fill="url(#light)"/>
+  <circle cx="1309" cy="90" r="290" fill="#6796FC" opacity=".045"/>
+  <circle cx="1280" cy="140" r="220" fill="none" stroke="#A7CDFF" stroke-opacity=".17"/>
+  <circle cx="1280" cy="140" r="291" fill="none" stroke="#A7CDFF" stroke-opacity=".11"/>
+  <path d="M0 598Q300 548 550 640H0Z" fill="#4F8FFC" opacity=".11"/>
+  <!-- Editorial settings sheet; individual rows are deliberately illustrative. -->
+  <g>
+    <rect x="119" y="65" width="594" height="544" rx="40" fill="#041836" opacity=".24"/>
+    <rect x="108" y="48" width="594" height="544" rx="40" fill="url(#sheet)"/>
+    <rect x="109" y="49" width="592" height="542" rx="39" fill="none" stroke="#FFFFFF" stroke-opacity=".8" stroke-width="2"/>
+  </g>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <circle cx="159" cy="104" r="21" fill="url(#sapphire)"/>
+    <g fill="none" stroke="#FFF" stroke-linecap="round" stroke-width="2.8"><path d="M149 97h20M149 104h20M149 111h20"/><path d="M152 97v14M159 97v14M166 97v14" opacity=".5"/></g>
+    <text x="193" y="111" font-size="24" letter-spacing="-.7" font-weight="700" fill="#142E5B">brrBoard</text>
+    <text x="153" y="160" font-size="38" letter-spacing="-1.5" font-weight="700" fill="#112959">Make it yours.</text>
+    <rect x="151" y="181" width="507" height="51" rx="18" fill="#E1EAF6"/>
+    <circle cx="177" cy="206" r="8" stroke="#7891B5" stroke-width="2.5" fill="none"/>
+    <path d="m183 212 6 6" stroke="#7891B5" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="201" y="212" font-size="17" fill="#7186A7">Search settings</text>
+    <text x="154" y="270" font-size="13" font-weight="700" letter-spacing="2.1" fill="#5B77A4">YOUR KEYBOARD</text>
+    <rect x="149" y="286" width="511" height="222" rx="24" fill="#FFFFFF" stroke="#DCE6F4"/>
+    <g font-size="19" fill="#1B365F" font-weight="600">
+      <text x="220" y="334">Appearance</text><text x="220" y="389">Typing</text><text x="220" y="444">Everyday tools</text><text x="220" y="496">Privacy &amp; data</text>
+    </g>
+    <g fill="#E5EEFC"><rect x="164" y="302" width="43" height="43" rx="13"/><rect x="164" y="357" width="43" height="43" rx="13"/><rect x="164" y="412" width="43" height="43" rx="13"/><rect x="164" y="467" width="43" height="35" rx="12"/></g>
+    <g fill="none" stroke="#245FBE" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="185" cy="322" r="9"/><path d="M181 330h8m-4-18v4"/>
+      <rect x="175" y="369" width="20" height="16" rx="3"/><path d="m179 378 3 2 5-5"/>
+      <rect x="174" y="422" width="22" height="13" rx="3"/><path d="M178 426h2m4 0h2m4 0h2m-14 5h12"/>
+      <path d="m185 474 10 4v7c0 7-6 11-10 13-4-2-10-6-10-13v-7Z"/><path d="m181 486 3 3 5-6"/>
+    </g>
+    <g stroke="#E7ECF5"><path d="M220 346h423M220 401h423M220 456h423"/></g>
+    <g stroke="#89A0C1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" fill="none"><path d="m630 320 6 6-6 6M630 375l6 6-6 6M630 429l6 6-6 6M630 478l6 6-6 6"/></g>
+    <g fill="#567297" font-size="14"><text x="153" y="550">Made to feel simple, every day.</text></g>
+  </g>
+  <!-- Editorial type lives outside the faux device, with generous negative space. -->
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="776" y="187" font-size="17" font-weight="700" letter-spacing="3.5" fill="#9DBEF5">A QUIETER WAY TO CUSTOMIZE</text>
+    <text x="770" y="263" font-size="61" font-weight="720" letter-spacing="-2.7" fill="#FFFFFF">Everything</text>
+    <text x="770" y="331" font-size="61" font-weight="720" letter-spacing="-2.7" fill="#FFFFFF">in its place.</text>
+    <text x="775" y="389" font-size="22" fill="#CEDFFF">A considered home for the details.</text>
+    <text x="775" y="421" font-size="22" fill="#CEDFFF">Find what matters. Leave the rest.</text>
+    <rect x="774" y="476" width="154" height="48" rx="24" fill="#DCE9FF" fill-opacity=".14" stroke="#D7E8FF" stroke-opacity=".44"/>
+    <text x="803" y="507" font-size="17" font-weight="650" fill="#F2F7FF">Appearance</text>
+    <rect x="942" y="476" width="115" height="48" rx="24" fill="#DCE9FF" fill-opacity=".14" stroke="#D7E8FF" stroke-opacity=".44"/>
+    <text x="970" y="507" font-size="17" font-weight="650" fill="#F2F7FF">Typing</text>
+    <rect x="1071" y="476" width="136" height="48" rx="24" fill="#DCE9FF" fill-opacity=".14" stroke="#D7E8FF" stroke-opacity=".44"/>
+    <text x="1096" y="507" font-size="17" font-weight="650" fill="#F2F7FF">Privacy</text>
+  </g>
+  <path d="M3 42Q3 3 42 3H1398Q1437 3 1437 42V598Q1437 637 1398 637H42Q3 637 3 598Z" stroke="#CDE6FF" stroke-opacity=".19" stroke-width="3" fill="none"/>
+</svg>
