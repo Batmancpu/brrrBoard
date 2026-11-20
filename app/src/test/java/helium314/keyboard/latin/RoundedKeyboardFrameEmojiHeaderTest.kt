@@ -11,7 +11,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
-/** The parent must hide detached Emoji header slots BEFORE measuring their height. */
+/** The parent must hide native-typing headers BEFORE measuring any exclusive panel. */
 @RunWith(RobolectricTestRunner::class)
 class RoundedKeyboardFrameEmojiHeaderTest {
     @Test fun compactEmojiDoesNotReserveAnInvisibleOuterStripOrPersistentRow() {
@@ -34,6 +34,19 @@ class RoundedKeyboardFrameEmojiHeaderTest {
         assertEquals(364, setup.frame.measuredHeight)
     }
 
+    @Test fun clipboardAndToolbarCannotInheritAStaleTypingHeader() {
+        for (panelId in listOf(R.id.clipboard_history_view, R.id.access_point_menu_view,
+                R.id.klipy_palettes_view, R.id.ai_writing_tools_view)) {
+            val setup = createFrame(emojiVisible = false, activePanelId = panelId)
+            setup.frame.measure(exact(500), atMost(1_000))
+
+            assertEquals("strip for panel $panelId", View.GONE, setup.strip.visibility)
+            assertEquals("persistent row for panel $panelId", View.GONE, setup.persistent.visibility)
+            assertEquals("divider for panel $panelId", View.GONE, setup.divider.visibility)
+            assertEquals("frame for panel $panelId", 275, setup.frame.measuredHeight)
+        }
+    }
+
     private data class Fixture(
         val frame: RoundedKeyboardFrameView,
         val strip: View,
@@ -41,7 +54,7 @@ class RoundedKeyboardFrameEmojiHeaderTest {
         val divider: View,
     )
 
-    private fun createFrame(emojiVisible: Boolean): Fixture {
+    private fun createFrame(emojiVisible: Boolean, activePanelId: Int? = null): Fixture {
         val context = RuntimeEnvironment.getApplication() as Application
         val frame = RoundedKeyboardFrameView(context).apply { orientation = LinearLayout.VERTICAL }
         fun addRow(id: Int, height: Int): View = View(context).also {
@@ -58,6 +71,10 @@ class RoundedKeyboardFrameEmojiHeaderTest {
             visibility = if (emojiVisible) View.VISIBLE else View.GONE
         }
         wrapper.addView(emoji, FrameLayout.LayoutParams(500, 220))
+        if (activePanelId != null) {
+            val panel = View(context).apply { id = activePanelId }
+            wrapper.addView(panel, FrameLayout.LayoutParams(500, 220))
+        }
         addRow(R.id.board_footer, 55)
         return Fixture(frame, strip, persistent, divider)
     }

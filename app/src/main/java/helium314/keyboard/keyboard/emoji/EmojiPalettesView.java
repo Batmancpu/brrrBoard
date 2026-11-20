@@ -434,6 +434,17 @@ public final class EmojiPalettesView extends LinearLayout
             final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, heightPx, Gravity.TOP);
             shell.addView(tabStrip, params);
+        } else {
+            // An existing shell can survive a configuration/size update. The
+            // original one-time mount must not retain a stale header height.
+            final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) tabStrip.getLayoutParams();
+            if (params.width != ViewGroup.LayoutParams.MATCH_PARENT
+                    || params.height != heightPx || params.gravity != Gravity.TOP) {
+                params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                params.height = heightPx;
+                params.gravity = Gravity.TOP;
+                tabStrip.setLayoutParams(params);
+            }
         }
         tabStrip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         tabStrip.setVisibility(View.VISIBLE);
@@ -450,6 +461,13 @@ public final class EmojiPalettesView extends LinearLayout
                     ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP);
             params.topMargin = headerHeightPx;
             shell.addView(smartRow, params);
+        } else {
+            final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) smartRow.getLayoutParams();
+            if (params.topMargin != headerHeightPx || params.gravity != Gravity.TOP) {
+                params.topMargin = headerHeightPx;
+                params.gravity = Gravity.TOP;
+                smartRow.setLayoutParams(params);
+            }
         }
     }
 

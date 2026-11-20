@@ -162,7 +162,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         // Expanded Emoji, even if the real alphabet is a few pixels taller
         // than ResourceUtils' nominal estimate on this device.
         val matchedEmojiHeight = helium314.keyboard.latin.SharedPanelGeometry.retainExistingPanelViewport(
-            normalHeight, (parent as? KeyboardWrapperView)?.getLastTypingPanelViewportHeight() ?: 0,
+            normalHeight, (parent as? KeyboardWrapperView)
+                ?.getLastTypingPanelViewportHeightForWidth(MeasureSpec.getSize(widthMeasureSpec)) ?: 0,
             availableHeight, resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height))
         val targetHeight = if (searchMode)
             helium314.keyboard.latin.SharedPanelGeometry.emojiExpandedBodyHeight(

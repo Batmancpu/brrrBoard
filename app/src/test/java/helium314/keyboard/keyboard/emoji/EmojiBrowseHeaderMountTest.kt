@@ -42,6 +42,14 @@ class EmojiBrowseHeaderMountTest {
 
         EmojiPalettesView.attachFixedCategoryStrip(shell, categories, 72)
         assertEquals(1, shell.childCount)
+
+        // A same-shell refresh must update the category height without
+        // remounting it (portrait/landscape and accessibility remeasurement).
+        EmojiPalettesView.attachFixedCategoryStrip(shell, categories, 60)
+        assertEquals(1, shell.childCount)
+        val refreshed = categories.layoutParams as FrameLayout.LayoutParams
+        assertEquals(60, refreshed.height)
+        assertEquals(Gravity.TOP, refreshed.gravity)
     }
 
     @Test fun optionalSmartPicksAreBelowCategoriesButNeverReserveOuterPanelHeight() {
@@ -63,6 +71,9 @@ class EmojiBrowseHeaderMountTest {
         assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, layout.height)
         EmojiPalettesView.attachSmartRowBelowCategories(shell, smart, 64)
         assertEquals(1, shell.childCount)
+        EmojiPalettesView.attachSmartRowBelowCategories(shell, smart, 45)
+        assertEquals(1, shell.childCount)
+        assertEquals(45, (smart.layoutParams as FrameLayout.LayoutParams).topMargin)
         assertTrue(panel.getChildAt(0) === shell)
     }
 

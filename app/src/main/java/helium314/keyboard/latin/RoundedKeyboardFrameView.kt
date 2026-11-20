@@ -98,14 +98,20 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // The detached category tabs are now INSIDE Emoji's scrolling shell.
-        // Suppress the two legacy *outer* header slots BEFORE LinearLayout
-        // measures its children. Hiding them in EmojiPalettesView.onMeasure is
-        // too late: the parent has already measured the strip first, leaving
-        // a blank 40/48dp band above the in-panel tabs on a mode switch.
-        // Do not touch these rows in ordinary alphabet or Clipboard modes.
+        // Exclusive panels own their own headers. Suppress all native-typing
+        // header slots BEFORE LinearLayout measures its preceding children.
+        // A child-level hide is too late to prevent a one-pass empty band,
+        // especially when switching directly between two non-typing panels.
+        // Ordinary alphabet/symbol layouts keep their existing header policy.
         val emoji = findViewById<View>(R.id.emoji_palettes_view)
-        if (emoji?.visibility == View.VISIBLE) {
+        val exclusivePanelVisible = intArrayOf(
+            R.id.emoji_palettes_view,
+            R.id.clipboard_history_view,
+            R.id.klipy_palettes_view,
+            R.id.ai_writing_tools_view,
+            R.id.access_point_menu_view,
+        ).any { findViewById<View>(it)?.visibility == View.VISIBLE }
+        if (exclusivePanelVisible) {
             val outerHeaderIds = intArrayOf(
                 R.id.persistent_emoji_row_scroll,
                 R.id.persistent_emoji_row_divider,
@@ -116,6 +122,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
                     if (header.visibility != View.GONE) header.visibility = View.GONE
                 }
             }
+        }
+        if (emoji?.visibility == View.VISIBLE) {
             val currentWidth = MeasureSpec.getSize(widthMeasureSpec)
             val footer = findViewById<View>(R.id.board_footer)
             val footerHeight = footer?.takeIf { it.visibility == View.VISIBLE }?.let { view ->

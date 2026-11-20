@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-20 — Narrow layout repair from the Emoji gap audit (source candidate)
+
+User: “Whatever your [findings] issues are, fix them without breaking anything else.” Current GitHub main baseline is `ff440e5` including MangoLoads branding and verified v176 privacy-slide source, not an older divergent local main; preserve the older worktree's uncommitted docs. New source corrects parent pre-measure stale typing-header slots for Emoji/Clipboard/Klipy/Toolbar/AI, makes Clipboard Search adopt only same-width typing heights, and updates already-mounted Emoji category/Smart overlay geometry if header resources change. Added targeted tests; no other visual/input, user data, models, signing, package or permission edits. Historic compact Emoji blank band remains **physically unconfirmed** on latest Oppo; debug+original-signer CI and real coordinate verification separate. See `docs/PANEL_TOP_GAP_GEOMETRY_REPAIR_2026_11_20.md` and append exact SHA/workflow/phone outcome when known.
+
 ## 2026-11-20 — ACTIVE MangoLoads/brrBoard identity implementation, owner GO
 
 **Request & scope:** Owner approved full premium identity overhaul of launcher/adaptive/round/themed icons; exact blue keyboard `MANGO`/`LOADS`, mango, pointed translucent badge, lowercase italic `brr`; a crisp blur only under shield; Settings About row + About app entry, welcome setup wizard one-shot animation, static Android splash, premium colored GitHub README/social/store presentation and accurate docs. Preserve current package `com.mangoloads.board`, original signer/Obtainium path, keyboard themes/IME behavior/data/offline model and source credit. Owner requires main-only small batches with handoff logs in this file and `AGENTS.md`; never overwrite concurrent main work.
