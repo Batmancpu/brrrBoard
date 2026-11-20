@@ -273,7 +273,8 @@ public class SettingsValues {
         mSecondaryStripVisible = mToolbarMode != ToolbarMode.HIDDEN || ! mToolbarHidingGlobal;
         mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)
                 || mInputAttributes.mNoLearning || mInputAttributes.mIsPasswordField
-                || SecureAppsPolicy.isSecure(prefs, mInputAttributes.mTargetApplicationPackageName);
+                || (SecureAppsPolicy.isSecure(prefs, mInputAttributes.mTargetApplicationPackageName)
+                    && !SecureAppTemporaryOptOut.applies(mInputAttributes.mTargetApplicationPackageName));
         // User incognito preserves the mic for RAM-only OFFLINE decoding. Password,
         // no-mic and protected fields keep their native no-dictation behavior.
         mShowsVoiceInputKey = mInputAttributes.mShouldShowVoiceInputKey;

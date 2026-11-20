@@ -38,6 +38,9 @@ public final class InputView extends FrameLayout {
     private View mBoardFrame;
     private SuggestionStripView mSuggestionStrip;
     private BoardFooterView mFooter;
+    private SlideConfirmationOverlay mSlideConfirmation;
+    private MainKeyboardView mConfirmationKeyboard;
+    private int mBoardAccessibilityBeforeConfirmation = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
     private LatinIME mOwner;
     private final int[] mStripLocation = new int[2];
     private boolean mMayDragToolbar;
@@ -66,6 +69,10 @@ public final class InputView extends FrameLayout {
                 mMainKeyboardView, suggestionStripView);
         mMoreSuggestionsViewCanceler = new MoreSuggestionsViewCanceler(
                 mMainKeyboardView, suggestionStripView);
+        mSlideConfirmation = new SlideConfirmationOverlay(getContext());
+        mSlideConfirmation.setVisibility(GONE);
+        addView(mSlideConfirmation, new FrameLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         ViewKt.doOnNextLayout(this, this::onNextLayout);
     }
 
@@ -80,11 +87,50 @@ public final class InputView extends FrameLayout {
     }
 
     public void resetBoardGesture() {
+        cancelSlideConfirmation();
         mMayDragToolbar = false;
         mDraggingToolbar = false;
         mDraggingExpandedToolbar = false;
         releaseToolbarVelocity();
         mFooter.reset();
+    }
+
+    /** Drawn above the IME but aligned to the exact native spacebar bounds. */
+    public void showSlideConfirmation(final MainKeyboardView source, final String label,
+            final int accent, final Runnable onConfirmed) {
+        if (source == null || mOwner == null || mSlideConfirmation == null) return;
+        final Rect screen = new Rect();
+        if (!source.getSpacebarBoundsOnScreen(screen)) return;
+        cancelSlideConfirmation();
+        final int[] rootLocation = new int[2];
+        getLocationOnScreen(rootLocation);
+        screen.offset(-rootLocation[0], -rootLocation[1]);
+        mConfirmationKeyboard = source;
+        source.setConfirmationVisualMode(true);
+        if (mFooter != null) mFooter.setConfirmationMode(true);
+        if (mBoardFrame != null) {
+            mBoardAccessibilityBeforeConfirmation = mBoardFrame.getImportantForAccessibility();
+            mBoardFrame.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        }
+        mSlideConfirmation.present(screen, label, accent,
+                () -> { cancelSlideConfirmation(); onConfirmed.run(); return Unit.INSTANCE; },
+                () -> { cancelSlideConfirmation(); return Unit.INSTANCE; });
+    }
+
+    public void cancelSlideConfirmation() {
+        if (mSlideConfirmation != null) mSlideConfirmation.closeNow();
+        if (mConfirmationKeyboard != null) {
+            mConfirmationKeyboard.setConfirmationVisualMode(false);
+            mConfirmationKeyboard = null;
+        }
+        if (mFooter != null) mFooter.setConfirmationMode(false);
+        if (mBoardFrame != null && mBoardFrame.getImportantForAccessibility()
+                == View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS)
+            mBoardFrame.setImportantForAccessibility(mBoardAccessibilityBeforeConfirmation);
+    }
+
+    public void refreshBoardPrivacy() {
+        if (mFooter != null) mFooter.refreshPrivacyState();
     }
 
     @Override
@@ -212,8 +258,9 @@ public final class InputView extends FrameLayout {
                     // the same bottom footer and IME window height as typing mode.
                     || toolbarActive;
             final boolean showFooter = typingFooter || panelFooter;
+            // Clipboard's bottom glass now extends beneath this footer: do not
+            // independently sample a second RenderNode across the same seam.
             mFooter.setPanelGlassSource(emojiBrowse ? findViewById(R.id.emoji_pager)
-                    : clipboardBrowse ? findViewById(R.id.clipboard_list)
                     : toolbarActive ? findViewById(R.id.access_point_scroll) : null,
                     emojiBrowse);
             // All three internal panels expose the same direct ABC return route.

@@ -145,6 +145,25 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     private final IdentityHashMap<Key, KeyPressMotion> mKeyPressMotions = new IdentityHashMap<>();
     private boolean mTrackpadVisualMode;
+    private boolean mConfirmationVisualMode;
+
+    /** A confirmation temporarily removes key legends without changing key geometry. */
+    public void setConfirmationVisualMode(final boolean active) {
+        if (mConfirmationVisualMode == active) return;
+        mConfirmationVisualMode = active;
+        invalidateAllKeys();
+    }
+
+    /** Exact rendered spacebar slot in screen coordinates, including one-handed offsets. */
+    public boolean getSpacebarBoundsOnScreen(@NonNull final android.graphics.Rect out) {
+        if (mSpaceKey == null || getWidth() <= 0 || !isShown()) return false;
+        final int[] location = new int[2];
+        getLocationOnScreen(location);
+        out.set(location[0] + mSpaceKey.getDrawX(), location[1] + mSpaceKey.getY(),
+                location[0] + mSpaceKey.getDrawX() + mSpaceKey.getDrawWidth(),
+                location[1] + mSpaceKey.getY() + mSpaceKey.getHeight());
+        return out.width() > 0 && out.height() > 0;
+    }
 
     /** Match the iPhone's temporarily unlabelled trackpad without moving hitboxes. */
     public void setTrackpadVisualMode(final boolean active) {
@@ -973,7 +992,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
         // Preserve the original spacebar language, popup hints and alt-code drawing.
         // Trackpad mode hides all labels, while key pressure scales drawing only.
-        if (mTrackpadVisualMode) return;
+        if (mTrackpadVisualMode || mConfirmationVisualMode) return;
         final float scale = keyPressScale(key);
         canvas.save();
         canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);

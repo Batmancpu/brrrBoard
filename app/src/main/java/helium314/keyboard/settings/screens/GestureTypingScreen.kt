@@ -59,6 +59,7 @@ import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.filePicker
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.preferences.SliderPreference
 import helium314.keyboard.settings.preferences.SwitchPreference
 import helium314.keyboard.latin.utils.Theme
@@ -273,12 +274,22 @@ fun createGestureTypingSettings(context: Context) = listOf(
     },
     Setting(context, "brr_forget_swipe_corrections", R.string.brr_forget_swipe_corrections) { item ->
         val ctx = LocalContext.current
-        Button(onClick = {
-            SwipeCorrectionLearner.get(ctx).clear()
-            Toast.makeText(ctx, R.string.brr_swipe_corrections_cleared, Toast.LENGTH_SHORT).show()
-        }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        var showEraseSlide by rememberSaveable { mutableStateOf(false) }
+        Button(onClick = { showEraseSlide = true },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
             Text(item.title)
         }
+        if (showEraseSlide) SlideActionDialog(
+            title = "Erase learned swipe corrections?",
+            explanation = "This removes encrypted swipe correction pairs on this device. Your native dictionary stays intact.",
+            instruction = "slide to erase learning",
+            onDismiss = { showEraseSlide = false },
+            onConfirmed = {
+                SwipeCorrectionLearner.get(ctx).clear()
+                showEraseSlide = false
+                Toast.makeText(ctx, R.string.brr_swipe_corrections_cleared, Toast.LENGTH_SHORT).show()
+            },
+        )
     },
     Setting(context, Settings.PREF_GESTURE_INPUT, R.string.gesture_input, R.string.gesture_input_summary) {
         SwitchPreference(it, Defaults.PREF_GESTURE_INPUT)

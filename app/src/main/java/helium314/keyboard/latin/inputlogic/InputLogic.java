@@ -1007,7 +1007,7 @@ public final class InputLogic {
                 mConnection.copyText(false);
                 break;
             case KeyCode.CLIPBOARD_CLEAR_HISTORY:
-                mLatinIME.getClipboardHistoryManager().clearHistory();
+                mLatinIME.requestClipboardClearFromShortcut();
                 break;
             case KeyCode.CLIPBOARD_CUT:
                 if (mConnection.hasSelection()) {

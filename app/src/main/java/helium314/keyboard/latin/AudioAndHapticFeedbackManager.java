@@ -87,6 +87,12 @@ public final class AudioAndHapticFeedbackManager {
             new int[] { 0, 82, 0, 90, 0, 98 });
     }
 
+    /** A distinct two-tick warning before revealing the secure-app consent rail. */
+    public void performSecureAppIncognitoWarning() {
+        vibratePrivacyPattern(new long[] { 0, 25, 42, 16 },
+            new int[] { 0, 125, 0, 100 });
+    }
+
     /** One slightly longer, still restrained rejection pulse on a held shield. */
     public void performPrivacyMicDenial() {
         vibratePrivacyPattern(new long[] { 0, PRIVACY_MIC_DENIAL_MILLIS },

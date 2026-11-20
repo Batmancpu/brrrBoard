@@ -64,6 +64,7 @@ import helium314.keyboard.keyboard.KeyboardLayoutSet;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.KlipyPalettesView;
 import helium314.keyboard.keyboard.MainKeyboardView;
+import helium314.keyboard.keyboard.clipboard.ClipboardHistoryView;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Constants;
@@ -75,6 +76,9 @@ import helium314.keyboard.latin.inputlogic.InputLogic;
 import helium314.keyboard.latin.personalization.PersonalizationHelper;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
+import helium314.keyboard.latin.settings.Defaults;
+import helium314.keyboard.latin.settings.SecureAppsPolicy;
+import helium314.keyboard.latin.settings.SecureAppTemporaryOptOut;
 import helium314.keyboard.latin.suggestions.SuggestionStripView;
 import helium314.keyboard.latin.suggestions.AccessoryPriorityPolicy;
 import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
@@ -1313,6 +1317,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
+        SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
         mHandler.cancelUpdateSuggestionStrip();
         mHandler.cancelResumeSuggestions();
@@ -1531,6 +1536,8 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        SecureAppTemporaryOptOut.clear();
+        if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
         mEditorSessionGeneration.invalidate();
         mKeyboardSwitcher.cancelPanelTransition();
         mInlineDictation.cancel();
@@ -1559,6 +1566,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onFinishInputInternal() {
+        SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onFinishInput();
@@ -1579,6 +1587,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void cleanupInternalStateForFinishInput() {
+        SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
         // Remove pending messages related to update suggestions
         mHandler.cancelUpdateSuggestionStrip();
@@ -2070,6 +2079,107 @@ public class LatinIME extends InputMethodService implements
         mHandler.cancelUpdateSuggestionStrip();
         mHandler.cancelResumeSuggestions();
         mInputLogic.clearPendingPrivateLearning();
+    }
+
+    /** Ask for explicit, per-editor consent; never change the saved secure-app list. */
+    public void requestSecureAppIncognitoOffConfirmation() {
+        final SettingsValues current = Settings.getValues();
+        if (current == null || current.mInputAttributes.mNoLearning
+                || current.mInputAttributes.mIsPasswordField) return;
+        final String packageName = current.mInputAttributes.mTargetApplicationPackageName;
+        final SharedPreferences prefs = KtxKt.prefs(this);
+        if (!SecureAppsPolicy.isSecure(prefs, packageName)
+                || prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
+                        Defaults.PREF_ALWAYS_INCOGNITO_MODE)) return;
+        AudioAndHapticFeedbackManager.getInstance().performSecureAppIncognitoWarning();
+        final long generation = editorGeneration();
+        if (!(mInputView instanceof InputView inputView)) return;
+        // Emoji or a toolbar may be open on the second tap. Mount the normal
+        // spacebar first; the consent pill must never float over Emoji cells.
+        mKeyboardSwitcher.setAlphabetKeyboard();
+        inputView.post(() -> {
+            if (generation != editorGeneration() || !isInputViewShown()) return;
+            final MainKeyboardView keyboard = mKeyboardSwitcher.getMainKeyboardView();
+            inputView.showSlideConfirmation(keyboard, "slide to leave private mode",
+                    0xFFE7B557, () -> completeSecureAppOptOut(packageName, generation));
+        });
+    }
+
+    /** The clipboard's own scroll-end action owns the confirmation request. */
+    public void requestClipboardClearConfirmation(final MainKeyboardView keyboard,
+            final Runnable onConfirmed) {
+        if (!(mInputView instanceof InputView inputView)) return;
+        final ClipboardHistoryView panel = inputView.findViewById(R.id.clipboard_history_view);
+        if (panel == null || !panel.isShown() || panel.isSearchMode()) return;
+        final long generation = editorGeneration();
+        inputView.showSlideConfirmation(keyboard, "slide to clear clips", 0xFFCD6975,
+                () -> {
+                    if (generation == editorGeneration() && isInputViewShown()
+                            && panel.isShown() && !panel.isSearchMode()) onConfirmed.run();
+                });
+    }
+
+    /** Route the older toolbar Clear shortcut through the same consent, too. */
+    public void requestClipboardClearFromShortcut() {
+        if (!(mInputView instanceof InputView inputView)) return;
+        final ClipboardHistoryView panel = inputView.findViewById(R.id.clipboard_history_view);
+        if (panel != null && panel.isShown() && !panel.isSearchMode()) {
+            panel.requestClearWithSlide();
+            return;
+        }
+        final List<Long> initial = unpinnedClipboardIds();
+        if (initial.isEmpty()) return;
+        final long generation = editorGeneration();
+        mKeyboardSwitcher.setAlphabetKeyboard();
+        inputView.post(() -> {
+            if (generation != editorGeneration() || !isInputViewShown()) return;
+            inputView.showSlideConfirmation(mKeyboardSwitcher.getMainKeyboardView(),
+                    "slide to clear clips", 0xFFCD6975, () -> {
+                        if (generation == editorGeneration() && isInputViewShown()
+                                && initial.equals(unpinnedClipboardIds()))
+                            mClipboardHistoryManager.clearHistory();
+                    });
+        });
+    }
+
+    /** IDs only, no private clipboard content copied to telemetry or a second cache. */
+    private List<Long> unpinnedClipboardIds() {
+        final ArrayList<Long> ids = new ArrayList<>();
+        for (int i = 0; i < mClipboardHistoryManager.getHistorySize(); i++) {
+            if (mClipboardHistoryManager.canRemove(i)) {
+                final ClipboardHistoryEntry clip = mClipboardHistoryManager.getHistoryEntry(i);
+                if (clip != null) ids.add(clip.getId());
+            }
+        }
+        return ids;
+    }
+
+    private void completeSecureAppOptOut(final String packageName, final long generation) {
+        if (generation != editorGeneration() || !isInputViewShown()) return;
+        final SettingsValues current = Settings.getValues();
+        final SharedPreferences prefs = KtxKt.prefs(this);
+        if (current == null || current.mInputAttributes.mNoLearning
+                || current.mInputAttributes.mIsPasswordField
+                || !packageName.equals(current.mInputAttributes.mTargetApplicationPackageName)
+                || !SecureAppsPolicy.isSecure(prefs, packageName)
+                || prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
+                    Defaults.PREF_ALWAYS_INCOGNITO_MODE)) return;
+        clearPendingPrivateLearning();
+        SecureAppTemporaryOptOut.enableForEditor(packageName);
+        loadSettings();
+        if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
+        AudioAndHapticFeedbackManager.getInstance().performPrivacyModeConfirmation();
+    }
+
+    /** An explicit second toggle re-enters incognito without touching global preferences. */
+    public void resumeSecureAppIncognito() {
+        if (!SecureAppTemporaryOptOut.applies(
+                Settings.getValues().mInputAttributes.mTargetApplicationPackageName)) return;
+        clearPendingPrivateLearning();
+        SecureAppTemporaryOptOut.clear();
+        loadSettings();
+        if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
+        AudioAndHapticFeedbackManager.getInstance().performPrivacyModeConfirmation();
     }
 
     public long editorGeneration() { return mEditorSessionGeneration.current(); }

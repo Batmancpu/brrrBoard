@@ -43,6 +43,7 @@ import helium314.keyboard.latin.utils.protectedPrefs
 import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.filePicker
 import kotlinx.serialization.json.Json
@@ -64,6 +65,7 @@ import helium314.keyboard.latin.transferOldPinnedClips
 @Composable
 fun BackupRestorePreference(setting: Setting) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
+    var showRestoreSlide by rememberSaveable { mutableStateOf(false) }
     val ctx = LocalContext.current
     var error: String? by rememberSaveable { mutableStateOf(null) }
     val backupLauncher = backupLauncher { error = it }
@@ -78,10 +80,7 @@ fun BackupRestorePreference(setting: Setting) {
             neutralButtonText = stringResource(R.string.button_restore),
             onNeutral = {
                 showDialog = false
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-                    .addCategory(Intent.CATEGORY_OPENABLE)
-                    .setType("application/zip")
-                restoreLauncher.launch(intent)
+                showRestoreSlide = true
             },
             onConfirmed = {
                 // Local Downloads export: no cloud picker, network or background upload.
@@ -96,6 +95,20 @@ fun BackupRestorePreference(setting: Setting) {
                         .setType("application/zip")
                     backupLauncher.launch(intent)
                 }
+            }
+        )
+    }
+    if (showRestoreSlide) {
+        SlideActionDialog(
+            title = "Restore a keyboard backup?",
+            explanation = "Importing a backup can replace your current keyboard preferences and learned data. Your current backup files are not deleted.",
+            instruction = "slide to select backup",
+            onDismiss = { showRestoreSlide = false },
+            onConfirmed = {
+                showRestoreSlide = false
+                restoreLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT)
+                    .addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("application/zip"))
             }
         )
     }

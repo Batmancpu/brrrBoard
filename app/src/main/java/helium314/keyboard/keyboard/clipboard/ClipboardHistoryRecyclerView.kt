@@ -44,7 +44,8 @@ class ClipboardHistoryRecyclerView @JvmOverloads constructor(
             val entry = historyManager?.getHistoryEntry(position)
             if (entry != null) {
                 historyManager?.removeEntry(position)
-                adapter?.notifyItemRemoved(position)
+                // DAO listener publishes a full adapter snapshot, including the
+                // conditional clear footer; a second removal notification is stale.
                 clipDismissListener?.onClipDismissed(entry, position)
             }
         }

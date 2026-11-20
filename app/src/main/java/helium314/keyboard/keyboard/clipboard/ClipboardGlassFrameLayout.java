@@ -62,7 +62,8 @@ public final class ClipboardGlassFrameLayout extends FrameLayout {
         if (glass == null || glass.getVisibility() != VISIBLE) {
             return super.drawChild(canvas, child, drawingTime);
         }
-        final int cropBottom = sharpViewportBottom(glass.getTop(), getHeight());
+        final int cropBottom = sharpViewportBottom(
+                glass.getTop() + Math.round(glass.getTranslationY()), getHeight());
         if (cropBottom >= getHeight()) return super.drawChild(canvas, child, drawingTime);
         final int saved = canvas.save();
         try {

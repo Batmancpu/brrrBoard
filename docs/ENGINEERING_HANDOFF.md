@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — Slide safeguard S1-S3 source candidate, CI pending
+
+New private per-editor grant and genuine ≥92%-travel IME slide rail, haptic secure-app OFF warning, keyboard legends/footer visual removal, interrupted-gesture rejection, exact-spacebar bounds, guarded clipboard scroll-end + toolbar clear with ID-only snapshot and original provenance-safe `clearHistory`, single full-height Clipboard action-row/footer RenderNode glass. Selective Settings sliders guard destructive learned-typing/swipe erase and restore selection, not backup export or regular toggles. Policy tests added; Gradle wrapper needs unavailable network, Python 19 pass; publish only a fresh main code SHA, inspect BOTH full-unit/debug and pinned-signer workflows, repair errors, release SHA checksum and request actual Oppo touch/animation/glass/IME-height acceptance separately. Old v173 remains last proven signed until new gates green.
+
 ## 2026-11-20 — Verified v1.0.173 and new owner slide-confirm contract
 
 The completed Emoji/privacy/gold/red source `47ae5010f2c538803fab9e11162b87bdefa8ff72` passed debug `44680639468` and original-signed Obtainium `44680639417`; v1.0.173 APK SHA256 `16f1ff6af1be2a5da62ba83ac6c4af24932ffd1717cf6ea34230ae38aacae693`, 68,920,997 bytes. Physically unverified on Oppo. New owner authorized next safety-slider batch: haptic on secure-app privacy OFF attempt, temporary opt-out only after a deliberate spacebar-size slide while all key legends hide trackpad-style (animate in/out and drag/cancel), Clip History bottom Clear clipboard with same pattern, selective irreversible settings actions guarded by slide, and seamless Clipboard bottom-row/footer glass. Audit privacy/clipboard/settings semantics before editing; no private-content logs, silent deletion, signing/asset changes. Main-only with per-batch AGENTS/context continuity.

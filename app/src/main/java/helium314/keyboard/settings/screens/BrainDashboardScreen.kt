@@ -31,6 +31,7 @@ import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.SearchSettingsScreen
 import org.json.JSONObject
 
@@ -151,16 +152,12 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
         }
     }
     if (confirmErase) {
-        AlertDialog(
-            onDismissRequest = { confirmErase = false },
-            title = { Text("Erase learned swipe corrections?") },
-            text = { Text("This deletes stored swipe correction pairs on this device. It does not erase your system dictionary or Emoji history.") },
-            confirmButton = { Button(onClick = {
-                learner.clear(); refresh++; confirmErase = false
-            }) { Text("Erase learning") } },
-            dismissButton = { OutlinedButton(onClick = { confirmErase = false }) {
-                Text("Cancel")
-            } }
+        SlideActionDialog(
+            title = "Erase learned swipe corrections?",
+            explanation = "This deletes stored swipe correction pairs on this device. It does not erase your system dictionary or Emoji history.",
+            instruction = "slide to erase learning",
+            onDismiss = { confirmErase = false },
+            onConfirmed = { learner.clear(); refresh++; confirmErase = false },
         )
     }
 }

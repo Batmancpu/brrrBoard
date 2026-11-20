@@ -45,7 +45,10 @@ import androidx.core.graphics.ColorUtils
 class ClipboardAdapter(
        val clipboardLayoutParams: ClipboardLayoutParams,
        val keyEventListener: OnKeyEventListener
-) : RecyclerView.Adapter<ClipboardAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    /** Request only: the parent shows a real slide-to-confirm before any deletion. */
+    var onClearRequested: (() -> Unit)? = null
 
     var clipboardHistoryManager: ClipboardHistoryManager? = null
     private var filterQuery: String = ""
@@ -77,6 +80,7 @@ class ClipboardAdapter(
     companion object {
         private const val VIEW_TYPE_TEXT = 0
         private const val VIEW_TYPE_IMAGE = 1
+        private const val VIEW_TYPE_CLEAR = 2
         private const val ROUNDED_ENTRY_RADIUS_DP = 16f
     }
 
@@ -150,13 +154,37 @@ class ClipboardAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
+        if (hasClearAction() && position == (clipboardHistoryManager?.getHistorySize() ?: 0))
+            return VIEW_TYPE_CLEAR
         val entry = getItem(position)
         val imageClip = entry?.text?.let { ClipboardHistoryManager.decodeImageHistoryClip(it) }
             ?.takeIf { it.uri.scheme == "content" }
         return if (imageClip != null) VIEW_TYPE_IMAGE else VIEW_TYPE_TEXT
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        if (viewType == VIEW_TYPE_CLEAR) {
+            val density = parent.resources.displayMetrics.density
+            val colors = Settings.getValues().mColors
+            val label = TextView(parent.context).apply {
+                text = "Clear recent clipboard  ›"
+                contentDescription = "Clear unpinned clipboard history. Confirmation required."
+                setTextColor(colors.get(ColorType.FUNCTIONAL_KEY_TEXT))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                gravity = android.view.Gravity.CENTER
+                minHeight = (52f * density).toInt()
+                background = GradientDrawable().apply {
+                    cornerRadius = 20f * density
+                    setColor(ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_BACKGROUND), 0x6A))
+                    setStroke((density).toInt().coerceAtLeast(1),
+                        ColorUtils.setAlphaComponent(colors.get(ColorType.KEY_TEXT), 0x3B))
+                }
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onClearRequested?.invoke() }
+            }
+            return ClearHolder(label)
+        }
         val layoutId = if (viewType == VIEW_TYPE_IMAGE) {
             R.layout.clipboard_entry_image_key
         } else {
@@ -167,23 +195,25 @@ class ClipboardAdapter(
         return ViewHolder(parent, view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.setContent(getItem(position))
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (holder is ViewHolder) holder.setContent(getItem(position))
     }
 
-    override fun onViewAttachedToWindow(holder: ViewHolder) {
+    override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
         super.onViewAttachedToWindow(holder)
+        if (holder is ClearHolder)
+            (holder.itemView.layoutParams as? StaggeredGridLayoutManager.LayoutParams)?.isFullSpan = true
         (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.start()
     }
 
-    override fun onViewDetachedFromWindow(holder: ViewHolder) {
+    override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
         (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
         super.onViewDetachedFromWindow(holder)
     }
 
-    override fun onViewRecycled(holder: ViewHolder) {
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         (holder.itemView.foreground as? ClipboardRainbowGlowDrawable)?.stop()
-        holder.clearImage()
+        if (holder is ViewHolder) holder.clearImage()
         super.onViewRecycled(holder)
     }
 
@@ -193,8 +223,14 @@ class ClipboardAdapter(
                else manager.getHistoryEntry(position)
     }
 
-    override fun getItemCount() = if (isFiltered) filteredIds.size
-                                  else clipboardHistoryManager?.getHistorySize() ?: 0
+    private fun hasClearAction(): Boolean = !isFiltered && clipboardHistoryManager?.let { manager ->
+        (0 until manager.getHistorySize()).any { manager.getHistoryEntry(it)?.isPinned == false }
+    } == true
+
+    override fun getItemCount() = if (isFiltered) filteredIds.size else
+        (clipboardHistoryManager?.getHistorySize() ?: 0) + if (hasClearAction()) 1 else 0
+
+    class ClearHolder(view: View) : RecyclerView.ViewHolder(view)
 
     inner class ViewHolder(
             val parent: ViewGroup,

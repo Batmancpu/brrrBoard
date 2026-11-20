@@ -34,6 +34,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SecureAppsPolicy
+import helium314.keyboard.latin.settings.SecureAppTemporaryOptOut
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.keyboard.KeyboardTheme
@@ -75,6 +76,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var protectedMicDownX = 0f
     private var protectedMicDownY = 0f
     private var trackpadVisualMode = false
+    private var trackpadRequested = false
+    private var confirmationRequested = false
     private val protectedMicHold = Runnable {
         if (protectedMicTouch && isMicProtected() && micActionAvailable()) {
             protectedMicHeld = true
@@ -222,9 +225,23 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Protected/password fields force private behavior regardless of the
         // user's preference; never imply that a double tap disabled it there.
         val inputAttributes = Settings.getValues().mInputAttributes
-        val wasForced = inputAttributes.mNoLearning || inputAttributes.mIsPasswordField ||
-            SecureAppsPolicy.isSecure(context.prefs(), inputAttributes.mTargetApplicationPackageName)
-        if (wasForced) {
+        val secureApp = SecureAppsPolicy.isSecure(context.prefs(),
+            inputAttributes.mTargetApplicationPackageName)
+        val globallyPrivate = context.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
+            Defaults.PREF_ALWAYS_INCOGNITO_MODE)
+        if (inputAttributes.mNoLearning || inputAttributes.mIsPasswordField) {
+            emojiButton.announceForAccessibility(resources.getString(R.string.board_incognito_forced))
+            return
+        }
+        if (secureApp && SecureAppTemporaryOptOut.applies(inputAttributes.mTargetApplicationPackageName)) {
+            ime.resumeSecureAppIncognito()
+            return
+        }
+        if (secureApp && !globallyPrivate) {
+            ime.requestSecureAppIncognitoOffConfirmation()
+            return
+        }
+        if (secureApp) {
             emojiButton.announceForAccessibility(resources.getString(R.string.board_incognito_forced))
             return
         }
@@ -244,6 +261,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         emojiButton.announceForAccessibility(resources.getString(
             if (next) R.string.board_incognito_on else R.string.board_incognito_off))
     }
+
+    fun refreshPrivacyState() = syncEmojiPrivacy(animate = true)
 
     private fun syncEmojiPrivacy(animate: Boolean) {
         val privateMode = Settings.getValues().mIncognitoModeEnabled
@@ -283,7 +302,19 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
      * Reversing during entry continues from the current rendered translation.
      */
     fun setTrackpadMode(active: Boolean) {
-        val desired = active && KeyboardMotionSpec.isIos27(context)
+        trackpadRequested = active
+        updateTrackpadAndConfirmationVisuals()
+    }
+
+    /** Privacy/destructive rail hides footer legends even outside the iOS theme. */
+    fun setConfirmationMode(active: Boolean) {
+        confirmationRequested = active
+        updateTrackpadAndConfirmationVisuals()
+    }
+
+    private fun updateTrackpadAndConfirmationVisuals() {
+        val desired = confirmationRequested ||
+            (trackpadRequested && KeyboardMotionSpec.isIos27(context))
         if (trackpadVisualMode == desired) return
         trackpadVisualMode = desired
         if (desired) {

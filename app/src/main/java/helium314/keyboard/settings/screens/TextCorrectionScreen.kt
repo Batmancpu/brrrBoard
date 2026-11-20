@@ -37,6 +37,7 @@ import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.settings.SettingsWithoutKey
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.ListPreference
 import helium314.keyboard.settings.preferences.Preference
@@ -125,15 +126,15 @@ fun createCorrectionSettings(context: Context) = listOf(
             onClick = { showConfirmation = true },
         )
         if (showConfirmation) {
-            ConfirmationDialog(
-                onDismissRequest = { showConfirmation = false },
+            SlideActionDialog(
+                onDismiss = { showConfirmation = false },
                 onConfirmed = {
                     PersonalizationHelper.removeAllUserHistoryDictionaries(context)
                     showConfirmation = false
                 },
-                title = { Text(stringResource(R.string.clear_learned_typing_history_confirm_title)) },
-                confirmButtonText = stringResource(R.string.clear_learned_typing_history_confirm_action),
-                content = { Text(stringResource(R.string.clear_learned_typing_history_confirm_message)) }
+                title = stringResource(R.string.clear_learned_typing_history_confirm_title),
+                instruction = "slide to erase history",
+                explanation = stringResource(R.string.clear_learned_typing_history_confirm_message)
             )
         }
     },

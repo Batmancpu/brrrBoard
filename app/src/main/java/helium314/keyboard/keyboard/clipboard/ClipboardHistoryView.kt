@@ -271,6 +271,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private fun initialize() { // needs to be delayed for access to ClipboardStrip, which is not a child of this view
         if (this::clipboardAdapter.isInitialized) return
         clipboardAdapter = ClipboardAdapter(clipboardLayoutParams, this).apply {
+            onClearRequested = { requestClearWithSlide() }
             itemBackgroundId = keyBackgroundId
             pinnedIconResId = pinIconId
         }
@@ -332,11 +333,15 @@ class ClipboardHistoryView @JvmOverloads constructor(
         }
         val glass = findViewById<View>(R.id.clipboard_bottom_glass)
         (glass.layoutParams as FrameLayout.LayoutParams).let { params ->
-            val desiredHeight = rowHeight + extra
+            // One live slab spans the Search/space/Delete row AND the shared ABC/mic
+            // footer. The previous two RenderNodes met at an obvious horizontal seam.
+            val footerHeight = resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
+            val desiredHeight = rowHeight + extra + footerHeight
             if (params.height != desiredHeight) {
                 params.height = desiredHeight
                 glass.layoutParams = params
             }
+            glass.translationY = footerHeight.toFloat()
         }
         undoBar?.let { bar ->
             (bar.layoutParams as FrameLayout.LayoutParams).let { params ->
@@ -975,10 +980,32 @@ class ClipboardHistoryView @JvmOverloads constructor(
         }
     }
 
+    fun requestClearWithSlide() {
+        if (searchMode || !::clipboardHistoryManager.isInitialized) return
+        val keyboard = clipboardRowKeyboard ?: return
+        val manager = clipboardHistoryManager
+        // ID-only snapshot: a clip arriving or being pinned during the animation
+        // invalidates consent, rather than silently deleting newly arrived data.
+        val unpinnedIds = (0 until manager.getHistorySize()).mapNotNull { index ->
+            manager.getHistoryEntry(index)?.takeIf { !it.isPinned }?.id
+        }
+        if (unpinnedIds.isEmpty()) return
+        getLatinIme()?.requestClipboardClearConfirmation(keyboard, Runnable {
+            val nowIds = (0 until manager.getHistorySize()).mapNotNull { index ->
+                manager.getHistoryEntry(index)?.takeIf { !it.isPinned }?.id
+            }
+            if (unpinnedIds == nowIds && !searchMode && clipboardHistoryManager === manager) {
+                // Existing implementation preserves pinned clips and clears only
+                // proven same-origin, same-timestamp/digest OS clipboard content.
+                manager.clearHistory()
+                clipboardAdapter.notifyDataSetChanged()
+            }
+        })
+    }
+
     override fun onClick(view: View) {
         if (view === clearButton) {
-            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, this, HapticEvent.KEY_PRESS)
-            clipboardHistoryManager.clearHistory()
+            requestClearWithSlide()
         }
     }
 
@@ -1000,19 +1027,18 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     override fun onClipInserted(position: Int) {
         if (clipboardAdapter.isFiltered) { clipboardAdapter.refreshSearchResults(); return }
-        clipboardAdapter.notifyItemInserted(position)
+        clipboardAdapter.notifyDataSetChanged() // clear-footer count may have changed
         clipboardRecyclerView.smoothScrollToPosition(position)
     }
 
     override fun onClipsRemoved(position: Int, count: Int) {
         if (clipboardAdapter.isFiltered) { clipboardAdapter.refreshSearchResults(); return }
-        clipboardAdapter.notifyItemRangeRemoved(position, count)
+        clipboardAdapter.notifyDataSetChanged()
     }
 
     override fun onClipMoved(oldPosition: Int, newPosition: Int) {
         if (clipboardAdapter.isFiltered) { clipboardAdapter.refreshSearchResults(); return }
-        clipboardAdapter.notifyItemMoved(oldPosition, newPosition)
-        clipboardAdapter.notifyItemChanged(newPosition)
+        clipboardAdapter.notifyDataSetChanged()
         if (newPosition < oldPosition) clipboardRecyclerView.smoothScrollToPosition(newPosition)
     }
 
