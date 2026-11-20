@@ -1,5 +1,9 @@
 # Emoji / ABC immediate switching and top category alignment — 20 November 2026
 
+## Signed CI release result
+
+The batch was published as application source `3a9f59902d5e8b044d1561815010eca0c14d2f77` and completed both exact-SHA gates: [debug/unit 44677162722](https://github.com/Batmancpu/brrrBoard/actions/runs/44677162722) SUCCESS and [original-signed Obtainium 44677162717](https://github.com/Batmancpu/brrrBoard/actions/runs/44677162717) SUCCESS. Release [v1.0.171](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.171) contains the 68,920,997-byte APK with SHA-256 `3aed3635cd544f1779776cbb1d8feae249e14ded6fb25ca3d47123b7c15f6682`, no newly bundled model weights. This is the **source/CI/signature** gate, not a measured physical Oppo tap-latency or screenshot geometry acceptance. Subsequent handoff bookkeeping is documentation-only.
+
 ## Owner report and baseline
 
 The owner reports a perceptible delay after tapping Emoji and ABC, plus an empty band above the Emoji category strip on an Oppo phone. The supplied photo was used only for visual geometry; do not publish or log the screen text. Start from green eight-stage repair `dcfeec8e1c9eb3f3eee1dcb45cde8a04aaf0b328`, release `v1.0.170`, full debug `44674645062` SUCCESS and original-signed Obtainium `44674645030` SUCCESS. Those gates cover **only the preceding source**, not this Emoji batch.
