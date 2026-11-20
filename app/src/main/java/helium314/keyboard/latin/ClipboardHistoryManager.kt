@@ -40,6 +40,7 @@ import helium314.keyboard.latin.database.ClipboardDao
 import helium314.keyboard.latin.voice.RecoveredTranscript
 import helium314.keyboard.latin.voice.RecoveredTranscriptRepository
 import helium314.keyboard.latin.settings.Defaults
+import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.databinding.ClipboardSuggestionBinding
 import helium314.keyboard.latin.permissions.PermissionsUtil
 import helium314.keyboard.latin.utils.Log
@@ -76,7 +77,7 @@ class ClipboardHistoryManager(
     private var ownedPrimaryClip: OwnedClip? = null
     // Recognized but undelivered speech is not an OS clip and must not enter
     // the ordinary plaintext SQLite clipboard table.
-    private val recoveredTranscripts by lazy { RecoveredTranscriptRepository(latinIME) }
+    private val recoveryRepository by lazy { RecoveredTranscriptRepository(latinIME) }
 
     fun onCreate() {
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -507,6 +508,7 @@ class ClipboardHistoryManager(
     }
 
     fun updatePrimaryClip() {
+        if (!latinIME.mSettings.current.mClipboardHistoryEnabled) clearRecoveredTranscripts()
         if (isHistoryPrivate()) {
             // A secure *destination* should hide recovery, not erase a result
             // saved in an earlier ordinary editor. Explicit global incognito
@@ -719,19 +721,21 @@ class ClipboardHistoryManager(
     /** Only a successful recognition with a stale destination enters this area. */
     fun saveUndeliveredTranscript(text: String): Boolean {
         if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled) return false
-        return recoveredTranscripts.add(text) != null
+        return recoveryRepository.add(text) != null
     }
 
     fun getRecoveredTranscripts(): List<RecoveredTranscript> =
-        if (isHistoryPrivate()) emptyList() else recoveredTranscripts.all()
+        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled)
+            emptyList() else recoveryRepository.all()
 
     fun getRecoveredTranscript(id: Long): RecoveredTranscript? =
-        if (isHistoryPrivate()) null else recoveredTranscripts.get(id)
+        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled)
+            null else recoveryRepository.get(id)
 
     /** Called only after the user has explicitly tapped and inserted this result. */
-    fun consumeRecoveredTranscript(id: Long): Boolean = recoveredTranscripts.consume(id)
+    fun consumeRecoveredTranscript(id: Long): Boolean = recoveryRepository.consume(id)
 
-    fun clearRecoveredTranscripts() = recoveredTranscripts.clear()
+    fun clearRecoveredTranscripts() = recoveryRepository.clear()
 
     fun getHistorySize() = if (isHistoryPrivate()) 0 else clipboardDao?.count() ?: 0
 
