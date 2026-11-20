@@ -5,17 +5,21 @@
 
 # brrBoard
 
-### A smarter keyboard. Your words stay yours.
+### Intelligent. Private. Beautiful.
 
-**BR Brain intelligence. Zero internet permission. Zero keyboard data uploads.**
+**BR Brain · Private offline voice · Zero internet · iOS-inspired frosted glass**
 
-brrBoard is a fast, beautifully considered Android keyboard by [MangoLoads](https://batmancpu.github.io/mangoloads/). It's built to feel smarter than the default—learning from the choices you make in eligible fields, offering useful suggestions, and keeping its intelligence on your device. All wrapped in a calm, frosted-glass experience.
+brrBoard is a thoughtfully crafted Android keyboard by [MangoLoads](https://batmancpu.github.io/mangoloads/). It brings together adaptive on-device typing intelligence, private English voice dictation, a beautifully restrained frosted-glass interface, and the everyday tools you actually use. No account. No cloud keyboard. No internet permission.
 
 [**⬇ Download the latest signed APK**](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk) &nbsp;·&nbsp; [**Get updates with Obtainium**](docs/OBTAINIUM.md) &nbsp;·&nbsp; [Explore releases](https://github.com/Batmancpu/brrrBoard/releases)
 
 [![Android build and unit tests](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml/badge.svg?branch=main)](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml) &nbsp; [Privacy policy](PRIVACY_POLICY.md) &nbsp;·&nbsp; [Open-source licenses](#made-possible-by-open-source)
 
 ---
+
+Four reasons to switch: **intelligence that learns locally**, **voice that recognizes on-device**, **privacy enforced by the app's permissions**, and **a keyboard designed to feel as good as it looks**.
+
+*All visuals below are original, illustrative brand concepts—not screenshots or guarantees of exact device rendering. The details are verified against current source and signed release records.*
 
 ## 01 / BR Brain. Intelligence that stays yours.
 
@@ -29,7 +33,19 @@ brrBoard is a fast, beautifully considered Android keyboard by [MangoLoads](http
 
 The currently shipped intelligence uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. A separate bilingual neural model is still in development; **we don't claim it is already in the APK**. This is a smarter-feeling alternative built around useful behavior, not inflated AI promises.
 
-## 02 / Zero internet. Zero keyboard uploads.
+## 02 / A voice that doesn't need the cloud.
+
+![Private offline voice: microphone capture, optional Android noise suppression and on-device Parakeet recognition](art/brand/mangoloads/readme-offline-voice.svg)
+
+Tap the blue microphone for **offline English dictation**, powered by an on-device **NVIDIA Parakeet TDT 110M INT8** recognition model (once provisioned). Audio is captured privately, decoded on your phone, and inserted into your text field—without sending speech to an online transcription service.
+
+- **Optional noise suppression.** brrBoard tries Android's built-in microphone `NoiseSuppressor` during a recording, if your device supports it. You can switch it on or off in **BR Brain** and see whether it actually activated. We don't promise an accuracy gain without testing your microphone and environment.
+- **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. No second microphone, background cloud service or extra processing on the typing path.
+- **Private diagnostics.** A one-session troubleshooting tool can record only sanitized stages and timings—not audio, transcripts, app names or typed words.
+
+**Honest status:** The separate bundled **GTCRN neural denoiser is currently paused** after a device-side initialization failure. The working voice path uses Parakeet 110M with *optional Android system* noise suppression, not active GTCRN filtering. A first-time installation may need the special model-inclusive bootstrap described [below](#before-using-voice-or-swipe).
+
+## 03 / Zero internet. Zero keyboard uploads.
 
 ![Privacy-first brrBoard illustration with an on-device shield, zero internet permission and zero keyboard uploads](art/brand/mangoloads/readme-zero-internet.svg)
 
@@ -43,18 +59,22 @@ Opening an external link uses another app, and **you can deliberately export or 
 
 ---
 
-## 03 / A little more feeling. A lot less noise.
+## 04 / A little more feeling. A lot less noise.
+
+![A conceptual brrBoard QWERTY keyboard with translucent keys, a refined suggestion strip and an understated blue Search key](art/brand/mangoloads/readme-frosted-keyboard.svg)
+
+This is the visual signature: **iOS-inspired key geometry**, clean spacing, translucent materials, restrained blue action-key accents and a suggestion strip that doesn't fight your words. Native background blur is used where the Android device supports it; carefully chosen fallbacks keep typing dependable elsewhere.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="art/brand/mangoloads/readme-material-dark.webp">
   <img src="art/brand/mangoloads/readme-material-light.webp" width="100%" alt="An illustrative stack of subtly translucent, softly lit glass sheets in the MangoLoads sapphire and pearl design palette" />
 </picture>
 
-The frosted look has a purpose: a comfortable visual rhythm that feels at home on Android without slowing the typing path. Clear hierarchy, useful contrast, restrained movement. The keyboard, Toolbar, Emoji and Clipboard surfaces each get the treatment they need—not the same effect everywhere.
+The frosted look has a purpose: a comfortable visual rhythm that feels at home on Android without slowing the typing path. Clear hierarchy, useful contrast, restrained movement. The keyboard, Toolbar, Emoji and Clipboard surfaces each get the treatment they need—not the same effect everywhere. The **Frosted Glass Studio** gives you live preview and separate light/dark adjustments with deliberate Save/Cancel behavior.
 
-> *Design imagery throughout this page is illustrative brand artwork, not a claimed device screenshot. Real product screenshots will follow device verification.*
+*Glass material studies above are design artwork, not a claim of optical refraction or a real phone screenshot.*
 
-## 04 / Everything in its place.
+## 05 / Everything in its place.
 
 ![A conceptual brrBoard settings sheet with Appearance, Typing, Everyday tools and Privacy and data grouped into a calm premium interface](art/brand/mangoloads/readme-settings-studio.svg)
 
@@ -62,7 +82,7 @@ The Settings home groups what belongs together: **Make it yours**, **Typing**, *
 
 **Personalization is there when you want it.** The keyboard should disappear into your day when you don't.
 
-## 05 / The little things are the big things.
+## 06 / The little things are the big things.
 
 ![Three illustrated feature cards for on-device Clipboard history, personal words and local-first privacy](art/brand/mangoloads/readme-everyday-tools.svg)
 
@@ -71,6 +91,13 @@ The Settings home groups what belongs together: **Make it yours**, **Typing**, *
 | English and Hinglish layouts, suggestions, a personal dictionary and editing shortcuts. | Searchable Emoji, locally stored Clipboard history and optional offline voice transcription when a model is provisioned. | Keyboard appearance, layout, privacy choices and separately imported gesture-typing support. |
 
 One blue keyboard. One mango. An identity carried through the launcher, first-run setup, and About—without unnecessary animation in the typing path.
+
+### More details worth caring about
+
+| Typing and editing | Everyday tools | Privacy and control |
+| :--- | :--- | :--- |
+| English/Hinglish layouts, autocorrect, next-word suggestions, personal words and editing shortcuts. | Searchable Emoji with Smart/Recent suggestions, Clipboard history, search and locally stored image previews. | Protected-app Incognito behavior, confirmation for sensitive clearing, and locally controlled learning. |
+| Gesture trails and swipe correction learning **when a compatible offline gesture library is installed**. | Toolbar shortcuts, sound/haptic feedback and keyboard configuration close at hand. | In-app backup/restore, granular appearance controls, private voice diagnostics and no internet permission. |
 
 ---
 
@@ -127,6 +154,13 @@ No. Its current word/next-word suggestions, native swipe candidates, local corre
 </details>
 
 <details>
+<summary>Does the noise reduction feature run the bundled GTCRN model?</summary>
+
+Not currently. The live offline voice path uses Parakeet 110M with an optional Android microphone `NoiseSuppressor` effect. GTCRN neural filtering is isolated and paused after a device initialization failure. The BR Brain screen reports whether the Android effect activated; it does not claim measured recognition improvement.
+
+</details>
+
+<details>
 <summary>Why does Android warn me when I enable the keyboard?</summary>
 
 Android displays a standard trust prompt for input methods because a keyboard can observe what you enter into editors. Review the app permissions and [privacy policy](PRIVACY_POLICY.md) before deciding.
@@ -156,7 +190,7 @@ No. A backup may include learned words and Clipboard history. Treat it as sensit
 
 ## Under the hood
 
-brrBoard is an open-source Android project. The [contribution guide](CONTRIBUTING.md) explains the current repository and privacy-conscious testing approach. For technical details, see the [documentation index](docs/README.md) and the [current engineering checkpoint](PROJECT_CONTEXT.md).
+brrBoard is an open-source Android project. The [contribution guide](CONTRIBUTING.md) explains the current repository and privacy-conscious testing approach. For technical details, see the [documentation index](docs/README.md), the [source-based feature priority audit](docs/README_FEATURE_PRIORITY_AUDIT_2026_11_21.md) and the [current engineering checkpoint](PROJECT_CONTEXT.md).
 
 The repository currently has public GitHub Issues disabled. We won't send people to a nonworking issue form; please check this repository for an available support channel. If a public tracker is enabled later, that section will be updated.
 

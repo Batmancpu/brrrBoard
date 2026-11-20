@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="650" viewBox="0 0 1440 650" role="img" aria-labelledby="title desc">
+  <title id="title">The brrBoard iOS-inspired frosted keyboard aesthetic</title>
+  <desc id="desc">Illustrative frosted keyboard with a familiar QWERTY arrangement, soft translucent keycaps, restrained sapphire action key, and a clear suggestion strip. This concept is not a device screenshot or pixel-perfect claim.</desc>
+  <defs>
+    <linearGradient id="sapphire" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071A3D"/><stop offset=".6" stop-color="#1C4C9F"/><stop offset="1" stop-color="#0A275E"/></linearGradient>
+    <radialGradient id="glow" cx="74%" cy="54%" r="58%"><stop stop-color="#90B9FF" stop-opacity=".54"/><stop offset="1" stop-color="#90B9FF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F9FCFF" stop-opacity=".9"/><stop offset="1" stop-color="#B8D1F4" stop-opacity=".81"/></linearGradient>
+    <linearGradient id="key" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#ECF3FE"/></linearGradient>
+    <linearGradient id="action" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#428EFA"/><stop offset="1" stop-color="#1560CE"/></linearGradient>
+  </defs>
+  <rect width="1440" height="650" rx="37" fill="url(#sapphire)"/>
+  <rect width="1440" height="650" rx="37" fill="url(#glow)"/>
+  <circle cx="1273" cy="146" r="300" fill="none" stroke="#D0E6FF" stroke-opacity=".1" stroke-width="2"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="68" y="146" font-size="16" font-weight="740" letter-spacing="3.2" fill="#B9D5FC">BUILT TO FEEL NATURAL</text>
+    <text x="65" y="242" font-size="65" font-weight="760" letter-spacing="-3" fill="#FFFFFF">A little glass.</text>
+    <text x="69" y="313" font-size="60" font-weight="760" letter-spacing="-2.7" fill="#FFFFFF">A lot of feel.</text>
+    <text x="72" y="381" font-size="22" fill="#CFE0FC">Soft materials. Familiar keys.</text>
+    <text x="72" y="414" font-size="22" fill="#CFE0FC">Fluid without adding typing lag.</text>
+    <rect x="68" y="474" width="212" height="47" rx="23.5" fill="#E1EEFF" fill-opacity=".14" stroke="#D4E8FF" stroke-opacity=".4"/>
+    <text x="94" y="504" font-size="16" font-weight="710" fill="#FFFFFF">FROSTED GLASS</text>
+    <rect x="290" y="474" width="220" height="47" rx="23.5" fill="#E1EEFF" fill-opacity=".14" stroke="#D4E8FF" stroke-opacity=".4"/>
+    <text x="316" y="504" font-size="16" font-weight="710" fill="#FFFFFF">REFINED SPACING</text>
+  </g>
+  <!-- Conceptual ten-finger QWERTY keyboard; the real app UI is never described as identical. -->
+  <rect x="591" y="121" width="791" height="422" rx="40" fill="#071735" opacity=".36" transform="translate(9 13)"/>
+  <rect x="591" y="121" width="791" height="422" rx="40" fill="url(#back)" stroke="#F6FBFF" stroke-opacity=".82" stroke-width="3"/>
+  <path d="M632 137h699q28 0 34 27" stroke="#FFFFFF" stroke-opacity=".64" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <rect x="630" y="145" width="713" height="48" rx="21" fill="#FFFFFF" fill-opacity=".23"/>
+    <text x="700" y="175" font-size="17" fill="#314D77" font-weight="610">hello</text>
+    <text x="918" y="175" font-size="17" fill="#24466F" font-weight="720">there</text>
+    <text x="1118" y="175" font-size="17" fill="#314D77" font-weight="610">how are you</text>
+    <g fill="url(#key)" stroke="#FFFFFF" stroke-width="1.5">
+      <rect x="627" y="206" width="64" height="62" rx="12"/><rect x="698" y="206" width="64" height="62" rx="12"/><rect x="769" y="206" width="64" height="62" rx="12"/><rect x="840" y="206" width="64" height="62" rx="12"/><rect x="911" y="206" width="64" height="62" rx="12"/><rect x="982" y="206" width="64" height="62" rx="12"/><rect x="1053" y="206" width="64" height="62" rx="12"/><rect x="1124" y="206" width="64" height="62" rx="12"/><rect x="1195" y="206" width="64" height="62" rx="12"/><rect x="1266" y="206" width="64" height="62" rx="12"/>
+      <rect x="663" y="275" width="64" height="62" rx="12"/><rect x="734" y="275" width="64" height="62" rx="12"/><rect x="805" y="275" width="64" height="62" rx="12"/><rect x="876" y="275" width="64" height="62" rx="12"/><rect x="947" y="275" width="64" height="62" rx="12"/><rect x="1018" y="275" width="64" height="62" rx="12"/><rect x="1089" y="275" width="64" height="62" rx="12"/><rect x="1160" y="275" width="64" height="62" rx="12"/><rect x="1231" y="275" width="64" height="62" rx="12"/>
+      <rect x="708" y="344" width="64" height="62" rx="12"/><rect x="779" y="344" width="64" height="62" rx="12"/><rect x="850" y="344" width="64" height="62" rx="12"/><rect x="921" y="344" width="64" height="62" rx="12"/><rect x="992" y="344" width="64" height="62" rx="12"/><rect x="1063" y="344" width="64" height="62" rx="12"/><rect x="1134" y="344" width="64" height="62" rx="12"/>
+    </g>
+    <g fill="#D3E1F4"><rect x="626" y="344" width="75" height="62" rx="12"/><rect x="1211" y="344" width="120" height="62" rx="12"/><rect x="626" y="414" width="96" height="62" rx="12"/><rect x="729" y="414" width="67" height="62" rx="12"/></g>
+    <rect x="802" y="414" width="400" height="62" rx="12" fill="url(#key)"/>
+    <rect x="1210" y="414" width="121" height="62" rx="12" fill="url(#action)"/>
+    <g font-size="25" font-weight="540" fill="#1D345B" text-anchor="middle">
+      <text y="248"><tspan x="659">Q</tspan><tspan x="730">W</tspan><tspan x="801">E</tspan><tspan x="872">R</tspan><tspan x="943">T</tspan><tspan x="1014">Y</tspan><tspan x="1085">U</tspan><tspan x="1156">I</tspan><tspan x="1227">O</tspan><tspan x="1298">P</tspan></text>
+      <text y="317"><tspan x="695">A</tspan><tspan x="766">S</tspan><tspan x="837">D</tspan><tspan x="908">F</tspan><tspan x="979">G</tspan><tspan x="1050">H</tspan><tspan x="1121">J</tspan><tspan x="1192">K</tspan><tspan x="1263">L</tspan></text>
+      <text y="386"><tspan x="740">Z</tspan><tspan x="811">X</tspan><tspan x="882">C</tspan><tspan x="953">V</tspan><tspan x="1024">B</tspan><tspan x="1095">N</tspan><tspan x="1166">M</tspan></text>
+    </g>
+    <g fill="#28466F" font-size="18" font-weight="670" text-anchor="middle"><text x="664" y="454">123</text><text x="762" y="454">◉</text><text x="1001" y="453" font-size="17" font-weight="500">space</text><text x="664" y="385" font-size="23">⇧</text><text x="1271" y="385" font-size="21">⌫</text></g>
+    <text x="1270" y="453" font-size="20" font-weight="690" fill="#FFFFFF" text-anchor="middle">Search</text>
+  </g>
+  <rect x="2" y="2" width="1436" height="646" rx="35" fill="none" stroke="#B8D9FF" stroke-opacity=".21" stroke-width="3"/>
+</svg>

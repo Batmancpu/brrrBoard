@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="620" viewBox="0 0 1440 620" role="img" aria-labelledby="title desc">
+  <title id="title">Private offline voice with optional noise suppression</title>
+  <desc id="desc">Editorial illustration of local microphone capture, optional Android noise suppression, and on-device Parakeet recognition. Not an actual app screen; the separate GTCRN neural denoiser is not depicted as active.</desc>
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081934"/><stop offset=".5" stop-color="#123E85"/><stop offset="1" stop-color="#0C224B"/></linearGradient>
+    <radialGradient id="halo" cx="77%" cy="47%" r="60%"><stop stop-color="#468EF0" stop-opacity=".52"/><stop offset="1" stop-color="#468EF0" stop-opacity="0"/></radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F4FAFF" stop-opacity=".28"/><stop offset="1" stop-color="#AACFFB" stop-opacity=".12"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#69A9FF"/><stop offset="1" stop-color="#1E63D4"/></linearGradient>
+  </defs>
+  <rect width="1440" height="620" rx="38" fill="url(#night)"/>
+  <rect width="1440" height="620" rx="38" fill="url(#halo)"/>
+  <circle cx="1120" cy="185" r="285" fill="none" stroke="#A4CBFF" stroke-opacity=".14" stroke-width="2"/>
+  <circle cx="1120" cy="185" r="352" fill="none" stroke="#A4CBFF" stroke-opacity=".09" stroke-width="2"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <rect x="78" y="74" width="234" height="44" rx="22" fill="#DCEBFF" fill-opacity=".14" stroke="#CDE2FF" stroke-opacity=".3"/>
+    <circle cx="104" cy="96" r="7" fill="#FBD185"/>
+    <text x="125" y="103" fill="#E1EDFF" font-size="16" letter-spacing="2.4" font-weight="700">OFFLINE VOICE</text>
+    <text x="73" y="235" font-size="72" font-weight="770" letter-spacing="-3" fill="#FFFFFF">Speak freely.</text>
+    <text x="78" y="303" font-size="55" font-weight="740" letter-spacing="-2.5" fill="#FFFFFF">Stay private.</text>
+    <text x="81" y="367" font-size="23" fill="#CADFFF">On-device English dictation with</text>
+    <text x="81" y="399" font-size="23" fill="#CADFFF">a cleaner microphone path.</text>
+    <rect x="79" y="451" width="201" height="47" rx="23.5" fill="#DCEBFF" fill-opacity=".14" stroke="#CDE2FF" stroke-opacity=".35"/>
+    <text x="104" y="481" font-size="16" font-weight="720" fill="#FFFFFF">PARAKEET 110M</text>
+    <rect x="294" y="451" width="227" height="47" rx="23.5" fill="#DCEBFF" fill-opacity=".14" stroke="#CDE2FF" stroke-opacity=".35"/>
+    <text x="318" y="481" font-size="16" font-weight="720" fill="#FFFFFF">NO CLOUD UPLOAD</text>
+  </g>
+  <!-- A system diagram, deliberately distinct from an actual settings screenshot. -->
+  <rect x="646" y="86" width="716" height="460" rx="41" fill="#061938" opacity=".4" transform="translate(10 13)"/>
+  <rect x="646" y="86" width="716" height="460" rx="41" fill="url(#glass)" stroke="#E0F1FF" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M692 102h596q40 0 45 32" stroke="#FFFFFF" stroke-opacity=".4" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="694" y="153" font-size="18" fill="#EEF7FF" font-weight="690" letter-spacing="1.1">THE ENTIRE VOICE PATH STAYS LOCAL</text>
+    <g fill="#FFFFFF" fill-opacity=".12" stroke="#D5E8FF" stroke-opacity=".26">
+      <rect x="692" y="187" width="195" height="223" rx="28"/>
+      <rect x="904" y="187" width="195" height="223" rx="28"/>
+      <rect x="1116" y="187" width="199" height="223" rx="28"/>
+    </g>
+    <circle cx="788" cy="272" r="46" fill="url(#blue)"/>
+    <rect x="774" y="241" width="28" height="49" rx="14" fill="#FFFFFF"/>
+    <path d="M765 267v10q0 22 23 22t23-22v-10M788 300v18m-16 0h32" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    <g stroke="#B7E2FF" stroke-width="5" stroke-linecap="round"><path d="M945 274v-20M956 283v-38M967 294v-60M978 277v-26M989 286v-44M1000 266v-11M1011 293v-54M1022 279v-31M1033 290v-47M1044 273v-21M1055 281v-37"/></g>
+    <rect x="1149" y="239" width="134" height="67" rx="18" fill="#E8F3FF"/>
+    <path d="M1170 273h94" stroke="#8DACE0" stroke-width="3" stroke-linecap="round"/>
+    <path d="M1170 283h65" stroke="#8DACE0" stroke-width="3" stroke-linecap="round"/>
+    <g fill="#F6FBFF" font-size="17" font-weight="690" text-anchor="middle">
+      <text x="789" y="351">Microphone</text>
+      <text x="1001" y="351">Noise control</text>
+      <text x="1215" y="351">Recognize</text>
+    </g>
+    <g fill="#C7DFFF" font-size="14" text-anchor="middle">
+      <text x="790" y="376">16 kHz capture</text>
+      <text x="1001" y="376">If supported</text>
+      <text x="1215" y="376">On-device text</text>
+    </g>
+    <path d="M887 292h17m-8-7 8 7-8 7M1099 292h17m-8-7 8 7-8 7" fill="none" stroke="#F0F8FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="708" cy="467" r="7" fill="#7BE0B9"/>
+    <text x="727" y="474" font-size="17" fill="#D8EBFF">Android noise suppression is optional and device-dependent.</text>
+    <text x="694" y="505" font-size="15" fill="#B9D4F7">No second microphone. No network transcription. No active-call recording.</text>
+  </g>
+  <rect x="2" y="2" width="1436" height="616" rx="36" fill="none" stroke="#B5D7FF" stroke-opacity=".2" stroke-width="3"/>
+</svg>
