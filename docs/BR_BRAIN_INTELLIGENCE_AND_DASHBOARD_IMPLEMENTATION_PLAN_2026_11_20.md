@@ -1,5 +1,7 @@
 # BR Brain — Parakeet-era intelligence and dashboard implementation contract
 
+> **Latest owner decision (20 November 2026): planning-only hold for the *next* app-code batch.** Earlier GO produced existing Smart Emoji source candidates, but no further source/model/APK changes are authorized until a fresh GO. The detailed [function-level implementation and benchmark contract](BR_BRAIN_FUNCTIONAL_CODE_LEVEL_IMPLEMENTATION_PLAN_2026_11_20.md) supersedes this document's historical “wait for GO” vs “GO” status notes for subsequent BR Brain work. The bilingual neural model is untrained/unbundled, original Parakeet 110M/sherpa stays, and code-level targets are unproven until exact-SHA CI and Oppo tests.
+
 Date: 20 November 2026 · Project: brrBoard (`Batmancpu/brrrBoard`, `main`) · Status: **PLAN ONLY — WAIT FOR OWNER'S EXPLICIT INTELLIGENCE GO**
 
 ## 0. Owner's decision and freeze line
