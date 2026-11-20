@@ -5,6 +5,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SharedPanelGeometryTest {
+    @Test fun immediateEmojiOpenReclaimsExactSourceRowsOnlyAtMatchingWidth() {
+        assertEquals(520, SharedPanelGeometry.preferCurrentTypingViewport(420, 520, 1080, 1080))
+        assertEquals(420, SharedPanelGeometry.preferCurrentTypingViewport(420, 520, 1080, 980))
+        assertEquals(420, SharedPanelGeometry.preferCurrentTypingViewport(420, 520, 0, 980))
+        assertEquals(420, SharedPanelGeometry.preferCurrentTypingViewport(420, 0, 1080, 1080))
+    }
+
     @Test fun compactEmojiFallsBackToActualSameWidthWrapperOnlyWithoutSavedTypingFrame() {
         assertEquals(490, SharedPanelGeometry.chooseCompactEmojiViewport(490, 520, true))
         assertEquals(520, SharedPanelGeometry.chooseCompactEmojiViewport(0, 520, true))

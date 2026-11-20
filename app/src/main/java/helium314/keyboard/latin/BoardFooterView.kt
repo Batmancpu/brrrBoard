@@ -99,11 +99,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var downY = 0f
     private val screenLocation = IntArray(2)
     private val openShortcuts = Runnable { if (tracking && isShown) showShortcutArc() }
-    // Consume DISJOINT tap PAIRS, never overlapping (1+2, 2+3, 3+4).
-    // This makes rapid double-double taps reverse the morph exactly once.
+    // Dispatch the first Emoji/ABC tap immediately. The next spatially close
+    // tap may still form a disjoint privacy-toggle pair; no 300ms UI wait.
     private val emojiTapTimeoutMs = ViewConfiguration.getDoubleTapTimeout().toLong()
     private val emojiTapSlopPx = ViewConfiguration.get(context).scaledDoubleTapSlop.toFloat()
-    private var pendingEmojiClick: Runnable? = null
+    private var firstEmojiTapRecognized = false
+    private var firstEmojiTapOpenedPanel = false
     private var lastEmojiUpTime = 0L
     private var lastEmojiUpX = 0f
     private var lastEmojiUpY = 0f
@@ -177,8 +178,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     private fun cancelEmojiGesture() {
-        pendingEmojiClick?.let { removeCallbacks(it) }
-        pendingEmojiClick = null
+        firstEmojiTapRecognized = false
+        firstEmojiTapOpenedPanel = false
         secondEmojiTap = false
         emojiButton.isPressed = false
     }
@@ -186,32 +187,34 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private fun emojiTapDown(event: MotionEvent) {
         val elapsed = android.os.SystemClock.uptimeMillis() - lastEmojiUpTime
         secondEmojiTap = FooterEmojiTapPolicy.isSecondTap(
-            pendingEmojiClick != null, elapsed,
+            firstEmojiTapRecognized, elapsed,
             event.rawX - lastEmojiUpX, event.rawY - lastEmojiUpY,
             emojiTapTimeoutMs, emojiTapSlopPx)
-        if (secondEmojiTap) pendingEmojiClick?.let { removeCallbacks(it) }
     }
 
     private fun emojiTapUp(event: MotionEvent) {
-        if (secondEmojiTap) {
-            cancelEmojiGesture()
-            if (returnToLetters) emojiButton.performClick()
-            else toggleFooterIncognito()
-            return
+        when (FooterEmojiTapPolicy.action(secondEmojiTap, firstEmojiTapOpenedPanel)) {
+            FooterEmojiTapPolicy.Action.PRIVACY_AND_RETURN -> {
+                cancelEmojiGesture()
+                // Preserve the original double-tap incognito shortcut, ending
+                // on ABC as before. No delayed first tap or double insertion.
+                toggleFooterIncognito()
+                send(KeyCode.ALPHA)
+                return
+            }
+            FooterEmojiTapPolicy.Action.CONSUME_SECOND -> {
+                cancelEmojiGesture() // ABC already returned on the first UP.
+                return
+            }
+            FooterEmojiTapPolicy.Action.PRIMARY_NOW -> Unit
         }
-        // A second spatially unrelated tap does not steal the first action.
-        // Finish that first pending click before starting the new pair window.
-        pendingEmojiClick?.let { old -> removeCallbacks(old); old.run() }
-        val click = Runnable {
-            pendingEmojiClick = null
-            if (emojiButton.isShown && ViewCompat.isAttachedToWindow(emojiButton))
-                emojiButton.performClick()
-        }
-        pendingEmojiClick = click
+        firstEmojiTapRecognized = true
+        firstEmojiTapOpenedPanel = !returnToLetters
         lastEmojiUpTime = android.os.SystemClock.uptimeMillis()
         lastEmojiUpX = event.rawX
         lastEmojiUpY = event.rawY
-        postDelayed(click, emojiTapTimeoutMs)
+        if (emojiButton.isShown && ViewCompat.isAttachedToWindow(emojiButton))
+            emojiButton.performClick()
     }
 
     private fun toggleFooterIncognito() {

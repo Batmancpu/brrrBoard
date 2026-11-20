@@ -162,6 +162,14 @@ public final class EmojiPalettesView extends LinearLayout
     private EditorInfo mContextSmartEditor;
     private boolean mEmojiGridScrollActive;
     private final SparseIntArray mCategoryScrollRows = new SparseIntArray();
+    private int mTypingViewportHintWidth;
+    private int mTypingViewportHintHeight;
+
+    /** Source-only dimensions captured on the immediate Emoji key transition. */
+    public void setTypingViewportHint(final int widthPx, final int heightPx) {
+        mTypingViewportHintWidth = Math.max(0, widthPx);
+        mTypingViewportHintHeight = Math.max(0, heightPx);
+    }
 
     public EmojiPalettesView(final Context context, final AttributeSet attrs) {
         this(context, attrs, R.attr.emojiPalettesViewStyle);
@@ -233,9 +241,11 @@ public final class EmojiPalettesView extends LinearLayout
             // band ABOVE its fixed header. A same-width, already measured
             // wrapper is a safe secondary viewport source; never use a stale
             // portrait/landscape or one-handed measurement from another width.
-            final int established = helium314.keyboard.latin.SharedPanelGeometry.chooseCompactEmojiViewport(
+            int established = helium314.keyboard.latin.SharedPanelGeometry.chooseCompactEmojiViewport(
                     storedTypingHeight, wrapper.getMeasuredHeight(),
                     panelWidth > 0 && wrapper.getMeasuredWidth() == panelWidth);
+            established = helium314.keyboard.latin.SharedPanelGeometry.preferCurrentTypingViewport(
+                    established, mTypingViewportHintHeight, mTypingViewportHintWidth, panelWidth);
             finalHeight = helium314.keyboard.latin.SharedPanelGeometry.alignCompactEmojiToTypingViewport(
                     finalHeight, established, availableHeight);
         }

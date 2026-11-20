@@ -7,6 +7,14 @@ package helium314.keyboard.latin
  * never to individual Emoji/Clipboard panels.
  */
 object SharedPanelGeometry {
+    /** A source captured at another orientation/width must not stretch Emoji. */
+    @JvmStatic
+    fun preferCurrentTypingViewport(
+        observedPx: Int, sourceHintPx: Int, sourceHintWidthPx: Int, currentWidthPx: Int,
+    ): Int = if (currentWidthPx > 0 && sourceHintWidthPx == currentWidthPx)
+        maxOf(observedPx.coerceAtLeast(0), sourceHintPx.coerceAtLeast(0))
+    else observedPx.coerceAtLeast(0)
+
     /** No guessed pixel offset: reuse only an observed same-width viewport. */
     @JvmStatic
     fun chooseCompactEmojiViewport(

@@ -325,12 +325,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         final View outgoingPanel = getVisibleKeyboardView();
         action.run();
-        if (targetPanel == mKeyboardView
+        if (targetPanel == mEmojiPalettesView
+                || (targetPanel == mKeyboardView
                 && (outgoingPanel == mEmojiPalettesView
-                    || outgoingPanel == mClipboardHistoryView)) {
+                    || outgoingPanel == mClipboardHistoryView))) {
             // The source panel is already hidden by action.run(). Fading the
             // ONLY remaining alphabet from alpha=0 exposes the host backdrop
-            // as a bright flash. The panel has handled its own height shrink.
+            // as a bright flash. Emoji entry is equally direct: don't hold its
+            // category strip at alpha=0 for a second, artificial animation.
             targetPanel.setAlpha(1f);
             return;
         }
@@ -1183,10 +1185,29 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (DEBUG_ACTION) {
             Log.d(TAG, "setEmojiKeyboard");
         }
+        if (mEmojiPalettesView != null && mKeyboardViewWrapper != null
+                && mKeyboardView != null) {
+            // Capture the actual source viewport BEFORE hiding alphabet and
+            // its external strips. A wrap-content/bottom-gravity panel must
+            // reclaim precisely those rows on its very first open, including
+            // OEM layouts where the wrapper's prior onMeasure memory is zero.
+            int typingViewport = mKeyboardView.getMeasuredHeight();
+            if (mStripContainer != null && mStripContainer.getVisibility() == View.VISIBLE)
+                typingViewport += mStripContainer.getMeasuredHeight();
+            if (mPersistentEmojiRowScroll != null
+                    && mPersistentEmojiRowScroll.getVisibility() == View.VISIBLE) {
+                typingViewport += mPersistentEmojiRowScroll.getMeasuredHeight();
+                final View divider = mMainKeyboardFrame == null ? null
+                        : mMainKeyboardFrame.findViewById(R.id.persistent_emoji_row_divider);
+                if (divider != null && divider.getVisibility() == View.VISIBLE)
+                    typingViewport += divider.getMeasuredHeight();
+            }
+            mEmojiPalettesView.setTypingViewportHint(
+                    mKeyboardViewWrapper.getMeasuredWidth(), typingViewport);
+        }
         transitionToPanel(mEmojiPalettesView, new Runnable() {
             @Override
             public void run() {
-                updatePersistentEmojiRow();
                 mMainKeyboardFrame.setVisibility(View.VISIBLE);
                 mKeyboardView.setVisibility(View.GONE);
 
