@@ -90,7 +90,8 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
         setContentView(cv)
         cv.setContent {
             Theme {
-                Surface {
+              SettingsBrandTheme {
+                Surface(color = androidx.compose.material3.MaterialTheme.colorScheme.background) {
                     val dictUri by dictUriFlow.collectAsState()
                     val crashReports by crashReportFiles.collectAsState()
                     val crashFilePicker = filePicker { saveCrashReports(it) }
@@ -148,6 +149,7 @@ open class SettingsActivity : ComponentActivity(), SharedPreferences.OnSharedPre
                         )
                     }
                 }
+              }
             }
         }
 

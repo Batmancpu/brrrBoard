@@ -1380,4 +1380,13 @@ New dictionary:
     <string name="keyboard_highlight_studio_detail">Two delicate reflections</string>
     <string name="keyboard_highlight_quiet">Quiet Edge</string>
     <string name="keyboard_highlight_quiet_detail">Subtle centre highlight</string>
+    <string name="brr_category_visual_material">Theme &amp; material</string>
+    <string name="brr_category_keyboard_geometry">Size &amp; geometry</string>
+    <string name="brr_category_lettering_emoji">Lettering &amp; emoji</string>
+    <string name="brr_category_personal_learning">Personal dictionary &amp; learning</string>
+    <string name="brr_category_advanced_interactions">Advanced interactions</string>
+    <string name="brr_voice_page_title">Offline voice</string>
+    <string name="brr_voice_page_summary">On-device English dictation and model status</string>
+    <string name="brr_brain_page_title">brrBrain learning dashboard</string>
+    <string name="brr_brain_page_summary">Review local swipe corrections and learning activity</string>
 </resources>

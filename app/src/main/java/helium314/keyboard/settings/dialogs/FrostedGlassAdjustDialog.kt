@@ -52,6 +52,7 @@ import helium314.keyboard.latin.utils.prefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.max
 
 
 
@@ -84,12 +85,11 @@ fun FrostedGlassAdjustDialog(
     val contentScrollState = rememberScrollState()
     val density = LocalDensity.current
 
-    // Searchable Appearance shortcut reveals the styles without digging
-    // through all glass sliders; the regular entry still opens at the top.
+    // Retain an accessible deep-link for the legacy reflection-style shortcut.
     LaunchedEffect(startAtHighlight) {
         if (startAtHighlight) {
-            kotlinx.coroutines.delay(420)
-            contentScrollState.animateScrollTo(with(density) { 210.dp.roundToPx() })
+            kotlinx.coroutines.delay(150)
+            contentScrollState.animateScrollTo(with(density) { 175.dp.roundToPx() })
         }
     }
 
@@ -130,6 +130,7 @@ fun FrostedGlassAdjustDialog(
     // 2. The temporary live state for the sliders
     var snapshot by remember { mutableStateOf(initialSnapshot) }
     var isSaved by remember { mutableStateOf(false) }
+    var previewTouched by remember { mutableStateOf(false) }
     // Edge reflection is previewed on the real open IME, and rolled back on Cancel.
     val initialHighlightStyle = remember {
         prefs.getInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
@@ -139,6 +140,8 @@ fun FrostedGlassAdjustDialog(
 
     fun previewHighlightStyle(style: Int) {
         selectedHighlightStyle = style.coerceIn(0, 3)
+        if (selectedHighlightStyle == initialHighlightStyle && !previewTouched) return
+        previewTouched = true
         prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
             selectedHighlightStyle).apply()
         // RoundedKeyboardFrameView observes this preference and redraws
@@ -150,6 +153,7 @@ fun FrostedGlassAdjustDialog(
         profile: FrostedProfileSnapshot,
         dustEnabled: Boolean = snapshot.dustEnabled
     ) {
+        previewTouched = true
         KeyboardTheme.livePreviewValues = FrostedLiveValues(
             blurRadius = profile.blurRadius,
             keyTransparency = profile.keyTransparency,
@@ -222,26 +226,28 @@ fun FrostedGlassAdjustDialog(
         onDispose {
             helium314.keyboard.settings.SettingsActivity.isTopBarHidden = false
             if (!isSaved) {
-                // User cancelled or dismissed! Roll back preferences to the snapshot
-                writeSnapshotToPrefs(initialSnapshot)
-                prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
-                    initialHighlightStyle).apply()
+                // Sliders were staged: only the temporarily previewed reflection
+                // style touched preferences. Never write all other keys on Cancel.
+                if (selectedHighlightStyle != initialHighlightStyle)
+                    prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+                        initialHighlightStyle).apply()
             }
             
             // Clear spoofing state
             KeyboardTheme.themeOverride = null
             KeyboardTheme.livePreviewValues = null
             
-            // Final catch-up refresh to sync keyboard with restored/final state
-            requestFinalFrostedSync()
+            // Avoid a destructive keyboard-theme rebuild when the sheet was only opened.
+            if (previewTouched || isSaved) requestFinalFrostedSync()
         }
     }
 
     val testFieldState = rememberTextFieldState("", TextRange(0))
 
-    var selectedImageUri by remember { 
+    val initialImageUriString = remember { prefs.getString("pref_frosted_preview_wallpaper_uri", null) }
+    var selectedImageUri by remember {
         mutableStateOf(
-            prefs.getString("pref_frosted_preview_wallpaper_uri", null)?.let { 
+            initialImageUriString?.let {
                 try { android.net.Uri.parse(it) } catch (e: Throwable) { null }
             }
         ) 
@@ -253,29 +259,30 @@ fun FrostedGlassAdjustDialog(
     }
 
     LaunchedEffect(selectedImageUri) {
-        if (selectedImageUri != null) {
+        val uri = selectedImageUri
+        if (uri != null) {
             val bitmap = withContext(Dispatchers.IO) {
                 try {
-                    context.contentResolver.openInputStream(selectedImageUri!!)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)?.let { bmp ->
-                            bmp.asImageBitmap()
-                        }
-                    }
+                    // Two bounded passes prevent a 50 MP wallpaper from allocating
+                    // hundreds of megabytes just to fill a small live-preview sheet.
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                    var sample = 1
+                    while (max(bounds.outWidth / sample, bounds.outHeight / sample) > 1440) sample *= 2
+                    val options = BitmapFactory.Options().apply { inSampleSize = sample; inPreferredConfig = android.graphics.Bitmap.Config.RGB_565 }
+                    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options)?.asImageBitmap() }
                 } catch (e: Throwable) {
                     null
                 }
             }
             if (bitmap != null) {
                 wallpaperBitmap = bitmap
-                prefs.edit().putString("pref_frosted_preview_wallpaper_uri", selectedImageUri!!.toString()).commit()
             } else {
                 selectedImageUri = null
                 wallpaperBitmap = null
-                prefs.edit().remove("pref_frosted_preview_wallpaper_uri").commit()
             }
         } else {
             wallpaperBitmap = null
-            prefs.edit().remove("pref_frosted_preview_wallpaper_uri").commit()
         }
     }
 
@@ -293,9 +300,9 @@ fun FrostedGlassAdjustDialog(
 
     val panelShape = MaterialTheme.shapes.extraLarge
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val panelTint = remember(surfaceColor) { surfaceColor.copy(alpha = 0.55f) }
+    val panelTint = remember(surfaceColor) { surfaceColor.copy(alpha = 0.78f) }
     val dialogHazeStyle = remember(panelTint) {
-        HazeStyle(blurRadius = 18.dp, tint = panelTint)
+        HazeStyle(blurRadius = 22.dp, tint = panelTint)
     }
 
     Box(
@@ -374,11 +381,12 @@ fun FrostedGlassAdjustDialog(
                             .verticalScroll(contentScrollState)
                             .padding(20.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.theme_frosted_glass_settings_header),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
+                        Text("Glass Studio", style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text("Fine-tune the keyboard against a real background. Changes stay in preview until you save.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 5.dp, bottom = 18.dp))
 
                         // Theme Profile Selector
                         TabRow(
@@ -396,7 +404,7 @@ fun FrostedGlassAdjustDialog(
                                         applyLivePreview(snapshot.light)
                                     }
                                 },
-                                text = { Text("Light Profile") }
+                                text = { Text("Light") }
                             )
                             Tab(
                                 selected = activeProfile == "dark",
@@ -407,7 +415,7 @@ fun FrostedGlassAdjustDialog(
                                         applyLivePreview(snapshot.dark)
                                     }
                                 },
-                                text = { Text("Dark Profile") }
+                                text = { Text("Dark") }
                             )
                         }
 
@@ -427,6 +435,8 @@ fun FrostedGlassAdjustDialog(
                             lineLimits = TextFieldLineLimits.SingleLine,
                         )
 
+                        Text("Light & reflection", style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -523,7 +533,8 @@ fun FrostedGlassAdjustDialog(
                                         .background(MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text("🖼️", style = MaterialTheme.typography.bodyLarge)
+                                    Text("wallpaper", fontFamily = helium314.keyboard.settings.materialSymbols,
+                                        style = MaterialTheme.typography.titleMedium)
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
@@ -565,6 +576,8 @@ fun FrostedGlassAdjustDialog(
                             }
                         }
 
+                        Text("Clarity", style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
                         // Slider 1: Blur Radius
                         Column(modifier = Modifier.padding(vertical = 8.dp)) {
                             Text(
@@ -610,6 +623,8 @@ fun FrostedGlassAdjustDialog(
                             )
                         }
 
+                        Text("Color & contrast", style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
                         // Slider 4: Wallpaper Color Blend
                         Column(modifier = Modifier.padding(vertical = 8.dp)) {
                             Text(
@@ -671,6 +686,8 @@ fun FrostedGlassAdjustDialog(
                         }
 
                         if (!Defaults.LIMIT_EXPENSIVE_RENDERING) {
+                            Text("Surface detail", style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -769,7 +786,7 @@ fun FrostedGlassAdjustDialog(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp),
+                                    .height(48.dp),
                                 shape = RoundedCornerShape(percent = 50),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
@@ -790,7 +807,7 @@ fun FrostedGlassAdjustDialog(
                                 onClick = onDismissRequest,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp),
+                                    .height(48.dp),
                                 shape = RoundedCornerShape(percent = 50),
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -806,13 +823,20 @@ fun FrostedGlassAdjustDialog(
 
                             Button(
                                 onClick = {
-                                    isSaved = true
                                     writeSnapshotToPrefs(snapshot)
+                                    prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
+                                        selectedHighlightStyle).apply()
+                                    if (selectedImageUri == null)
+                                        prefs.edit().remove("pref_frosted_preview_wallpaper_uri").apply()
+                                    else
+                                        prefs.edit().putString("pref_frosted_preview_wallpaper_uri",
+                                            selectedImageUri.toString()).apply()
+                                    isSaved = true
                                     onDismissRequest()
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp),
+                                    .height(48.dp),
                                 shape = RoundedCornerShape(percent = 50),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,

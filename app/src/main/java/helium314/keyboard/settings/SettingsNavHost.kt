@@ -34,6 +34,12 @@ import helium314.keyboard.settings.screens.SecondaryLayoutScreen
 import helium314.keyboard.settings.screens.SubtypeScreen
 import helium314.keyboard.settings.screens.TextCorrectionScreen
 import helium314.keyboard.settings.screens.ToolbarScreen
+import helium314.keyboard.settings.screens.KeysLayoutScreen
+import helium314.keyboard.settings.screens.SoundFeedbackScreen
+import helium314.keyboard.settings.screens.ClipboardSettingsScreen
+import helium314.keyboard.settings.screens.PrivacySettingsScreen
+import helium314.keyboard.settings.screens.BackupSettingsScreen
+import helium314.keyboard.settings.screens.VoiceSettingsScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,7 +58,7 @@ fun SettingsNavHost(
     val target = SettingsDestination.navTarget.collectAsState()
 
     // duration does not change when system setting changes, but that's rare enough to not care
-    val duration = (250 * getTransitionAnimationScale(LocalContext.current)).toInt()
+    val duration = (220 * getTransitionAnimationScale(LocalContext.current)).toInt().coerceAtLeast(0)
     val animation = tween<IntOffset>(durationMillis = duration)
 
     fun goBack() {
@@ -81,6 +87,12 @@ fun SettingsNavHost(
                 onClickLayouts = { navController.navigate(SettingsDestination.Layouts) },
                 onClickDictionaries = { navController.navigate(SettingsDestination.Dictionaries) },
                 onClickWelcomeWizard = { navController.navigate(SettingsDestination.WelcomeWizard) },
+                onClickKeys = { navController.navigate(SettingsDestination.Keys) },
+                onClickSound = { navController.navigate(SettingsDestination.Sound) },
+                onClickClipboard = { navController.navigate(SettingsDestination.Clipboard) },
+                onClickPrivacy = { navController.navigate(SettingsDestination.Privacy) },
+                onClickBackup = { navController.navigate(SettingsDestination.Backup) },
+                onClickVoice = { navController.navigate(SettingsDestination.Voice) },
                 onClickBack = ::goBack,
             )
         }
@@ -93,6 +105,12 @@ fun SettingsNavHost(
         composable(SettingsDestination.Preferences) {
             PreferencesScreen(onClickBack = ::goBack)
         }
+        composable(SettingsDestination.Keys) { KeysLayoutScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Sound) { SoundFeedbackScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Voice) { VoiceSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Toolbar) {
             ToolbarScreen(onClickBack = ::goBack)
         }
@@ -168,6 +186,12 @@ object SettingsDestination {
     const val About = "about"
     const val TextCorrection = "text_correction"
     const val Preferences = "preferences"
+    const val Keys = "keys_layout"
+    const val Sound = "sound_feedback"
+    const val Clipboard = "clipboard"
+    const val Privacy = "privacy"
+    const val Backup = "backup"
+    const val Voice = "voice"
     const val Toolbar = "toolbar"
     const val GestureTyping = "gesture_typing"
     const val BrainDashboard = "brain_dashboard"

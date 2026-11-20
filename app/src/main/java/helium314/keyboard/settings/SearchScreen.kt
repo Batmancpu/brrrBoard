@@ -67,6 +67,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
@@ -88,6 +90,7 @@ import helium314.keyboard.latin.utils.BackButton
 import helium314.keyboard.latin.utils.CloseIcon
 import helium314.keyboard.latin.utils.SearchIcon
 import helium314.keyboard.settings.preferences.PreferenceCategory
+import helium314.keyboard.settings.preferences.Preference
 
 val LocalHazeState = staticCompositionLocalOf<HazeState> { error("No HazeState provided") }
 val LocalSearchInnerPadding = staticCompositionLocalOf<PaddingValues> { PaddingValues(0.dp) }
@@ -101,7 +104,7 @@ data class SearchState(
 )
 val LocalSearchState = staticCompositionLocalOf<SearchState?> { null }
 
-val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 1f))))
+val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 0f), FontVariation.Setting("wght", 400f))))
 
 val googleSansFlex = FontFamily(
     Font(R.font.google_sans_flex, weight = FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400), FontVariation.Setting("ROND", 100f))),
@@ -120,6 +123,8 @@ fun SearchSettingsScreen(
     filteredItems: ((String) -> List<Setting>)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null // overrides settings if not null
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     SearchScreen(
         onClickBack = onClickBack,
         hideTopSearchBar = hideTopSearchBar,
@@ -138,7 +143,21 @@ fun SearchSettingsScreen(
             }
         },
         filteredItems = filteredItems ?: { SettingsActivity.settingsContainer.filter(it) },
-        itemContent = { it.Preference() }
+        itemContent = { setting ->
+            val destination = SettingsActivity.settingsContainer.routeFor(setting.key)
+            val context = SettingsActivity.settingsContainer.breadcrumbFor(setting.key)
+            Preference(
+                name = setting.title,
+                description = if (setting.description.isNullOrBlank()) context else "$context · ${setting.description}",
+                onClick = {
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                    SettingsDestination.navigateTo(destination)
+                },
+            ) {
+                Text("chevron_right", fontFamily = materialSymbols, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     )
 }
 
@@ -172,7 +191,7 @@ fun <T: Any?> SearchScreen(
     }
     
     val isDark = isSystemInDarkTheme()
-    val scaffoldBg = if (isDark) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainer
+    val scaffoldBg = MaterialTheme.colorScheme.background
     val topBarBg = MaterialTheme.colorScheme.surface
     
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -216,12 +235,12 @@ fun <T: Any?> SearchScreen(
                 contentWindowInsets = WindowInsets(0),
                 topBar = {
                     val topBarHazeStyle = remember(topBarBg) {
-                        HazeStyle(blurRadius = 16.dp, tint = topBarBg.copy(alpha = 0.3f))
+                        HazeStyle(blurRadius = 14.dp, tint = topBarBg.copy(alpha = 0.76f))
                     }
                     AnimatedVisibility(
                         visible = !SettingsActivity.isTopBarHidden && SettingsActivity.activeOverlay == null,
-                        enter = fadeIn(animationSpec = tween(350)) + slideInVertically(initialOffsetY = { -it }, animationSpec = tween(350)),
-                        exit = fadeOut(animationSpec = tween(350)) + slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(350))
+                        enter = fadeIn(animationSpec = tween(180)) + slideInVertically(initialOffsetY = { -it }, animationSpec = tween(180)),
+                        exit = fadeOut(animationSpec = tween(180)) + slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(180))
                     ) {
                     Box {
                         if (isBlurSupported) {
@@ -241,7 +260,7 @@ fun <T: Any?> SearchScreen(
                         Column(
                             modifier = Modifier.layout { measurable, constraints ->
                                 val fraction = scrollBehavior.state.collapsedFraction
-                                val bottomPadding = (32.dp.toPx() * (1f - fraction)).roundToInt()
+                                val bottomPadding = (18.dp.toPx() * (1f - fraction)).roundToInt()
                                 val placeable = measurable.measure(constraints)
                                 layout(placeable.width, placeable.height + bottomPadding) {
                                     placeable.placeRelative(0, 0)
@@ -254,8 +273,8 @@ fun <T: Any?> SearchScreen(
                                 typography = MaterialTheme.typography.copy(
                                     headlineMedium = MaterialTheme.typography.headlineMedium.copy(
                                         fontFamily = googleSansFlex,
-                                        fontSize = 36.sp,
-                                        lineHeight = 44.sp,
+                                        fontSize = 34.sp,
+                                        lineHeight = 42.sp,
                                         fontWeight = FontWeight.Medium
                                     ),
                                     titleLarge = MaterialTheme.typography.titleLarge.copy(
@@ -271,7 +290,7 @@ fun <T: Any?> SearchScreen(
                                                 .padding(start = 12.dp)
                                                 .layout { measurable, constraints ->
                                                     val fraction = scrollBehavior.state.collapsedFraction
-                                                    val topPadding = (40.dp.toPx() * (1f - fraction)).roundToInt()
+                                                    val topPadding = (20.dp.toPx() * (1f - fraction)).roundToInt()
                                                     val placeable = measurable.measure(constraints)
                                                     layout(placeable.width, placeable.height + topPadding) {
                                                         placeable.placeRelative(0, topPadding)
@@ -367,6 +386,16 @@ fun <T: Any?> SearchScreen(
 
                         if (isSearching || content == null) {
                             val items = filteredItems(searchText.text)
+                            if (isSearching && items.isEmpty()) {
+                                item(key = "empty_search") {
+                                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 30.dp)) {
+                                        Text("No matching settings", style = MaterialTheme.typography.titleMedium)
+                                        Text("Try a feature or related word, such as glass, swipe, privacy or clipboard.",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 8.dp))
+                                    }
+                                }
+                            }
                             if (itemKey == null) {
                                 items(items) { itemContent(it) }
                             } else {
@@ -439,7 +468,7 @@ fun StaticSearchField(
                 }
             }
         },
-        placeholder = { Text("Search Settings") },
+        placeholder = { Text("Search settings and features") },
         singleLine = true,
         colors = colors,
         textStyle = contentTextDirectionStyle,

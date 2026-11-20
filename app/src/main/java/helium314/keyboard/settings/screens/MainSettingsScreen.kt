@@ -73,12 +73,19 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.compositeOver
 import dev.chrisbanes.haze.haze
 import helium314.keyboard.settings.LocalHazeState
@@ -106,7 +113,7 @@ import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.latin.utils.previewDark
 
-val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 1f))))
+val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 0f), FontVariation.Setting("wght", 400f))))
 
 @Composable
 fun MainSettingsScreen(
@@ -122,6 +129,12 @@ fun MainSettingsScreen(
     onClickLayouts: () -> Unit,
     onClickDictionaries: () -> Unit,
     onClickWelcomeWizard: () -> Unit,
+    onClickKeys: () -> Unit,
+    onClickSound: () -> Unit,
+    onClickClipboard: () -> Unit,
+    onClickPrivacy: () -> Unit,
+    onClickBackup: () -> Unit,
+    onClickVoice: () -> Unit,
     onClickBack: () -> Unit,
 ) {
     SearchSettingsScreen(
@@ -152,137 +165,145 @@ fun MainSettingsScreen(
         val enabledSubtypeNames = remember(enabledSubtypes) {
             enabledSubtypes.joinToString(", ") { it.displayName() }
         }
-        val isGestureComplete = remember(b?.value) {
-            val gesturePrefs = listOf("pref_gesture_input", "pref_gesture_space_after")
-            gesturePrefs.any { ctx.prefs().getBoolean(it, true) }
+        // Android's actual keyboard enable/default state is the only setup criterion.
+        // Optional swipe typing or dictionary preferences are not unfinished setup.
+        val imm = remember(ctx) { ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager }
+        fun ready() = UncachedInputMethodManagerUtils.isThisImeEnabled(ctx, imm) &&
+            UncachedInputMethodManagerUtils.isThisImeCurrent(ctx, imm)
+        var isImeReady by remember { mutableStateOf(ready()) }
+        val owner = LocalLifecycleOwner.current
+        androidx.compose.runtime.DisposableEffect(owner, ctx) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) isImeReady = ready()
+            }
+            owner.lifecycle.addObserver(observer)
+            onDispose { owner.lifecycle.removeObserver(observer) }
         }
-        val isDictionaryComplete = remember(b?.value) {
-            ctx.prefs().getBoolean("pref_enable_next_word_suggestions", true)
-        }
-        val allStepsComplete = isGestureComplete && isDictionaryComplete
-        val isDismissed = remember(b?.value) {
-            ctx.prefs().getBoolean("pref_quick_setup_dismissed", false)
+        if (!isImeReady) {
+            Md3ePreferenceGroup("Finish setup") {
+                Md3ePreference(
+                    icon = "keyboard",
+                    title = "Enable brrBoard",
+                    description = "Choose brrBoard as your default keyboard to finish setup",
+                    onClick = onClickWelcomeWizard,
+                    isFirst = true,
+                    isLast = true
+                )
+            }
         }
 
-        if (!isDismissed || !allStepsComplete) {
-            QuickSetupCard(
-                onClickGestureTyping = onClickGestureTyping,
-                onClickDictionaries = onClickDictionaries,
-                onDismiss = {
-                    ctx.prefs().edit().putBoolean("pref_quick_setup_dismissed", true).apply()
-                },
-                isGestureComplete = isGestureComplete,
-                isDictionaryComplete = isDictionaryComplete,
-                allStepsComplete = allStepsComplete
+        Md3ePreferenceGroup("Make it yours") {
+            Md3ePreference(
+                icon = "palette",
+                title = "Appearance & glass",
+                description = "Themes, frosted glass and visual details",
+                onClick = onClickAppearance,
+                isFirst = true
             )
-        }
-
-        Md3ePreferenceGroup("General") {
             Md3ePreference(
                 icon = "language",
                 title = stringResource(R.string.language_and_layouts_title),
                 description = enabledSubtypeNames,
-                onClick = onClickLanguage,
-                isFirst = true
+                onClick = onClickLanguage
             )
             Md3ePreference(
-                icon = "tune",
-                title = stringResource(R.string.settings_screen_preferences),
-                description = "Keypress sound, vibration, and general behavior",
-                onClick = onClickPreferences
-            )
-            Md3ePreference(
-                icon = "palette",
-                title = stringResource(R.string.settings_screen_appearance),
-                description = "Theme, keyboard height, and visual styles",
-                onClick = onClickAppearance
+                icon = "keyboard",
+                title = "Keys & layout",
+                description = "Number row, key hints, spacing and shortcuts",
+                onClick = onClickKeys
             )
             Md3ePreference(
                 icon = R.drawable.ic_board_toolbar,
-                title = stringResource(R.string.settings_screen_toolbar),
-                description = "Customize the toolbar layout and pinned buttons",
+                title = "Toolbar",
+                description = "Buttons, shortcuts and suggestion bar",
                 onClick = onClickToolbar,
                 isLast = true
             )
         }
-        
-        Md3ePreferenceGroup("Typing & input") {
+
+        Md3ePreferenceGroup("Typing") {
             Md3ePreference(
-                icon = "insights",
-                title = "brrBrain learning dashboard",
-                description = "Actual swipe learning, correction history and Emoji usage",
-                onClick = onClickBrainDashboard,
+                icon = "spellcheck",
+                title = "Correction & suggestions",
+                description = "Autocorrect, predictions and smart spacing",
+                onClick = onClickTextCorrection,
                 isFirst = true
             )
             Md3ePreference(
                 icon = "gesture",
-                title = stringResource(R.string.settings_screen_gesture),
-                description = if (JniUtils.sHaveGestureLib) "Swipe typing, trail colors, and gesture actions" else stringResource(R.string.gesture_not_loaded_summary),
+                title = "Swipe typing",
+                description = if (JniUtils.sHaveGestureLib) "Gesture input, trails and swipe behavior" else stringResource(R.string.gesture_not_loaded_summary),
                 onClick = onClickGestureTyping
             )
             Md3ePreference(
-                icon = "spellcheck",
-                title = stringResource(R.string.settings_screen_correction),
-                description = "Autocorrect, block offensive words, and spacing",
-                onClick = onClickTextCorrection
-            )
-            Md3ePreference(
-                icon = "keyboard",
-                title = stringResource(R.string.settings_screen_secondary_layouts),
-                description = "Number row, symbols, and alternative characters",
-                onClick = onClickLayouts
-            )
-            Md3ePreference(
                 icon = "dictionary",
-                title = stringResource(R.string.dictionary_settings_category),
-                description = "Word suggestions, emoji prediction, and personal dictionary",
+                title = "Dictionary & learning",
+                description = "Personal words, dictionaries and brrBrain insights",
                 onClick = onClickDictionaries,
                 isLast = true
             )
         }
-        
-        Md3ePreferenceGroup("More") {
+
+        Md3ePreferenceGroup("Everyday tools") {
             Md3ePreference(
-                icon = "mic",
-                title = "Private offline English dictation",
-                description = if (offlineVoiceReady)
-                    "Ready · Tap mic to record, tap again to transcribe privately in English"
-                else when (offlineInstallState) {
-                    VoiceModelInstaller.InstallState.INSTALLING ->
-                        "Installing offline model · $offlineInstallPercent% · Keep brrBoard open"
-                    VoiceModelInstaller.InstallState.FAILED ->
-                        "Bundled voice-model setup failed · Tap to retry"
-                    else -> "Bundled English model is preparing · Open brrBoard once after updating"
-                },
-                onClick = {
-                    if (offlineInstallState == VoiceModelInstaller.InstallState.FAILED) {
-                        voiceInstallScope.launch(Dispatchers.IO) {
-                            VoiceModelInstaller.installBundledIfPresent(ctx)
-                        }
-                    }
-                    offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx)
-                    offlineInstallState = VoiceModelInstaller.installState
-                    offlineInstallPercent = VoiceModelInstaller.installPercent
-                },
+                icon = "graphic_eq",
+                title = "Sound & haptics",
+                description = "Keypress feedback, vibration and volume",
+                onClick = onClickSound,
                 isFirst = true
             )
             Md3ePreference(
-                icon = "discover_tune",
-                title = stringResource(R.string.settings_screen_advanced),
-                description = "Debug settings, clipboard, and experimental features",
-                onClick = onClickAdvanced,
-                isFirst = false
+                icon = "content_paste",
+                title = "Clipboard",
+                description = "History, screenshots and retention",
+                onClick = onClickClipboard
             )
             Md3ePreference(
-                icon = "flag",
-                title = stringResource(R.string.settings_screen_setup_wizard),
-                description = stringResource(R.string.settings_screen_setup_wizard_summary),
-                onClick = onClickWelcomeWizard
+                icon = "mic",
+                title = "Offline voice",
+                description = if (offlineVoiceReady)
+                    "Ready for on-device English dictation"
+                else when (offlineInstallState) {
+                    VoiceModelInstaller.InstallState.INSTALLING ->
+                        "Preparing on-device model · $offlineInstallPercent%"
+                    VoiceModelInstaller.InstallState.FAILED ->
+                        "Voice model unavailable · Check status"
+                    else -> "Check local model availability and permissions"
+                },
+                onClick = onClickVoice,
+                isLast = true
+            )
+        }
+
+        Md3ePreferenceGroup("Privacy & data") {
+            Md3ePreference(
+                icon = "shield",
+                title = "Privacy & protected apps",
+                description = "Incognito behavior and app-specific protection",
+                onClick = onClickPrivacy,
+                isFirst = true
+            )
+            Md3ePreference(
+                icon = "backup",
+                title = "Backup & restore",
+                description = "Safeguard your settings and dictionaries",
+                onClick = onClickBackup,
+                isLast = true
+            )
+        }
+
+        Md3ePreferenceGroup("More") {
+            Md3ePreference(
+                icon = "tune",
+                title = "Advanced controls",
+                description = "Detailed behavior, compatibility and diagnostics",
+                onClick = onClickAdvanced,
+                isFirst = true
             )
             Md3ePreference(
                 icon = R.drawable.mangoloads_brand_small,
-                title = stringResource(R.string.settings_screen_about),
-                description = "App version, licenses, and privacy policy",
+                title = "About brrBoard",
+                description = "Version, privacy, licenses and setup help",
                 onClick = onClickAbout,
                 brandIcon = true,
                 isLast = true
@@ -298,12 +319,12 @@ fun Md3ePreferenceGroup(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 18.dp, bottom = 8.dp)
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 12.dp, bottom = 10.dp, top = 4.dp)
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -324,14 +345,13 @@ fun Md3ePreference(
     brandIcon: Boolean = false,
 ) {
     val shape = RoundedCornerShape(
-        topStart = if (isFirst) 24.dp else 4.dp,
-        topEnd = if (isFirst) 24.dp else 4.dp,
-        bottomStart = if (isLast) 24.dp else 4.dp,
-        bottomEnd = if (isLast) 24.dp else 4.dp,
+        topStart = if (isFirst) 19.dp else 5.dp,
+        topEnd = if (isFirst) 19.dp else 5.dp,
+        bottomStart = if (isLast) 19.dp else 5.dp,
+        bottomEnd = if (isLast) 19.dp else 5.dp,
     )
     
-    val isDark = isSystemInDarkTheme()
-    val cardColor = if (isDark) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surface
+    val cardColor = MaterialTheme.colorScheme.surface
     
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -340,15 +360,15 @@ fun Md3ePreference(
             .clip(shape)
             .background(cardColor)
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = 15.dp, vertical = 15.dp)
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(40.dp)
+                .size(42.dp)
                 .background(
                     if (brandIcon) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-                    RoundedCornerShape(20.dp)
+                    RoundedCornerShape(13.dp)
                 )
         ) {
             if (brandIcon && icon is Int) {
@@ -356,14 +376,15 @@ fun Md3ePreference(
                 Image(
                     painter = painterResource(id = icon),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(42.dp),
                 )
             } else if (icon is String) {
                 Text(
                     text = icon,
                     fontFamily = materialSymbols,
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    fontSize = 23.sp,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.clearAndSetSemantics { }
                 )
             } else if (icon is Int) {
                 Icon(
@@ -374,17 +395,17 @@ fun Md3ePreference(
                 )
             }
         }
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface
             )
             if (description != null) {
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -653,7 +674,14 @@ private fun PreviewScreen() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            MainSettingsScreen({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            MainSettingsScreen(
+                onClickAbout = {}, onClickTextCorrection = {}, onClickPreferences = {},
+                onClickToolbar = {}, onClickGestureTyping = {}, onClickBrainDashboard = {},
+                onClickAdvanced = {}, onClickAppearance = {}, onClickLanguage = {},
+                onClickLayouts = {}, onClickDictionaries = {}, onClickWelcomeWizard = {},
+                onClickKeys = {}, onClickSound = {}, onClickClipboard = {},
+                onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {}, onClickBack = {}
+            )
         }
     }
 }

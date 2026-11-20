@@ -48,6 +48,7 @@ import helium314.keyboard.latin.utils.htmlToAnnotated
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.withHtmlLink
 import helium314.keyboard.settings.SearchScreen
+import helium314.keyboard.settings.SettingsDestination
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.DictionaryDialog
@@ -122,6 +123,16 @@ fun DictionaryScreen(
         itemContent = { locale -> DictionaryItem(locale) }
     ) {
         val context = LocalContext.current
+        Md3ePreferenceGroup("Local learning") {
+            Md3ePreference(
+                icon = "insights",
+                title = "brrBrain learning dashboard",
+                description = "Review on-device swipe corrections and learning activity",
+                onClick = { SettingsDestination.navigateTo(SettingsDestination.BrainDashboard) },
+                isFirst = true,
+                isLast = true
+            )
+        }
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)

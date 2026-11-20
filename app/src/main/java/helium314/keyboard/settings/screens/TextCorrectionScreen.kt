@@ -61,8 +61,6 @@ fun TextCorrectionScreen(
     val suggestionsEnabled = suggestionsVisible && prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS)
     val gestureEnabled = JniUtils.sHaveGestureLib && prefs.getBoolean(Settings.PREF_GESTURE_INPUT, Defaults.PREF_GESTURE_INPUT)
     val items = listOf(
-        SettingsWithoutKey.EDIT_PERSONAL_DICTIONARY,
-        SettingsWithoutKey.CLEAR_LEARNED_TYPING_HISTORY,
         R.string.settings_category_correction,
         Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE,
         Settings.PREF_AUTO_CORRECTION,
@@ -71,13 +69,6 @@ fun TextCorrectionScreen(
         if (autocorrectEnabled) Settings.PREF_AUTO_CORRECT_THRESHOLD else null,
         if (autocorrectEnabled) Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT else null,
         Settings.PREF_AUTO_CAP,
-        R.string.settings_category_space,
-        Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD,
-        Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION,
-        Settings.PREF_AUTOSPACE_AFTER_SUGGESTION,
-        if (gestureEnabled) Settings.PREF_AUTOSPACE_BEFORE_GESTURE_TYPING else null,
-        if (gestureEnabled) Settings.PREF_AUTOSPACE_AFTER_GESTURE_TYPING else null,
-        Settings.PREF_SHIFT_REMOVES_AUTOSPACE,
         R.string.settings_category_suggestions,
         if (suggestionsVisible) Settings.PREF_SHOW_SUGGESTIONS else null,
         if (suggestionsEnabled) Settings.PREF_ALWAYS_SHOW_SUGGESTIONS else null,
@@ -100,6 +91,16 @@ fun TextCorrectionScreen(
             Settings.PREF_ADD_TO_PERSONAL_DICTIONARY else null,
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             Settings.PREF_SPELLCHECK_SUGGEST else null,
+        R.string.settings_category_space,
+        Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD,
+        Settings.PREF_AUTOSPACE_AFTER_PUNCTUATION,
+        Settings.PREF_AUTOSPACE_AFTER_SUGGESTION,
+        if (gestureEnabled) Settings.PREF_AUTOSPACE_BEFORE_GESTURE_TYPING else null,
+        if (gestureEnabled) Settings.PREF_AUTOSPACE_AFTER_GESTURE_TYPING else null,
+        Settings.PREF_SHIFT_REMOVES_AUTOSPACE,
+        R.string.brr_category_personal_learning,
+        SettingsWithoutKey.EDIT_PERSONAL_DICTIONARY,
+        SettingsWithoutKey.CLEAR_LEARNED_TYPING_HISTORY,
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,

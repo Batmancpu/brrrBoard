@@ -51,18 +51,17 @@ fun AppearanceScreen(
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
     val isFrostedActive = helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(ctx)
     val items = listOf(
-        R.string.settings_screen_theme,
+        R.string.brr_category_visual_material,
         Settings.PREF_MOTION_PROFILE,
         Settings.PREF_THEME_ACTION_TINT,
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
-        if (isFrostedActive) "keyboard_glass_highlight_dialog" else null,
-        Settings.PREF_EMOJI_GLASS_TONE,
+        // Reflection styles now live inside Glass Studio, not in a duplicate dialog row.
         SettingsWithoutKey.BACKGROUND_IMAGE,
         SettingsWithoutKey.BACKGROUND_IMAGE_LANDSCAPE,
+        R.string.brr_category_keyboard_geometry,
         Settings.PREF_KEYBOARD_CORNER_RADIUS,
-        R.string.settings_category_miscellaneous,
         Settings.PREF_ENABLE_SPLIT_KEYBOARD,
         if (prefs.getBoolean(Settings.PREF_ENABLE_SPLIT_KEYBOARD_LANDSCAPE, Defaults.PREF_ENABLE_SPLIT_KEYBOARD)
             || prefs.getBoolean(Settings.PREF_ENABLE_SPLIT_KEYBOARD, Defaults.PREF_ENABLE_SPLIT_KEYBOARD)
@@ -77,6 +76,7 @@ fun AppearanceScreen(
         Settings.PREF_BOTTOM_PADDING_SCALE_PREFIX,
         Settings.PREF_SIDE_PADDING_SCALE_PREFIX,
         Settings.PREF_SPACE_BAR_TEXT,
+        R.string.brr_category_lettering_emoji,
         SettingsWithoutKey.CUSTOM_FONT,
         Settings.PREF_FONT_SCALE,
         SettingsWithoutKey.CUSTOM_EMOJI_FONT,
@@ -87,6 +87,7 @@ fun AppearanceScreen(
         if (prefs.getInt(Settings.PREF_EMOJI_MAX_SDK, 0) >= 24)
             Settings.PREF_EMOJI_SKIN_TONE else null,
         Settings.PREF_PERSISTENT_EMOJI_ROW,
+        Settings.PREF_EMOJI_GLASS_TONE,
     )
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {

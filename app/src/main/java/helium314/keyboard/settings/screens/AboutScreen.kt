@@ -54,6 +54,7 @@ fun AboutScreen(
     val items = listOf(
         SettingsWithoutKey.APP,
         SettingsWithoutKey.VERSION,
+        SettingsWithoutKey.SETUP_WIZARD,
         SettingsWithoutKey.MANGOLOADS,
         SettingsWithoutKey.GITHUB,
         SettingsWithoutKey.STAR_REPOSITORY,
@@ -73,6 +74,14 @@ fun AboutScreen(
 }
 
 fun createAboutSettings(context: Context) = listOf(
+    Setting(context, SettingsWithoutKey.SETUP_WIZARD,
+        R.string.settings_screen_setup_wizard, R.string.settings_screen_setup_wizard_summary) {
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = { helium314.keyboard.settings.SettingsDestination.navigateTo(helium314.keyboard.settings.SettingsDestination.WelcomeWizard) }
+        )
+    },
     Setting(context, SettingsWithoutKey.APP, R.string.english_ime_name, R.string.app_slogan) {
         Preference(
             name = it.title,

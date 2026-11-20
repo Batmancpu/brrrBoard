@@ -39,11 +39,11 @@ fun PreferenceCategory(
     modifier: Modifier = Modifier,
 ) {
     Column {
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Text(
             text = title,
-            modifier = modifier.padding(top = 12.dp, start = 16.dp, end = 8.dp, bottom = 8.dp),
-            color = MaterialTheme.colorScheme.secondary,
+            modifier = modifier.padding(top = 20.dp, start = 20.dp, end = 16.dp, bottom = 10.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.titleSmall
         )
     }
@@ -62,8 +62,8 @@ fun Preference(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .heightIn(min = 44.dp)
-            .padding(vertical = 10.dp, horizontal = 12.dp),
+            .heightIn(min = 52.dp)
+            .padding(vertical = 13.dp, horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

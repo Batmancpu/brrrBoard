@@ -23,7 +23,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,20 +54,18 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             val palette = MaterialTheme.colorScheme
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .background(Brush.linearGradient(listOf(
-                        palette.primaryContainer, palette.tertiaryContainer,
-                        palette.secondaryContainer)), RoundedCornerShape(24.dp))
+                    .background(palette.surface, RoundedCornerShape(21.dp))
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("Local intelligence", style = MaterialTheme.typography.titleLarge,
-                    color = palette.onPrimaryContainer, fontWeight = FontWeight.Bold)
+                    color = palette.onSurface, fontWeight = FontWeight.SemiBold)
                 Text(if (enabled) "Learning ON in eligible text fields"
                      else "Learning paused by your settings",
-                    color = palette.onPrimaryContainer,
+                    color = palette.onSurface,
                     style = MaterialTheme.typography.titleMedium)
                 Text("Incognito, protected and no-personalized-learning fields are excluded.",
-                    color = palette.onPrimaryContainer,
+                    color = palette.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall)
             }
 

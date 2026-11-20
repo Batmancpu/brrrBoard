@@ -64,36 +64,16 @@ fun AdvancedSettingsScreen(
     if ((b?.value ?: 0) < 0)
         Log.v("irrelevant", "stupid way to trigger recomposition on preference change")
     val items = listOf(
-        Settings.PREF_ALWAYS_INCOGNITO_MODE,
-        Settings.PREF_SECURE_APPS,
-        Settings.PREF_KEY_LONGPRESS_TIMEOUT,
-        Settings.PREF_SPACE_HORIZONTAL_SWIPE,
-        Settings.PREF_SPACE_VERTICAL_SWIPE,
-        if (Settings.readHorizontalSpaceSwipe(prefs) == KeyboardActionListener.SwipeAction.SWITCH_LANGUAGE
-            || Settings.readVerticalSpaceSwipe(prefs) == KeyboardActionListener.SwipeAction.SWITCH_LANGUAGE)
-            Settings.PREF_LANGUAGE_SWIPE_DISTANCE else null,
-        if (Settings.readVerticalSpaceSwipe(prefs) == KeyboardActionListener.SwipeAction.TOUCHPAD_MODE)
-            Settings.PREF_TOUCHPAD_SENSITIVITY else null,
-        if (Settings.readVerticalSpaceSwipe(prefs) == KeyboardActionListener.SwipeAction.TOUCHPAD_MODE)
-            Settings.PREF_TOUCHPAD_EDGE_SCROLL else null,
-        Settings.PREF_DELETE_SWIPE,
-        Settings.PREF_SPACE_TO_CHANGE_LANG,
+        R.string.brr_category_advanced_interactions,
         Settings.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY,
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) Settings.PREF_SHOW_SETUP_WIZARD_ICON else null,
-        Settings.PREF_ABC_AFTER_SYMBOL_SPACE,
-        Settings.PREF_ABC_AFTER_NUMPAD_SPACE,
-        Settings.PREF_ABC_AFTER_EMOJI,
-        Settings.PREF_ABC_AFTER_CLIP,
-        Settings.PREF_CUSTOM_CURRENCY_KEY,
-        Settings.PREF_MORE_POPUP_KEYS,
         Settings.PREF_TIMESTAMP_FORMAT,
-        SettingsWithoutKey.BACKUP_RESTORE,
+        Settings.PREF_URL_DETECTION,
         if (BuildConfig.DEBUG || prefs.getBoolean(DebugSettings.PREF_SHOW_DEBUG_SETTINGS, Defaults.PREF_SHOW_DEBUG_SETTINGS))
             SettingsWithoutKey.DEBUG_SETTINGS else null,
         R.string.settings_category_experimental,
         Settings.PREF_EMOJI_MAX_SDK,
         Settings.PREF_BLUR_RENDER_OVERRIDE,
-        Settings.PREF_URL_DETECTION,
         if (BuildConfig.BUILD_TYPE != "nouserlib") SettingsWithoutKey.LOAD_GESTURE_LIB else null
     )
     SearchSettingsScreen(
