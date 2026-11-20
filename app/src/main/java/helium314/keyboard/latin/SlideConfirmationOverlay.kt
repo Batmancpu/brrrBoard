@@ -67,7 +67,7 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
         visibility = VISIBLE
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         contentDescription = "$prompt. Drag the arrow all the way to the right. Tap outside to cancel."
-        animate(0f, 1f, 255L) { reveal = it }
+        animate(0f, 1f, 255L, update = { reveal = it })
     }
 
     private fun animate(from: Float, to: Float, time: Long, update: (Float) -> Unit,
@@ -124,14 +124,14 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
             MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_CANCEL -> {
                 enteredOnThumb = false; dragging = false
                 if (event.actionMasked == MotionEvent.ACTION_CANCEL) finish(false)
-                else animate(progress, 0f, 180L) { progress = it }
+                else animate(progress, 0f, 180L, update = { progress = it })
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
                 if (enteredOnThumb && dragging) {
                     if (abs(event.y - downY) > slot.height() * 1.7f) {
                         enteredOnThumb = false; dragging = false
-                        animate(progress, 0f, 190L) { progress = it }
+                        animate(progress, 0f, 190L, update = { progress = it })
                     } else {
                         progress = SlideConfirmationPolicy.progress(event.x, downX, travel)
                         if (!thresholdFeedbackGiven && progress >= SlideConfirmationPolicy.REQUIRED_PROGRESS) {
@@ -154,7 +154,7 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
                 } else if (!slot.contains(event.x, event.y) &&
                     abs(event.x - downX) < touchSlop && abs(event.y - downY) < touchSlop) {
                     finish(false)
-                } else animate(progress, 0f, 230L) { progress = it }
+                } else animate(progress, 0f, 230L, update = { progress = it })
                 return true
             }
         }

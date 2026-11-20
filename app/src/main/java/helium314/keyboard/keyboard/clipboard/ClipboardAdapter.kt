@@ -183,6 +183,12 @@ class ClipboardAdapter(
                 isFocusable = true
                 setOnClickListener { onClearRequested?.invoke() }
             }
+            label.layoutParams = StaggeredGridLayoutManager.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                isFullSpan = true
+                topMargin = (8f * density).toInt()
+                bottomMargin = (12f * density).toInt()
+            }
             return ClearHolder(label)
         }
         val layoutId = if (viewType == VIEW_TYPE_IMAGE) {

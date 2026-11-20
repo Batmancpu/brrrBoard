@@ -34,6 +34,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -80,6 +83,10 @@ private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
                 .clip(RoundedCornerShape(railHeight / 2))
                 .background(Brush.horizontalGradient(listOf(
                     palette.surfaceVariant, palette.surface, palette.surfaceVariant)))
+                .semantics {
+                    customActions = listOf(CustomAccessibilityAction(
+                        "Confirm: $label") { latestConfirmed(); true })
+                }
                 .pointerInput(travel) {
                     detectDragGestures(
                         onDragStart = { point: Offset ->
@@ -107,17 +114,20 @@ private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text(label, color = palette.onSurfaceVariant.copy(alpha =
-                    (1f - (if (travel > 0f) animated / travel else 0f)).coerceIn(.12f, 1f)),
+            val labelOpacity = (1f - (if (travel > 0f) animated / travel else 0f))
+                .coerceIn(.12f, 1f)
+            Text(text = label,
+                color = palette.onSurfaceVariant.copy(alpha = labelOpacity),
                 style = MaterialTheme.typography.labelMedium,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(start = railHeight, end = 7.dp))
-            Box(Modifier.align(Alignment.CenterStart)
+            Box(modifier = Modifier.align(Alignment.CenterStart)
                 .offset { IntOffset(animated.roundToInt() + with(density) { 3.dp.roundToPx() }, 0) }
                 .size(thumbDiameter)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(
-                    Color(0xFFE4AB4D), Color(0xFFFFE2A8))))),
+                .background(Brush.linearGradient(
+                    listOf(Color(0xFFE4AB4D), Color(0xFFFFE2A8)))),
                 contentAlignment = Alignment.Center) {
                 Text("››", style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold, color = Color(0xFF32240F))

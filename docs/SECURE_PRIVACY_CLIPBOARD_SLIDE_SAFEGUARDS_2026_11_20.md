@@ -1,5 +1,11 @@
 # Secure-app privacy, Clipboard and destructive-settings slide safeguards
 
+### Follow-up S4 source review before final signoff
+
+CI incident: initial debug [44684117905](https://github.com/Batmancpu/brrrBoard/actions/runs/44684117905) and signer path [44684117902](https://github.com/Batmancpu/brrrBoard/actions/runs/44684117902) both failed `:app:compileDebugKotlin` on `4de1fb8`. The exact six compiler diagnostics were four unresolved `it` because Kotlin trailing lambdas were bound to optional `after`, plus two Compose `SlideActionDialog` layout syntax errors from superfluous parentheses. Fix: `animate(..., update = { ... })` and explicit `Text(text=...)`/`Box(modifier=...)` parameter syntax. Keep tests and exact package/pinned signer untouched; re-run a new SHA through both pipelines.
+
+The initial GitHub SHA `4de1fb8` started debug/unsigned original-signer jobs; source review then corrected a physical offset from `KeyboardView.onDrawKey` padding, replaced abrupt key-legend disappearance with 165ms fade and 185ms reverse, made the Clipboard action card explicitly full-span, and exposed deliberate accessibility actions on the native rail and Settings rail. These fixes are local only until the next guarded main push. No physical performance/visual claim is made.
+
 ## Source implementation checkpoint — CI and physical review pending
 
 - **Native rail:** `SlideConfirmationOverlay` touch-shields the keyboard during a 255ms enter / deliberate drag / sprung reset / 180–210ms exit, with custom TalkBack forward-action, threshold haptic and gold privacy/deep-red destructive tint. `MainKeyboardView.getSpacebarBoundsOnScreen` supplies real space-key geometry; temporary key-label hiding survives view keyboard rebuilds. `InputView` prevents its full-surface shield from expanding the OEM IME height; `BoardFooterView` animates footer icons offscreen, including non-iOS themes during confirmation.

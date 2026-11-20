@@ -8,6 +8,7 @@ package helium314.keyboard.keyboard;
 
 import android.animation.AnimatorInflater;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -146,12 +147,28 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     private final IdentityHashMap<Key, KeyPressMotion> mKeyPressMotions = new IdentityHashMap<>();
     private boolean mTrackpadVisualMode;
     private boolean mConfirmationVisualMode;
+    private float mConfirmationLabelAlpha = 1f;
+    private ValueAnimator mConfirmationLabelAnimator;
 
     /** A confirmation temporarily removes key legends without changing key geometry. */
     public void setConfirmationVisualMode(final boolean active) {
         if (mConfirmationVisualMode == active) return;
         mConfirmationVisualMode = active;
-        invalidateAllKeys();
+        if (mConfirmationLabelAnimator != null) mConfirmationLabelAnimator.cancel();
+        final float goal = active ? 0f : 1f;
+        if (!KeyboardMotionSpec.enabled() || !isShown()) {
+            mConfirmationLabelAlpha = goal;
+            invalidateAllKeys();
+            return;
+        }
+        mConfirmationLabelAnimator = ValueAnimator.ofFloat(mConfirmationLabelAlpha, goal);
+        mConfirmationLabelAnimator.setDuration(active ? 165L : 185L);
+        mConfirmationLabelAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        mConfirmationLabelAnimator.addUpdateListener(frame -> {
+            mConfirmationLabelAlpha = (float) frame.getAnimatedValue();
+            invalidateAllKeys();
+        });
+        mConfirmationLabelAnimator.start();
     }
 
     /** Exact rendered spacebar slot in screen coordinates, including one-handed offsets. */
@@ -159,9 +176,12 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         if (mSpaceKey == null || getWidth() <= 0 || !isShown()) return false;
         final int[] location = new int[2];
         getLocationOnScreen(location);
-        out.set(location[0] + mSpaceKey.getDrawX(), location[1] + mSpaceKey.getY(),
-                location[0] + mSpaceKey.getDrawX() + mSpaceKey.getDrawWidth(),
-                location[1] + mSpaceKey.getY() + mSpaceKey.getHeight());
+        // KeyboardView.onDrawKey translates by both native key position AND
+        // padding. Omitting padding produces a shifted rail in one-handed mode.
+        out.set(location[0] + getPaddingLeft() + mSpaceKey.getDrawX(),
+                location[1] + getPaddingTop() + mSpaceKey.getY(),
+                location[0] + getPaddingLeft() + mSpaceKey.getDrawX() + mSpaceKey.getDrawWidth(),
+                location[1] + getPaddingTop() + mSpaceKey.getY() + mSpaceKey.getHeight());
         return out.width() > 0 && out.height() > 0;
     }
 
@@ -992,9 +1012,11 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
         // Preserve the original spacebar language, popup hints and alt-code drawing.
         // Trackpad mode hides all labels, while key pressure scales drawing only.
-        if (mTrackpadVisualMode || mConfirmationVisualMode) return;
+        if (mTrackpadVisualMode || mConfirmationLabelAlpha <= .01f) return;
         final float scale = keyPressScale(key);
-        canvas.save();
+        final int save = mConfirmationLabelAlpha >= .999f ? canvas.save()
+                : canvas.saveLayerAlpha(0f, 0f, key.getDrawWidth(), key.getHeight(),
+                    Math.round(255 * mConfirmationLabelAlpha));
         canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
         if (key.altCodeWhileTyping() && key.isEnabled()) {
             params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;
@@ -1013,7 +1035,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         } else if (code == KeyCode.LANGUAGE_SWITCH) {
             drawKeyPopupHint(key, canvas, paint, params);
         }
-        canvas.restore();
+        canvas.restoreToCount(save);
     }
 
     private boolean fitsTextIntoWidth(final int width, final String text, final Paint paint) {
