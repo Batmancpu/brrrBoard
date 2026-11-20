@@ -3,6 +3,7 @@ package helium314.keyboard.latin
 
 import android.animation.ValueAnimator
 import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -66,7 +67,13 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
         dragging = false
         visibility = VISIBLE
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        contentDescription = "$prompt. Drag the arrow all the way to the right. Tap outside to cancel."
+        val exploring = (context.getSystemService(Context.ACCESSIBILITY_SERVICE)
+            as? AccessibilityManager)?.isTouchExplorationEnabled == true
+        contentDescription = if (exploring) {
+            "$prompt. Use the accessibility actions to confirm or dismiss."
+        } else {
+            "$prompt. Drag the arrow all the way to the right. Tap outside to cancel."
+        }
         animate(0f, 1f, 255L, update = { reveal = it })
     }
 
@@ -78,8 +85,16 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
             interpolator = DecelerateInterpolator(1.65f)
             addUpdateListener { update(it.animatedValue as Float); postInvalidateOnAnimation() }
             if (after != null) addListener(object : android.animation.AnimatorListenerAdapter() {
+                private var cancelled = false
+
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    cancelled = true
+                }
+
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    if (animation === motion) after()
+                    // Animator.cancel() also invokes onAnimationEnd(). A replaced
+                    // overlay or editor switch must never run a stale confirm.
+                    if (!cancelled && animation === motion) after()
                 }
             })
             start()
@@ -87,8 +102,9 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
     }
 
     fun closeNow() {
-        motion?.cancel()
+        val pendingMotion = motion
         motion = null
+        pendingMotion?.cancel()
         commit = null
         dismiss = null
         enteredOnThumb = false
@@ -165,8 +181,10 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
         super.onInitializeAccessibilityNodeInfo(info)
         info.className = "android.widget.SeekBar"
         info.isClickable = false
+        info.isDismissable = true
         info.addAction(AccessibilityNodeInfo.AccessibilityAction(
             AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, "Swipe forward to confirm $label"))
+        info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_DISMISS)
     }
 
     override fun performAccessibilityAction(action: Int, arguments: android.os.Bundle?): Boolean {
@@ -174,6 +192,11 @@ class SlideConfirmationOverlay(context: Context) : View(context) {
             && !finishing) {
             progress = 1f
             finish(true)
+            return true
+        }
+        if (action == AccessibilityNodeInfo.ACTION_DISMISS && visibility == VISIBLE
+            && !finishing) {
+            finish(false)
             return true
         }
         return super.performAccessibilityAction(action, arguments)

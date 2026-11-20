@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — B5/B8 accessible protective gesture fix (source candidate)
+
+Signed baseline `3f74c443`/v1.0.197. `SlideConfirmationOverlay.kt` gets `AccessibilityNodeInfo.ACTION_DISMISS` and correct TalkBack instructions, plus `ValueAnimator` cancellation guard: canceled exit animations must not execute stale destructive `commit` callbacks, even when animation cancellation triggers end listeners. `closeNow()` nulls `motion` before cancel. Test `SlideConfirmationAccessibilityTest.kt`; notes.json now tracks only new post-197 changes. Must run full exact-SHA Android unit gates and original signer before delivery, then real Oppo TalkBack/reduced-motion gestures. Do not touch parallel voice/BR Brain work; preserve the completed v197 B3/B4 contracts. Ledger in behavioral master plan.
+
 ## B3/B4 signed release v1.0.197 — validated exact SHA, hardware still pending
 
 Source `3f74c443b17e2691cd0639c4c336e5604305b6e0`: debug `44775802738` and original signer `44775803214` **SUCCESS** with full Android unit suites, packaging and signer identity. Signed `v1.0.197` GitHub publication `2026-11-20T16:48:48Z`; APK `https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.197/brrBoard.apk`, SHA-256 `d74671ab026f2ae6199242c1417d284aba413d1f284ad850e9cc4e77260af978`. New host-acknowledged vertical two-finger movement (ordinary multiline only; no invented offsets) and 15-second one-use rejected-autocorrection guard shipped. Other voice/BR Brain/Emoji work untouched. The new release notes already describe v1.0.197; **rewrite `docs/releases/notes.json` with new post-197 cumulative changes on next app-changing commit**. Do not claim physical Oppo, Firefox/WebView/RTL selection, Emoji blank-band, Voice/typing coexistence, TalkBack/reduced motion or hardware keyboard compatibility complete. Detailed source/limitation ledger `docs/BEHAVIORAL_ENGINEERING_MASTER_PLAN_2026_11_20.md`.

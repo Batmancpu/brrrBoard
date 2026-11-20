@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Safer multiline trackpad text selection and one-time autocorrection rejection, preserving the verified offline voice hotfix.",
+  "summary": "Accessible cancellation and safer interruption of privacy/destructive confirmation gestures.",
   "changes": [
     {
-      "title": "Guarded vertical trackpad selection",
-      "detail": "While holding Space, a second finger can request up/down selection within ordinary multiline editors. The editor determines visual lines, and the keyboard waits for an observed anchor-preserving selection instead of guessing offsets or inserting text. Unsupported and limited fields retain their existing selection."
+      "title": "Screen-reader Cancel for confirmation slides",
+      "detail": "Privacy and destructive slide confirmations now provide an explicit accessibility Dismiss action alongside the existing Confirm action. Touch-exploration instructions describe those available actions instead of only demanding a drag gesture."
     },
     {
-      "title": "Autocorrection rejection lasts one use",
-      "detail": "After Backspace safely restores an autocorrected original word, the same proposed correction is suppressed once if immediately encountered again in the same editor. The short-lived record is memory-only and cleared on field changes, privacy transitions, unrelated commits and cursor updates."
+      "title": "Cancelled animations cannot confirm old actions",
+      "detail": "If a protected confirmation is interrupted by editor switching, dismissal or another overlay, cancellation cannot trigger an old approval callback. Interrupted gestures remain non-destructive."
     },
     {
-      "title": "Existing voice and private data preserved",
-      "detail": "The verified voice crash hotfix remains unchanged; paused native GTCRN stays paused. No new models, cloud recognition, network permissions, signing changes, clipboard history changes, or learned-data resets. Oppo validation is still required for host-specific vertical movement."
+      "title": "Keyboard identity and data preserved",
+      "detail": "Keeps the existing v1.0.197 typing/selection behavior, encrypted learned data, transcript recovery, offline voice hotfix, model storage, application ID and original signing certificate. No new permissions or cloud services."
     }
   ]
 }

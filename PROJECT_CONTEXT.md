@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-20 B5/B8 protected confirmation candidate
+
+After v1.0.197 signed source, inspected `SlideConfirmationOverlay` for gesture priority and accessibility. Added TalkBack-visible `ACTION_DISMISS` cancellation with dedicated description while retaining existing scroll-forward Confirm action. Fixed `ValueAnimator.cancel()` causing `onAnimationEnd()` to run an old `after` approval by tracking cancellations and clearing `motion` before `closeNow` cancellation. Added Robolectric regression tests and post-197 cumulative release notes. No model, signer, Emoji logic, clipboard or private data change. Exact-commit Android CI and Oppo reduced-motion/TalkBack QA pending. See behavioral master ledger.
+
 ## 2026-11-20 — behavioral follow-up signed success v1.0.197
 
 Original-signer Obtainium v1.0.197 from source `3f74c443` has **SUCCESS** debug `44775802738` and signed `44775803214` workflows; published at `2026-11-20T16:48:48Z`. Direct APK `https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.197/brrBoard.apk`, SHA-256 `d74671ab026f2ae6199242c1417d284aba413d1f284ad850e9cc4e77260af978`. Runtime retains verified voice crash hotfix and installed private weights; guarded multiline host-acknowledged two-finger vertical selection and one-use rejected-correction suppression are in this build. No raw-text telemetry, new permission, signing change or model migration. Future changelog must start AFTER v1.0.197 (current notes describe already released changes). Source correctness is CI-verified, not yet Oppo/Firefox/TalkBack/RTL device-verified; persistent Emoji empty band and broad gesture/hardware performance audits remain open.

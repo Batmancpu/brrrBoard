@@ -59,6 +59,13 @@ At recording start, bind a private recognition generation to the editor epoch, c
 
 ## Execution ledger
 
+### 2026-11-20 — B5/B8 protected gesture cancellation and TalkBack source candidate
+
+- Latest signed baseline v1.0.197 source `3f74c443` with same-cert Obtainium verified; prior trackpad/correction behavior, voice crash hotfix and BR Brain retained.
+- `SlideConfirmationOverlay.kt` already had an accessibility action to **confirm** a sensitive swipe but no matching accessible **dismiss/cancel** action. Added `AccessibilityNodeInfo.ACTION_DISMISS`, `isDismissable`, and TalkBack-aware instructions. The ordinary drag-to-confirm threshold is unchanged.
+- Detected source-supported cancellation race: `ValueAnimator.cancel()` invokes `onAnimationEnd()` after `onAnimationCancel()`; the old listener checked only `animation === motion`, so interrupted confirmation exit could run a stale destructive callback. Now a cancellation flag prevents `after()` and `closeNow()` nulls the animation reference **before** cancelling, preventing old approvals or recursive end-callbacks.
+- Added Robolectric `SlideConfirmationAccessibilityTest` for both actions, cancel never confirming, repeated action during closure and aborting a pending approve animation. Exact-SHA Android tests, original signing and physical reduced-motion/TalkBack acceptance required; do not claim this source candidate shipped until CI success.
+
 ### 2026-11-20 — recovered transcript owner extension and first CI compiler repair (source candidate)
 
 - GitHub main first behavior commit `00e730f7f7ab528377c97d4194c27fd3f420cd6f`, debug run `44710070328` and original signer run `44710070303` each **FAILED** at Kotlin compilation (`KeyboardActionListenerImpl.kt` nullable `CharSequence` lines 270–271). No signed APK was produced. Fixed nullable `if` expression parenthesization locally; next commit CI pending.
