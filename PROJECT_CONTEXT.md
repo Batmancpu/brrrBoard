@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## Verified v1.0.198 B5/B8 protected gesture release
+
+Source `95ae0683`, debug `44778971808` and original signed Obtainium `44778971949` passed Android tests and signing, released `v1.0.198` on 2026-11-20T17:08:06Z. APK `https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.198/brrBoard.apk`, SHA-256 `999e21cfbbd1ebffb485b19c508d543e1dc4539166b5ef227bb8b5de7de58dfe`. Screen reader accessible Cancel now complements Confirm on protected slides. Canceled animations cannot trigger stale destructive callbacks. Next notes.json delta begins after 1.0.198, not v197 or older. No signer, model, network or private-data changes. Oppo physical TalkBack/reduced motion, Emoji top band, RTL/WebView trackpad selection and hardware input remain unverified.
+
 ## 2026-11-20 B5/B8 protected confirmation candidate
 
 After v1.0.197 signed source, inspected `SlideConfirmationOverlay` for gesture priority and accessibility. Added TalkBack-visible `ACTION_DISMISS` cancellation with dedicated description while retaining existing scroll-forward Confirm action. Fixed `ValueAnimator.cancel()` causing `onAnimationEnd()` to run an old `after` approval by tracking cancellations and clearing `motion` before `closeNow` cancellation. Added Robolectric regression tests and post-197 cumulative release notes. No model, signer, Emoji logic, clipboard or private data change. Exact-commit Android CI and Oppo reduced-motion/TalkBack QA pending. See behavioral master ledger.

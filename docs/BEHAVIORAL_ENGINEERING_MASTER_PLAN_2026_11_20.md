@@ -61,6 +61,8 @@ At recording start, bind a private recognition generation to the editor epoch, c
 
 ### 2026-11-20 — B5/B8 protected gesture cancellation and TalkBack source candidate
 
+**Verified release:** Shipped from `95ae0683` in original-signed Obtainium **v1.0.198**, published 2026-11-20T17:08:06Z, debug `44778971808`/signer `44778971949` full Android test gates successful; SHA-256 `999e21cfbbd1ebffb485b19c508d543e1dc4539166b5ef227bb8b5de7de58dfe`. Still needs actual Oppo TalkBack/reduced-motion acceptance. Next release notes begin after v1.0.198.
+
 - Latest signed baseline v1.0.197 source `3f74c443` with same-cert Obtainium verified; prior trackpad/correction behavior, voice crash hotfix and BR Brain retained.
 - `SlideConfirmationOverlay.kt` already had an accessibility action to **confirm** a sensitive swipe but no matching accessible **dismiss/cancel** action. Added `AccessibilityNodeInfo.ACTION_DISMISS`, `isDismissable`, and TalkBack-aware instructions. The ordinary drag-to-confirm threshold is unchanged.
 - Detected source-supported cancellation race: `ValueAnimator.cancel()` invokes `onAnimationEnd()` after `onAnimationCancel()`; the old listener checked only `animation === motion`, so interrupted confirmation exit could run a stale destructive callback. Now a cancellation flag prevents `after()` and `closeNow()` nulls the animation reference **before** cancelling, preventing old approvals or recursive end-callbacks.

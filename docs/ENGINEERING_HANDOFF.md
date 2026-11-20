@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## B5/B8 signed release complete — v1.0.198
+
+Source `95ae068319c465b64d51591603f7968d451eb3e8` passed same-SHA debug `44778971808` and original-signer Obtainium `44778971949` Android test/signature/packaging gates; signed GitHub v1.0.198 published `2026-11-20T17:08:06Z`. APK `https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.198/brrBoard.apk` SHA-256 `999e21cfbbd1ebffb485b19c508d543e1dc4539166b5ef227bb8b5de7de58dfe`. New accessible Dismiss on protected overlays, TalkBack-specific instructions, canceled-animation guard preventing stale confirm; Robolectric tests passed. `docs/releases/notes.json` currently describes signed v198: replace with only post-v198 changes when next modifying app. No model, voice, Emoji, package, signer or learned-data modification. Physical Oppo acceptance still pending for custom gestures, reduced motion, Emoji blank band and WebView/RTL vertical trackpad.
+
 ## 2026-11-20 — B5/B8 accessible protective gesture fix (source candidate)
 
 Signed baseline `3f74c443`/v1.0.197. `SlideConfirmationOverlay.kt` gets `AccessibilityNodeInfo.ACTION_DISMISS` and correct TalkBack instructions, plus `ValueAnimator` cancellation guard: canceled exit animations must not execute stale destructive `commit` callbacks, even when animation cancellation triggers end listeners. `closeNow()` nulls `motion` before cancel. Test `SlideConfirmationAccessibilityTest.kt`; notes.json now tracks only new post-197 changes. Must run full exact-SHA Android unit gates and original signer before delivery, then real Oppo TalkBack/reduced-motion gestures. Do not touch parallel voice/BR Brain work; preserve the completed v197 B3/B4 contracts. Ledger in behavioral master plan.
