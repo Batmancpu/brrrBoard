@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Behavioral reliability, offline Version History, editor field tests, and BR Brain Smart Emoji learning.",
+  "summary": "Behavioral reliability, offline Version History, editor field tests, and integrated BR Brain Smart Emoji learning.",
   "changes": [
     {
       "title": "Version History in About",

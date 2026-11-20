@@ -163,10 +163,10 @@ public final class BrrSmartEmojiEngine {
             }
         }
         if (!stripOnly && personal) {
-            final List<String> personal = EmojiPalettesView.AdaptiveEmojiEngine
+            final List<String> recentEmojis = EmojiPalettesView.AdaptiveEmojiEngine
                     .getFastRowEmojis(context, Math.max(max, 10));
-            for (int i = 0; i < personal.size(); ++i) {
-                final String emoji = personal.get(i);
+            for (int i = 0; i < recentEmojis.size(); ++i) {
+                final String emoji = recentEmojis.get(i);
                 choices.putIfAbsent(emoji, new Pick(emoji, "recently used", 90 - i));
             }
         }
