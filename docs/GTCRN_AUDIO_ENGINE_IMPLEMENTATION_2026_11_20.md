@@ -8,7 +8,7 @@ Status: **OWNER GO — implementation source staged for exact-SHA Android CI**. 
 - Exact model: `stream/onnx_models/gtcrn_simple.onnx`, **535,190 bytes**, upstream Git blob `015454eef64bd4328e6ff4946c231d4a4a632e93`.
 - Runtime: the already-present **sherpa-onnx 1.13.3**, whose `OfflineSpeechDenoiser` Kotlin interface supports GTCRN through `AssetManager`. No second inference library. The runtime AAR remains SHA-256 pinned in `tools/fetch-board-sherpa-onnx.sh`.
 - `tools/fetch-board-gtcrn.sh` obtains exact upstream model only **during development/CI build**, verifies blob and byte count before copying to `app/src/main/assets/voice/gtcrn_simple.onnx`. The model is distributed **inside every debug and original-signed APK**; Android never downloads/extracts it or needs an internet permission.
-- `tools/verify-gtcrn-packaging.sh` reads the final APK and verifies exact weight bytes and bundled MIT license; wired into **both** build workflows. The ~136 MB Parakeet 110M voice bootstrap stays separate/optional, preserving existing user-installed Parakeet and signer/package/data. A normal update must **not** purge Parakeet.
+- `tools/verify-gtcrn-packaging.sh` reads the final APK and verifies exact weight bytes and bundled MIT license; wired into **both** build workflows. The ~136 MB Parakeet 110M voice bootstrap stays separate/optional, preserving existing user-installed Parakeet and signer/package/data. The `verify-voice-model-packaging.sh` lightweight-APK policy exempts **only** `assets/voice/gtcrn_simple.onnx`, with independent hash verification, and rejects every other unapproved ONNX/Parakeet asset. A normal update must **not** purge Parakeet.
 
 ## Audio data path
 

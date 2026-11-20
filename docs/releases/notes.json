@@ -16,7 +16,7 @@
     },
     {
       "title": "APK model integrity and attribution",
-      "detail": "Both debug and original-signed release builds verify the bundled GTCRN weight bytes against a pinned upstream Git blob and include the creator's MIT notice. The existing optional Parakeet model and signing identity are unchanged."
+      "detail": "Both debug and original-signed release builds verify the bundled GTCRN weight bytes against a pinned upstream Git blob and include the MIT notice. Parakeet packaging rejects all other unapproved ONNX files; the optional Parakeet model and signing identity are unchanged."
     }
   ]
 }

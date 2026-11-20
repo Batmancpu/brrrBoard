@@ -15,7 +15,11 @@ case "$mode" in
     ;;
   unbundled)
     entries="$(unzip -Z1 "$apk")"
-    if grep -Eq '(^assets/voice-model/|^assets/.*\.onnx$)' <<< "$entries"; then
+    # Tiny pinned GTCRN is mandatory in every APK; larger Parakeet is optional.
+    # An independent APK verifier checks the exact approved GTCRN bytes.
+    if grep -Eq '^assets/voice-model/' <<< "$entries" ||
+       grep -E '^assets/.*\.onnx$' <<< "$entries" |
+           grep -Fvx 'assets/voice/gtcrn_simple.onnx' >/dev/null; then
       echo 'Refusing lightweight APK: speech model weights are embedded.' >&2
       exit 1
     fi
