@@ -5,11 +5,11 @@
 
 # brrBoard
 
-### Your keyboard, thoughtfully made.
+### A smarter keyboard. Your words stay yours.
 
-Beautifully familiar. Quietly capable. Unmistakably yours.
+**BR Brain intelligence. Zero internet permission. Zero keyboard data uploads.**
 
-brrBoard is a local-first Android keyboard by [MangoLoads](https://batmancpu.github.io/mangoloads/), made for the moments when you just want to type. Considered glass surfaces, responsive controls, English and Hinglish typing, and everyday essentials—without turning your keyboard into a spectacle.
+brrBoard is a fast, beautifully considered Android keyboard by [MangoLoads](https://batmancpu.github.io/mangoloads/). It's built to feel smarter than the default—learning from the choices you make in eligible fields, offering useful suggestions, and keeping its intelligence on your device. All wrapped in a calm, frosted-glass experience.
 
 [**⬇ Download the latest signed APK**](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk) &nbsp;·&nbsp; [**Get updates with Obtainium**](docs/OBTAINIUM.md) &nbsp;·&nbsp; [Explore releases](https://github.com/Batmancpu/brrrBoard/releases)
 
@@ -17,7 +17,33 @@ brrBoard is a local-first Android keyboard by [MangoLoads](https://batmancpu.git
 
 ---
 
-## A little more feeling. A lot less noise.
+## 01 / BR Brain. Intelligence that stays yours.
+
+![BR Brain: a premium sapphire illustration of local next-word suggestions, Smart Emoji and confirmed swipe learning](art/brand/mangoloads/readme-br-brain.svg)
+
+**BR Brain** is the heart of brrBoard—not a cloud service hiding behind a flashy label. It brings the keyboard's local intelligence into one place, with controls and a dashboard that make its behavior understandable.
+
+| It understands your flow | It learns with boundaries | It shows its work |
+| :--- | :--- | :--- |
+| Offline word and next-word suggestions, English/Hinglish typing, and context-aware **Smart Emoji** cues. | Confirmed swipe corrections and eligible Emoji choices can improve later local suggestions. Incognito and protected fields are excluded. | The **BR Brain** dashboard exposes local processing-speed measurements, learning activity and erase controls. No cloud analytics. |
+
+The currently shipped intelligence uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. A separate bilingual neural model is still in development; **we don't claim it is already in the APK**. This is a smarter-feeling alternative built around useful behavior, not inflated AI promises.
+
+## 02 / Zero internet. Zero keyboard uploads.
+
+![Privacy-first brrBoard illustration with an on-device shield, zero internet permission and zero keyboard uploads](art/brand/mangoloads/readme-zero-internet.svg)
+
+This is the part that changes the equation: **brrBoard does not request Android's `INTERNET` permission.** Its [app manifest explicitly removes internet and network-state permissions](app/src/main/AndroidManifest.xml). The keyboard cannot quietly upload your typing, learned words, Clipboard history or microphone recordings to a server.
+
+- **Suggestions stay on-device.** BR Brain processes eligible typing and learns locally, with protected and incognito exclusions.
+- **No ads, tracking SDK or cloud keyboard account.** Your personal dictionary and Clipboard history live on your phone.
+- **Offline voice when provisioned.** Speech recognition uses a locally stored model; no automatic model download or cloud transcription by brrBoard.
+
+Opening an external link uses another app, and **you can deliberately export or share a local backup**—that is not the keyboard secretly transmitting data. The [privacy policy](PRIVACY_POLICY.md) explains those boundaries precisely.
+
+---
+
+## 03 / A little more feeling. A lot less noise.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="art/brand/mangoloads/readme-material-dark.webp">
@@ -28,7 +54,7 @@ The frosted look has a purpose: a comfortable visual rhythm that feels at home o
 
 > *Design imagery throughout this page is illustrative brand artwork, not a claimed device screenshot. Real product screenshots will follow device verification.*
 
-## Everything in its place.
+## 04 / Everything in its place.
 
 ![A conceptual brrBoard settings sheet with Appearance, Typing, Everyday tools and Privacy and data grouped into a calm premium interface](art/brand/mangoloads/readme-settings-studio.svg)
 
@@ -36,7 +62,7 @@ The Settings home groups what belongs together: **Make it yours**, **Typing**, *
 
 **Personalization is there when you want it.** The keyboard should disappear into your day when you don't.
 
-## The little things are the big things.
+## 05 / The little things are the big things.
 
 ![Three illustrated feature cards for on-device Clipboard history, personal words and local-first privacy](art/brand/mangoloads/readme-everyday-tools.svg)
 
@@ -56,9 +82,9 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 
 For straightforward signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates.
 
-## Privacy isn't a feature toggle.
+## Your data, in plain language.
 
-The words you type belong to you. brrBoard is built around on-device behavior and straightforward permissions.
+The words you type belong to you. Here's how the privacy promise works in practice:
 
 - **No internet permission requested by brrBoard.** It does not include ad tracking or a payment/donation feature.
 - **Keyboard data is local.** Settings, learned words, personal dictionaries and Clipboard history are stored on your device. Some optional features may access contacts only with appropriate device permissions.
@@ -90,6 +116,13 @@ Do not share the unencrypted ZIP publicly.
 <summary>Does brrBoard require internet access?</summary>
 
 The keyboard itself does not request Android internet permission. Opening a GitHub or website link hands that action to your browser or another application.
+
+</details>
+
+<details>
+<summary>Is BR Brain an online AI service?</summary>
+
+No. Its current word/next-word suggestions, native swipe candidates, local correction learning and Smart Emoji associations run on the device. The separately planned bilingual neural ContextLM is not yet trained or installed; we don't claim unverified model accuracy or superiority over another keyboard.
 
 </details>
 
