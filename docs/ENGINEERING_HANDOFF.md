@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — Verified v1.0.173 and new owner slide-confirm contract
+
+The completed Emoji/privacy/gold/red source `47ae5010f2c538803fab9e11162b87bdefa8ff72` passed debug `44680639468` and original-signed Obtainium `44680639417`; v1.0.173 APK SHA256 `16f1ff6af1be2a5da62ba83ac6c4af24932ffd1717cf6ea34230ae38aacae693`, 68,920,997 bytes. Physically unverified on Oppo. New owner authorized next safety-slider batch: haptic on secure-app privacy OFF attempt, temporary opt-out only after a deliberate spacebar-size slide while all key legends hide trackpad-style (animate in/out and drag/cancel), Clip History bottom Clear clipboard with same pattern, selective irreversible settings actions guarded by slide, and seamless Clipboard bottom-row/footer glass. Audit privacy/clipboard/settings semantics before editing; no private-content logs, silent deletion, signing/asset changes. Main-only with per-batch AGENTS/context continuity.
+
 ## 2026-11-20 — Repair batch C source, premium palette not yet device accepted
 
 Gold private face/glint/shield on the SAME pose animator: `#D8B766` + `#F4DC98` + `#916B2B`. Recording mic source colors deep ruby `#AC1537` light / `#D83250` dark, including the existing underlight and discard glyph through shared `voiceTint`. Processing turquoise unaffected; no changed audio/model path or storage. Pure tests added; local JVM+CI/Oppo checks still pending. Previous completed remote Batch A source SHA `d715e262...` workflows `44679728092` debug, `44679728069` Obtainium started; docs follow-up SHA `7538db06...` restored original full history without app byte changes. Batch B and C are currently local source. Final gate must be on new exact source SHA and release asset. See ledger.

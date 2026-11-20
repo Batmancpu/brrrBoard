@@ -1,5 +1,9 @@
 # Owner repair — immediate Emoji, synchronized incognito motion, top alignment, premium color
 
+## Final exact-source release checkpoint
+
+Application source `47ae5010f2c538803fab9e11162b87bdefa8ff72`: debug/full Android unit test [44680639468](https://github.com/Batmancpu/brrrBoard/actions/runs/44680639468) **SUCCESS**; original-signed Obtainium [44680639417](https://github.com/Batmancpu/brrrBoard/actions/runs/44680639417) **SUCCESS**. Signed [v1.0.173](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.173), `brrBoard.apk` 68,920,997 bytes, SHA256 `16f1ff6af1be2a5da62ba83ac6c4af24932ffd1717cf6ea34230ae38aacae693`, release target exact source. Replaced no original signing key/private model, no new model; no encrypted learned data migration or wipe. The owner must still check the physical Oppo for private gesture, golden/reddish palette and truly flush Emoji tabs. The next user safety-slider request is a separate batch, not part of this already-signed APK.
+
 Date: 20 November 2026. Main only. Starting SHA: `85e40dfa4ac1de49470b5bd88a732f37ee62eea4` (documentation tip); app source previously `3a9f59902d5e8b044d1561815010eca0c14d2f77`, signed v1.0.171. Owner specifically says Emoji/ABC now feels almost immediate but the large empty band persists and manual double-tap privacy artwork/ mic shield seemingly disappeared. Screenshots and user observations are **not** CI, timing telemetry or a new model benchmark.
 
 ## Batch A — Source repair
