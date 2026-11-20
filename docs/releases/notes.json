@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Emergency voice crash protection: restore the verified private Parakeet voice pipeline and pause GTCRN native processing.",
+  "summary": "Safer multiline trackpad text selection and one-time autocorrection rejection, preserving the verified offline voice hotfix.",
   "changes": [
     {
-      "title": "Fix voice-button keyboard shutdown",
-      "detail": "Reverted the newly introduced native GTCRN startup and Android input-route probe from the live microphone path after a reported crash within 1–2 seconds. Restored the previously working private PCM capture and Parakeet recognition code."
+      "title": "Guarded vertical trackpad selection",
+      "detail": "While holding Space, a second finger can request up/down selection within ordinary multiline editors. The editor determines visual lines, and the keyboard waits for an observed anchor-preserving selection instead of guessing offsets or inserting text. Unsupported and limited fields retain their existing selection."
     },
     {
-      "title": "GTCRN paused for safety",
-      "detail": "The lightweight offline GTCRN weights remain packaged for future verified activation, but are not loaded or run in this release. BR Brain now clearly states the filter is paused instead of showing misleading activity counters."
+      "title": "Autocorrection rejection lasts one use",
+      "detail": "After Backspace safely restores an autocorrected original word, the same proposed correction is suppressed once if immediately encountered again in the same editor. The short-lived record is memory-only and cleared on field changes, privacy transitions, unrelated commits and cursor updates."
     },
     {
-      "title": "Privacy and existing models preserved",
-      "detail": "No cloud recognition, network permissions, signing-key changes, or new model downloads. The installed Parakeet 110M and its private data remain untouched. Larger Parakeet Ultra is deferred pending accent-specific accuracy and Oppo stability verification."
+      "title": "Existing voice and private data preserved",
+      "detail": "The verified voice crash hotfix remains unchanged; paused native GTCRN stays paused. No new models, cloud recognition, network permissions, signing changes, clipboard history changes, or learned-data resets. Oppo validation is still required for host-specific vertical movement."
     }
   ]
 }

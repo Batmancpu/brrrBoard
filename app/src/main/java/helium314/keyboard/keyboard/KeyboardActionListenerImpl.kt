@@ -2,7 +2,9 @@
 package helium314.keyboard.keyboard
 
 import android.text.InputType
+import android.os.SystemClock
 import android.util.SparseArray
+import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -48,6 +50,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var trackpadSelectionHead = -1
     private var trackpadSelectionEditor: EditorInfo? = null
     private var trackpadSelectionConnection: InputConnection? = null
+    // A host-directed vertical move is asynchronous. Do not issue a second
+    // movement until onUpdateSelection has confirmed the fixed anchor.
+    private var trackpadVerticalPending = false
 
     // language slide state
     private var initialSubtype: InputMethodSubtype? = null
@@ -194,14 +199,32 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onTouchpadCursorMove(horizontalSteps: Int, verticalSteps: Int) {
         if (!TouchpadHandler.isTouchpadModeRequested()) return
         if (trackpadSelectionAnchor >= 0) {
+            if (!isTrackpadSelectionEditorValid()) {
+                clearTrackpadSelection()
+                return
+            }
+            if (trackpadVerticalPending) {
+                when (val confirmed = TrackpadHostSelection.confirmedHead(
+                    trackpadSelectionAnchor, trackpadSelectionHead,
+                    connection.expectedSelectionStart, connection.expectedSelectionEnd)) {
+                    TrackpadHostSelection.WAITING -> return
+                    TrackpadHostSelection.INVALID -> {
+                        clearTrackpadSelection()
+                        return
+                    }
+                    else -> {
+                        trackpadSelectionHead = confirmed
+                        trackpadVerticalPending = false
+                    }
+                }
+            }
             if (!isTrackpadSelectionValid()) {
                 clearTrackpadSelection()
                 return
             }
             if (horizontalSteps != 0) moveTrackpadSelectionHorizontally(horizontalSteps)
-            // A visual line is not equivalent to a newline in wrapped, RTL or
-            // WebView editors. Until the host can confirm a Shift+DPAD selection,
-            // do not invent offsets or dispatch a non-selecting arrow key.
+            if (verticalSteps != 0 && !trackpadVerticalPending)
+                requestTrackpadSelectionVertically(verticalSteps)
             return
         }
         // One selection update can cover several characters. Avoid routing
@@ -236,16 +259,50 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         trackpadSelectionHead = -1
         trackpadSelectionEditor = null
         trackpadSelectionConnection = null
+        trackpadVerticalPending = false
     }
 
-    private fun isTrackpadSelectionValid(): Boolean {
+    private fun isTrackpadSelectionEditorValid(): Boolean {
         val anchor = trackpadSelectionAnchor
         val head = trackpadSelectionHead
         return anchor >= 0 && head >= 0
             && latinIME.currentInputEditorInfo === trackpadSelectionEditor
             && latinIME.currentInputConnection === trackpadSelectionConnection
+    }
+
+    private fun isTrackpadSelectionValid(): Boolean {
+        val anchor = trackpadSelectionAnchor
+        val head = trackpadSelectionHead
+        return isTrackpadSelectionEditorValid() && !trackpadVerticalPending
             && connection.expectedSelectionStart == minOf(anchor, head)
             && connection.expectedSelectionEnd == maxOf(anchor, head)
+    }
+
+    private fun requestTrackpadSelectionVertically(rawSteps: Int) {
+        val editor = trackpadSelectionEditor ?: return
+        // Only ordinary multiline text fields. The host, not the IME, owns
+        // visual line wraps, RTL glyph positions and WebView layout.
+        if ((editor.inputType and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
+            (editor.inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) == 0) return
+        val ic = trackpadSelectionConnection ?: return
+        if (!isTrackpadSelectionValid()) return
+        val key = if (rawSteps < 0) KeyEvent.KEYCODE_DPAD_UP else KeyEvent.KEYCODE_DPAD_DOWN
+        val now = SystemClock.uptimeMillis()
+        val down = KeyEvent(now, now, KeyEvent.ACTION_DOWN, key, 0,
+            KeyEvent.META_SHIFT_ON, KeyCharacterMap.VIRTUAL_KEYBOARD, 0,
+            KeyEvent.FLAG_SOFT_KEYBOARD)
+        val up = KeyEvent.changeAction(down, KeyEvent.ACTION_UP)
+        // sendKeyEvent is best-effort and asynchronous. Never treat its return
+        // value as a confirmed selection or infer UTF-16 offsets from pixels.
+        try {
+            if (ic.sendKeyEvent(down)) {
+                trackpadVerticalPending = true
+                ic.sendKeyEvent(up)
+            }
+        } catch (_: RuntimeException) {
+            // A stale/limited InputConnection must never cause a text edit.
+            clearTrackpadSelection()
+        }
     }
 
     private fun moveTrackpadSelectionHorizontally(rawSteps: Int) {

@@ -136,6 +136,7 @@ public final class InputLogic {
     private String mWordBeingCorrectedByCursor = null;
 
     private boolean mJustRevertedACommit = false;
+    private final CorrectionRejectionPolicy mCorrectionRejection = new CorrectionRejectionPolicy();
 
     // RAM-only direct-correction receipt; no touch coordinates are persisted.
     private String mCurrentSwipeSkeleton;
@@ -152,6 +153,7 @@ public final class InputLogic {
 
     /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
     public void clearPendingPrivateLearning() {
+        mCorrectionRejection.clear();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mRejectedSwipeAt = 0L;
@@ -210,6 +212,7 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        mCorrectionRejection.clear();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mLastInteractionUptime = 0L;
@@ -277,6 +280,7 @@ public final class InputLogic {
      * Clean up the input logic after input is finished.
      */
     public void finishInput() {
+        mCorrectionRejection.clear();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         if (mWordComposer.isComposingWord()) {
@@ -316,6 +320,7 @@ public final class InputLogic {
 
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice) {
+        mCorrectionRejection.clear();
         // Dictated text must not confirm an unrelated swipe-correction candidate.
         mRejectedSwipeSkeleton = null;
         if (fromVoice) mCurrentSwipeSkeleton = null;
@@ -524,6 +529,7 @@ public final class InputLogic {
                 composingSpanEnd)) {
             return false;
         }
+        mCorrectionRejection.clear();
         // TODO: the following is probably better done in resetEntireInputState().
         // it should only happen when the cursor moved, and the very purpose of the
         // test below is to narrow down whether this happened or not. Likewise with
@@ -2375,6 +2381,12 @@ public final class InputLogic {
 
         // We have a separator between the word and the cursor: we should show
         // predictions.
+        if (!inputTransaction.getSettingsValues().mIncognitoModeEnabled
+                && !inputTransaction.getSettingsValues().mInputAttributes.mNoLearning) {
+            mCorrectionRejection.reject(originallyTypedWord.toString(), committedWordString,
+                    mLatinIME.getCurrentInputEditorInfo(), mLatinIME.getCurrentInputConnection(),
+                    SystemClock.uptimeMillis());
+        }
         inputTransaction.setRequiresUpdateSuggestions();
         return true;
     }
@@ -2856,7 +2868,11 @@ public final class InputLogic {
         }
         final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();
-        final String stringToCommit = (autoCorrectionOrNull != null) ? autoCorrectionOrNull.mWord : typedWord;
+        final String proposedCorrection = autoCorrectionOrNull != null ? autoCorrectionOrNull.mWord : typedWord;
+        final boolean rejectRepeatedCorrection = mCorrectionRejection.consumeIfMatches(
+                typedWord, proposedCorrection, mLatinIME.getCurrentInputEditorInfo(),
+                mLatinIME.getCurrentInputConnection(), SystemClock.uptimeMillis());
+        final String stringToCommit = rejectRepeatedCorrection ? typedWord : proposedCorrection;
         if (stringToCommit != null) {
             final boolean isBatchMode = mWordComposer.isBatchMode();
             commitChosenWord(settingsValues, stringToCommit, LastComposedWord.COMMIT_TYPE_DECIDED_WORD, separator);
