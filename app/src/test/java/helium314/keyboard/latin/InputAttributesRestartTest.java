@@ -51,10 +51,9 @@ public class InputAttributesRestartTest {
         assertTrue(new InputAttributes(info, false, null).mNoLearning);
     }
 
-    @Test public void uriEmailAndPasswordFieldsDoNotInsertAutomaticSpaces() {
+    @Test public void emailAndPasswordFieldsDoNotInsertAutomaticSpaces() {
         final EditorInfo info = editor();
         for (final int variation : new int[]{
-                InputType.TYPE_TEXT_VARIATION_URI,
                 InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
                 InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
                 InputType.TYPE_TEXT_VARIATION_PASSWORD,
@@ -69,6 +68,16 @@ public class InputAttributesRestartTest {
                 assertFalse(attributes.mShouldShowVoiceInputKey);
             }
         }
+    }
+
+    @Test public void uriFieldPreservesNormalTextSpacingButNotAutomaticCorrection() {
+        // A URI editor may also contain ordinary words and quoted phrases.
+        // InputLogicTest protects the conditional spaces after suggestions.
+        final EditorInfo info = editor();
+        info.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI;
+        final InputAttributes attributes = new InputAttributes(info, false, null);
+        assertTrue(attributes.mShouldInsertSpacesAutomatically);
+        assertFalse(attributes.mInputTypeShouldAutoCorrect);
     }
 
     @Test public void numberDecimalAndTypeNullNeverRunWordPrediction() {

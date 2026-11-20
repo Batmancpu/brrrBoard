@@ -17,7 +17,6 @@ public final class InputTypeUtils implements InputType {
     private static final int TEXT_VISIBLE_PASSWORD_INPUT_TYPE = TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
     private static final int TEXT_NUMBER_INPUT_TYPE = TYPE_CLASS_NUMBER | TYPE_NUMBER_FLAG_DECIMAL;
     private static final int[] SUPPRESSING_AUTO_SPACES_FIELD_VARIATION = {
-        InputType.TYPE_TEXT_VARIATION_URI,
         InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
         InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
         InputType.TYPE_TEXT_VARIATION_PASSWORD,
