@@ -16,6 +16,7 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**BR Brain Voice & Noise Reduction Lab** — private phone/earbud microphone comparison, playback, offline scoring, source limitations and physical QA gates](BR_BRAIN_VOICE_NOISE_LAB_2026_11_21.md)
 - [**iOS-style prediction glyph motion** — source implementation, evidence, timing limitations and one-APK acceptance matrix](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md)
 - [**Private blue-mic crash diagnostics and Android noise suppression** — owner Oppo EXIT_SELF/255 evidence, real-session one-shot stages, privacy and accuracy testing](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md)
 - [**BR Brain** — implementation-ready function-level contract, English/Hinglish next-word + swipe fusion and three Smart Emoji surfaces — **implementation started; neural weights pending**](BR_BRAIN_FUNCTIONAL_CODE_LEVEL_IMPLEMENTATION_PLAN_2026_11_20.md)

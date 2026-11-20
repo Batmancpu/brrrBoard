@@ -84,6 +84,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
       - name: Verify offline-only mic routing and optional-model packaging contract
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
+      - name: Verify opt-in BR Brain voice lab privacy and stable mic routing
+        run: python3 -m unittest discover -s tools -p 'test_voice_noise_lab_contract.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
         run: python3 -m unittest discover -s tools -p 'test_evaluate_ngram_predictions.py' -v

@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
+import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
 import java.io.IOException
 import java.util.concurrent.ArrayBlockingQueue
@@ -89,6 +90,7 @@ internal class KeyboardPcmAudioSource(
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("Microphone could not start")
                 }
+                if (!toBrrSpeak) VoiceDenoiseMetrics.blueCaptureStarted()
                 startPipeWriter()
                 mainHandler.post {
                     if (wanted.get() && !closed.get()) onRecordingStarted()
@@ -130,6 +132,7 @@ internal class KeyboardPcmAudioSource(
                 }
                 runCatching { suppression?.release() }
                 runCatching { microphone?.release() }
+                if (!toBrrSpeak) VoiceDenoiseMetrics.blueCaptureStopped()
                 if (recorder === microphone) recorder = null
                 if (!closed.get()) mainHandler.post {
                     if (!closed.get()) onCaptureFinished?.invoke()

@@ -26,6 +26,7 @@ import helium314.keyboard.settings.screens.DebugScreen
 import helium314.keyboard.settings.screens.DictionaryScreen
 import helium314.keyboard.settings.screens.GestureTypingScreen
 import helium314.keyboard.settings.screens.BrainDashboardScreen
+import helium314.keyboard.settings.screens.VoiceNoiseLabScreen
 import helium314.keyboard.settings.screens.LanguageScreen
 import helium314.keyboard.settings.screens.MainSettingsScreen
 import helium314.keyboard.settings.screens.PersonalDictionariesScreen
@@ -122,7 +123,11 @@ fun SettingsNavHost(
             GestureTypingScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.BrainDashboard) {
-            BrainDashboardScreen(onClickBack = ::goBack)
+            BrainDashboardScreen(onClickBack = ::goBack,
+                onOpenVoiceNoiseLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) })
+        }
+        composable(SettingsDestination.VoiceNoiseLab) {
+            VoiceNoiseLabScreen(onClickBack = ::goBack)
         }
 /*      will be added as part of passive data gathering
         composable(SettingsDestination.DataReview) {
@@ -200,6 +205,7 @@ object SettingsDestination {
     const val Toolbar = "toolbar"
     const val GestureTyping = "gesture_typing"
     const val BrainDashboard = "brain_dashboard"
+    const val VoiceNoiseLab = "voice_noise_lab"
     const val DataGathering = "data_gathering" // remove when data gathering phase is done (end of 2026 latest)
     const val DataReview = "data_review" // remove when data gathering phase is done (end of 2026 latest)
     const val Advanced = "advanced"

@@ -46,7 +46,7 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 @Composable
-fun BrainDashboardScreen(onClickBack: () -> Unit) {
+fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Unit = {}) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
     var confirmErase by remember { mutableStateOf(false) }
@@ -119,7 +119,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             Text("The 95th percentile uses up to the most recent 128 eligible requests. A dash means this process hasn't measured that activity yet. Protected and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
-            Text("Private mic noise reduction",
+            Text("Voice intelligence & noise reduction",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
@@ -138,7 +138,19 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                             VoiceCaptureNoiseReduction.setEnabled(context, selected)
                         })
                     }
-                    Text("Last capture: ${voiceNoise.platformNoiseSuppression}. ACTIVE means Android accepted the effect, not that recognition became more accurate.",
+                    Text(if (voiceNoise.blueMicCapturing) "Blue microphone LIVE: recording now"
+                         else "Blue microphone idle · no background recording",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text((if (voiceNoise.blueMicCapturing) "Live blue-mic effect: "
+                          else "Last blue-mic effect: ") + voiceNoise.platformNoiseSuppression +
+                        ". ACTIVE means Android accepted the effect, not that recognition became more accurate.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Completed blue recordings this process: ${voiceNoise.completedBlueCaptures}",
+                        style = MaterialTheme.typography.bodySmall)
+                    Button(onClick = onOpenVoiceNoiseLab, modifier = Modifier.fillMaxWidth()) {
+                        Text("Open Voice & Noise Reduction Lab")
+                    }
+                    Text("Compare phone vs Bluetooth microphone, suppression OFF vs ON, listen to short private samples and measure actual offline recognition against a displayed test sentence. Nothing records until you explicitly press Record.",
                         style = MaterialTheme.typography.bodySmall)
                     Text("GTCRN filtering paused", fontWeight = FontWeight.SemiBold)
                     Text("Your diagnostic stopped at GTCRN model loading, so its native filter remains isolated. This option uses Android's audio system instead and preserves Parakeet 110M.",

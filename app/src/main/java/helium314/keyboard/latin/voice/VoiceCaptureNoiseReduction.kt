@@ -39,6 +39,16 @@ internal object VoiceCaptureNoiseReduction {
             VoiceDenoiseMetrics.platformState("CALL_BLOCKED")
             return null
         }
+        return createEnabledEffect(recorder).also { effect ->
+            VoiceDenoiseMetrics.platformState(if (effect == null) "UNAVAILABLE" else "ACTIVE")
+        }
+    }
+
+    /** Explicit Voice Lab A/B setting; never modifies the keyboard's saved preference or metrics. */
+    fun attachForLab(recorder: AudioRecord, enabledForTake: Boolean): NoiseSuppressor? =
+        if (enabledForTake) createEnabledEffect(recorder) else null
+
+    private fun createEnabledEffect(recorder: AudioRecord): NoiseSuppressor? {
         var created: NoiseSuppressor? = null
         return runCatching {
             if (!NoiseSuppressor.isAvailable()) return@runCatching null
@@ -50,7 +60,6 @@ internal object VoiceCaptureNoiseReduction {
             effect
         }.getOrNull().also { effect ->
             if (effect == null) runCatching { created?.release() }
-            VoiceDenoiseMetrics.platformState(if (effect == null) "UNAVAILABLE" else "ACTIVE")
         }
     }
 }
