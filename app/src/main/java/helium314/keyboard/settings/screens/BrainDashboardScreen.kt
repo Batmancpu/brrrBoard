@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
+import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.prefs
@@ -39,6 +40,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
     var confirmErase by remember { mutableStateOf(false) }
+    var confirmEraseEmoji by remember { mutableStateOf(false) }
     val learner = remember(context) { SwipeCorrectionLearner.get(context) }
     val snapshot = remember(refresh) { learner.snapshot() }
     val emoji = remember(refresh) { readEmojiUsage(context) }
@@ -47,7 +49,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
 
     SearchSettingsScreen(onClickBack = onClickBack,
-        title = "brrBrain · Learning dashboard", settings = emptyList()) {
+        title = "BR Brain", settings = emptyList()) {
         Column(modifier = Modifier.fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -106,7 +108,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                 }
             }
 
-            Text("Emoji learning · actual saved usage",
+            Text("Smart Emoji · learned on your device",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 EvidenceMetric("Selections", emoji.totalUses.toString(),
@@ -124,10 +126,17 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                         else emoji.top.joinToString("   ") { it.first + " ×" + it.second },
                         color = palette.onSecondaryContainer,
                         style = MaterialTheme.typography.bodyLarge)
-                    Text("Directly from brrBoard's existing frequency records.",
+                    Text("Actual Emoji frequency, combined with BR Brain's encrypted app/field context patterns.",
                         color = palette.onSecondaryContainer,
                         style = MaterialTheme.typography.bodySmall)
                 }
+            }
+
+            Text("Learned context associations: " + BrrSmartEmojiEngine.learnedPatternCount() +
+                " encrypted phrase/Emoji patterns. No full messages or app names are saved.",
+                style = MaterialTheme.typography.bodySmall, color = palette.onSurfaceVariant)
+            OutlinedButton(onClick = { confirmEraseEmoji = true }) {
+                Text("Erase Smart Emoji patterns")
             }
 
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
@@ -147,6 +156,19 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             Text("Swipe correction storage: " + snapshot.storageStatus + ". This dashboard never records raw typing. Session counters restart when the keyboard service restarts.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
+    }
+    if (confirmEraseEmoji) {
+        SlideActionDialog(
+            title = "Erase Smart Emoji patterns?",
+            explanation = "Deletes BR Brain's encrypted phrase, app and field Emoji associations. Normal Emoji Recents and frequency remain.",
+            instruction = "slide to erase patterns",
+            onDismiss = { confirmEraseEmoji = false },
+            onConfirmed = {
+                BrrSmartEmojiEngine.forgetLearnedPatterns(context)
+                refresh++
+                confirmEraseEmoji = false
+            },
+        )
     }
     if (confirmErase) {
         SlideActionDialog(

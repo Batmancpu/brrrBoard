@@ -52,6 +52,7 @@ import helium314.keyboard.event.HapticEvent;
 import helium314.keyboard.keyboard.KeyboardActionListener;
 import helium314.keyboard.keyboard.KeyboardActionListenerImpl;
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView;
+import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine;
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.InsetsOutlineProvider;
@@ -791,6 +792,7 @@ public class LatinIME extends InputMethodService implements
         sInstance = this;
         mSettings.startListener();
         EmojiPalettesView.AdaptiveEmojiEngine.warmUsageCache(this);
+        BrrSmartEmojiEngine.warm(this);
         KeyboardIconsSet.Companion.getInstance().loadIcons(this);
         mRichImm = RichInputMethodManager.getInstance();
         AudioAndHapticFeedbackManager.init(this);

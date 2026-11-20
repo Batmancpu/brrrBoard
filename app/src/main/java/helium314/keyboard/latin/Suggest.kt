@@ -10,6 +10,7 @@ import android.util.LruCache
 import com.android.inputmethod.latin.utils.BinaryDictionaryUtils
 import helium314.keyboard.keyboard.Keyboard
 import helium314.keyboard.keyboard.emoji.EmojiContextScorer
+import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
@@ -185,12 +186,12 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         if (resultsArePredictions && mayUseEmojiContext
             && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
             && suggestionsList.none { it.isEmoji }) {
-            val reviewed = EmojiContextScorer.rankEmojiSideCandidates(emojiContext, false)
-            // Keep reviewed semantic confidence dominant. Repeated actual Emoji
-            // choices can gently reorder the alternatives without learning text.
-            val emoji = reviewed.withIndex().maxByOrNull { (index, value) ->
-                EmojiPalettesView.AdaptiveEmojiEngine.cachedUsageBoost(value) - index * 30
-            }?.value
+            val service = LatinIME.getInstance()
+            // One shared, app/field-aware Emoji brain; learned suggestions are
+            // manual actions only and never take either text-prediction slot.
+            val emoji = if (service != null) BrrSmartEmojiEngine.suggest(
+                service, service.currentInputEditorInfo, emojiContext, 1, true
+            ).firstOrNull()?.emoji else null
             if (emoji != null) {
                 // Preserve the two strongest text predictions in visible slots;
                 // an Emoji is a distinct insertion action, never a word candidate.

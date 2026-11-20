@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Behavioral reliability, recovered dictation and an offline Version History screen.",
+  "summary": "Behavioral reliability, offline Version History, URL editor fixes, and BR Brain Smart Emoji learning.",
   "changes": [
     {
       "title": "Version History in About",
@@ -17,6 +17,18 @@
     {
       "title": "Editor field regression coverage",
       "detail": "URL fields no longer insert automatic spaces. Added tests for URL and email spacing, protected password layouts, numeric and decimal fields, TYPE_NULL, and app-supplied completions."
+    },
+    {
+      "title": "BR Brain now learns Emoji context privately",
+      "detail": "Smart Emoji learns short English/Hinglish phrase patterns from selected Emoji on this device. App and field preferences use bounded encrypted records, with no saved messages."
+    },
+    {
+      "title": "One Emoji brain across three places",
+      "detail": "The suggestion strip, Smart/Recent Emoji opening section, and initial Emoji Search suggestions now share context-aware ranking while keeping your original Recents and text predictions."
+    },
+    {
+      "title": "BR Brain privacy and erasure",
+      "detail": "Renamed the learning dashboard to BR Brain and added slide-confirmed erasure for contextual Emoji patterns. Protected and incognito fields do not participate; offline speech remains unchanged."
     }
   ]
 }

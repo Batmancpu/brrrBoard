@@ -855,17 +855,14 @@ public final class EmojiPalettesView extends LinearLayout
                 }
             }
         }
-        if (!safeContext.isEmpty()) {
-            for (final EmojiContextScorer.Candidate candidate
-                    : EmojiContextScorer.rank(safeContext, false)) {
-                ordered.add(EmojiParserKt.getEmojiDefaultVersion(candidate.emoji));
-            }
+        // Search's initial row is the same BR Brain suggestion ordering as
+        // Smart/Recent and the text strip, including learned app/field usage.
+        for (final BrrSmartEmojiEngine.Pick candidate : BrrSmartEmojiEngine.suggest(
+                getContext(), editor, safeContext, 10, false)) {
+            ordered.add(EmojiParserKt.getEmojiDefaultVersion(candidate.emoji));
         }
         mSearchIdleReviewed = List.copyOf(ordered);
-        // Sensitive editors/incognito never expose learned history; all fields
-        // still receive non-personalized defaults, even on a fresh install.
-        mSearchIdleRecent = eligible
-                ? AdaptiveEmojiEngine.getFastRowEmojis(getContext(), 10) : List.of();
+        mSearchIdleRecent = List.of();
         mSearchIdleSuggestions = EmojiSearchIdleResults.merge(
                 mSearchIdleReviewed, List.of(), mSearchIdleRecent, 10);
         return safeContext;
@@ -1781,6 +1778,16 @@ public final class EmojiPalettesView extends LinearLayout
         }
         final String emojiStr = key.getOutputText() != null ? key.getOutputText() : (key.getCode() > 0 ? new String(Character.toChars(key.getCode())) : null);
         if (emojiStr != null) {
+            // Exactly one eligible, completed Emoji choice teaches the shared
+            // app/field-aware local recommender. The editor suffix is transient.
+            CharSequence preceding = null;
+            try {
+                final InputConnection input = activeIme.getCurrentInputConnection();
+                if (input != null) preceding = input.getTextBeforeCursor(160, 0);
+            } catch (RuntimeException ignored) { // Never block Emoji insertion.
+            }
+            BrrSmartEmojiEngine.learn(getContext(),
+                    activeIme.getCurrentInputEditorInfo(), preceding, emojiStr);
             AdaptiveEmojiEngine.recordEmojiUsage(getContext(), emojiStr);
         }
         // Defer visible recents reordering until the panel is closed to avoid RecyclerView
@@ -2143,15 +2150,12 @@ public final class EmojiPalettesView extends LinearLayout
             updateContextSmartVisibility();
             return;
         }
-        if (beforeCursor == null || beforeCursor.length() == 0) {
-            updateContextSmartVisibility();
-            return;
-        }
-        // User text exists only within this stack frame, never in preferences.
-        final List<EmojiContextScorer.Candidate> candidates =
-                EmojiContextScorer.rank(beforeCursor.toString(), false);
+        // Empty prose fields can still show app-appropriate learned/frequent
+        // picks; no blank Smart row and no host text is stored.
+        final List<BrrSmartEmojiEngine.Pick> candidates = BrrSmartEmojiEngine.suggest(
+                getContext(), editorInfo, beforeCursor, 5, false);
         final float density = getResources().getDisplayMetrics().density;
-        for (final EmojiContextScorer.Candidate candidate : candidates) {
+        for (final BrrSmartEmojiEngine.Pick candidate : candidates) {
             final Key key = mEmojiCategory.findEmojiKey(candidate.emoji);
             if (key == null) continue;
             final TextView cell = new TextView(getContext());
@@ -2159,7 +2163,7 @@ public final class EmojiPalettesView extends LinearLayout
             cell.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 28);
             cell.setGravity(android.view.Gravity.CENTER);
             cell.setContentDescription(getResources().getString(
-                    R.string.emoji_context_accessibility, candidate.matchedTrigger, candidate.emoji));
+                    R.string.emoji_context_accessibility, candidate.explanation, candidate.emoji));
             cell.setFocusable(true);
             cell.setClickable(true);
             final int margin = Math.round(4 * density);
@@ -2232,9 +2236,26 @@ public final class EmojiPalettesView extends LinearLayout
         final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
         final int maxRankedCount = Math.min(recentsKeyboard.getMaxKeyCount(),
                 Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
-        recentsKeyboard.prioritizeKeys(
-                AdaptiveEmojiEngine.getFastRowEmojis(getContext(), maxRankedCount),
-                maxRankedCount);
+        // The first Recents rows share the same app/field/context recommender.
+        // The historical Recents data still exists and is never replaced.
+        final LatinIME ime = findHostingIme(getContext());
+        final EditorInfo editor = ime == null ? null : ime.getCurrentInputEditorInfo();
+        CharSequence context = "";
+        if (EmojiContextEligibility.isEligible(editor, Settings.getValues().mIncognitoModeEnabled)
+                && ime != null) {
+            try {
+                final InputConnection connection = ime.getCurrentInputConnection();
+                if (connection != null) context = connection.getTextBeforeCursor(160, 0);
+            } catch (RuntimeException ignored) {
+                context = "";
+            }
+        }
+        final ArrayList<String> ranked = new ArrayList<>();
+        for (final BrrSmartEmojiEngine.Pick pick : BrrSmartEmojiEngine.suggest(
+                getContext(), editor, context, maxRankedCount, false)) {
+            ranked.add(pick.emoji);
+        }
+        recentsKeyboard.prioritizeKeys(ranked, maxRankedCount);
         if (initialized && mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
     }
 
