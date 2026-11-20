@@ -16,7 +16,7 @@
     },
     {
       "title": "Editor field regression coverage",
-      "detail": "Added tests for URL and email spacing, protected password layouts, numeric and decimal fields, TYPE_NULL, and app-supplied completions."
+      "detail": "URL fields no longer insert automatic spaces. Added tests for URL and email spacing, protected password layouts, numeric and decimal fields, TYPE_NULL, and app-supplied completions."
     }
   ]
 }
