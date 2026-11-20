@@ -1,5 +1,11 @@
 # Eight-stage brrBoard intelligence/privacy ledger — 20 November 2026
 
+## CI repair after first main source push
+
+- Exact initial main SHA `01996e4df862567c5edf3af45afaaa21e4b0b162`: [debug 44672188373](https://github.com/Batmancpu/brrrBoard/actions/runs/44672188373) and [Obtainium 44672188264](https://github.com/Batmancpu/brrrBoard/actions/runs/44672188264) both compiled/built but stopped on **one failing test out of 413**. The test tried to mutate an `NgramContext` using Android `TextUtils.equals` in the plain-JVM runner (`RuntimeException`, `NextWordCacheKeyTest.kt:24`). The repair uses a mutable `StringBuilder` to exercise the immutable snapshot without Android framework methods. No production next-word ranking or cache feature is removed.
+- Nearby clipboard blind spots repaired in the same main-only follow-up: no passive primary-clipboard receipt fetch in a private/no-editor session; immediate dismissal of stale private clipboard suggestion state; inaccessible clip reads become a no-op; confirmation compares the actual text and identity from **one** final `ClipData` snapshot; system-clipboard cleanup refuses any copy without a reliable OS timestamp. Older Android with no timestamp can still use explicit confirmed Paste with a text-digest comparison, never conditional system clipboard removal.
+- New exact-SHA **both-workflow success** and original signer/asset verification are mandatory for this corrective source, independent of Oppo acceptance. Initial red workflows are historical diagnostics, not a release. No mic/incognito theme changes, performance claims, stored private logs or extra model.
+
 Source baseline: `49756dcacefceaca875eb9dba4d2099fcc549fd9` on `main`. This is an authorized implementation, not the earlier research-only plan. The native dictionary, existing swipe learner, CLDR Emoji index, on-device Parakeet, application ID, original signer, previously installed private model, and encrypted on-device associations must survive. Do **not** bundle another model, record real text in tests/logs, auto-replace learned words, or treat synthetic runs as real speedups. Gold incognito and deep-red recording mic are separate uncompleted/untested design decisions and are not an intelligence requirement.
 
 ## Batch 1 — RAM-only measurements and synthetic baselines

@@ -18,10 +18,15 @@ class NextWordCacheKeyTest {
     }
 
     @Test fun snapshotIsNotMutatedAfterCacheInsertion() {
-        val context = NgramContext(NgramContext.WordInfo("hello"),
+        // Use a mutable CharSequence to prove the key takes a value snapshot.
+        // NgramContext.changeWordIfAfterBeginningOfSentence calls Android
+        // TextUtils.equals, unavailable in the plain-JVM unit test runner.
+        val mutableWord = StringBuilder("hello")
+        val context = NgramContext(NgramContext.WordInfo(mutableWord),
             NgramContext.WordInfo.BEGINNING_OF_SENTENCE_WORD_INFO)
         val key = NextWordCacheKey.from(context, "en-US", 12, 1, false, false)
-        context.changeWordIfAfterBeginningOfSentence("hello", "changed")
+        mutableWord.replace(0, mutableWord.length, "changed")
         assertEquals("hello", key.context.first().text)
+        assertEquals("changed", context.getNthPrevWord(1).toString())
     }
 }

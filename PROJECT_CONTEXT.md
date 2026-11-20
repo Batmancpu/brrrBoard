@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-20 — Eight-stage CI failure and main-only corrective source
+
+First source `01996e4df862567c5edf3af45afaaa21e4b0b162`: debug `44672188373` and Obtainium `44672188264` both FAILED at one out of 413 Android JVM tests, after app build succeeded; root cause is the new immutable cache-key test's direct Android `TextUtils.equals` usage in an unmocked test runner, not a decoder compilation error. Repair test uses a mutable `StringBuilder` to verify copied n-gram values. Clipboard audit follow-up avoids reads while private, invalidates private suggestion state, handles clipboard-access denial, compares positive-confirmation receipt/text from the same OS ClipData, and requires an OS-provided timestamp for ownership-sensitive cleanup. Only user-confirmed Paste permits hash-only matching on older Android; never delete another app's clip. No model/package/signer/key/private data/UI modifications. Fresh exact-SHA dual CI, original-signed release asset, and hands-on Oppo tests still required. Gold incognito/deep-red mic UI remain explicitly separate and unchanged.
+
 ## 2026-11-20 — Eight-stage privacy/intelligence batch 8/8 source integration checkpoint
 
 Full synthetic integration and device checklist in `docs/EIGHT_STAGE_INTELLIGENCE_PRIVACY_2026_11_20.md`. No local SDK/adb; Python 16 cases, XML and diff checks passed, Android tests/signing/phone all pending exact main SHA. No new model, network permission or UI design changes. Check CI/release source hash independently from Oppo acceptance; preserve data on in-place update.
