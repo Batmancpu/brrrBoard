@@ -1,5 +1,24 @@
 # brrBoard project context
 
+## 2026-11-20 — Emoji navigation session scope and top-gap diagnosis (owner implementation GO)
+
+Source reviewed at live `main` `7de71e3` after concurrent Settings and voice
+documentation commits. Confirmed root of persistent Emoji position: preference-
+backed category/global page plus per-category in-memory row restoration with
+no input-session reset. Source candidate removes navigation preference writes
+and reads but **retains the same preferences for actual Recent Emoji data**,
+resets category/page/row memory on `LatinIME` editor-view start or window hide,
+guards delayed detached scroll callbacks with generations, and keeps positions
+across ordinary ABC↔Emoji toggles. Default Recents/Smart when eligible; empty
+fallback Smileys; incognito deliberately defaults Smileys for privacy. One-shot
+geometry-only pre-draw `BrrImeBounds` on Emoji entry will distinguish window,
+input-area, frame, wrapper, Emoji and header offsets. No guessed gap fix or
+model/data/permission/signing/visual-brand changes. **Oppo blank band is still
+an open device issue**, regardless of passing source tests. Source state, unit
+cases, exact-SHA CI and phone acceptance are recorded in
+[docs/EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md](docs/EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md).
+Pending publish/Android full-unit/original-signed workflows/physical trace.
+
 ## 2026-11-20 — Settings release concurrency repair (owner GO)
 
 Owner observed repeated Settings Obtainium failures and requested exact diagnosis, a workflow watch, and then explicitly overrode the ten-minute quiet wait: **check for active jobs and proceed immediately if none**. At 08:39:45 UTC no GitHub Actions workflow was active; main was `c1810591` with successful debug run `44702978136`. The Settings `0c797762` Obtainium workflow `44702216812` had **compiled unsigned APK and passed all unit/data gates** but deliberately refused signing because its exact-SHA debug workflow `44702216806` was **cancelled by a subsequent main documentation push**, not because Kotlin, tests or native compilation failed. Root cause: debug workflow concurrency grouped by `${{ github.ref }}` with `cancel-in-progress: true`. Fix: isolate debug concurrency per `${{ github.sha }}` and set `cancel-in-progress: false`, while keeping the signed workflow serialized and retaining its exact-SHA debug-success security gate. Changes are workflow + handoff only, no keyboard, AI voice engine/model, app permissions or signer modifications. Track the new main SHA's **both** debug and signed workflows through published APK before claiming release success; preserve ongoing Ultra voice research PLAN ONLY.

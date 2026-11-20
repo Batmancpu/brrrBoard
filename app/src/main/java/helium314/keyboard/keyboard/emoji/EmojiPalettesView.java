@@ -161,6 +161,9 @@ public final class EmojiPalettesView extends LinearLayout
     private boolean mCompactContextPanel;
     private EditorInfo mContextSmartEditor;
     private boolean mEmojiGridScrollActive;
+    // Navigation belongs to an editor session, not SharedPreferences or an IME lifetime.
+    // ABC <-> Emoji inside the same session retains the current category and row.
+    private final EmojiNavigationSession mNavigationSession = new EmojiNavigationSession();
     private final SparseIntArray mCategoryScrollRows = new SparseIntArray();
     private int mTypingViewportHintWidth;
     private int mTypingViewportHintHeight;
@@ -745,9 +748,20 @@ public final class EmojiPalettesView extends LinearLayout
         setSearchText("", 0);
         updateContextSmartPicks(editorInfo);
 
-        // Recents can grow between openings; rebuild the virtual columns after
-        // flushing pending keys without discarding the saved category/page.
-        if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
+        if (mCategoryPagerAdapter != null && mNavigationSession.consumeResetOnOpen()) {
+            // Reset only navigation, never actual Emoji Recents or learned data.
+            // Invalidating adapter generations prevents a detached old-editor
+            // RecyclerView from restoring its row after the reset.
+            mEmojiGridScrollActive = false;
+            mCategoryPagerAdapter.resetScrollMemory();
+            final int initialCategory = mEmojiCategory.getSessionStartCategory(mHasContextSmartPicks);
+            setCurrentCategoryId(initialCategory, true);
+            final int index = mCategoryPagerAdapter.indexOf(initialCategory);
+            if (index >= 0) mPager.setCurrentItem(index, false);
+        } else if (mCategoryPagerAdapter != null) {
+            // Reopen within the same editor: keep the selected category/page.
+            mCategoryPagerAdapter.refresh();
+        }
         setCurrentCategoryId(mEmojiCategory.getCurrentCategoryId(), true);
 
         setupBottomRowKeyboard(editorInfo, keyboardActionListener);
@@ -2081,6 +2095,16 @@ public final class EmojiPalettesView extends LinearLayout
         collapseExpandedBrowse();
         getRecentsKeyboard().flushPendingRecentKeys();
         // Never retain even a reviewed trigger or selection across editors.
+        mHasContextSmartPicks = false;
+        mContextSmartEditor = null;
+        if (mContextSmartRow != null) mContextSmartRow.removeAllViews();
+        updateContextSmartVisibility();
+    }
+
+    /** New field, app, keyboard session, or window reopen; preserve real Recents. */
+    public void onNewEditorSession() {
+        mNavigationSession.beginNewEditorSession();
+        mEmojiGridScrollActive = false;
         mHasContextSmartPicks = false;
         mContextSmartEditor = null;
         if (mContextSmartRow != null) mContextSmartRow.removeAllViews();

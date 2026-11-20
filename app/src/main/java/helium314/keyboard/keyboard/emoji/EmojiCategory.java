@@ -14,7 +14,6 @@ import android.content.res.TypedArray;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-import helium314.keyboard.latin.settings.Defaults;
 import helium314.keyboard.latin.utils.KtxKt;
 import helium314.keyboard.latin.utils.Log;
 
@@ -49,7 +48,6 @@ final class EmojiCategory {
     private static final int ID_SYMBOLS = 8;
     private static final int ID_FLAGS = 9;
     private static final int ID_EMOTICONS = 10;
-    private static final String PREF_SMART_EMOJI_DEFAULT_MIGRATED = "pref_smart_emoji_default_migrated";
 
     private static final int MAX_LINE_COUNT_PER_PAGE = 3;
 
@@ -118,13 +116,15 @@ final class EmojiCategory {
             KeyboardId.ELEMENT_EMOJI_CATEGORY9,
             KeyboardId.ELEMENT_EMOJI_CATEGORY10 };
 
-    private final SharedPreferences mPrefs;
     private final Resources mRes;
     private final Context mContext;
     private final int mMaxRecentsKeyCount;
     private final KeyboardLayoutSet mLayoutSet;
     private final HashMap<String, Integer> mCategoryNameToIdMap = new HashMap<>();
     private final int[] mCategoryTabIconId = new int[sCategoryName.length];
+    // The keyboard data still uses these preferences for real Emoji Recents.
+    // Only category/page navigation stops reading/writing preference keys.
+    private final SharedPreferences mPrefs;
     private final ArrayList<CategoryProperties> mShownCategories = new ArrayList<>();
     private final ConcurrentHashMap<Long, DynamicGridKeyboard> mCategoryKeyboardMap = new ConcurrentHashMap<>();
 
@@ -144,9 +144,6 @@ final class EmojiCategory {
     }
 
     public void initialize() {
-        final boolean incognito = Settings.getValues().mIncognitoModeEnabled;
-        final int defaultCategoryId = incognito
-                ? EmojiCategory.ID_SMILEYS_EMOTION : EmojiCategory.ID_RECENTS;
         addShownCategoryId(EmojiCategory.ID_RECENTS);
         addShownCategoryId(EmojiCategory.ID_SMILEYS_EMOTION);
         addShownCategoryId(EmojiCategory.ID_PEOPLE_BODY);
@@ -161,33 +158,28 @@ final class EmojiCategory {
         }
         addShownCategoryId(EmojiCategory.ID_EMOTICONS);
 
-        final DynamicGridKeyboard recentsKbd = getKeyboard(EmojiCategory.ID_RECENTS, 0);
-        int requestedCategoryId = mPrefs.getInt(
-                Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, defaultCategoryId);
-        // Earlier releases saved Smileys after empty Recents fell back there. Redirect that
-        // one-time default to Smart Emoji, while preserving any other explicit category choice.
-        if (!incognito && !mPrefs.getBoolean(PREF_SMART_EMOJI_DEFAULT_MIGRATED, false)) {
-            if (requestedCategoryId == EmojiCategory.ID_SMILEYS_EMOTION
-                    || requestedCategoryId == EmojiCategory.ID_RECENTS) {
-                requestedCategoryId = EmojiCategory.ID_RECENTS;
-            }
-            mPrefs.edit()
-                    .putBoolean(PREF_SMART_EMOJI_DEFAULT_MIGRATED, true)
-                    .putInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, requestedCategoryId)
-                    .apply();
-        }
-        mCurrentCategoryId = requestedCategoryId;
-        mCurrentCategoryPageId = mPrefs.getInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID, Defaults.PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID);
-        if (!isShownCategoryId(mCurrentCategoryId)) {
-            mCurrentCategoryId = defaultCategoryId;
-        } else if (mCurrentCategoryId == EmojiCategory.ID_RECENTS &&
-                recentsKbd.getSortedKeys().isEmpty()) {
-            mCurrentCategoryId = EmojiCategory.ID_SMILEYS_EMOTION;
-        }
+        // The category/page are navigation state, not user Recents. Older builds
+        // wrote them to preferences and reopened at an unrelated editor's last
+        // location. Do not read or overwrite those legacy values; they are inert.
+        resetSessionNavigation(false);
+    }
 
-        if (mCurrentCategoryPageId >= computeCategoryPageCount(mCurrentCategoryId)) {
-            mCurrentCategoryPageId = 0;
-        }
+    /** Begin a fresh editor session without clearing any actual Recent Emoji. */
+    public void resetSessionNavigation(final boolean hasEligibleSmartPicks) {
+        mCurrentCategoryId = getSessionStartCategory(hasEligibleSmartPicks);
+        mCurrentCategoryPageId = 0;
+    }
+
+    public int getSessionStartCategory(final boolean hasEligibleSmartPicks) {
+        return sessionStartCategory(Settings.getValues().mIncognitoModeEnabled,
+                !getKeyboard(ID_RECENTS, 0).getSortedKeys().isEmpty(), hasEligibleSmartPicks);
+    }
+
+    static int sessionStartCategory(final boolean incognito, final boolean hasRecents,
+            final boolean hasEligibleSmartPicks) {
+        // Private editors must not reveal a previous editor's usage history.
+        if (incognito) return ID_SMILEYS_EMOTION;
+        return hasRecents || hasEligibleSmartPicks ? ID_RECENTS : ID_SMILEYS_EMOTION;
     }
 
     public void clearKeyboardCache() {
@@ -259,12 +251,10 @@ final class EmojiCategory {
 
     public void setCurrentCategoryId(final int categoryId) {
         mCurrentCategoryId = categoryId;
-        mPrefs.edit().putInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_ID, categoryId).apply();
     }
 
     public void setCurrentCategoryPageId(final int id) {
         mCurrentCategoryPageId = id;
-        mPrefs.edit().putInt(Settings.PREF_LAST_SHOWN_EMOJI_CATEGORY_PAGE_ID, id).apply();
     }
 
     public int getCurrentCategoryPageId() {

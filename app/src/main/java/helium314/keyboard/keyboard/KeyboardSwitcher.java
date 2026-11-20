@@ -1247,6 +1247,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 updatePersistentEmojiRow();
                 if (mCurrentInputView != null)
                     mCurrentInputView.requestLayout();
+                if (mCurrentInputView != null)
+                    mCurrentInputView.reportNextEmojiGeometry();
             }
         });
     }
@@ -1923,6 +1925,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (mKlipyPalettesView != null) {
             mKlipyPalettesView.stopKlipyPalettes();
         }
+    }
+
+    /** Reset Emoji navigation on editor/window boundaries, not on every ABC tap. */
+    public void beginEmojiEditorSession() {
+        if (mEmojiPalettesView != null) mEmojiPalettesView.onNewEditorSession();
     }
 
     public void trimMemory() {

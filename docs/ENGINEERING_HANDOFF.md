@@ -1,5 +1,19 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — Emoji per-editor navigation, geometry-only diagnostic source batch
+
+Owner GO after read-only review. Fresh-main baseline `7de71e3` includes the
+independent premium Settings redesign and Ultra voice planning (NOT Ultra
+implementation). Navigation previously persisted current category/global page
+to preferences and per-category rows in RecyclerView. Session-scoped state now
+resets on editor start/window hide, not ABC↔Emoji; real Recents/preferences are
+preserved, private field opens Smileys, stale scroll callbacks are epoch-guarded.
+One pre-draw `BrrImeBounds` measurement logs view rectangles only, no text or
+editor identity, to locate the still-unresolved physical top band. Java policy
+tests added, no app package/signing/model/assets changes. [Active ledger](EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md).
+**Source candidate only** until same-SHA Android/full-unit debug and original-
+signed CI succeed. Physical Oppo verification is independent and remains OPEN.
+
 ## 2026-11-20 — Exact Ultra model origin and one-app migration follow-up; WAIT GO
 
 **Owner reaffirmed plan only:** one self-contained, original-signed **brrBoard** APK for both fresh installation and in-place migration. Internal background model extraction is automatic. Verify Ultra INT8 fully and load decoder; only then delete the old exact private 110M directory, preserving user data/signing. Ordinary subsequent APKs omit big weights; permanent full-APK bootstrap link is needed for *future* clean installs. Official pinned sherpa-onnx Ultra export `402e1190ce85b9793118ee223db21fb0d12f52db`, reported four-file size **670,576,835 bytes** and expected hashes to check against official bytes at authorized build. Upgrade from sherpa v1.13.3 to official **v2.0.2** AAR digest `6420cfb86c2ef8462dadd77b2202b7430487bdfb2bc715e9ce2864871209a80e` (post-#4084 TDT fix). Source/privacy audit: existing 110M from DevEmperor/DictateKeyboard build-time release; new Moondream→official csukuangfj ONNX, build-only fetch; blue is no-network/RAM-only, red brrSpeak may use user's online provider. File-by-file implementation and exact tests are in [the revised plan](ULTRA_OFFLINE_VOICE_INTEGRATION_AND_MIGRATION_PLAN_2026_11_20.md). No model/source/workflow/release/phone changes. **Next authorized action: WAIT for explicit owner Ultra GO**, then verify source artifact hashes, benchmark identical Indian English audio, execute the planned safe migration and exact-source CI.

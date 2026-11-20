@@ -14,6 +14,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
+import android.view.ViewTreeObserver;
 import android.view.VelocityTracker;
 import android.widget.FrameLayout;
 
@@ -49,6 +50,7 @@ public final class InputView extends FrameLayout {
     private float mToolbarDownX;
     private float mToolbarDownY;
     private VelocityTracker mToolbarVelocity;
+    private ViewTreeObserver.OnPreDrawListener mEmojiGeometryProbe;
 
     public InputView(final Context context, final AttributeSet attrs) {
         super(context, attrs, 0);
@@ -131,6 +133,60 @@ public final class InputView extends FrameLayout {
 
     public void refreshBoardPrivacy() {
         if (mFooter != null) mFooter.refreshPrivacyState();
+    }
+
+    /** One-shot, content-free device geometry for the unresolved ColorOS top band.
+     * No editor identity, typed text, clipboard, audio, or Emoji usage is recorded.
+     * A pre-draw sample observes the actual post-transition layout, not a stale
+     * pre-measure height captured when the alphabet was still visible.
+     */
+    public void reportNextEmojiGeometry() {
+        final ViewTreeObserver observer = getViewTreeObserver();
+        if (!observer.isAlive()) return;
+        if (mEmojiGeometryProbe != null) observer.removeOnPreDrawListener(mEmojiGeometryProbe);
+        mEmojiGeometryProbe = new ViewTreeObserver.OnPreDrawListener() {
+            @Override public boolean onPreDraw() {
+                final ViewTreeObserver live = getViewTreeObserver();
+                if (live.isAlive()) live.removeOnPreDrawListener(this);
+                mEmojiGeometryProbe = null;
+                final View emoji = findViewById(R.id.emoji_palettes_view);
+                if (emoji == null || emoji.getVisibility() != VISIBLE) return true;
+                final StringBuilder dimensions = new StringBuilder("geometry-only");
+                appendGeometry(dimensions, "decor", getRootView());
+                appendGeometry(dimensions, "inputArea", getRootView().findViewById(android.R.id.inputArea));
+                appendGeometry(dimensions, "input", InputView.this);
+                appendGeometry(dimensions, "frame", findViewById(R.id.main_keyboard_frame));
+                appendGeometry(dimensions, "strip", findViewById(R.id.strip_container));
+                appendGeometry(dimensions, "wrapper", findViewById(R.id.keyboard_view_wrapper));
+                appendGeometry(dimensions, "emoji", emoji);
+                appendGeometry(dimensions, "shell", findViewById(R.id.emoji_grid_shell));
+                appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
+                appendGeometry(dimensions, "footer", findViewById(R.id.board_footer));
+                android.util.Log.i("BrrImeBounds", dimensions.toString());
+                return true;
+            }
+        };
+        observer.addOnPreDrawListener(mEmojiGeometryProbe);
+    }
+
+    private static void appendGeometry(final StringBuilder report, final String label,
+            final View view) {
+        report.append(' ').append(label).append('=');
+        if (view == null) { report.append("absent"); return; }
+        if (view.getVisibility() != VISIBLE) { report.append("hidden"); return; }
+        final int[] location = new int[2];
+        view.getLocationOnScreen(location);
+        report.append(location[0]).append(',').append(location[1])
+                .append(':').append(view.getWidth()).append('x').append(view.getHeight());
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        if (mEmojiGeometryProbe != null) {
+            final ViewTreeObserver observer = getViewTreeObserver();
+            if (observer.isAlive()) observer.removeOnPreDrawListener(mEmojiGeometryProbe);
+            mEmojiGeometryProbe = null;
+        }
+        super.onDetachedFromWindow();
     }
 
     @Override

@@ -31,6 +31,9 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     private final List<EmojiCategory.CategoryProperties> pages;
     private int horizontalPadding;
     private int smartRowInset;
+    // A detached RecyclerView from the old editor must never restore a row
+    // after the new session has cleared its navigation memory.
+    private long scrollMemoryGeneration;
 
     EmojiCategoryPagerAdapter(final EmojiCategory category, final EmojiViewCallback emojiCallback,
             final SparseIntArray rememberedRows, final RowScrollCallback rowScrollCallback) {
@@ -72,6 +75,17 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
 
     void refresh() { notifyDataSetChanged(); }
 
+    void resetScrollMemory() {
+        ++scrollMemoryGeneration;
+        rememberedRows.clear();
+        notifyDataSetChanged();
+    }
+
+    static boolean acceptsScrollMemory(final long boundGeneration,
+            final long currentGeneration) {
+        return boundGeneration == currentGeneration;
+    }
+
     @Override public long getItemId(final int position) { return categoryAt(position); }
 
     @Override public int getItemCount() { return pages.size(); }
@@ -99,6 +113,8 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     @Override public void onBindViewHolder(@NonNull final PageHolder holder, final int position) {
         final int categoryId = categoryAt(position);
         holder.categoryId = categoryId;
+        holder.scrollMemoryGeneration = scrollMemoryGeneration;
+        final long boundGeneration = scrollMemoryGeneration;
         // A page can be rebound while the IME switches between compact Browse
         // and the taller Search keyboard. Do not carry its old pixel offset
         // into the first row of the newly measured viewport: only row indices
@@ -128,10 +144,12 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         holder.rows.clearOnScrollListeners();
         holder.rows.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int state) {
+                if (!acceptsScrollMemory(boundGeneration, scrollMemoryGeneration)) return;
                 rowScrollCallback.onRowScrollStateChanged(categoryId, state);
             }
             @Override public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                if (holder.categoryId != categoryId) return;
+                if (holder.categoryId != categoryId
+                        || !acceptsScrollMemory(boundGeneration, scrollMemoryGeneration)) return;
                 final LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
                 if (manager == null) return;
                 final int first = manager.findFirstVisibleItemPosition();
@@ -152,6 +170,7 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
                 // A one-time geometry correction, not a scroll snap. Ordinary
                 // finger scrolling and saved nonzero category rows are untouched.
                 if (corrected || holder.categoryId != categoryId ||
+                        !acceptsScrollMemory(boundGeneration, scrollMemoryGeneration) ||
                         bottom <= top || holder.rows.getScrollState() != RecyclerView.SCROLL_STATE_IDLE ||
                         rememberedRows.get(categoryId, 0) != 0) return;
                 final LinearLayoutManager lm = (LinearLayoutManager) holder.rows.getLayoutManager();
@@ -171,7 +190,8 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         // Rebinding a page does not always change RecyclerView's outer bounds,
         // so run the same check once after its next child layout as well.
         holder.rows.post(() -> {
-            if (holder.topAnchorListener == topAnchorListener) {
+            if (holder.topAnchorListener == topAnchorListener
+                    && acceptsScrollMemory(boundGeneration, scrollMemoryGeneration)) {
                 topAnchorListener.onLayoutChange(holder.rows, 0, 0,
                         holder.rows.getWidth(), holder.rows.getHeight(), 0, 0, 0, 0);
             }
@@ -190,7 +210,8 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
     @Override public void onViewDetachedFromWindow(@NonNull final PageHolder holder) { remember(holder); }
 
     private void remember(final PageHolder holder) {
-        if (holder.categoryId < 0) return;
+        if (holder.categoryId < 0 ||
+                !acceptsScrollMemory(holder.scrollMemoryGeneration, scrollMemoryGeneration)) return;
         final LinearLayoutManager manager = (LinearLayoutManager) holder.rows.getLayoutManager();
         if (manager == null) return;
         final int row = manager.findFirstVisibleItemPosition();
@@ -201,6 +222,7 @@ final class EmojiCategoryPagerAdapter extends RecyclerView.Adapter<EmojiCategory
         final RecyclerView rows;
         View.OnLayoutChangeListener topAnchorListener;
         int categoryId = -1;
+        long scrollMemoryGeneration;
         PageHolder(final FrameLayout root, final RecyclerView rows) { super(root); this.rows = rows; }
     }
 }

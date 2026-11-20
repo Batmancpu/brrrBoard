@@ -1352,6 +1352,9 @@ public class LatinIME extends InputMethodService implements
         mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
         mRichImm.refreshSubtypeCaches();
         final KeyboardSwitcher switcher = mKeyboardSwitcher;
+        // A new EditorInfo/restart is a new Emoji navigation session. Do not
+        // clear Recents; ABC<->Emoji taps inside this session still retain rows.
+        switcher.beginEmojiEditorSession();
 
         // If we are starting input in a different text field from before, we'll have to
         // reload
@@ -1548,6 +1551,9 @@ public class LatinIME extends InputMethodService implements
         if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
         mEditorSessionGeneration.invalidate();
         mKeyboardSwitcher.cancelPanelTransition();
+        // Hiding the IME also ends the visible typing session, including OEMs
+        // that reopen without a fresh onStartInputView callback.
+        mKeyboardSwitcher.beginEmojiEditorSession();
         mInlineDictation.cancel();
         mOfflineDictation.cancel();
         super.onWindowHidden();
