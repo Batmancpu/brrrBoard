@@ -1,0 +1,71 @@
+# brrBoard — behavioral reliability engineering program
+
+Status: **owner GO for behavioral changes** on 2026-11-20. This authorization does **not** extend to Moondream/Ultra model integration, model removal, signing changes, app identity changes, Liquid Glass, or a new speech transport. Preserve the original-signing Obtainium delivery path, `com.mangoloads.board`, encrypted learning, private model and all existing visual themes.
+
+Source baseline for initial analysis: GitHub `main` `7de71e30275b0ea7821f0be52356b55cd11550db`; successful same-SHA debug `44704537857` and original-signed release `44704537908`. Before every subsequent batch, compare against *fresh main*, do not force-push or create a feature branch, and preserve other chats' changes.
+
+## Non-negotiable behavioral contracts
+
+1. Each editor instance has a bounded **interaction session** (used for Emoji category/page and touch gestures), and a separate invalidatable **privacy/work generation** (used for queued suggestions, clipboard, voice and learning). A restarted editor with new `EditorInfo` behavior always refreshes privacy and action-key settings; orientation restoration alone may preserve non-sensitive UI navigation. IME hiding, app/field switching, incognito transitions and connection loss invalidate stale editor-bound work. Keep raw text out of diagnostics.
+2. Every touch sequence has a single owner, a release outcome, an `ACTION_CANCEL` cleanup and an exact editor-generation check. Screen-reader controls use accessible actions, not raw-touch-only gestures. Priority: destructive/privacy confirmation > trackpad/selection > long-press popup/modifier > swipe decoder > ordinary tap, with toolbar-dismiss winning only after downward intent crosses touch slop.
+3. Mutations in a host editor check current `InputConnection`, epoch, selection and any required bounded surrounding text. A failed read or unsupported selection should leave text unchanged. Never pretend a successful IPC command proves that a third-party editor applied it.
+4. Privacy applies to every path: password, visible-password, explicitly no-learning, globally private, configured secure app and user incognito. No personalized learning or clipboard history/Smart context in restricted fields; no delayed text crosses editors. User dictionaries and model weights must survive in-place updates.
+5. No feature can introduce a mandatory network call, model dependency, hot-path disk I/O, raw-text analytics, frame-by-frame full IME layout or additional global gesture bottleneck. Use fixed-size synthetic timings and enum-only telemetry. Real p50/p95 must be measured on the Oppo before claiming faster/slower behavior.
+
+## Exact implementation order and file owners
+
+| Batch | Deliverable | Primary source owners | Mandatory regression |
+| --- | --- | --- | --- |
+| B0 | Baseline event/state inventory and deterministic synthetic touch/editor traces | `PointerTracker`, `InputView`, `LatinIME`, `KeyboardSwitcher`, test harness | Tap count, cancellation, private editor transition, original v1 baseline |
+| B1 | Same-type editor restart and privacy/action-field reconfiguration | `InputAttributes.java`, `LatinIME.java`, `EditorSessionGeneration.java`, `SettingsValues.java` | `IME_ACTION_SEND → SEARCH`, same-package field ID, `IME_FLAG_NO_PERSONALIZED_LEARNING`, stale callbacks |
+| B2 | Emoji navigation reset on real editor/session boundaries, preservation within one session | `EmojiCategory.java`, `EmojiPalettesView.java`, `EmojiCategoryPagerAdapter.java`, `KeyboardSwitcher.java`, `LatinIME.java` | Animals → ABC → Animals in same editor; new field/app/hide → Recents/Smart; private → safe default; rotation |
+| B3 | Touch arbitration contract, then two-finger selection | `PointerTracker.java`, `TouchpadHandler.java`, `MainKeyboardView.java`, `KeyboardActionListenerImpl.kt`, `RichInputConnection.java`, `BoardFooterView.kt` | One-finger cursor retains visuals; second finger selects; pointer reuse/cancel; emoji ZWJ/RTL; no leaked text on unsupported editor |
+| B4 | Correction transaction safety, reversibility, repeat deletion and conservative punctuation | `InputLogic.java`, `RichInputConnection.java`, correction/spacing helpers | Exact text check before undo, rejected correction not immediately repeated, Unicode clusters, URL/code/password exclusion |
+| B5 | Cross-gesture collision tests and narrow fixes | `PointerTracker.java`, `InputView.java`, `BoardFooterView.kt`, `SlideConfirmationOverlay.kt`, `KeyboardSwitcher.java` | Slide confirmation, Emoji arc/double-tap, `123` hold, swipe typing, toolbar dismiss cannot double-commit |
+| B6 | Delayed offline transcript insertion safety, **without replacing the engine** | `OfflineBoardDictation.kt`, `LatinIME.java`, `InputLogic.java`, `RichInputConnection.java` | Editor/epoch/selection/revision changes; typing during decode; cancellation; no transcript learning |
+| B7 | Field type, app completions and system compatibility | `InputAttributes.java`, layouts/`KeyboardLayoutSet`, `LatinIME.java`, `KeyboardActionListenerImpl.kt` | URL/email/OTP/number/decimal/multiline/`TYPE_NULL`/WebView; physical hardware support remains opt-in until verified |
+| B8 | Accessibility and restrained motion | Accessibility delegate, `InputView.java`, footer/overlay, `KeyboardMotionSpec` | TalkBack alternative for every new gesture; orientation/reduced motion; no invisible active hitboxes |
+| B9 | Exact-commit integration, privacy/performance gate and original-signed Obtainium release | `.github/workflows`, tests, handoffs | No data/model/signature change; workflow success not mistaken for Oppo acceptance |
+
+### Source-verified blind spots found before implementation
+
+- `EmojiCategory.initialize()` loaded the last category/page from persisted preferences; its setters wrote on every category or page change. Session state must be RAM-scoped, and the old persistent values must not reappear after a fresh process.
+- `InputAttributes.isSameInputType()` compared only input type and FORCE_ASCII; changing `imeOptions`, action ID/label, private options or field ID in a `restarting=true` flow could leave stale UI/privacy behavior. Because `EditorInfo` is mutable, compare immutable snapshots instead.
+- `InputLogic.revertCommit()` previously checked the editor's current text only in debug mode and included user text in debug exception messages. Production must verify before deletion and fall back to normal Backspace on mismatch.
+- Trackpad currently uses smooth fractional X/Y to generate cursor steps; its second finger is prevented from typing, but is not yet an active selection anchor. Android editors own visual line layout, so vertical selection requires careful capability-dependent fallback. Do not simulate a fake caret using text insertion.
+- `OfflineBoardDictation.sameEditor()` checks the original `InputConnection` object but does not prove the original selection/caret is unchanged. A pending transcript must never overwrite a changed selection. Separate red brrSpeak transport remains out of scope.
+- Physical hardware-key processing is disabled by `ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED=false`; don't flip it merely to tick a checklist. Treat hardware and stylus as compatibility research until their crashes and layout behavior pass tests.
+
+## Gesture selection contract
+
+Space long-press enters one-finger cursor mode; labels remain hidden and existing footer offsets run. Only a second touch **after** trackpad activation creates a selection anchor. The first pointer continues to drive the moving end while the second pointer is held; removing the second pointer returns to cursor motion, removing the primary pointer ends everything, and any third pointer, editor loss, `ACTION_CANCEL` or privacy transition cancels safely. `InputConnection.setSelection(start,end)` is the preferred direct path for supported text editors. Track the directional anchor ourselves because `RichInputConnection` normalizes cached start/end. For visual vertical movement, an editor may require a Shift+DPAD approach; if unsupported, leave the selection intact rather than guessing text offsets. No character events, synthetic swipe commits or recording actions may leak through this mode.
+
+## Emoji and correction contracts
+
+Emoji category/page/scroll state is retained only for an active editing session. Search query and Smart context are separately ephemeral. New editor or new keyboard session starts on actual Recents/Smart where safe; if no recents exist and Smart cannot populate, use a nonblank neutral Smileys surface. In private fields, never record new recents, context snippets or category-selection history. A compact Smart row with no results must occupy zero extra panel height; the older Oppo top-gap still needs real-device geometry capture.
+
+For autocorrect, maintain one bounded RAM-only correction receipt with original/committed spelling, separator, editor epoch, caret position and rejection state. Immediate Backspace can revert only if the editor still contains the expected committed bytes immediately before the caret; selecting original spelling from the suggestion strip should apply the same guard. Invalidate on editor/cursor/content change and prevent an immediately rejected candidate from auto-applying again. Avoid assuming in-field underline spans render everywhere on Android.
+
+## Voice coexistence policy
+
+At recording start, bind a private recognition generation to the editor epoch, connection, and initial selection. While processing, if the user types at a compatible still-verified destination, preserve typed text and apply the transcript only where safe. If they move the caret, select or replace text, switch editor, hide the IME, cancel, go private or restart recording, discard or request explicit insertion; never silently replace selected text. Never persist raw transcript/audio for testing. Model origin, VAD, Ultra weights and network/provider behavior are separate projects.
+
+## Test and release gates
+
+- First run synthetic JVM/Robolectric event-sequence and editor tests, full existing `testRunTests`, XML/resource/static gates, and exact-commit debug Android workflow. Add instrumented API-level editor tests where CI has emulator capacity. Record the number of executed tests and failing logs.
+- Measure on a physical Oppo Reno 10 5G: missed/duplicate taps, no hidden keyboard flashes, emoji first row physical geometry, touch-to-feedback and editor-commit latency, p95 frame timing, memory pressure and complete gesture cancellations. Use fixed synthetic text only, no personal messages.
+- Maintain the original `com.mangoloads.board` package, application signing certificate, private offline model and encrypted learned data. No uninstall, data wipe or changes to personal dictionaries. Confirm signed release asset hash and Obtainium update compatibility. Preserve the separate future Ultra migration's explicit GO requirement.
+- Stop/revise any batch that inserts or deletes unintended text, leaks private learning, shows stale field results, corrupts Unicode, makes controls inaccessible, leaves animations intercepting taps, or regresses measured performance without a demonstrated user benefit.
+
+## Execution ledger
+
+### 2026-11-20 — source batches B1/B3/B4/B6 plus concurrent B2 reconciliation (CI/Oppo pending)
+
+- Started from clean baseline `7de71e3`, whose debug and original-signed workflows had both completed successfully. No other workflow was running at the baseline check.
+- B1 source: immutable `InputAttributes` editor-action/field/flag snapshot, broader reconfiguration trigger and no-learning flag captured for non-text fields. Added restart-focused Robolectric cases.
+- Concurrent GitHub `main` advanced to `ca1044857a1840a13b9a435e2d5fc9ae088a56c7` while this batch was staged, with a separate owner-authorized Emoji session fix and content-free Oppo top-gap probe. Its exact Emoji code, stale-pager generation guard and tests belong to [the separate ledger](EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md). This behavioral batch was re-created on that newer head **without** its own duplicate Emoji edits; the concurrent debug/signed workflows must finish before publication.
+- B4 source: production-time exact word/separator verification before autocorrect reversal; on mismatch clear the receipt and fall through to ordinary Backspace. Added synthetic mismatch/Unicode cases.
+- B3 source: a trackpad pointer ownership state machine reserves the first finger for cursor motion and the second for selection, ignores extra fingers, and resets on primary release/cancel. The directed anchor/head are editor/connection-bound, use Unicode grapheme step conversion and `setSelection()`, and do not route selection movements through character events. Added pointer-reuse/third-finger tests. **Vertical two-finger selection is conservatively held rather than guessed** until verified against Android host Shift+DPAD behavior; full Apple-style 2D acceptance is not yet claimed.
+- B6 source: private offline transcript commits now require the same editor identity, editor generation, connection and unchanged collapsed selection recorded at dictation start. A moved caret or newly selected text discards the result with a readable error; this is a safe first gate, not the later fully compatible typing-and-dictation merge. The existing recognizer, model, audio buffering and red mic animation remain untouched.
+- Local `./gradlew --no-daemon --offline testRunTests` is blocked because Gradle 8.14.4 wrapper distribution cannot be downloaded from this environment (`Network is unreachable`); this is **not** a code-test pass or failure. Verify on GitHub CI after source is committed, and do not claim an APK until exact-SHA debug + original signed workflows both succeed.
+- Next: static source review, then safe fresh-main fast-forward publish; expand B0/B5/B7/B8 tests and field/gesture coverage after CI evidence. Oppo horizontal selection, multiline vertical host behavior and voice coexistence acceptance remain PENDING.

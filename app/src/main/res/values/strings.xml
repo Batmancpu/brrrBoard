@@ -555,6 +555,7 @@
     <string name="board_voice_offline_model_install_failed">Private voice model setup failed. Open brrBoard Settings to retry.</string>
     <string name="board_voice_offline_listening">Private offline listening…</string>
     <string name="board_voice_offline_failed">Private English transcription failed</string>
+    <string name="board_voice_destination_changed">Speech not inserted: cursor or selection changed</string>
     <string name="board_show_more_suggestions">Show more suggestions</string>
     <string name="clipboard_private_unavailable">Clipboard history is hidden in private or password fields. You can still paste explicitly.</string>
     <string name="subtype_en_GB">English (UK)</string>

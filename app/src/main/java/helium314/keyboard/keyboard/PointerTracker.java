@@ -631,6 +631,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             final int pointerCount = me.getPointerCount();
             for (int index = 0; index < pointerCount; index++) {
                 final int id = me.getPointerId(index);
+                if (TouchpadHandler.shouldIgnorePointerMotion(id)) continue;
                 if (shouldIgnoreOtherPointers && id != mPointerId) {
                     continue;
                 }
@@ -645,8 +646,16 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         final int x = (int)me.getX(index);
         final int y = (int)me.getY(index);
         switch (action) {
-            case MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> onDownEvent(x, y, eventTime, keyDetector);
-            case MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> onUpEvent(x, y, eventTime);
+            case MotionEvent.ACTION_DOWN -> onDownEvent(x, y, eventTime, keyDetector);
+            case MotionEvent.ACTION_POINTER_DOWN -> {
+                if (!TouchpadHandler.onSecondaryPointerDown(me.getPointerId(index)))
+                    onDownEvent(x, y, eventTime, keyDetector);
+            }
+            case MotionEvent.ACTION_UP -> onUpEvent(x, y, eventTime);
+            case MotionEvent.ACTION_POINTER_UP -> {
+                if (!TouchpadHandler.onSecondaryPointerUp(me.getPointerId(index)))
+                    onUpEvent(x, y, eventTime);
+            }
             case MotionEvent.ACTION_CANCEL -> onCancelEvent(x, y, eventTime);
         }
     }
@@ -958,7 +967,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
             int dY = y - mStartY;
 
             // Touchpad mode
-            mTouchpadHandler.enableTouchpadMove(x, y, sListener);
+            mTouchpadHandler.enableTouchpadMove(x, y, sListener, mPointerId);
             if (mTouchpadHandler.isTouchpadModeActive()) return;
 
             // Vertical movement
@@ -1177,7 +1186,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 && Settings.getValues().mSpaceSwipeVertical == KeyboardActionListener.SwipeAction.TOUCHPAD_MODE) {
             setReleasedKeyGraphics(key, false);
             mInVerticalSwipe = true;
-            mTouchpadHandler.activateFromSpaceHold(mLastX, mLastY, sListener);
+            mTouchpadHandler.activateFromSpaceHold(mLastX, mLastY, sListener, mPointerId);
             return;
         }
         if (key.hasNoPanelAutoPopupKey()) {

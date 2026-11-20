@@ -17,6 +17,7 @@ import helium314.keyboard.latin.utils.InputTypeUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 import static helium314.keyboard.latin.common.Constants.ImeOption.NO_FLOATING_GESTURE_PREVIEW;
 import static helium314.keyboard.latin.common.Constants.ImeOption.NO_MICROPHONE;
@@ -48,13 +49,33 @@ public final class InputAttributes {
     final public int mInputType;
     final private EditorInfo mEditorInfo;
     final private String mPackageNameForPrivateImeOptions;
+    // EditorInfo is mutable and some hosts reuse it across restartInput calls.
+    // Snapshot the behavior-affecting fields instead of comparing a live object
+    // against itself after the host changes its action or privacy flags.
+    private final int mOriginalInputType;
+    private final int mOriginalImeOptions;
+    private final int mOriginalActionId;
+    private final int mOriginalFieldId;
+    private final String mOriginalActionLabel;
+    private final String mOriginalFieldName;
+    private final String mOriginalPrivateImeOptions;
 
     public InputAttributes(final EditorInfo editorInfo, final boolean isFullscreenMode,
             final String packageNameForPrivateImeOptions) {
         mEditorInfo = editorInfo;
         mPackageNameForPrivateImeOptions = packageNameForPrivateImeOptions;
+        mOriginalInputType = editorInfo == null ? 0 : editorInfo.inputType;
+        mOriginalImeOptions = editorInfo == null ? 0 : editorInfo.imeOptions;
+        mOriginalActionId = editorInfo == null ? 0 : editorInfo.actionId;
+        mOriginalFieldId = editorInfo == null ? 0 : editorInfo.fieldId;
+        mOriginalActionLabel = editorInfo == null || editorInfo.actionLabel == null
+                ? null : editorInfo.actionLabel.toString();
+        mOriginalFieldName = editorInfo == null ? null : editorInfo.fieldName;
+        mOriginalPrivateImeOptions = editorInfo == null ? null : editorInfo.privateImeOptions;
         mTargetApplicationPackageName = null != editorInfo ? editorInfo.packageName : null;
         mInputType = AppWorkarounds.INSTANCE.adjustInputType(null != editorInfo ? editorInfo.inputType : 0, mTargetApplicationPackageName);
+        mNoLearning = editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
         final int inputClass = mInputType & InputType.TYPE_MASK_CLASS;
         mIsPasswordField = InputTypeUtils.isPasswordInputType(mInputType)
                 || InputTypeUtils.isVisiblePasswordInputType(mInputType);
@@ -81,7 +102,6 @@ public final class InputAttributes {
             mShouldShowVoiceInputKey = false;
             mDisableGestureFloatingPreviewText = false;
             mIsGeneralTextInput = false;
-            mNoLearning = false;
             return;
         }
 
@@ -131,10 +151,6 @@ public final class InputAttributes {
                 && InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD != variation;
 
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            mNoLearning = (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
-        else
-            mNoLearning = false;
     }
 
     public boolean isTypeNull() {
@@ -142,8 +158,16 @@ public final class InputAttributes {
     }
 
     public boolean isSameInputType(final EditorInfo editorInfo) {
-        return editorInfo.inputType == mInputType && mEditorInfo != null
-                && (mEditorInfo.imeOptions & EditorInfo.IME_FLAG_FORCE_ASCII) == (editorInfo.imeOptions & EditorInfo.IME_FLAG_FORCE_ASCII);
+        return editorInfo != null && mEditorInfo != null
+                && editorInfo.inputType == mOriginalInputType
+                && editorInfo.imeOptions == mOriginalImeOptions
+                && editorInfo.actionId == mOriginalActionId
+                && editorInfo.fieldId == mOriginalFieldId
+                && Objects.equals(editorInfo.packageName, mTargetApplicationPackageName)
+                && Objects.equals(editorInfo.fieldName, mOriginalFieldName)
+                && Objects.equals(editorInfo.privateImeOptions, mOriginalPrivateImeOptions)
+                && Objects.equals(editorInfo.actionLabel == null ? null : editorInfo.actionLabel.toString(),
+                        mOriginalActionLabel);
     }
 
     private boolean hasNoMicrophoneKeyOption() {

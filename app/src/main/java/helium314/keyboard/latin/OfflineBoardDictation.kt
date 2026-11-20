@@ -31,6 +31,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var decodeRequest: VoiceDecodeRequest? = null
     private var footer: BoardFooterView? = null
     private var originalConnection: InputConnection? = null
+    private var originalEditorInfo: EditorInfo? = null
+    private var originalEditorGeneration = -1L
+    private var originalSelectionStart = -1
+    private var originalSelectionEnd = -1
     private var generation = 0L
 
     fun toggle(root: View?) {
@@ -45,8 +49,16 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (phase != Phase.IDLE) return
         val info = ime.currentInputEditorInfo ?: return
         val connection = ime.currentInputConnection ?: return
+        val start = ime.mInputLogic.mConnection.expectedSelectionStart
+        val end = ime.mInputLogic.mConnection.expectedSelectionEnd
         val currentFooter = root?.findViewById<BoardFooterView>(R.id.board_footer) ?: return
         if (!ime.isInputViewShown || !Settings.getValues().mShowsVoiceInputKey || !isAllowed(info)) return
+        // A delayed result must never overwrite selected text or commit into
+        // an editor that cannot report a stable caret position.
+        if (start < 0 || start != end) {
+            currentFooter.showDictationError(R.string.board_voice_destination_changed)
+            return
+        }
         if (ime.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             currentFooter.showDictationError(R.string.board_voice_permission_missing)
             return
@@ -64,6 +76,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         generation++
         val id = generation
         originalConnection = connection
+        originalEditorInfo = info
+        originalEditorGeneration = ime.editorGeneration()
+        originalSelectionStart = start
+        originalSelectionEnd = end
         footer = currentFooter
         val buffer = PrivatePcmBuffer()
         pcmBuffer = buffer
@@ -124,11 +140,14 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             decodeRequest = null
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
-            val canCommit = validEditor && phrase.isNotEmpty() && !containsDevanagari(phrase)
+            val validDestination = validEditor && destinationUnchanged()
+            val canCommit = validDestination && phrase.isNotEmpty() && !containsDevanagari(phrase)
             val statusFooter = footer
             cancel()
             if (canCommit) {
                 ime.onPrivateVoiceTextInput(phrase)
+            } else if (validEditor && !validDestination) {
+                statusFooter?.showDictationError(R.string.board_voice_destination_changed)
             } else if (validEditor) {
                 statusFooter?.showDictationError(R.string.board_voice_offline_failed)
             }
@@ -154,6 +173,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         pcmBuffer?.discard()
         pcmBuffer = null
         originalConnection = null
+        originalEditorInfo = null
+        originalEditorGeneration = -1L
+        originalSelectionStart = -1
+        originalSelectionEnd = -1
         statusFooter?.showDictationActive(false)
         statusFooter?.showDictationProcessing(false)
         statusFooter?.setDictationCancelAvailable(false)
@@ -174,7 +197,15 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     private fun sameEditor(connection: InputConnection): Boolean =
         ime.isInputViewShown && ime.currentInputConnection === connection &&
-            originalConnection === connection
+            originalConnection === connection &&
+            ime.currentInputEditorInfo === originalEditorInfo &&
+            ime.editorGeneration() == originalEditorGeneration
+
+    private fun destinationUnchanged(): Boolean {
+        val rich = ime.mInputLogic.mConnection
+        return rich.expectedSelectionStart == originalSelectionStart &&
+            rich.expectedSelectionEnd == originalSelectionEnd
+    }
 
     private fun isAllowed(info: EditorInfo): Boolean =
         info.inputType != 0 &&

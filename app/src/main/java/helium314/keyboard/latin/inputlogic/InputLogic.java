@@ -1625,23 +1625,17 @@ public final class InputLogic {
             if (mLastComposedWord.canRevertCommit()
                     && inputTransaction.getSettingsValues().mBackspaceRevertsAutocorrect) {
                 final String lastComposedWord = mLastComposedWord.mTypedWord;
-                revertCommit(inputTransaction);
-                StatsUtils.onRevertAutoCorrect();
-                StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
-                // Restart suggestions when backspacing into a reverted word. This is required
-                // for
-                // the final corrected word to be learned, as learning only occurs when
-                // suggestions
-                // are active.
-                //
-                // Note: restartSuggestionsOnWordTouchedByCursor is already called for normal
-                // (non-revert) backspace handling.
-                if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
-                        && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
-                    restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(),
-                            currentKeyboardScript);
+                if (revertCommit(inputTransaction)) {
+                    StatsUtils.onRevertAutoCorrect();
+                    StatsUtils.onWordCommitUserTyped(lastComposedWord, mWordComposer.isBatchMode());
+                    // Normal backspace already refreshes suggestions on the mismatch path.
+                    if (inputTransaction.getSettingsValues().needsToLookupSuggestions()
+                            && inputTransaction.getSettingsValues().mSpacingAndPunctuations.mCurrentLanguageHasSpaces) {
+                        restartSuggestionsOnWordTouchedByCursor(inputTransaction.getSettingsValues(),
+                                currentKeyboardScript);
+                    }
+                    return;
                 }
-                return;
             }
             // todo: this is currently disabled, as it causes inconsistencies with
             // textInput, depending whether the end
@@ -2301,7 +2295,7 @@ public final class InputLogic {
      *
      * @param inputTransaction The transaction in progress.
      */
-    private void revertCommit(final InputTransaction inputTransaction) {
+    private boolean revertCommit(final InputTransaction inputTransaction) {
         final CharSequence originallyTypedWord = mLastComposedWord.mTypedWord;
         final CharSequence committedWord = mLastComposedWord.mCommittedWord;
         final String committedWordString = committedWord.toString();
@@ -2313,20 +2307,15 @@ public final class InputLogic {
         final boolean usePhantomSpace = separatorString.equals(Constants.STRING_SPACE);
         // We want java chars, not codepoints for the following.
         final int separatorLength = separatorString.length();
-        // TODO: should we check our saved separator against the actual contents of the
-        // text view?
         final int deleteLength = cancelLength + separatorLength;
-        if (DebugFlags.DEBUG_ENABLED) {
-            if (mWordComposer.isComposingWord()) {
-                throw new RuntimeException("revertCommit, but we are composing a word");
-            }
-            final CharSequence wordBeforeCursor = mConnection.getTextBeforeCursor(deleteLength, 0).subSequence(0,
-                    cancelLength);
-            if (!TextUtils.equals(committedWord, wordBeforeCursor)) {
-                throw new RuntimeException("revertCommit check failed: we thought we were "
-                        + "reverting \"" + committedWord
-                        + "\", but before the cursor we found \"" + wordBeforeCursor + "\"");
-            }
+        // Hosts may mutate text or move the caret without promptly notifying
+        // the IME. Verify the actual content in production before deleting;
+        // never log a user's word or the surrounding editor contents.
+        final CharSequence actual = mConnection.getTextBeforeCursor(deleteLength, 0);
+        if (mWordComposer.isComposingWord()
+                || !CorrectionRevertGuard.matches(actual, committedWord, separatorString)) {
+            mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
+            return false;
         }
         mConnection.deleteTextBeforeCursor(deleteLength);
         if (!TextUtils.isEmpty(committedWord)) {
@@ -2387,6 +2376,7 @@ public final class InputLogic {
         // We have a separator between the word and the cursor: we should show
         // predictions.
         inputTransaction.setRequiresUpdateSuggestions();
+        return true;
     }
 
     /**

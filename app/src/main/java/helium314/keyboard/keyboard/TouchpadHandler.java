@@ -3,7 +3,6 @@ package helium314.keyboard.keyboard;
 
 import android.os.SystemClock;
 
-import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.KeyboardMotionSpec;
 import helium314.keyboard.latin.settings.Settings;
@@ -15,6 +14,8 @@ public class TouchpadHandler {
     private final TouchpadMotionFilter mSmoothMotion = new TouchpadMotionFilter();
 
     private static boolean sTouchpadModeActive = false;
+    private static TouchpadHandler sActiveHandler;
+    private static final TrackpadPointerOwnership sPointerOwnership = new TrackpadPointerOwnership();
     private boolean mInTouchpadMode = false;
     private boolean mHasVibrated = false;
     private boolean mIsScrolling = false;
@@ -39,7 +40,33 @@ public class TouchpadHandler {
     private int mCurrentScrollDirection = 0;
 
     public static void setTouchpadModeActive(boolean active) {
+        if (!active && sActiveHandler != null) {
+            sActiveHandler.disableTouchpadMode();
+            return;
+        }
         sTouchpadModeActive = active;
+    }
+
+    /** A second pointer is owned by trackpad selection, never by a key. */
+    static boolean onSecondaryPointerDown(int pointerId) {
+        if (sActiveHandler == null || sPointerOwnership.isPrimary(pointerId)) return false;
+        if (sPointerOwnership.addSecondary(pointerId)) {
+            sActiveHandler.mListener.onTouchpadSelectionChanged(true);
+        }
+        // Ignore a third finger rather than letting it type during selection.
+        return true;
+    }
+
+    static boolean onSecondaryPointerUp(int pointerId) {
+        if (sActiveHandler == null || sPointerOwnership.isPrimary(pointerId)) return false;
+        if (sPointerOwnership.removeSecondary(pointerId)) {
+            sActiveHandler.mListener.onTouchpadSelectionChanged(false);
+        }
+        return true;
+    }
+
+    static boolean shouldIgnorePointerMotion(int pointerId) {
+        return sActiveHandler != null && !sPointerOwnership.isPrimary(pointerId);
     }
 
     /** Survives selection-driven keyboard object rebuilds until finger UP. */
@@ -51,14 +78,20 @@ public class TouchpadHandler {
         return mInTouchpadMode;
     }
 
-    public void activateFromSpaceHold(int x, int y, KeyboardActionListener listener) {
+    public void activateFromSpaceHold(int x, int y, KeyboardActionListener listener, int pointerId) {
         setTouchpadModeActive(true);
-        enableTouchpadMove(x, y, listener);
+        enableTouchpadMove(x, y, listener, pointerId);
         // The long-press timer has already confirmed intentional activation.
         mTouchpadActivationTime -= Settings.getValues().mKeyLongpressTimeout;
     }
 
     public void disableTouchpadMode() {
+        if (sActiveHandler == this) {
+            if (sPointerOwnership.isSelecting() && mListener != null)
+                mListener.onTouchpadSelectionChanged(false);
+            sPointerOwnership.clear();
+            sActiveHandler = null;
+        }
         if (!mInTouchpadMode) {
             sTouchpadModeActive = false;
             return;
@@ -74,11 +107,13 @@ public class TouchpadHandler {
         mListener = null;
     }
 
-    public void enableTouchpadMove(int x, int y, KeyboardActionListener listener) {
+    public void enableTouchpadMove(int x, int y, KeyboardActionListener listener, int pointerId) {
         if (!sTouchpadModeActive) return;
 
         // Initialize
         if (!mInTouchpadMode) {
+            sActiveHandler = this;
+            sPointerOwnership.activate(pointerId);
             mListener = listener;
             mInTouchpadMode = true;
             mHasVibrated = false;
@@ -159,16 +194,14 @@ public class TouchpadHandler {
         // Handle horizontal movement with accumulator
         while (Math.abs(mTouchpadAccX) >= moveThreshold) {
             boolean positive = mTouchpadAccX > 0;
-            int direction = positive ? KeyCode.ARROW_RIGHT : KeyCode.ARROW_LEFT;
-            mListener.onCodeInput(direction, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false);
+            mListener.onTouchpadCursorMove(positive ? 1 : -1, 0);
             mTouchpadAccX -= (positive ? moveThreshold : -moveThreshold);
         }
 
         // Handle vertical movement with accumulator
         while (Math.abs(mTouchpadAccY) >= moveThreshold) {
             boolean positive = mTouchpadAccY > 0;
-            int direction = positive ? KeyCode.ARROW_DOWN : KeyCode.ARROW_UP;
-            mListener.onCodeInput(direction, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false);
+            mListener.onTouchpadCursorMove(0, positive ? 1 : -1);
             mTouchpadAccY -= (positive ? moveThreshold : -moveThreshold);
         }
     }
@@ -189,9 +222,12 @@ public class TouchpadHandler {
         @Override
         public void run() {
             if (mIsScrolling && mListener != null) {
-                int keyCode = getKeyCodeForDirection(mCurrentScrollDirection);
-
-                mListener.onCodeInput(keyCode, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false);
+                switch (mCurrentScrollDirection) {
+                    case DIRECTION_LEFT -> mListener.onTouchpadCursorMove(-1, 0);
+                    case DIRECTION_RIGHT -> mListener.onTouchpadCursorMove(1, 0);
+                    case DIRECTION_UP -> mListener.onTouchpadCursorMove(0, -1);
+                    case DIRECTION_DOWN -> mListener.onTouchpadCursorMove(0, 1);
+                }
 
                 mCurrentScrollDelay = Math.max(MIN_EDGE_ACCELERATION_DELAY, (long) (mCurrentScrollDelay * EDGE_ACCELERATION_FACTOR));
 
@@ -253,13 +289,4 @@ public class TouchpadHandler {
         return 300 - (long) (sensitivity * 2.5f);
     }
 
-    private int getKeyCodeForDirection(int direction) {
-        return switch (direction) {
-            case DIRECTION_UP -> KeyCode.ARROW_UP;
-            case DIRECTION_DOWN -> KeyCode.ARROW_DOWN;
-            case DIRECTION_LEFT -> KeyCode.ARROW_LEFT;
-            case DIRECTION_RIGHT -> KeyCode.ARROW_RIGHT;
-            default -> KeyCode.UNSPECIFIED;
-        };
-    }
 }

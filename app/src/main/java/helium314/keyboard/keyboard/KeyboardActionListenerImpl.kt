@@ -4,6 +4,8 @@ package helium314.keyboard.keyboard
 import android.text.InputType
 import android.util.SparseArray
 import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodSubtype
 import androidx.core.util.forEach
 import helium314.keyboard.event.Event
@@ -38,6 +40,14 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private val keyboardSwitcher = KeyboardSwitcher.getInstance()
     private val settings = Settings.getInstance()
     private val audioAndHapticFeedbackManager = AudioAndHapticFeedbackManager.getInstance()
+
+    // This is an editor-local gesture, never saved as a preference or a text receipt.
+    // RichInputConnection normalizes its cached selection bounds, so keep the
+    // directed head separately to support shrinking and reversing a selection.
+    private var trackpadSelectionAnchor = -1
+    private var trackpadSelectionHead = -1
+    private var trackpadSelectionEditor: EditorInfo? = null
+    private var trackpadSelectionConnection: InputConnection? = null
 
     // language slide state
     private var initialSubtype: InputMethodSubtype? = null
@@ -161,6 +171,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             return true
         }
         if (requestCode == Constants.CODE_TOUCHPAD_OFF) {
+            clearTrackpadSelection()
             keyboardSwitcher.mainKeyboardView?.setTrackpadVisualMode(false)
             keyboardSwitcher.mainKeyboardView?.alpha = 1.0f
             keyboardSwitcher.setFooterTrackpadMode(false)
@@ -182,11 +193,90 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     override fun onTouchpadCursorMove(horizontalSteps: Int, verticalSteps: Int) {
         if (!TouchpadHandler.isTouchpadModeRequested()) return
+        if (trackpadSelectionAnchor >= 0) {
+            if (!isTrackpadSelectionValid()) {
+                clearTrackpadSelection()
+                return
+            }
+            if (horizontalSteps != 0) moveTrackpadSelectionHorizontally(horizontalSteps)
+            // A visual line is not equivalent to a newline in wrapped, RTL or
+            // WebView editors. Until the host can confirm a Shift+DPAD selection,
+            // do not invent offsets or dispatch a non-selecting arrow key.
+            return
+        }
         // One selection update can cover several characters. Avoid routing
         // every tiny motion step through the full key-event/decoder pipeline.
         if (horizontalSteps != 0) onMoveCursorHorizontally(horizontalSteps)
         if (verticalSteps != 0) repeat(abs(verticalSteps)) {
             onMoveCursorVertically(if (verticalSteps > 0) 1 else -1)
+        }
+    }
+
+    override fun onTouchpadSelectionChanged(selecting: Boolean) {
+        clearTrackpadSelection()
+        if (!selecting || !TouchpadHandler.isTouchpadModeRequested()) return
+        val start = connection.expectedSelectionStart
+        val end = connection.expectedSelectionEnd
+        val editor = latinIME.currentInputEditorInfo ?: return
+        val ic = latinIME.currentInputConnection ?: return
+        if (start < 0 || end < start) return
+        inputLogic.finishInput()
+        // Composing teardown may itself move the caret; sample after it.
+        val updatedStart = connection.expectedSelectionStart
+        val updatedEnd = connection.expectedSelectionEnd
+        if (updatedStart < 0 || updatedEnd < updatedStart) return
+        trackpadSelectionAnchor = updatedStart
+        trackpadSelectionHead = updatedEnd
+        trackpadSelectionEditor = editor
+        trackpadSelectionConnection = ic
+    }
+
+    private fun clearTrackpadSelection() {
+        trackpadSelectionAnchor = -1
+        trackpadSelectionHead = -1
+        trackpadSelectionEditor = null
+        trackpadSelectionConnection = null
+    }
+
+    private fun isTrackpadSelectionValid(): Boolean {
+        val anchor = trackpadSelectionAnchor
+        val head = trackpadSelectionHead
+        return anchor >= 0 && head >= 0
+            && latinIME.currentInputEditorInfo === trackpadSelectionEditor
+            && latinIME.currentInputConnection === trackpadSelectionConnection
+            && connection.expectedSelectionStart == minOf(anchor, head)
+            && connection.expectedSelectionEnd == maxOf(anchor, head)
+    }
+
+    private fun moveTrackpadSelectionHorizontally(rawSteps: Int) {
+        val rtl = RichInputMethodManager.getInstance().currentSubtype.isRtlSubtype
+        val steps = if (rtl) -rawSteps else rawSteps
+        if (steps == 0) return
+        val anchor = trackpadSelectionAnchor
+        val head = trackpadSelectionHead
+        // In a selection, getTextBefore/AfterCursor addresses the outside of
+        // the selected range. Moving the head *toward* the anchor must instead
+        // measure a grapheme from the selected range itself.
+        val text = if ((steps < 0 && head > anchor) || (steps > 0 && head < anchor)) {
+            connection.getSelectedText(0)
+        } else if (steps < 0) {
+            connection.getTextBeforeCursor(-steps * 8, 0)
+        } else {
+            connection.getTextAfterCursor(steps * 8, 0)
+        } ?: return
+        // Editors may return unexpectedly huge or partial selection snapshots.
+        // Bail out, preserving the existing selection, rather than allocating
+        // or placing a head in a guessed position.
+        if (text.length > 4096) return
+        val codeUnits = moveStepsToCharCount(text, steps)
+        if (codeUnits == 0) return
+        val candidate = head + codeUnits
+        if (candidate < 0 || !isTrackpadSelectionValid()) return
+        if (connection.setSelection(anchor, candidate)) {
+            trackpadSelectionHead = candidate
+            if (steps < 0) gestureMoveBackHaptics() else gestureMoveForwardHaptics()
+        } else {
+            clearTrackpadSelection()
         }
     }
 

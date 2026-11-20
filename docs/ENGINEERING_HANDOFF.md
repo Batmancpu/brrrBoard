@@ -6,6 +6,10 @@ Current intelligence mission **PLAN ONLY**: preserve Parakeet 110M + sherpa v1.1
 
 Full design/file map/gates/sources: [BR Brain plan](BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md). **No app code, UI, model, CI, APK, user install or signed update in this documentation batch.** Ultra one-time full APK/migration plan remains a separate **HOLD**. After explicit BR Brain GO only: refresh main and guard concurrent commits, run real native trace diagnosis and small-LM shadow evaluation, implement passing layer/dashboard, verify Android debug/full unit and original signer on exact source SHA, then ask Oppo acceptance. All agents update AGENTS/context/this handoff/topic plan after every material batch and never conflate docs with signed release.
 
+## 2026-11-20 — Behavioral B1/B3/B4/B6 local source, separate Emoji commit preserved
+
+Owner GO for ten-batch behavior roadmap: [master plan](BEHAVIORAL_ENGINEERING_MASTER_PLAN_2026_11_20.md). Started after verified `7de71e3` (debug `44704537857`, signer `44704537908` SUCCESS). Independent Emoji navigation/top-gap probe shipped at `ca10448`; **do not duplicate or revert** it. Fresh checkout from that head adds B1 `InputAttributes` immutable same-type restart flags, B3 `TouchpadHandler`/`PointerTracker` primary and second finger ownership plus directed grapheme-aware selection, B4 `InputLogic`/`CorrectionRevertGuard` safe undo and tests, B6 `OfflineBoardDictation` editor/selection-aware delayed transcript suppression. Vertical two-finger selection and type-while-dictating merge are intentionally still gated on host/Oppo tests. No recognizer, Ultra, package, signer or learned data modification. Local Gradle wrapper cannot download distribution; exact commit CI, signed APK, and Oppo checks for new source NOT VERIFIED. Refresh main after other chat docs `4f65975`, publish only fast-forward, then gate both workflows.
+
 ## 2026-11-20 — Emoji per-editor navigation, geometry-only diagnostic source batch
 
 Owner GO after read-only review. Fresh-main baseline `7de71e3` includes the
