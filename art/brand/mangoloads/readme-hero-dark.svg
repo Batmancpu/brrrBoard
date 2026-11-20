@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="520" viewBox="0 0 1440 520" role="img" aria-label="brrBoard by MangoLoads premium dark identity banner">
+  <defs>
+    <linearGradient id="night" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0" stop-color="#0C1527"/><stop offset="1" stop-color="#162A45"/></linearGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#2D60C8" stop-opacity=".23"/><stop offset="1" stop-color="#2D60C8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1440" height="520" rx="36" fill="url(#night)"/>
+  <circle cx="293" cy="251" r="288" fill="url(#halo)"/>
+  <image href="primary-alpha.png" x="56" y="38" width="451" height="451" preserveAspectRatio="xMidYMid meet"/>
+  <path d="M564 133 H655" stroke="#D6A366" stroke-width="5" stroke-linecap="round"/>
+  <text x="564" y="181" font-family="OpenAI Sans,Inter,Arial,sans-serif" font-weight="700" font-size="19" letter-spacing="3.3" fill="#AFC5E4">BY MANGOLOADS</text>
+  <text x="558" y="293" font-family="OpenAI Sans,Inter,Arial,sans-serif" font-weight="700" font-size="102" letter-spacing="-4" fill="#F5F7FC">brrBoard</text>
+  <text x="564" y="352" font-family="OpenAI Sans,Inter,Arial,sans-serif" font-size="32" fill="#AFC5E4">Your keyboard, thoughtfully made.</text>
+  <rect x="564" y="390" width="122" height="6" rx="3" fill="#89ACED"/>
+  <text x="564" y="450" font-family="OpenAI Sans,Inter,Arial,sans-serif" font-size="23" fill="#AFC5E4">Private by design  ·  Made for Android</text>
+</svg>

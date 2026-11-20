@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="MangoLoads keyboard-only two-tone mark">
+  <rect x="70" y="186" width="884" height="652" rx="112" fill="#101010"/>
+  <g fill="#FFFFFF">
+    <rect x="166" y="300" width="122" height="118" rx="23"/>
+    <rect x="309" y="300" width="122" height="118" rx="23"/>
+    <rect x="452" y="300" width="122" height="118" rx="23"/>
+    <rect x="595" y="300" width="122" height="118" rx="23"/>
+    <rect x="738" y="300" width="122" height="118" rx="23"/>
+    <rect x="166" y="440" width="122" height="118" rx="23"/>
+    <rect x="309" y="440" width="122" height="118" rx="23"/>
+    <rect x="452" y="440" width="122" height="118" rx="23"/>
+    <rect x="595" y="440" width="122" height="118" rx="23"/>
+    <rect x="738" y="440" width="122" height="118" rx="23"/>
+    <rect x="205" y="592" width="614" height="112" rx="25"/>
+  </g>
+  <g fill="#101010" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" text-anchor="middle">
+    <text x="227" y="380">M</text><text x="370" y="380">A</text><text x="513" y="380">N</text><text x="656" y="380">G</text><text x="799" y="380">O</text>
+    <text x="227" y="520">L</text><text x="370" y="520">O</text><text x="513" y="520">A</text><text x="656" y="520">D</text><text x="799" y="520">S</text>
+  </g>
+  <text x="790" y="682" fill="#101010" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700" font-style="italic" text-anchor="end">brr</text>
+</svg>

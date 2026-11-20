@@ -25,6 +25,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify MangoLoads identity resources and motion contract
+        run: python3 -m unittest discover -s tools/tests -p 'test_mangoloads_brand.py' -v
+
       - name: Determine whether this commit changes the app
         id: release_scope
         shell: bash

@@ -14,12 +14,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -39,6 +35,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -80,9 +77,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathFillType
@@ -501,18 +496,8 @@ fun SplashScreenView(
     fontFamily: FontFamily,
     isAnimating: Boolean = true
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "glowBreathing")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = kotlin.math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2300, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowPhase"
-    )
-    val glowScale = 0.9f + 0.175f * (kotlin.math.cos(phase) + 1f)
-    val glowAlpha = 0.6f + 0.4f * (kotlin.math.cos(phase) + 1f) / 2f
+    val isDark = isSystemInDarkTheme()
+    val premiumAccent = if (isDark) Color(0xFF89ACED) else Color(0xFF2D60C8)
 
     Box(
         modifier = Modifier
@@ -545,30 +530,31 @@ fun SplashScreenView(
                     lineHeight = 52.sp,
                     fontFamily = fontFamily
                 ),
-                color = MaterialTheme.colorScheme.primary
+                color = premiumAccent
             )
         }
 
-        val isDark = isSystemInDarkTheme()
-        val glowColor = if (isDark) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
-        val alphaCenter = if (isDark) 0.45f else 0.9f
-        val alphaEdge = if (isDark) 0.18f else 0.7f
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(340.dp),
-            contentAlignment = Alignment.Center
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
         ) {
+            // The icon must fit portrait, landscape and split screen without
+            // reserving 340dp when the available height is small.
+            val artSide = minOf(maxWidth - 32.dp, maxHeight * 0.45f, 340.dp)
+                .coerceAtLeast(96.dp)
+            val haloColor = if (isDark) Color(0xFF2D60C8) else Color(0xFF89ACED)
+            Box(
+                modifier = Modifier.size(artSide),
+                contentAlignment = Alignment.Center,
+            ) {
             androidx.compose.foundation.Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .scale(1.2f * glowScale)
+                modifier = Modifier.fillMaxSize()
             ) {
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            glowColor.copy(alpha = alphaCenter * glowAlpha),
-                            glowColor.copy(alpha = alphaEdge * glowAlpha),
+                            haloColor.copy(alpha = if (isDark) 0.18f else 0.14f),
+                            haloColor.copy(alpha = if (isDark) 0.07f else 0.05f),
                             Color.Transparent
                         ),
                         center = center,
@@ -578,10 +564,10 @@ fun SplashScreenView(
             }
 
             AnimatedBoardIcon(
-                modifier = Modifier.size(320.dp),
+                modifier = Modifier.fillMaxSize(0.94f),
                 isAnimating = isAnimating,
-                tint = MaterialTheme.colorScheme.primary
             )
+            }
         }
     }
 }

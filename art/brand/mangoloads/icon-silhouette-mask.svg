@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <!--
+    Exact-canvas alpha clipping guide for the approved image-generation master.
+    It is NOT a replacement logo or a redraw of the ten letter keys / mango.
+    Opaque white portions retain the original source RGB, transparent exterior
+    removes the image-generation white matte. Keep antialiased edges on export.
+  -->
+  <path fill="white" d="M183 452 H1071 C1152 452 1200 501 1201 581 V1068 C1201 1150 1153 1192 1075 1192 H179 C104 1192 54 1150 54 1066 V583 C54 501 104 452 183 452 Z"/>
+  <path fill="white" d="M426 38 H832 C918 38 961 88 962 170 V491 C962 548 953 578 917 608 L658 780 C639 793 617 793 597 780 L337 607 C304 583 291 544 291 492 V169 C291 88 338 38 426 38 Z"/>
+</svg>

@@ -1,0 +1,7 @@
+# Reproducible export/intermediate resources; keep the smaller exact WebP master.
+/primary-master.png
+/primary-master-lossless.webp
+/primary-alpha.png
+/icon-silhouette-mask.png
+/icon-alpha-mask.png
+/themed-monochrome-source.png

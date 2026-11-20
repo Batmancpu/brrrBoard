@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -279,10 +280,11 @@ fun MainSettingsScreen(
                 onClick = onClickWelcomeWizard
             )
             Md3ePreference(
-                icon = "info",
+                icon = R.drawable.mangoloads_brand_small,
                 title = stringResource(R.string.settings_screen_about),
                 description = "App version, licenses, and privacy policy",
                 onClick = onClickAbout,
+                brandIcon = true,
                 isLast = true
             )
         }
@@ -318,7 +320,8 @@ fun Md3ePreference(
     description: String? = null,
     onClick: () -> Unit,
     isFirst: Boolean = false,
-    isLast: Boolean = false
+    isLast: Boolean = false,
+    brandIcon: Boolean = false,
 ) {
     val shape = RoundedCornerShape(
         topStart = if (isFirst) 24.dp else 4.dp,
@@ -343,9 +346,19 @@ fun Md3ePreference(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(20.dp))
+                .background(
+                    if (brandIcon) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
+                    RoundedCornerShape(20.dp)
+                )
         ) {
-            if (icon is String) {
+            if (brandIcon && icon is Int) {
+                // Never apply Material Icon tint to the full-color MangoLoads mark.
+                Image(
+                    painter = painterResource(id = icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                )
+            } else if (icon is String) {
                 Text(
                     text = icon,
                     fontFamily = materialSymbols,

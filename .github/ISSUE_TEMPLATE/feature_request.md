@@ -4,12 +4,7 @@ about: Suggest an idea for this project
 labels: enhancement
 ---
 
-Please see the appropriate readme section for issue reporting guidelines: https://github.com/HeliBorg/HeliBoard?tab=readme-ov-file#reporting-issues
-tl;dr:
-* search for duplicates, also in closed issues
-* check FAQ / hidden features
-* a single issue per topic
-* ONLY add screenshots when necessary, and reduce their size
+Please check brrBoard's [README](https://github.com/Batmancpu/brrrBoard#readme), settings and existing proposals. Keep one feature per topic. Never attach real typed text, Clipboard history or microphone transcripts.
 
 <!--
 issue template below, please remove above text before submitting (and the template too if you think it's a good idea)
@@ -30,3 +25,6 @@ Provide a clear and concise description of *your use case* and what you thus thi
 
 **App version**
 Please provide the explicit version, you're using.
+
+**Privacy, performance and accessibility impact**
+Could this affect typing latency, passwords/incognito, offline permissions, editor behavior, themes or users with accessibility needs?

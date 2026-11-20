@@ -4,11 +4,7 @@ about: Create a report to help us improve
 labels: bug
 ---
 
-Please see the appropriate readme section for issue reporting guidelines: https://github.com/HeliBorg/HeliBoard?tab=readme-ov-file#reporting-issues
-tl;dr:
-* search for duplicates, also in closed issues
-* a single issue per topic
-* reduce screenshot size
+Search for duplicates and keep one bug per issue. **Privacy first:** never post real typed text, passwords, contacts, Clipboard history, learned words, audio/transcripts, credentials or unredacted logs. Use a harmless sample and redact notifications before attaching any screenshot.
 
 <!--
 issue template below, please remove above text before submitting (and the template too if you think it's a good idea)
@@ -31,6 +27,9 @@ If you add screenshots, reduce the size or use thumbnails to keep the issue nice
 **App version**
 Please provide the explicit version (not just "latest"), or if you build the app yourself specify the latest commit.
 
+**Installation source:** Obtainium / signed GitHub APK / debug build / other.
+
 **Device:**
  - Model: [e.g. Samsung Galaxy S9]
  - OS: [e.g. Android 10] (please also mention whether you are using the manufacturer's OS or a custom ROM)
+ - Theme, layout, language and relevant settings (no private values):

@@ -1,43 +1,26 @@
-FrostKeys is a personalized, feature packed, and privacy first keyboard with Frosted Glass/Background Blur UI, custom themes, AI writing tools, and Klipy GIF & animated sticker support.
+brrBoard — Your keyboard, thoughtfully made.
 
-FrostKeys takes a privacy-focused foundation and adds modern, high-performance features for users who want more from their keyboard without sacrificing their data.
+Created by MangoLoads, brrBoard brings fast, familiar Android typing together with a refined frosted-glass visual style, thoughtful motion and local-first tools. It is built on the open-source work of FrostKeys, HeliBoard, OpenBoard and AOSP LatinIME, with upstream credits and licenses preserved.
 
-✨ Next-Gen UI & Material 3 Expressive Design
+Designed for everyday typing
+• Frosted keyboard, Toolbar, Emoji and Clipboard surfaces with independently controlled materials.
+• English and Hinglish layouts, suggestions and custom personal words.
+• Searchable Emoji, local Clipboard history, editing shortcuts and keyboard settings.
+• Optional compatible offline gesture-typing library import.
+• Local backup and restore for your settings and supported data.
 
-Crafted to align with Google's evolving Material Design 3 Expressive design language, FrostKeys delivers a fresh, fluid, and modern user interface. 
+Privacy, without confusing promises
+brrBoard itself does not request Android internet permission. Settings, personal dictionaries, learned words and Clipboard history stay on your device. Its microphone uses a private English recognition model when that model is provisioned. Audio recording starts only when you ask for it. The ordinary signed update reuses the model stored privately by a previous model-inclusive bootstrap/recovery build; model weights are not automatically downloaded to your phone.
 
-Experience real-time background blur powered by our Frosted Glass engine, across both Light and Dark themes. Fine-tune your setup with full control over opacity, saturation, and frost intensity, or let the keyboard seamlessly blend in using Android's dynamic color engine 🎨. 
+Your manually exported backup ZIP may contain personal words and Clipboard content. It is not encrypted; store it privately.
 
-We’ve also redesigned the top bar with a clean Access Point Menu, putting your clipboard, settings, and one-handed controls right at your fingertips.
+Stable updates
+The current Android package is com.mangoloads.board. Original-signed releases are available through GitHub and can be followed in Obtainium. A former package, com.orion.frostkeys.brrrboard, is a separate app and needs an explicit export/restore migration rather than an in-place update.
 
-🎬 Rich Media, GIFs & Stickers
+brrBoard is free, open-source and does not include advertising or in-app donations.
 
-Expressing yourself should be effortless. FrostKeys integrates a dedicated Klipy media panel, letting you browse GIFs and discover animated stickers 🖼️. Best of all, animated WebP stickers drop directly into your favorite messaging apps like WhatsApp, Telegram and Discord without clunky share sheets.
+Source, privacy, installation, licenses and updates:
+https://github.com/Batmancpu/brrrBoard
 
-🤖 Smart AI Assistance
-
-Bring intelligence directly to your text field with built in AI writing tools 🧠.
-
-Easily proofread messages, rephrase thoughts, or adjust tone on the fly. You stay in control with a Bring-Your-Own-Key model, keeping your usage private and free from hidden subscription fees.
-
-🔒 100% Open Source & Privacy First
-
-Your data belongs to you. FrostKeys is 100% Open-Source software (GPLv3). Built offline by default, internet access is disabled out of the box 🛡️. 
-
-You decide when to turn on the Master Switch for online features like AI or GIF search. Everything you type remains 100% private and never leaves your device. the entire source code is fully transparent and verifiable on GitHub.
-
-⚡ Essential Typing Tools
-
-• Multilingual typing with support for 70+ languages 🌐
-• Smart dictionary suggestions & custom word lists 📖
-• Built-in clipboard manager with recent screenshot previews 📋
-• One-handed and split keyboard modes for foldables & tablets 📱
-• Easy settings & dictionary backup and restore 💾
-
-💬 Join Our Community
-
-FrostKeys is built with love for the open-source community. Join our Telegram channel for official updates, or jump into our community group to report bugs, request features, and chat with fellow users!
-
-Take control of your typing experience with FrostKeys—where privacy meets modern design. 🚀
-
-Made with ❤️ in 🇮🇳
+MangoLoads:
+https://batmancpu.github.io/mangoloads/

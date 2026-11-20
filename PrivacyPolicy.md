@@ -14,6 +14,6 @@ The earlier brrSpeak Binder integration remains in the source as dormant compati
 
 External website and GitHub links open in other applications. brrBoard itself does not include ad trackers or a donation/payment feature.
 
-For questions and bugs, visit the [brrBoard issue tracker](https://github.com/Batmancpu/brrrBoard/issues). For other projects visit [Mangoloads](https://batmancpu.github.io/mangoloads/).
+For project updates and any currently available support route, visit the [brrBoard repository](https://github.com/Batmancpu/brrrBoard). Public GitHub Issues are currently disabled; this policy does not direct you to a nonworking issue form. For other projects visit [Mangoloads](https://batmancpu.github.io/mangoloads/).
 
 See the repository's [LICENSE](LICENSE) and retained upstream notices for third-party code attribution.
