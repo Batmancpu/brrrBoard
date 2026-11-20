@@ -5,6 +5,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SharedPanelGeometryTest {
+    @Test fun compactBrowseReusesFullNativeFrameWithoutFooterOrNavigationInset() {
+        val body = SharedPanelGeometry.bodyFromMeasuredTypingFrame(681, 31, 48)
+        assertEquals(602, body)
+        assertEquals(602, SharedPanelGeometry.alignCompactEmojiToTypingViewport(515, body, 680))
+        assertEquals(515, SharedPanelGeometry.alignCompactEmojiToTypingViewport(515, body, 560))
+        assertEquals(0, SharedPanelGeometry.bodyFromMeasuredTypingFrame(0, 31, 48))
+        assertEquals(0, SharedPanelGeometry.bodyFromMeasuredTypingFrame(60, 31, 48))
+    }
+
     @Test fun immediateEmojiOpenReclaimsExactSourceRowsOnlyAtMatchingWidth() {
         assertEquals(520, SharedPanelGeometry.preferCurrentTypingViewport(420, 520, 1080, 1080))
         assertEquals(420, SharedPanelGeometry.preferCurrentTypingViewport(420, 520, 1080, 980))

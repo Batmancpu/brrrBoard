@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import helium314.keyboard.keyboard.KeyboardTheme
+import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.prefs
@@ -47,6 +48,11 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     private var lastRadiusPx = -1f
 
     private var cachedRadiusPx = -1f
+    // An IME window sized from a wrap-content Emoji child can shrink upward
+    // after the alphabet disappears, leaving the *host app* visible as a band
+    // above the category tabs. Retain the complete, actually measured typing
+    // frame (including its rows/footer/inset), never a guessed dp offset.
+    private val nativeTypingFrame = KeyboardViewportHeightMemory()
     private val staticDustOverlay = StaticSparkleDustOverlay()
     private val prefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == Settings.PREF_KEYBOARD_CORNER_RADIUS) {
@@ -98,7 +104,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         // too late: the parent has already measured the strip first, leaving
         // a blank 40/48dp band above the in-panel tabs on a mode switch.
         // Do not touch these rows in ordinary alphabet or Clipboard modes.
-        if (findViewById<View>(R.id.emoji_palettes_view)?.visibility == View.VISIBLE) {
+        val emoji = findViewById<View>(R.id.emoji_palettes_view)
+        if (emoji?.visibility == View.VISIBLE) {
             val outerHeaderIds = intArrayOf(
                 R.id.persistent_emoji_row_scroll,
                 R.id.persistent_emoji_row_divider,
@@ -109,8 +116,23 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
                     if (header.visibility != View.GONE) header.visibility = View.GONE
                 }
             }
+            val currentWidth = MeasureSpec.getSize(widthMeasureSpec)
+            val footer = findViewById<View>(R.id.board_footer)
+            val footerHeight = footer?.takeIf { it.visibility == View.VISIBLE }?.let { view ->
+                view.layoutParams?.height?.takeIf { it > 0 } ?: view.measuredHeight
+            } ?: 0
+            val bodyFromNativeFrame = SharedPanelGeometry.bodyFromMeasuredTypingFrame(
+                nativeTypingFrame.heightForWidth(currentWidth),
+                paddingTop + paddingBottom, footerHeight)
+            (emoji as? EmojiPalettesView)?.setTypingFrameBodyHint(currentWidth, bodyFromNativeFrame)
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val alphabet = findViewById<View>(R.id.keyboard_view)
+        val wrapper = findViewById<View>(R.id.keyboard_view_wrapper)
+        if (emoji?.visibility != View.VISIBLE && alphabet?.visibility == View.VISIBLE &&
+            alphabet.parent === wrapper) {
+            nativeTypingFrame.observe(measuredHeight, true, measuredWidth)
+        }
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {

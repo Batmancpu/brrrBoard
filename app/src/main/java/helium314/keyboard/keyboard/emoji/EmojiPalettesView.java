@@ -164,6 +164,14 @@ public final class EmojiPalettesView extends LinearLayout
     private final SparseIntArray mCategoryScrollRows = new SparseIntArray();
     private int mTypingViewportHintWidth;
     private int mTypingViewportHintHeight;
+    private int mTypingFrameHintWidth;
+    private int mTypingFrameBodyHintHeight;
+
+    /** The enclosing frame's actual previous typing height, excluding inset/footer. */
+    public void setTypingFrameBodyHint(final int widthPx, final int bodyHeightPx) {
+        mTypingFrameHintWidth = Math.max(0, widthPx);
+        mTypingFrameBodyHintHeight = Math.max(0, bodyHeightPx);
+    }
 
     /** Source-only dimensions captured on the immediate Emoji key transition. */
     public void setTypingViewportHint(final int widthPx, final int heightPx) {
@@ -246,6 +254,13 @@ public final class EmojiPalettesView extends LinearLayout
                     panelWidth > 0 && wrapper.getMeasuredWidth() == panelWidth);
             established = helium314.keyboard.latin.SharedPanelGeometry.preferCurrentTypingViewport(
                     established, mTypingViewportHintHeight, mTypingViewportHintWidth, panelWidth);
+            // The complete frame is the authority when a ColorOS window
+            // reserves space that is not represented in the alphabet View or
+            // suggestion-strip heights. A content-free same-width sample
+            // avoids either leaving host-app pixels above the categories or
+            // inserting a fictional 48/90dp gap inside the Emoji panel.
+            established = helium314.keyboard.latin.SharedPanelGeometry.preferCurrentTypingViewport(
+                    established, mTypingFrameBodyHintHeight, mTypingFrameHintWidth, panelWidth);
             finalHeight = helium314.keyboard.latin.SharedPanelGeometry.alignCompactEmojiToTypingViewport(
                     finalHeight, established, availableHeight);
         }

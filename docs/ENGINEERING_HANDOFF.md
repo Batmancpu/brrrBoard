@@ -1,5 +1,13 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — Repair batch C source, premium palette not yet device accepted
+
+Gold private face/glint/shield on the SAME pose animator: `#D8B766` + `#F4DC98` + `#916B2B`. Recording mic source colors deep ruby `#AC1537` light / `#D83250` dark, including the existing underlight and discard glyph through shared `voiceTint`. Processing turquoise unaffected; no changed audio/model path or storage. Pure tests added; local JVM+CI/Oppo checks still pending. Previous completed remote Batch A source SHA `d715e262...` workflows `44679728092` debug, `44679728069` Obtainium started; docs follow-up SHA `7538db06...` restored original full history without app byte changes. Batch B and C are currently local source. Final gate must be on new exact source SHA and release asset. See ledger.
+
+## 2026-11-20 — Repair batch B source, phone visual not certified
+
+The user-visible empty band survived all previous nominal/typing-viewport guesses. The complete measured native frame can exceed the keyboard+strip sum on ColorOS; `RoundedKeyboardFrameView` now samples that observed exact frame in typing mode, and compact Emoji reuses its body height (subtract actual padding+48dp footer, clamp by current available space), with `emoji_palettes_view.xml` TOP gravity. Search, Expanded and stale-width/rotation are excluded; synthetic geometry test added. Observe frame/header rects on Oppo after shipping before declaring gap gone. Batch A remote code SHA `d715e262add5b4863de4fe3b516c028d6d267517` had both debug and signer workflows running; final status must be verified. Continue Batch C gold/deep-red without changing the intelligence engine. See ledger.
+
 ## 2026-11-20 — Repair implementation A, CI/Oppo pending
 
 The current owner explicitly authorized the previously proposed A→D repair and continuous workflow checks. The v1.0.171 first-tap change left the second privacy tap on the ABC footer icon; `!returnToLetters` suppressed the Emoji pose animator and mic privacy shield. Batch A repairs source ordering and the animation gate, with a new pure JVM policy test; do not report physical acceptance from source inspection. Batch B must address the persistent ~top band structurally. Batch C adds premium gold and deep-red recording only. Final signed release requires debug/full unit and original signer on the **exact app SHA**. Durable ledger: `docs/FOOTER_PRIVACY_EMOJI_GOLD_REPAIR_2026_11_20.md`.

@@ -254,6 +254,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         lastSyncedPrivacy = privateMode
         privateEmojiIcon.setThemeInk(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        if (returnToLetters) {
+            // ABC replaces the actual smile drawable while browsing Emoji.
+            // A quiet gold tint leaves privacy unmistakable in this panel,
+            // including with animations disabled or while Search is active.
+            emojiButton.imageTintList = ColorStateList.valueOf(
+                if (privateMode) FooterPrivacyPalette.GOLD
+                else Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        }
         // A double-tap starts on Emoji, whose footer currently displays ABC.
         // The original !returnToLetters guard skipped the entire 760/700ms
         // motion and snapped BOTH the smile and mic shield to their endpoints.

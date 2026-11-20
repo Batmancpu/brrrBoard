@@ -168,7 +168,7 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         if (!shieldVisible || shieldProgress <= .001f) return
         val saved = canvas.save()
         canvas.scale(width / 48f, height / 48f)
-        val color = FooterPrivacyPalette.TURQUOISE
+        val color = FooterPrivacyPalette.GOLD
         val fillAlpha = ((shieldProgress - .44f) / .56f).coerceIn(0f, 1f)
         if (fillAlpha > 0f) {
             shieldPaint.style = Paint.Style.FILL
@@ -180,10 +180,12 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         rightMeasure.getSegment(0f, rightMeasure.length * shieldProgress, shieldSegment, true)
         shieldPaint.style = Paint.Style.STROKE
         shieldPaint.strokeWidth = 4.2f
-        shieldPaint.color = ColorUtils.setAlphaComponent(color, (22f * shieldProgress).roundToInt())
+        shieldPaint.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.DEPTH,
+            (32f * shieldProgress).roundToInt())
         canvas.drawPath(shieldSegment, shieldPaint)
         shieldPaint.strokeWidth = 1.45f
-        shieldPaint.color = ColorUtils.setAlphaComponent(color, (172f * shieldProgress).roundToInt())
+        shieldPaint.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
+            (172f * shieldProgress).roundToInt())
         canvas.drawPath(shieldSegment, shieldPaint)
         canvas.restoreToCount(saved)
     }
@@ -223,7 +225,7 @@ class FooterMicDiscardMorphView @JvmOverloads constructor(
     private val micPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var progress = 0f
     private var idleTint = Color.WHITE
-    private var startingMicTint = 0xFFFF453A.toInt()
+    private var startingMicTint = 0xFFAC1537.toInt()
 
     fun setIdleTint(color: Int) { idleTint = color }
     fun setStartingMicTint(color: Int) { startingMicTint = color }

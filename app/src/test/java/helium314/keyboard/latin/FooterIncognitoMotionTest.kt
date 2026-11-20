@@ -6,6 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FooterIncognitoMotionTest {
+    @Test fun premiumGoldMatchesSmileAndShieldWhileVoiceProcessingStaysTurquoise() {
+        assertEquals(0xFFD8B766.toInt(), FooterPrivacyPalette.GOLD)
+        assertEquals(0xFFF4DC98.toInt(), FooterPrivacyPalette.HIGHLIGHT)
+        assertEquals(0xFF916B2B.toInt(), FooterPrivacyPalette.DEPTH)
+        assertTrue(FooterPrivacyPalette.GOLD != FooterIndicatorPolicy.processingTint(true))
+        assertTrue(FooterPrivacyPalette.GOLD != FooterIndicatorPolicy.voiceTint(false))
+    }
+
     @Test fun privacyGestureMayAnimateDuringImmediateEmojiToAbcReturn() {
         // While the first Emoji tap is open, the button renders ABC. The
         // second tap must still start the single emoji + mic shield clock.

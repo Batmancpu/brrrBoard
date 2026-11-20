@@ -7,6 +7,14 @@ package helium314.keyboard.latin
  * never to individual Emoji/Clipboard panels.
  */
 object SharedPanelGeometry {
+    /** Reserve precisely the outer frame's real inset and persistent footer. */
+    @JvmStatic
+    fun bodyFromMeasuredTypingFrame(
+        measuredFramePx: Int, verticalPaddingPx: Int, footerPx: Int,
+    ): Int = if (measuredFramePx <= 0) 0 else
+        (measuredFramePx.toLong() - verticalPaddingPx.coerceAtLeast(0) -
+            footerPx.coerceAtLeast(0)).coerceAtLeast(0L).toInt()
+
     /** A source captured at another orientation/width must not stretch Emoji. */
     @JvmStatic
     fun preferCurrentTypingViewport(

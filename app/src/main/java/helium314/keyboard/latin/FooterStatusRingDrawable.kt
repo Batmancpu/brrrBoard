@@ -90,8 +90,8 @@ internal object FooterIndicatorPolicy {
     fun voiceTint(dark: Boolean, offline: Boolean = false): Int = when {
         offline && dark -> 0xFF56B5FF.toInt()
         offline -> 0xFF167BFF.toInt()
-        dark -> 0xFFFF453A.toInt()
-        else -> 0xFFFF3B30.toInt()
+        dark -> 0xFFD83250.toInt() // vivid deep ruby on dark glass
+        else -> 0xFFAC1537.toInt() // elegant crimson on light glass
     }
 
     /** Distinct from both red/server and blue/offline recording; processing only. */

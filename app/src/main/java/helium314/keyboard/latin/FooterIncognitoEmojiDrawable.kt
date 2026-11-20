@@ -18,7 +18,7 @@ import android.view.animation.LinearInterpolator
 import kotlin.math.roundToInt
 
 /**
- * Compact filled smile with a true underlit cyan reveal from the lenses.
+ * Compact filled smile with a premium champagne-gold reveal from the lenses.
  * Hat, nod, glasses, highlight and face tint share one interruptible timeline.
  * No bitmaps, blur layers, additional hitboxes or per-frame layout passes.
  */
@@ -32,7 +32,7 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         strokeCap = Paint.Cap.ROUND
     }
     private val glass = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val incognitoCyan = FooterPrivacyPalette.TURQUOISE
+    private val incognitoGold = FooterPrivacyPalette.GOLD
     private var themeInk = Color.WHITE
     private var alphaValue = 255
     private var suppliedFilter: ColorFilter? = null
@@ -137,11 +137,11 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
     private fun drawFace(c: Canvas, p: FooterIncognitoMotion.Frame) {
         val spread = p.colorSpread.coerceIn(0f, 1f)
         // A faint glow stays INSIDE/at the surface of the circular face. The
-        // cyan originates at the glasses and expands as one smooth color field.
+        // gold originates at the glasses and expands as one smooth color field.
         if (spread > .001f) {
             glass.style = Paint.Style.FILL
             glass.colorFilter = null
-            glass.color = ColorUtils.setAlphaComponent(incognitoCyan,
+            glass.color = ColorUtils.setAlphaComponent(incognitoGold,
                 (26f * spread * alphaValue / 255f).roundToInt())
             c.drawCircle(12f, 12.45f, 9.5f + spread * 1.6f, glass)
         }
@@ -161,7 +161,7 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
             val clipped = c.save()
             val faceClip = Path().apply { addCircle(12f, 12.45f, 8.85f, Path.Direction.CW) }
             c.clipPath(faceClip)
-            glass.color = ColorUtils.setAlphaComponent(incognitoCyan,
+            glass.color = ColorUtils.setAlphaComponent(incognitoGold,
                 (251f * alphaValue / 255f).roundToInt())
             glass.colorFilter = null
             // At zero the colored point glows inside the two lenses; by one it
@@ -215,11 +215,12 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         c.drawLine(5.8f, y + 1.1f, 5.2f, y + .95f, ink)
         c.drawLine(18.2f, y + 1.1f, 18.8f, y + .95f, ink)
 
-        // Lens glint sweeps into the cyan wave. At rest a small glass highlight
+        // Warm lens glint sweeps into the gold wave. At rest a small highlight
         // remains, deliberately away from the hat and mouth.
         val shine = p.glint.coerceIn(0f, 1f)
         if (shine > .005f) {
-            glass.color = Color.argb((225f * opacity * alphaValue / 255f).roundToInt(), 242, 255, 255)
+            glass.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
+                (225f * opacity * alphaValue / 255f).roundToInt())
             val sweep = (shine * 2f - 1f).coerceIn(-1f, 1f)
             for (lens in lenses) {
                 val save = c.save()

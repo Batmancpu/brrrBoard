@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
-import android.graphics.Color
 import kotlin.math.max
 
-/** The single exact turquoise shared by the privacy emoji reveal and mic shield. */
+/** Warm metallic-gold privacy accent shared by the emoji and mic shield. */
 internal object FooterPrivacyPalette {
-    val TURQUOISE: Int = Color.rgb(43, 204, 201)
+    val GOLD: Int = 0xFFD8B766.toInt() // champagne gold
+    val HIGHLIGHT: Int = 0xFFF4DC98.toInt() // warm lens glint
+    val DEPTH: Int = 0xFF916B2B.toInt() // restrained shadow
 }
 
 /** The emoji stays in its 31dp cell; each channel has its own continuous timing. */

@@ -6,12 +6,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FooterIndicatorPolicyTest {
-    @Test fun darkAndLightHaveDistinctOpaqueSystemInspiredRed() {
+    @Test fun recordingMicUsesPremiumDeepRubyNotNeonRed() {
         val light = FooterIndicatorPolicy.voiceTint(false)
         val dark = FooterIndicatorPolicy.voiceTint(true)
-        assertTrue(light != dark)
-        assertEquals(0xFF, light ushr 24)
-        assertEquals(0xFF, dark ushr 24)
+        assertEquals(0xFFAC1537.toInt(), light)
+        assertEquals(0xFFD83250.toInt(), dark)
     }
 
     @Test fun processingPulseIsQuieterAndAlwaysBounded() {
