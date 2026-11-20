@@ -91,6 +91,8 @@ jobs:
 
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
+      - name: Stage pinned GTCRN enhancement model inside APK
+        run: bash tools/fetch-board-gtcrn.sh
       - name: Build debug APK
         shell: bash
         run: |
@@ -118,6 +120,7 @@ jobs:
           test -s "$APK"
           unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
+          bash tools/verify-gtcrn-packaging.sh "$APK"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"

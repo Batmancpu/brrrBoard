@@ -85,6 +85,41 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertLess(installer.index("if (isInstalled(context))"),
                         installer.index("val first = VoiceModelManifest.assets.first()"))
 
+    def test_gtcrn_model_is_in_every_apk_with_private_fail_safe_processing(self):
+        debug = self.read(".github/workflows/brrrboard-build-debug.yml")
+        release = self.read(".github/workflows/obtainium-release.yml")
+        for workflow in (debug, release):
+            self.assertIn("bash tools/fetch-board-gtcrn.sh", workflow)
+            self.assertIn("bash tools/verify-gtcrn-packaging.sh", workflow)
+        fetch = self.read("tools/fetch-board-gtcrn.sh")
+        verify = self.read("tools/verify-gtcrn-packaging.sh")
+        self.assertIn("502ebfab64da7c4a9af78dcb9c6ceef1ebb01c73", fetch)
+        self.assertIn("015454eef64bd4328e6ff4946c231d4a4a632e93", fetch)
+        self.assertIn("015454eef64bd4328e6ff4946c231d4a4a632e93", verify)
+        self.assertIn("assets/voice/gtcrn_simple.onnx", verify)
+        self.assertIn("assets/licenses/gtcrn-mit.txt", verify)
+        license_text = self.read("app/src/main/assets/licenses/gtcrn-mit.txt")
+        self.assertIn("MIT License", license_text)
+        self.assertIn("Rong Xiaobin", license_text)
+
+        enhancer = self.read("app/src/main/java/helium314/keyboard/latin/voice/PrivateGtcrnDenoiser.kt")
+        recognizer = self.read("app/src/main/java/helium314/keyboard/latin/voice/OfflineVoiceEngine.kt")
+        gate = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceNoiseProfile.kt")
+        dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        mic = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
+        self.assertIn("assetManager = context.assets", enhancer)
+        self.assertIn("enhanceIfNoisy(samples)", recognizer)
+        self.assertIn("enhanced ?: samples", recognizer)
+        self.assertIn("shouldDenoise(samples: FloatArray)", gate)
+        self.assertIn("VoiceDenoiseMetrics.snapshot()", dashboard)
+        self.assertIn("microphone.routedDevice", mic)
+        self.assertIn("lastInputRoute", dashboard)
+        self.assertNotIn("setPreferredDevice(", mic)
+        for banned in ("http://", "https://", "HttpURLConnection", "Socket("):
+            self.assertNotIn(banned, enhancer)
+        # GTCRN is independent of the large optional Parakeet bootstrap.
+        self.assertIn("default: false", release)
+
     def test_network_permissions_are_explicitly_removed(self):
         # Android's manifest merger can inherit a dependency's network permission.
         # The final signed-APK gate separately checks the merged permissions.

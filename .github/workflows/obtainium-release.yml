@@ -54,6 +54,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
+      - name: Stage pinned GTCRN enhancement model inside every APK
+        run: bash tools/fetch-board-gtcrn.sh
       - name: Bundle pinned English ASR model only when explicitly requested
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model }}
         run: bash tools/prepare-offline-voice-pack.sh
@@ -158,6 +160,7 @@ jobs:
           # Regular updates MUST exclude weights; an explicitly dispatched
           # bootstrap MUST include all four SHA-256-pinned weights.
           bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_VOICE"
+          bash tools/verify-gtcrn-packaging.sh "$apk"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done
@@ -185,7 +188,7 @@ jobs:
           if [[ "$BUNDLE_VOICE" == 'bundled' ]]; then
             model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
           fi
-          printf '\n%s\nAPK SHA-256: %s.\n' "$model_note" "$SHA256" >> "$RUNNER_TEMP/brrBoard-release-notes.md"
+          printf '\n%s\nThe 535 KB GTCRN denoising model is bundled permanently in this APK; no audio is uploaded or model fetched at runtime.\nAPK SHA-256: %s.\n' "$model_note" "$SHA256" >> "$RUNNER_TEMP/brrBoard-release-notes.md"
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "brrBoard Obtainium $version" --latest \
             --notes-file "$RUNNER_TEMP/brrBoard-release-notes.md"

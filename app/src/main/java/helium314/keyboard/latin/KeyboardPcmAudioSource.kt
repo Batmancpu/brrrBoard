@@ -2,12 +2,14 @@
 package helium314.keyboard.latin
 
 import android.media.AudioFormat
+import android.media.AudioDeviceInfo
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import java.io.IOException
+import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -69,6 +71,22 @@ internal class KeyboardPcmAudioSource(
                 microphone.startRecording()
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("Microphone could not start")
+                }
+                // Observe the OS-selected *logical* microphone. Bluetooth earbuds
+                // usually expose one already beamformed/processed input stream.
+                // Do not override audio routing or attempt unsupported multi-mic capture.
+                if (!toBrrSpeak) {
+                    val route = microphone.routedDevice
+                    VoiceDenoiseMetrics.inputRoute(when (route?.type) {
+                        AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth headset mic"
+                        AudioDeviceInfo.TYPE_BLE_HEADSET -> "Bluetooth LE headset mic"
+                        AudioDeviceInfo.TYPE_WIRED_HEADSET -> "Wired headset mic"
+                        AudioDeviceInfo.TYPE_USB_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE ->
+                            "USB microphone"
+                        AudioDeviceInfo.TYPE_BUILTIN_MIC -> "Phone built-in mic"
+                        null -> "Android route unavailable"
+                        else -> "Other Android input"
+                    })
                 }
                 startPipeWriter()
                 mainHandler.post {
