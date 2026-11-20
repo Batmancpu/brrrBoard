@@ -1,5 +1,8 @@
 # brrBoard — high-accuracy North Indian English offline voice: integration and one-time model migration
 
+> **20 Nov 2026 one-shot privacy update:** Owner approved an explicit BR Brain `Run one private check` in a dedicated non-exported `:brr_voice_probe` process, with synthetic audio only, fixed noBackup stage codes, Android own-process exit category and no raw tombstone/data collection. Live GTCRN remains paused and 110M unchanged. The ~600–700 MB Ultra migration is postponed until real North Indian English WER, memory and call-jank gates pass; no heavy weights in the diagnostic APK. [See safety contract](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md).
+
+
 > **20 Nov 2026 conditional owner approval, NOT YET SHIPPED:** Owner will accept a one-time 600–700 MB Parakeet Ultra INT8 APK only if evidence shows meaningful North Indian English accuracy gain and acceptable Oppo memory/latency. This crash-hotfix release **does not** modify Parakeet or its on-disk model. Primary sherpa export FLEURS-English Ultra 8.51% WER versus v2 6.48% suggests Ultra is **not automatically the best English ASR**; compare identical audio against brrBoard 110M before migration. No claims of a tested Ultra engine without device evidence.
 
 

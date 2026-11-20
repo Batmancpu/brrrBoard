@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
+import helium314.keyboard.latin.voice.VoiceNativeCrashProbe
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -48,6 +49,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     var confirmEraseEmoji by remember { mutableStateOf(false) }
     var erasingEmoji by remember { mutableStateOf(false) }
     var trialText by remember { mutableStateOf("") }
+    var probeCopied by remember { mutableStateOf(false) }
     // Settings can stay open alongside the IME. Refresh RAM-only diagnostic counters while visible.
     LaunchedEffect(Unit) {
         while (true) {
@@ -63,6 +65,8 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
     val wordSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.NEXT_WORD) }
     val swipeSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SWIPE) }
     val emojiSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SMART_EMOJI) }
+    val voiceProbe = remember(refresh) { VoiceNativeCrashProbe.snapshot(context) }
+    val priorVoiceCrash = remember(context) { VoiceNativeCrashProbe.recentKeyboardExit(context) }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
     ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
@@ -115,6 +119,39 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                     Text("A reported keyboard crash shortly after tapping the mic is being investigated. The last known working private 16-kHz capture and Parakeet transcription path is restored. GTCRN weights remain included in the APK for future verified activation, but no native noise-filter code is called in this build.",
                         style = MaterialTheme.typography.bodySmall)
                     Text("Speech still stays on-device. This is a stability rollback, not evidence that filtering improved or worsened recognition accuracy.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
+                Column(modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("One-shot private voice crash check",
+                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("This optional check runs the bundled GTCRN engine once on generated audio in a separate short-lived process. It never uses your microphone, typed text or transcripts. A native crash cannot terminate the keyboard process.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text(priorVoiceCrash, style = MaterialTheme.typography.bodySmall)
+                    Text(voiceProbe.message, style = MaterialTheme.typography.bodySmall)
+                    if (!voiceProbe.started) {
+                        Button(onClick = {
+                            VoiceNativeCrashProbe.start(context)
+                            probeCopied = false
+                            refresh++
+                        }) { Text("Run one private check") }
+                    } else if (voiceProbe.finished) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = {
+                                probeCopied = VoiceNativeCrashProbe.copyReport(context)
+                            }) { Text(if (probeCopied) "Copied" else "Copy safe result") }
+                            OutlinedButton(onClick = {
+                                VoiceNativeCrashProbe.erase(context)
+                                probeCopied = false
+                                refresh++
+                            }) { Text("Erase result") }
+                        }
+                    }
+                    Text("Nothing is uploaded. Android reports only a process-exit category and numeric status, when available. Raw crash traces, microphone recordings and app/field identities are not read or saved. Run once when not on a call; the live voice filter stays disabled.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }

@@ -125,6 +125,37 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         # GTCRN is independent of the large optional Parakeet bootstrap.
         self.assertIn("default: false", release)
 
+    def test_gtcrn_one_shot_is_private_explicit_and_process_separated(self):
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(self.read("app/src/main/AndroidManifest.xml"))
+        android_name = "{http://schemas.android.com/apk/res/android}name"
+        android_process = "{http://schemas.android.com/apk/res/android}process"
+        android_exported = "{http://schemas.android.com/apk/res/android}exported"
+        services = root.findall("application/service")
+        child = next(s for s in services if s.get(android_name) ==
+                     "helium314.keyboard.latin.voice.GtcrnProbeService")
+        self.assertEqual(":brr_voice_probe", child.get(android_process))
+        self.assertEqual("false", child.get(android_exported))
+
+        report = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceNativeCrashProbe.kt")
+        child_code = self.read("app/src/main/java/helium314/keyboard/latin/voice/GtcrnProbeService.kt")
+        dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        self.assertIn("noBackupFilesDir", report)
+        self.assertIn("getHistoricalProcessExitReasons", report)
+        self.assertIn("AtomicFile", report)
+        self.assertIn('":brr_voice_probe"', report)
+        self.assertIn("Process.killProcess(Process.myPid())", child_code)
+        self.assertIn("THREAD_PRIORITY_BACKGROUND", child_code)
+        self.assertIn("FloatArray(16_000)", child_code)
+        self.assertIn("Run one private check", dashboard)
+        self.assertIn("Copy safe result", dashboard)
+        # Never ingest a microphone or dump/tombstone/stack raw payload.
+        for bad in ("getTraceInputStream(", "getDescription(", "readAudio(", "MediaRecorder",
+                    "AudioRecord(", "recording.wav", "HttpURLConnection", "Socket("):
+            self.assertNotIn(bad, report)
+            self.assertNotIn(bad, child_code)
+        self.assertNotIn("GET_TASKS", self.read("app/src/main/AndroidManifest.xml"))
+
     def test_network_permissions_are_explicitly_removed(self):
         # Android's manifest merger can inherit a dependency's network permission.
         # The final signed-APK gate separately checks the merged permissions.

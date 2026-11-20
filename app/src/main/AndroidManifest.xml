@@ -56,6 +56,12 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                     android:resource="@xml/spellchecker" />
         </service>
 
+        <!-- Opt-in one-shot native GTCRN smoke test. Separate process keeps
+             JNI crashes away from LatinIME. Never exported or auto-started. -->
+        <service android:name="helium314.keyboard.latin.voice.GtcrnProbeService"
+                 android:process=":brr_voice_probe"
+                 android:exported="false" />
+
         <!-- Activities -->
         <activity android:name="helium314.keyboard.settings.SettingsActivity"
                 android:theme="@style/platformActivityTheme"

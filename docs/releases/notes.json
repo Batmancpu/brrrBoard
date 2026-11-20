@@ -1,18 +1,22 @@
 {
   "schema": 1,
-  "summary": "Accessible cancellation and safer interruption of privacy/destructive confirmation gestures.",
+  "summary": "One-shot, privacy-first offline GTCRN crash diagnosis with isolated native process and Android exit categories, without changing live dictation.",
   "changes": [
     {
-      "title": "Screen-reader Cancel for confirmation slides",
-      "detail": "Privacy and destructive slide confirmations now provide an explicit accessibility Dismiss action alongside the existing Confirm action. Touch-exploration instructions describe those available actions instead of only demanding a drag gesture."
+      "title": "One-shot private voice crash check in BR Brain",
+      "detail": "A new explicit Run one private check button tests the bundled GTCRN engine with synthetic audio in a separate Android process. It cannot open the microphone and cannot run automatically; the keyboard stays in its crash-safe Parakeet mode."
     },
     {
-      "title": "Cancelled animations cannot confirm old actions",
-      "detail": "If a protected confirmation is interrupted by editor switching, dismissal or another overlay, cancellation cannot trigger an old approval callback. Interrupted gestures remain non-destructive."
+      "title": "Useful crash categories without private logs",
+      "detail": "Android process-exit history can show a previous keyboard native/Java crash or memory pressure, and the isolated check reports its last processing stage and exit category. No raw tombstones, typed text, transcripts, recordings or app identities are saved."
     },
     {
-      "title": "Keyboard identity and data preserved",
-      "detail": "Keeps the existing v1.0.197 typing/selection behavior, encrypted learned data, transcript recovery, offline voice hotfix, model storage, application ID and original signing certificate. No new permissions or cloud services."
+      "title": "Controlled erasure and user sharing",
+      "detail": "The tiny diagnostic status is kept only in app-private no-backup storage, with an explicit copy-safe-result action and erase button. No background telemetry or network permission was added."
+    },
+    {
+      "title": "Parakeet Ultra stays gated",
+      "detail": "The contemplated 0.6B/600–700 MB Parakeet migration awaits measured Indian-English accuracy and Oppo memory/latency results. Existing Parakeet model, signed update identity and everyday typing remain unchanged."
     }
   ]
 }
