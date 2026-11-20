@@ -55,7 +55,7 @@ Setup completion comes **only** from Android `UncachedInputMethodManagerUtils.is
 ## Acceptance before release
 
 1. Compile debug and signed original-key Obtainium workflows from the **same main commit SHA**. Reject stale green results from unrelated commits.
-2. Confirm package `helium314.keyboard.latin`, unchanged signing certificate, release asset `brrBoard.apk`, and correct latest-release SHA.
+2. Confirm installed package `com.mangoloads.board` (the Kotlin source namespace is not the app ID), unchanged signing certificate, release asset `brrBoard.apk`, and correct latest-release SHA.
 3. Verify Settings startup both light/dark, day/night transition, edge-to-edge status/navigation bars, 200% font scale, gesture navigation, rotation, and Android older than 12.
 4. Verify installed+selected keyboard shows no finished setup card; disabled/not-default states present a working setup link; About still links to setup.
 5. Visit every home row and inspect all settings previously found in Appearance, Preferences, Advanced, Toolbar, Text Correction, and Dictionary. Check dependent rows change when toggled.

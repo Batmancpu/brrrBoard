@@ -55,6 +55,8 @@ jobs:
       - name: Bundle pinned English ASR model only when explicitly requested
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model }}
         run: bash tools/prepare-offline-voice-pack.sh
+      - name: Validate premium Settings navigation and resource contract
+        run: python3 tools/check_premium_settings_contract.py
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
       - name: Run complete Android unit test gate before publishing

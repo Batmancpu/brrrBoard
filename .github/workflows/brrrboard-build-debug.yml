@@ -28,6 +28,9 @@ jobs:
       - name: Verify MangoLoads identity resources and motion contract
         run: python3 -m unittest discover -s tools/tests -p 'test_mangoloads_brand.py' -v
 
+      - name: Validate premium Settings navigation and resource contract
+        run: python3 tools/check_premium_settings_contract.py
+
       - name: Determine whether this commit changes the app
         id: release_scope
         shell: bash
