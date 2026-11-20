@@ -1,5 +1,8 @@
 # BR Brain — functional code-level implementation plan (English, Hinglish, Smart Emoji)
 
+> **Latest owner GO (20 Nov 2026): IMPLEMENTATION AUTHORIZED.** Previous planning pause is historical; begin in tested batches. **Batch 1 source candidate** instruments native per-request typing/after-Space/swipe/Smart-Emoji latency (last/mean/p95 window), manual suggestion taps, honest dashboard explanation and a RAM-only test field; the trained bilingual neural ContextLM is still pending model/data provenance, measurements and device QA. Do not call measured native timing neural-model latency. Further training, score fusion, HMAC and model packaging remain open. See latest AGENTS.md and handoff for live CI state.
+
+
 Date: 20 November 2026 | Repository: Batmancpu/brrrBoard | Target branch: main | Decision: **PLANNING / IMPLEMENTATION PREPARATION ONLY**.
 
 **Current owner instruction supersedes earlier engineering GO for this turn: DO NOT modify application code, build inputs, models, training assets, CI, releases or installed APK until a fresh explicit “GO”.** Updating implementation documentation and agent handoffs is allowed. Retain current Parakeet 110M TDT INT8 and sherpa-onnx 1.13.3. Future Ultra offline speech and its one-time bundled-APK migration remain separate and frozen. Never infer that a source commit is installed on the owner's Oppo Reno10 5G.

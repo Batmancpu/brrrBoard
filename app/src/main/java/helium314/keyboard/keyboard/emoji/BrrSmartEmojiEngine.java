@@ -2,11 +2,14 @@
 package helium314.keyboard.keyboard.emoji;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.InputType;
 import android.util.AtomicFile;
 import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import helium314.keyboard.latin.brain.BrainLearningVault;
+import helium314.keyboard.latin.brain.BrainPerformanceMetrics;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.utils.KtxKt;
 
@@ -137,6 +141,8 @@ public final class BrrSmartEmojiEngine {
             final CharSequence previousContext, final int max, final boolean stripOnly) {
         if (max <= 0 || !EmojiContextEligibility.isEligible(editor,
                 Settings.getValues().mIncognitoModeEnabled)) return List.of();
+        final long started = BrainPerformanceMetrics.begin();
+        try {
         final String text = previousContext == null ? "" : previousContext.toString();
         final Map<String, Pick> choices = new HashMap<>();
 
@@ -174,6 +180,9 @@ public final class BrrSmartEmojiEngine {
         ordered.sort(Comparator.comparingInt((Pick p) -> p.confidence)
                 .reversed().thenComparing(p -> p.emoji));
         return List.copyOf(ordered.subList(0, Math.min(max, ordered.size())));
+        } finally {
+            BrainPerformanceMetrics.end(BrainPerformanceMetrics.Stage.SMART_EMOJI, started);
+        }
     }
 
     /** Local erase for a future BR Brain dashboard control; no text data ever returns. */
@@ -182,8 +191,17 @@ public final class BrrSmartEmojiEngine {
         synchronized (LOCK) { return MODEL.size(); }
     }
 
+    /** A zero count is not evidence of an empty store until its async load completes. */
+    public static boolean isLoaded() { return loaded; }
+
     /** Erases only contextual associations, preserving actual Emoji Recents. */
     public static void forgetLearnedPatterns(@NonNull final Context context) {
+        forgetLearnedPatterns(context, null);
+    }
+
+    /** Completion is posted only AFTER queued writes and erase finish, on the main thread. */
+    public static void forgetLearnedPatterns(@NonNull final Context context,
+            @Nullable final Runnable onCompleted) {
         final Context app = context.getApplicationContext();
         IO.execute(() -> {
             synchronized (LOCK) {
@@ -191,6 +209,7 @@ public final class BrrSmartEmojiEngine {
                 loaded = true;
                 new AtomicFile(new File(app.getNoBackupFilesDir(), FILE_NAME)).delete();
             }
+            if (onCompleted != null) new Handler(Looper.getMainLooper()).post(onCompleted);
         });
     }
 }

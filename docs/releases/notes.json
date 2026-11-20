@@ -1,7 +1,23 @@
 {
   "schema": 1,
-  "summary": "Behavioral reliability, offline Version History, editor field tests, and integrated BR Brain Smart Emoji learning.",
+  "summary": "BR Brain live on-device performance diagnostics, honest suggestion learning visibility, and improved Smart Emoji erasure feedback.",
   "changes": [
+    {
+      "title": "BR Brain shows real prediction speed",
+      "detail": "New rolling local computation timings for typing, next-word suggestions, swipe candidates and Smart Emoji: latest, average, p95 and sample counts. Values are measured on this device, not simulated or uploaded."
+    },
+    {
+      "title": "BR Brain now explains its intelligence",
+      "detail": "See how many suggestion batches, candidates and manually selected word/Emoji suggestions were observed in eligible text fields, plus the existing swipe-learning and Emoji statistics. Suggestion taps are not labeled as prediction accuracy."
+    },
+    {
+      "title": "Try English and Hinglish in BR Brain",
+      "detail": "A temporary practice text field lets you try the keyboard while the dashboard automatically refreshes local measurements. The dashboard explains the native dictionary, swipe and Emoji paths and clearly labels the future neural ContextLM as not installed."
+    },
+    {
+      "title": "More reliable learning controls",
+      "detail": "Reset only current-session speed counters without erasing learned words or Emoji. Contextual Emoji erasure now refreshes after its background worker completes; protected/incognito fields are excluded from measurements."
+    },
     {
       "title": "Version History in About",
       "detail": "Open About → Version History to see the latest release, choose older versions from a dropdown, and read dated, itemized changes. The app carries the history offline."

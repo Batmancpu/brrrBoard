@@ -2345,6 +2345,13 @@ public class LatinIME extends InputMethodService implements
     // interface
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        // A deliberate tap is observable; it is NOT proof that the prediction was correct.
+        // Never count interactions in incognito, password or non-prose editor fields.
+        if (helium314.keyboard.keyboard.emoji.EmojiContextEligibility.isEligible(
+                getCurrentInputEditorInfo(), mSettings.getCurrent().mIncognitoModeEnabled)) {
+            helium314.keyboard.latin.brain.BrainPerformanceMetrics.recordManualTap(
+                    suggestionInfo.isEmoji());
+        }
         if (suggestionInfo.isEmoji()) {
             final InputTransaction emojiTransaction = mInputLogic.onInsertEmojiSuggestion(
                     mSettings.getCurrent(), suggestionInfo.mWord,

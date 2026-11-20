@@ -15,6 +15,7 @@ import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
+import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
@@ -62,14 +63,33 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
 
     fun getSuggestedWords(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                           settingsValuesForSuggestion: SettingsValuesForSuggestion, isCorrectionEnabled: Boolean,
-                          inputStyle: Int, sequenceNumber: Int): SuggestedWords =
-        if (wordComposer.isBatchMode) {
-            getSuggestedWordsForBatchInput(wordComposer, ngramContext, keyboard, settingsValuesForSuggestion,
-                inputStyle, sequenceNumber)
-        } else {
-            getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard, settingsValuesForSuggestion,
-                inputStyle, isCorrectionEnabled, sequenceNumber)
+                          inputStyle: Int, sequenceNumber: Int): SuggestedWords {
+        // Only content-free timing/counts, and never while an incognito/protected editor is active.
+        // The timing covers this entire local candidate generation call, not display latency.
+        val values = Settings.getValues()
+        val measurable = values != null && values.mInputAttributes.mShouldShowSuggestions
+            && EmojiContextEligibility.isEligible(
+                LatinIME.getInstance()?.currentInputEditorInfo, values.mIncognitoModeEnabled)
+        val stage = when {
+            wordComposer.isBatchMode -> BrainPerformanceMetrics.Stage.SWIPE
+            !wordComposer.isComposingWord -> BrainPerformanceMetrics.Stage.NEXT_WORD
+            else -> BrainPerformanceMetrics.Stage.TYPING
         }
+        val started = if (measurable) BrainPerformanceMetrics.begin() else 0L
+        try {
+            val result = if (wordComposer.isBatchMode) {
+                getSuggestedWordsForBatchInput(wordComposer, ngramContext, keyboard,
+                    settingsValuesForSuggestion, inputStyle, sequenceNumber)
+            } else {
+                getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard,
+                    settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber)
+            }
+            if (measurable) BrainPerformanceMetrics.recordSuggestionBatch(result.size())
+            return result
+        } finally {
+            if (measurable) BrainPerformanceMetrics.end(stage, started)
+        }
+    }
 
     // Retrieves suggestions for non-batch input (typing, recorrection, predictions...)
     // and calls the callback function with the suggestions.
