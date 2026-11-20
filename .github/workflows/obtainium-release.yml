@@ -24,6 +24,8 @@ permissions:
   contents: write
   actions: read
 
+# Serial signed publication remains independent of the commit-scoped debug gate.
+# Branch documentation pushes no longer cancel the required debug verification.
 concurrency:
   group: brrrboard-obtainium-release
   cancel-in-progress: false

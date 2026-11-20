@@ -11,8 +11,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: brrrBoard-debug-${{ github.ref }}
-  cancel-in-progress: true
+  # Keep one debug verification for each exact SHA until it finishes.
+  # A later documentation push must not cancel a release's same-commit gate.
+  group: brrrBoard-debug-${{ github.sha }}
+  cancel-in-progress: false
 
 jobs:
   build:
