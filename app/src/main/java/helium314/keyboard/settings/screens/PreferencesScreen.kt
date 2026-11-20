@@ -44,6 +44,7 @@ import helium314.keyboard.settings.preferences.ReorderSwitchPreference
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.settings.preferences.SliderPreference
 import helium314.keyboard.settings.preferences.SettingsSwitch
@@ -207,9 +208,25 @@ fun createPreferencesSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_ENABLE_CLIPBOARD_HISTORY,
         R.string.enable_clipboard_history, R.string.enable_clipboard_history_summary)
-    {
+    { setting ->
         val ctx = LocalContext.current
-        SwitchPreference(it, Defaults.PREF_ENABLE_CLIPBOARD_HISTORY) { ClipboardDao.getInstance(ctx)?.clearNonPinned() }
+        var confirmDisable by remember { mutableStateOf(false) }
+        SwitchPreference(setting, Defaults.PREF_ENABLE_CLIPBOARD_HISTORY,
+            allowCheckedChange = { next ->
+                if (!next) { confirmDisable = true; false } else true
+            }
+        )
+        if (confirmDisable) SlideActionDialog(
+            title = "Disable clipboard history?",
+            explanation = "Disabling clipboard history will erase unpinned saved clips. Pinned clips will be kept.",
+            instruction = "slide to clear clips",
+            onDismiss = { confirmDisable = false },
+            onConfirmed = {
+                ctx.prefs().edit { putBoolean(setting.key, false) }
+                ClipboardDao.getInstance(ctx)?.clearNonPinned()
+                confirmDisable = false
+            }
+        )
     },
     Setting(context, Settings.PREF_SHOW_SCREENSHOTS_IN_CLIPBOARD,
         R.string.show_screenshots_in_clipboard, R.string.show_screenshots_in_clipboard_summary)

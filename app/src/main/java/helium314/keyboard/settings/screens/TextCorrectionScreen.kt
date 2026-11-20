@@ -224,12 +224,15 @@ fun createCorrectionSettings(context: Context) = listOf(
         )
         if (showConfirmDialog) {
             val prefs = LocalContext.current.prefs()
-            ConfirmationDialog(
-                onDismissRequest = { showConfirmDialog = false },
+            SlideActionDialog(
+                onDismiss = { showConfirmDialog = false },
                 onConfirmed = {
                     prefs.edit { putBoolean(setting.key, false) }
+                    showConfirmDialog = false
                 },
-                content = { Text(stringResource(R.string.disable_personalized_dicts_message)) }
+                title = "Disable personalized dictionaries?",
+                explanation = stringResource(R.string.disable_personalized_dicts_message),
+                instruction = "slide to clear learning"
             )
         }
 

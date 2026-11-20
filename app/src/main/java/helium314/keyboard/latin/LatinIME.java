@@ -1337,6 +1337,10 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
+        // A same-package EditorInfo restart can skip the ordinary inputTypeChanged
+        // branch. Revoke RAM-only consent here too, even when the system never
+        // sends onStartInputInternal between two visible editor sessions.
+        SecureAppTemporaryOptOut.clear();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
 
@@ -1353,6 +1357,10 @@ public class LatinIME extends InputMethodService implements
         // reload
         // settings, so currentSettingsValues can't be final.
         SettingsValues currentSettingsValues = mSettings.getCurrent();
+        final boolean secureEditor = SecureAppsPolicy.isSecure(KtxKt.prefs(this),
+                editorInfo == null ? null : editorInfo.packageName);
+        if (secureEditor && !currentSettingsValues.mIncognitoModeEnabled)
+            mInputLogic.clearPendingPrivateLearning();
         boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo)
                 // Two apps can focus identical editor types during an IME
                 // restart. Secure-app membership must be recomputed for each
@@ -1361,7 +1369,7 @@ public class LatinIME extends InputMethodService implements
                         currentSettingsValues.mInputAttributes.mTargetApplicationPackageName,
                         editorInfo == null ? null : editorInfo.packageName);
         if (inputTypeChanged) mInputLogic.clearPendingPrivateLearning();
-        boolean isDifferentTextField = !restarting || inputTypeChanged;
+        boolean isDifferentTextField = !restarting || inputTypeChanged || secureEditor;
 
         // we want to reload the settings before calling updateKeyboardTheme, because
         // updateKeyboardTheme reads SettingsValues.mToolbarMode

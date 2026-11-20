@@ -2,6 +2,14 @@
 
 ### 2026-11-20 — Slide source polish staged for follow-up CI
 
+Owner's “every important thing that requires second thought, but not every place” also covers explicit optional `GestureDataScreen` deletion of stored research swipe-trace samples. The second step is now a deliberate slider for either exported-only or all, with the existing selected deletion scope unchanged. No extra friction on export/browse.
+
+Further destructive-entry-point audit: `PreferencesScreen`'s `PREF_ENABLE_CLIPBOARD_HISTORY` used an `onCheckedChange` lambda that invoked `ClipboardDao.clearNonPinned()` on *any change*, including turning Clipboard history ON. Now ON does not delete anything; OFF is gated by slide-to-confirm and deletes only nonpinned saved items after consent. This protects data in the “other blind spots” scope, and must be CI/device verified under a new SHA.
+
+Settings source audit also found disabling `PREF_KEY_USE_PERSONALIZED_DICTS` itself triggers `LatinIME.refreshPersonalizationDictionarySession()` -> `PersonalizationHelper.removeAllUserHistoryDictionaries()`. This previously relied only on an OK dialog. The OFF path now requires an explicit drag-before-pref-commit; re-enabling is immediate. This is an important, otherwise silent destructive shortcut and needs the next SHA's CI/Oppo settings review.
+
+Additional review caught a secure-app same-package `restarting=true` bypass of *settings recomputation* after revoking a temporary opt-out. A staged `LatinIME.onStartInputViewInternal` fix now explicitly clears the grant, flushes pending provisional learning if the old effective setting was nonprivate, and forces secure policy reload even without an input-type change. This is pending a third exact-SHA debug+original-signer CI pair; old `bb7ae89` cannot certify this new source.
+
 The first CI pair `44684117905` (debug) and `44684117902` (original signer path) ended **FAILURE** at Kotlin compilation on source `4de1fb8` after ~1m40. Logs precisely identify the trailing lambda wrong callback parameter in `SlideConfirmationOverlay` and extra parentheses in `SlideActionDialog`. Both are fixed in the local S4 source; no CI success or signed release yet. New fast-forward `main` SHA required with both workflows to terminal; preserve privacy and unit coverage.
 
 After the initial `4de1fb8` source was submitted to GitHub CI, local review found `KeyboardView.onDrawKey` includes left/top view padding. The spacebar rail now uses those same coordinates; letters fade in/out over 165/185ms and still suppress instant-restore flash across keyboard rebuilds. Added clear-footer fixed full-span geometry and explicit TalkBack forward/confirm actions to both rails. These source-only improvements need a **new exact main SHA** and a second full debug/unit + original-signed test pair, and real Oppo glass/drag visual review.

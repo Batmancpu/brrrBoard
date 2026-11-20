@@ -109,6 +109,7 @@ import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.latin.utils.appendLink
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
+import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 import helium314.keyboard.settings.initPreview
@@ -564,19 +565,21 @@ private fun BottomBar(hasWords: Boolean, onDeleted: () -> Unit) {
         )
         if (showConfirmDialog != null) {
             val ctx = LocalContext.current
-            ConfirmationDialog(
-                onDismissRequest = { showDeleteDialog = false },
+            SlideActionDialog(
+                onDismiss = { showConfirmDialog = null },
                 onConfirmed = {
                     val ids = dao.filterInfos(activeMode = true).map { it.id }
                     dao.delete(ids, showConfirmDialog != "all", ctx)
                     onDeleted()
+                    showConfirmDialog = null
+                    showDeleteDialog = false
                 },
-                content = {
-                    Text(stringResource(
-                        R.string.delete_confirmation,
-                        if (showConfirmDialog == "all") (exportedCount + nonExportedCount) else exportedCount
-                    ))
-                }
+                title = "Delete recorded gesture data?",
+                instruction = "slide to delete traces",
+                explanation = stringResource(
+                    R.string.delete_confirmation,
+                    if (showConfirmDialog == "all") (exportedCount + nonExportedCount) else exportedCount
+                )
             )
         }
     }
