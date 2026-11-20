@@ -1,5 +1,13 @@
 # brrBoard project context
 
+## 2026-11-20 — Active BR Brain plan: old voice model stays; sentence-aware context research
+
+Owner clarified: retain current installed **Parakeet 110M TDT INT8**, freeze larger Ultra voice migration, and **plan only** smarter typing, swipe, voice-adjacent lexical adaptation, Emoji and future dashboard label exactly **BR Brain**. Primary online research and code inspection show that sentence-aware neural context can plausibly improve both next-word text and swipe word ranking without immediately replacing gesture decoding. Actual Suggest.kt swipe flow already calls next-word native n-grams, but promotion requires an existing swipe candidate, >=170 next-word score and ~93% native swipe score threshold. Distinguish missing-target top8 (decoder/lexicon) from low-ranking existing candidate (context) and from absent/weak after-Space next-word output (predictor).
+
+Evidence: Google EMNLP 2024 Neural Search Space; FUTO Keyboard AOSP+36M English Transformer (experimental, Source First license, may lag); FUTO Swipe GPLv3 inference + FUTO Model Weights License 1.0 small 1.5M ContextLM and full gesture encoder/decoder (vendor English QWERTY emulator top1 7.38% vs HeliBoard+Google 13.12%, **not brrBoard Oppo proof**); Samsung 7.4MB on-device NWP research. Preferred **one** optional tiny neural ContextLM alongside existing AOSP native candidates + bounded confirmed-word learning, background at word boundaries, editor-generation/privacy checks, preserved native fallback; do not run private text weight training. Larger voice model is separately held.
+
+Implementation-ready source/UX/test and updated neural research specification: [BR Brain plan](docs/BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md). Ultra migration remains [separately on hold](docs/ULTRA_OFFLINE_VOICE_INTEGRATION_AND_MIGRATION_PLAN_2026_11_20.md). **Done this batch:** source audit and multiple primary-source internet searches, documented plan and all-agent instructions. **Not done:** any app/UI/model/voice runtime modification, model download/bundling, APK build, signed release or physical phone test. **Next:** wait for new owner BR Brain GO, refresh main, benchmark candidate recall/ranking, verify exact model licenses/provenance/latency, implement only passing improvements. Keep AGENTS/context/handoff/topic plan current after every future batch.
+
 ## 2026-11-20 — Emoji navigation session scope and top-gap diagnosis (owner implementation GO)
 
 Source reviewed at live `main` `7de71e3` after concurrent Settings and voice

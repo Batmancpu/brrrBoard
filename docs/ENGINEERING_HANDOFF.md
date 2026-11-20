@@ -1,5 +1,11 @@
 # brrBoard engineering handoff
 
+## 2026-11-20 — BR Brain sentence context / predictor research; OWNER GO PENDING
+
+Current intelligence mission **PLAN ONLY**: preserve Parakeet 110M + sherpa v1.13.3, hold Ultra, later rename dashboard exactly **BR Brain**. Inspected real Suggest.kt: gesture candidates come from native dictionary; preferNextWordSuggestion already checks native next-word result but only promotes a plausible present candidate near native top score (>=~93%), next-word score >=170 and personalization ON. **Target absent** from swipe top8 means gesture/lexicon candidate recall; **target present but ranked low** means language context; no need to replace gesture decoder before measuring. Research favors one optional tiny offline sentence neural ContextLM to share across typing and swipe with AOSP dictionaries, existing personal learning and privacy-gated RAM-only editor context. FUTO Swipe (GPLv3 inference, FUTO Model Weights License), FUTO 36M experimental transformer (Source First), Google neural search-space paper, Samsung mobile LM are evidence/research, **not transplanted assets or independent Indian-English measurements**. Benchmark native-vs-neural nextword, rank and FUTO candidate recall on Oppo, license/attribution/memory/thermal gate first.
+
+Full design/file map/gates/sources: [BR Brain plan](BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md). **No app code, UI, model, CI, APK, user install or signed update in this documentation batch.** Ultra one-time full APK/migration plan remains a separate **HOLD**. After explicit BR Brain GO only: refresh main and guard concurrent commits, run real native trace diagnosis and small-LM shadow evaluation, implement passing layer/dashboard, verify Android debug/full unit and original signer on exact source SHA, then ask Oppo acceptance. All agents update AGENTS/context/this handoff/topic plan after every material batch and never conflate docs with signed release.
+
 ## 2026-11-20 — Emoji per-editor navigation, geometry-only diagnostic source batch
 
 Owner GO after read-only review. Fresh-main baseline `7de71e3` includes the

@@ -1,5 +1,15 @@
 # brrBoard agent instructions
 
+## 2026-11-20 — BR Brain sentence-aware intelligence and dashboard: research-only, WAIT GO
+
+**Current owner decision:** Pause the Ultra/0.6B Parakeet voice-model migration, retain installed **Parakeet 110M TDT INT8 and sherpa-onnx v1.13.3**, and **PLAN ONLY** upgraded typing, swipe, blue offline dictation and Emoji intelligence. After a **new explicit BR Brain GO**, change user-facing dashboard title from brrBrain Learning dashboard to exactly **BR Brain**, implement and test on Oppo Reno10 5G, and release only with exact-SHA debug + original-signer evidence. **This research batch changes no app code/UI, native gesture library, voice weights/runtime, CI, APK or installed app.** Separate Ultra model migration remains **ON HOLD** and needs its own GO.
+
+**Code and primary-source finding:** Suggest.kt:getSuggestedWordsForBatchInput already consults native next-word predictions in preferNextWordSuggestion to rerank swipe, but only when candidate exists, personalization ON, next-word score >=170 and swipe score >=~93% of top candidate. Existing native n-gram has limited sentence context. Diagnose **candidate absent vs present but misranked**, then benchmark **one small offline neural sentence ContextLM** as optional asynchronous, privacy-gated next-word predictor/reranker with native fallback. Do **not** blindly replace working swipe. FUTO Swipe's GPLv3 inference library + separately licensed 1.5M ContextLM and its developer-reported English QWERTY results are only research candidates, **not** Oppo/Indian English proof or permission to bundle. FUTO's larger English transformer is architectural inspiration, **not approved code/weights to copy**. No local user-sentence LoRA training.
+
+**Full live-code architecture, web sources, file map, diagnostic categories, security/quality gates and BR Brain screen specification:** [BR Brain plan](docs/BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md). **Plan only**, not an app update.
+
+**MANDATORY ALL-AGENT CONTINUITY:** Before any BR Brain batch read current main, AGENTS.md, PROJECT_CONTEXT.md, docs/ENGINEERING_HANDOFF.md and this topic plan. After every material research/design/source/test/CI/release batch update **all three handoffs and the active topic plan**, link changes from docs/README.md, preserve history, use fresh-main expected-HEAD fast-forward, record exact approval and plan-vs-code-vs-test-vs-signed-vs-Oppo outcome, never leak private input/keys or invent accuracy. Prior Settings/behavior GOs do not authorize this intelligence implementation. BR Brain GO does not authorize Ultra GO. This is the current BR Brain scope decision over older heuristic-only ideas, without erasing their history.
+
 ## 2026-11-20 — Emoji session reset and real-window top-gap probe (owner GO; source candidate)
 
 Owner reports latest installed source changes have **not** eliminated Oppo's

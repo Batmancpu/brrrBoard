@@ -16,6 +16,7 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**BR Brain**: Parakeet 110M, sentence-aware next word intelligence, swipe diagnosis and dashboard — **PLAN ONLY**](BR_BRAIN_INTELLIGENCE_AND_DASHBOARD_IMPLEMENTATION_PLAN_2026_11_20.md)
 - [Emoji per-session navigation reset and unresolved Oppo top-gap diagnostic ledger](EMOJI_SESSION_AND_TOP_GAP_DIAGNOSTICS_2026_11_20.md)
 - [Future Ultra offline voice, personal dictionary, and one-time full APK migration — **PLAN ONLY**](ULTRA_OFFLINE_VOICE_INTEGRATION_AND_MIGRATION_PLAN_2026_11_20.md)
 - [Current roadmap](BRR_BOARD_ROADMAP.md)
