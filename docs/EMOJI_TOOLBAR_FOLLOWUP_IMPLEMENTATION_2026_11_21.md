@@ -2,7 +2,7 @@
 
 Date: 21 November 2026  
 Base: v1.0.227 source `ff2d082e`  
-Status: local source candidate; Android build and original-signed release not yet verified.
+Status: source is pushed to `main`; initial Android build compiled, but the full suite exposed one stale one-row layout assertion. Corrected source must pass exact-SHA CI and original signer before release.
 
 ## Implemented in source
 
@@ -15,7 +15,7 @@ Status: local source candidate; Android build and original-signed release not ye
 ## Validation and open gates
 
 - `git diff --check`: passed at initial review; rerun after all documentation edits.
-- Android compile/full test suite: not verified. Gradle 8.14.4 distribution cannot be downloaded in this environment (`services.gradle.org` connection refused); no local Android SDK/cache is provisioned.
+- Android compile: passed in debug workflow `44936337456` (APK built and verified). The full suite ran 522 tests and failed only `ToolbarPanelCompositionTest`, which asserted the old one-row count and 76x68dp tile size. The test is updated for the new two-row, 72x60dp design; a new exact-SHA run is required. Local Gradle 8.14.4 remains unavailable because `services.gradle.org` refuses connections.
 - APK and signed release: not produced by this source candidate. It must pass exact-SHA Android CI and the original signer workflow before being called released.
 - Reno10 visual/touch/accessibility and Emoji top-gap root cause: not verified. The repository includes a content-free `BrrImeBounds` probe, but no Reno10 trace or adb device is available here. Do not add a guessed margin or claim that the gap is fixed.
 - ContextLM: not activated or packaged. The existing candidate lost held-out Recall@3 versus the native proxy, and held-out fusion selected native-only (neural weight 0.0); the runtime rejects unapproved manifests. A generic on-device LLM is not a substitute for measured keyboard prediction quality, field privacy, memory and latency.

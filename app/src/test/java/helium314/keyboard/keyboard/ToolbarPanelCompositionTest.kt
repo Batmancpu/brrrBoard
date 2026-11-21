@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ToolbarPanelCompositionTest {
-    @Test fun toolbarUsesCompactHorizontalRailBehindProgressiveGlassOverlays() {
+    @Test fun toolbarUsesCompactTwoRowHorizontalRailBehindProgressiveGlassOverlays() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val inflated = LayoutInflater.from(context).inflate(
             R.layout.access_point_menu, null, false
@@ -36,7 +36,7 @@ class ToolbarPanelCompositionTest {
         assertNotNull(header)
         assertNotNull(footer)
         assertEquals(panel, scroll.parent)
-        assertEquals(1, rail.rowCount)
+        assertEquals(2, rail.rowCount)
         assertEquals(GridLayout.HORIZONTAL, rail.orientation)
         assertEquals(scroll, rail.parent)
         assertTrue(panel.indexOfChild(scroll) < panel.indexOfChild(header))
@@ -50,8 +50,8 @@ class ToolbarPanelCompositionTest {
         val tile = LayoutInflater.from(context).inflate(R.layout.menu_tile_item, holder, false)
         assertTrue(tile.isClickable)
         assertTrue(tile.isFocusable)
-        assertEquals((76 * context.resources.displayMetrics.density).toInt(), tile.layoutParams.width)
-        assertEquals((68 * context.resources.displayMetrics.density).toInt(), tile.layoutParams.height)
+        assertEquals((72 * context.resources.displayMetrics.density).toInt(), tile.layoutParams.width)
+        assertEquals((60 * context.resources.displayMetrics.density).toInt(), tile.layoutParams.height)
         assertEquals(View.VISIBLE, tile.visibility)
     }
 }
