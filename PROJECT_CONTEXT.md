@@ -1,8 +1,8 @@
 # brrBoard project context
 
-## 2026-11-21 — v1.0.224 shipped; expanded Emoji gap trace pending release
+## 2026-11-21 — v1.0.225 diagnostics shipped; Reno10 gap repair awaits trace
 
-Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Source `4a5b6d9e6c750e97dd91152552acf056e7a0df1a` passed exact-SHA debug/full suite `44922263448` and original-signer release `44922263449`; signed v1.0.224 APK is 64,969,203 bytes, SHA-256 `bfcea040ed056fe90240934d33b59baed60f8516fdd60d4a3ca7b7a5a0e53e7c`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.224. Toolbar is a compact horizontal rail, shared Toolbar/Clipboard top fade is progressive, and Emoji-open context ranking is reused once. The next source candidate extends `BrrImeBounds` with screen/measured/local parent geometry and root system/IME/gesture insets. The blank Emoji band remains unlocalized until a Reno10 trace arrives.
+Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Latest source `12d3e52550e53ddffee7f3890644b28f1f48586c` passed exact-SHA debug/full suite `44923613446` and original-signer release `44923613386`; signed v1.0.225 APK is 64,969,203 bytes, SHA-256 `b8297211e6b07c9e915d790c9590dc101f8ace381c10c2435fa0d26691a873b9`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.225. Toolbar is a compact horizontal rail, shared Toolbar/Clipboard top fade is progressive, Emoji-open context ranking is reused once, and the content-free `BrrImeBounds` probe now captures measured/screen geometry, parent/layout data, translations, scroll, and window insets. The blank Emoji band remains unlocalized until the Reno10 trace arrives.
 
 Smart Emoji already has reviewed phrase/CLDR and encrypted opt-in personalization, but no ContextLM; prior held-out ContextLM evaluation lost to native, so no weights are activated. Ultra is a 671 MB model feasibility/quality plan only; existing Parakeet 110M is unchanged. Reno10 top-gap/visual/drag/touch acceptance and actual build install remain owner-device checks.
 
