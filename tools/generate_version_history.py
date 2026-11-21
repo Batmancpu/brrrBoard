@@ -42,7 +42,7 @@ def validate_notes(payload):
             raise ValueError("Every change requires a title and detail")
         title = change["title"].strip()
         detail = change["detail"].strip()
-        if not 3 <= len(title) <= 100 or not 8 <= len(detail) <= 800:
+        if not 3 <= len(title) <= 100 or not 8 <= len(detail) <= 1600:
             raise ValueError("Change title/detail are missing or too long")
         cleaned.append({"title": title, "detail": detail})
     return {"summary": summary.strip(), "changes": cleaned}
