@@ -79,9 +79,14 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
             }
             Text("Suppression for blue-mic dictation and this lab",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Select one engine. The usual keyboard microphone captures ONCE. Parakeet 110M still transcribes offline.",
+            Text("OFF is raw microphone, Android is device capture-time filtering, and brrClean is our APK-bundled native GTCRN. Blue mic captures once; Parakeet 110M transcribes offline.",
                 style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    mode = VoiceNoiseMode.OFF
+                    VoiceNoiseChoice.select(context, mode)
+                    lab.clear()
+                }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.OFF) "✓ OFF" else "OFF") }
                 OutlinedButton(onClick = {
                     mode = VoiceNoiseMode.ANDROID
                     VoiceNoiseChoice.select(context, mode)
@@ -91,16 +96,21 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                     mode = VoiceNoiseMode.GTCRN
                     VoiceNoiseChoice.select(context, mode)
                     lab.clear()
-                }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.GTCRN) "✓ Our GTCRN" else "Our GTCRN") }
+                }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.GTCRN) "✓ brrClean" else "brrClean") }
             }
             Card(colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(if (mode == VoiceNoiseMode.ANDROID)
-                        "Android NoiseSuppressor (capture-time)" else "Bundled GTCRN (after capture)",
+                    Text(when (mode) {
+                        VoiceNoiseMode.OFF -> "Raw microphone · no optional suppression"
+                        VoiceNoiseMode.ANDROID -> "Android NoiseSuppressor (capture-time)"
+                        VoiceNoiseMode.GTCRN -> "brrClean native GTCRN (after capture)"
+                    },
                         fontWeight = FontWeight.SemiBold)
-                    Text(if (mode == VoiceNoiseMode.ANDROID)
-                        "Android processes your microphone stream only when its effect is available. Earbuds may also apply firmware-level noise reduction."
-                    else "Android's optional effect is OFF. Our bundled GTCRN gets the recorded PCM in a separate crash-contained process. If it fails, Parakeet receives untouched speech. GTCRN is limited to 12 seconds per take; longer dictation bypasses it to protect memory and latency.",
+                    Text(when (mode) {
+                        VoiceNoiseMode.OFF -> "No app-controlled effect or GTCRN. Phone hardware or earbuds firmware may still process audio. The lab can optionally process the same raw take through brrClean for A/B listening."
+                        VoiceNoiseMode.ANDROID -> "Android processes your microphone stream only when its effect is available. Earbuds may also apply firmware-level noise reduction."
+                        VoiceNoiseMode.GTCRN -> "Android's optional effect is OFF. Native C++ GTCRN processes a copy in a separate crash-contained process. If it fails, Parakeet receives untouched speech. Maximum 12 seconds; longer dictation safely bypasses it."
+                    },
                         style = MaterialTheme.typography.bodySmall)
                     Text(if (VoiceModelInstaller.isInstalled(context)) "Offline ASR model: installed"
                         else "Offline ASR model: install needed for scoring",
@@ -109,7 +119,7 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
             }
             Text("One recording · honest listening test", style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold)
-            Text("Choose a microphone and record ONCE. In GTCRN mode, Original and GTCRN use identical captured audio. Android suppression runs DURING capture; it cannot be applied afterward to the same buffer.",
+            Text("Choose a microphone and record ONCE. Original and brrClean use identical captured audio when Android's effect is OFF. Android suppression runs DURING capture; it cannot be applied afterward to the same buffer.",
                 style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { input = VoiceNoiseLab.Input.PHONE; lab.clear() },
@@ -118,7 +128,7 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                     enabled = !busy) { Text(if (input == VoiceNoiseLab.Input.EARBUDS) "✓ Earbuds mic" else "Earbuds mic") }
             }
             if (input == VoiceNoiseLab.Input.EARBUDS) Text(
-                "Connect your Nirvana Ion. A rejected, silenced or mismatched Android input will be reported, not falsely labeled as an earbuds recording.",
+                "Connect your Nirvana Ion. Android must activate its communication mic route. Rejected, silenced, unverified or mismatched audio will be discarded, never called an earbuds recording.",
                 style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { hinglish = false }, enabled = !busy) {
@@ -160,14 +170,14 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         OutlinedButton(onClick = { lab.play(take.key) }, enabled = !busy) { Text("▶ Original") }
                         if (!take.key.suppression) OutlinedButton(
                             onClick = { lab.play(take.key, enhanced = true) },
-                            enabled = !busy && take.enhanceMs != null) { Text("▶ GTCRN") }
+                            enabled = !busy && take.enhanceMs != null) { Text("▶ brrClean") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { lab.transcribe(take.key, reference) },
                             enabled = !busy) { Text("Score original") }
                         if (!take.key.suppression) OutlinedButton(
                             onClick = { lab.transcribe(take.key, reference, enhanced = true) },
-                            enabled = !busy && take.enhanceMs != null) { Text("Score GTCRN") }
+                            enabled = !busy && take.enhanceMs != null) { Text("Score brrClean") }
                     }
                     if (take.transcript != null) Text("Original → Parakeet: ${take.transcript} · WER ${take.wordErrorPercent ?: "—"}% · decode ${take.decodeMs ?: "—"} ms")
                     if (take.enhancedTranscript != null) Text("GTCRN → Parakeet: ${take.enhancedTranscript} · WER ${take.enhancedWordErrorPercent ?: "—"}%")

@@ -46,3 +46,4 @@ __pycache__/
 pr2_body.txt
 VOICE_INPUT_RESEARCH.md
 /app/src/main/assets/brrPersonal.tsv
+app/src/main/assets/voice/brrclean_gtcrn.weights

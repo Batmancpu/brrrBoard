@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "QuickType suggestion availability and visible letter motion after signed v1.0.206. New source requires exact-SHA Android CI and original-signed Obtainium verification before release.",
+  "summary": "brrClean native GTCRN voice rebuild and QuickType availability improvements after signed v1.0.206. Requires exact-SHA debug/full Android CI and original-signed Obtainium verification before release.",
   "changes": [
     {
       "title": "First-keystroke QuickType availability and stable word animation",
       "detail": "Prepare next-word predictions when eligible text fields open; show an immediate, non-inserting literal-prefix fallback after the first key; deliver completed decoder results asynchronously only to the matching editor, request, text and cursor; refresh after dictionary loading; and reuse fixed three-slot suggestion views during ordinary updates. Keep all first-frame text fully opaque with native text-shaping fallbacks. Autocorrection at Space/Return retains a bounded freshness guard. No prediction ranking, BR Brain, voice, package, model, permissions, learning or signing change. Oppo hardware behavior remains to be confirmed by its owner."
+    },
+    {
+      "title": "brrClean native noise reduction and verified microphone routing",
+      "detail": "Replace the failing active ONNX denoiser with pinned MIT native C++ GTCRN, bundled weights and a separate short-lived crash-contained process; retain offline Parakeet 110M and exact raw-audio fallback. Add true OFF/Android/brrClean selection, actual native success/fallback/latency in BR Brain, same-take original/processed lab listening, and Android 12+ Bluetooth communication-device activation with confirmed-route/silence rejection. Add source-hash, C++ model smoke and APK native/library/license gates. No speech or audio logs, runtime network, bigger ASR model or background denoising while typing. Bluetooth on Oppo/Nirvana Ion still requires owner hardware acceptance."
     }
   ]
 }

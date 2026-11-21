@@ -11,26 +11,29 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.SystemClock
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** One bounded, cancelable Binder request. Callback runs on the main looper. */
-internal class GtcrnVoiceBridge(
+/** One bounded request; native failure can never crash LatinIME or lose its raw PCM. */
+internal class BrrCleanVoiceBridge(
     private val context: Context,
     private val onDone: (ByteArray?) -> Unit,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val finished = AtomicBoolean(false)
+    private val started = SystemClock.elapsedRealtime()
     private var bound = false
     private var reply: Messenger? = null
+    private var pending: ByteArray? = null
     private val timeout = Runnable { complete(null) }
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             if (finished.get()) return
             try {
                 if (binder == null) { complete(null); return }
-                val message = Message.obtain(null, GtcrnVoiceWire.REQUEST)
+                val message = Message.obtain(null, BrrCleanWire.REQUEST)
                 message.replyTo = reply
-                message.data = Bundle().apply { putByteArray(GtcrnVoiceWire.PCM, pending) }
+                message.data = Bundle().apply { putByteArray(BrrCleanWire.PCM, pending) }
                 Messenger(binder).send(message)
             } catch (_: Exception) { complete(null) }
             finally { pending?.fill(0); pending = null }
@@ -40,28 +43,23 @@ internal class GtcrnVoiceBridge(
         override fun onBindingDied(name: ComponentName?) { complete(null) }
         override fun onNullBinding(name: ComponentName?) { complete(null) }
     }
-    private var pending: ByteArray? = null
 
     fun run(pcm: ByteArray): Boolean {
         if (finished.get() || !VoiceNoiseChoice.eligible(pcm.size)) return false
         pending = pcm.copyOf()
         reply = Messenger(Handler(Looper.getMainLooper()) { message ->
-            if (message.what == GtcrnVoiceWire.RESULT) {
-                val enhanced = message.data.getByteArray(GtcrnVoiceWire.PCM)
-                complete(enhanced)
+            if (message.what == BrrCleanWire.RESULT) {
+                complete(message.data.getByteArray(BrrCleanWire.PCM))
             }
             true
         })
-        handler.postDelayed(timeout, GtcrnVoiceWire.PARENT_TIMEOUT_MS)
+        handler.postDelayed(timeout, BrrCleanWire.PARENT_TIMEOUT_MS)
         return try {
-            bound = context.bindService(Intent(context, GtcrnVoiceService::class.java),
+            bound = context.bindService(Intent(context, BrrCleanVoiceService::class.java),
                 connection, Context.BIND_AUTO_CREATE)
             if (!bound) complete(null)
             bound
-        } catch (_: Exception) {
-            complete(null)
-            false
-        }
+        } catch (_: Exception) { complete(null); false }
     }
 
     fun cancel() { complete(null, notify = false) }
@@ -77,6 +75,10 @@ internal class GtcrnVoiceBridge(
         if (bound) runCatching { context.unbindService(connection) }
         bound = false
         reply = null
-        if (notify) onDone(bytes) else bytes?.fill(0)
+        if (notify) {
+            if (bytes == null) VoiceDenoiseMetrics.fallback()
+            else VoiceDenoiseMetrics.enhanced(SystemClock.elapsedRealtime() - started)
+            onDone(bytes)
+        } else bytes?.fill(0)
     }
 }

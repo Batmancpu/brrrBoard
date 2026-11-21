@@ -5,17 +5,23 @@ import android.content.Context
 import helium314.keyboard.latin.utils.prefs
 
 /** Exactly one optional app-controlled suppression path per microphone session. */
-internal enum class VoiceNoiseMode { ANDROID, GTCRN }
+internal enum class VoiceNoiseMode { OFF, ANDROID, GTCRN }
 
 internal object VoiceNoiseChoice {
     private const val PREF_MODE = "brr_voice_noise_mode_v1"
 
-    fun selected(context: Context): VoiceNoiseMode =
-        if (context.prefs().getString(PREF_MODE, null) == VoiceNoiseMode.GTCRN.name)
-            VoiceNoiseMode.GTCRN else VoiceNoiseMode.ANDROID
+    fun selected(context: Context): VoiceNoiseMode = when (context.prefs().getString(PREF_MODE, null)) {
+        VoiceNoiseMode.GTCRN.name -> VoiceNoiseMode.GTCRN
+        VoiceNoiseMode.OFF.name -> VoiceNoiseMode.OFF
+        VoiceNoiseMode.ANDROID.name -> VoiceNoiseMode.ANDROID
+        // Preserve the prior Android-effect OFF preference when migrating.
+        else -> if (context.prefs().getBoolean("brr_voice_platform_noise_suppression", true))
+            VoiceNoiseMode.ANDROID else VoiceNoiseMode.OFF
+    }
 
     fun select(context: Context, mode: VoiceNoiseMode) {
-        context.prefs().edit().putString(PREF_MODE, mode.name).apply()
+        context.prefs().edit().putString(PREF_MODE, mode.name)
+            .putBoolean("brr_voice_platform_noise_suppression", mode == VoiceNoiseMode.ANDROID).apply()
     }
 
     // Binder's 1 MiB transaction limit requires a conservative smaller bound.

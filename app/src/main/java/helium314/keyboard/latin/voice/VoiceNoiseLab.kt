@@ -71,7 +71,7 @@ internal class VoiceNoiseLab(context: Context) {
     private val enhancedClips = LinkedHashMap<Key, ByteArray>()
     private val takes = LinkedHashMap<Key, Take>()
     private var decodeRequest: VoiceDecodeRequest? = null
-    private var enhanceBridge: GtcrnVoiceBridge? = null
+    private var enhanceBridge: BrrCleanVoiceBridge? = null
     private var enhanceInput: ByteArray? = null
 
     fun snapshot(): Snapshot = synchronized(gate) {
@@ -117,11 +117,39 @@ internal class VoiceNoiseLab(context: Context) {
     private fun capture(key: Key) {
         var recorder: AudioRecord? = null
         var effect: NoiseSuppressor? = null
+        var audioManager: AudioManager? = null
+        var previousMode: Int? = null
+        var communicationRouteOwned = false
         val collected = ByteArray(MAX_AUDIO_BYTES)
         var written = 0
         try {
             if (!wanted.get()) return
             val manager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager = manager
+            // A preferred AudioRecord device alone doesn't open the Bluetooth HFP/LE
+            // microphone. Android 12+ must accept the matching communication route.
+            if (key.input == Input.EARBUDS) {
+                check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    "Earbuds recording requires Android 12+ communication routing"
+                }
+                check(!VoiceCaptureNoiseReduction.callIsActive(appContext)) {
+                    "A call is already using the communication microphone"
+                }
+                val communication = manager.availableCommunicationDevices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        it.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                }
+                check(communication != null) { "Bluetooth mic is not a communication device" }
+                previousMode = manager.mode
+                manager.mode = AudioManager.MODE_IN_COMMUNICATION
+                check(manager.setCommunicationDevice(communication)) {
+                    "Android refused the Bluetooth communication route"
+                }
+                communicationRouteOwned = true
+                check(manager.communicationDevice?.id == communication.id) {
+                    "Android did not activate the Bluetooth communication route"
+                }
+            }
             val device = chooseInput(manager, key.input)
             if (key.input == Input.EARBUDS) check(device != null) {
                 "Android exposes no Bluetooth microphone"
@@ -131,7 +159,9 @@ internal class VoiceNoiseLab(context: Context) {
             check(minBytes > 0) { "Unsupported microphone format" }
             val bufferSize = maxOf(minBytes * 2, 4096)
             val mic = AudioRecord.Builder()
-                .setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                .setAudioSource(if (key.input == Input.EARBUDS)
+                    MediaRecorder.AudioSource.VOICE_COMMUNICATION else
+                    MediaRecorder.AudioSource.VOICE_RECOGNITION)
                 .setAudioFormat(AudioFormat.Builder()
                     .setSampleRate(SAMPLE_RATE)
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
@@ -149,7 +179,10 @@ internal class VoiceNoiseLab(context: Context) {
             effect = VoiceCaptureNoiseReduction.attachForLab(mic, key.suppression)
             val ns = if (!key.suppression) "Android extra suppression OFF · GTCRN after recording"
                 else if (effect != null) "Android effect ACTIVE" else "Android effect UNAVAILABLE"
-            if (!wanted.get() || VoiceCaptureNoiseReduction.callIsActive(appContext)) return
+            // We changed MODE_IN_COMMUNICATION ourselves for Bluetooth, so the
+            // normal call guard here would otherwise block this legitimate lab test.
+            if (!wanted.get() || (key.input != Input.EARBUDS &&
+                    VoiceCaptureNoiseReduction.callIsActive(appContext))) return
             mic.startRecording()
             check(mic.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "Could not record" }
             if (Build.VERSION.SDK_INT >= 29) check(!isCaptureSilenced(manager, mic.audioSessionId)) {
@@ -208,7 +241,7 @@ internal class VoiceNoiseLab(context: Context) {
                 }
                 if (key.input != Input.AUTO && activeRouteDoesNotMatch(manager, mic.audioSessionId, key.input)) {
                     saved.fill(0)
-                    synchronized(gate) { status = "Android used a different mic. This recording was discarded, not mislabeled." }
+                    synchronized(gate) { status = "The selected microphone was not confirmed by Android. This recording was discarded, not mislabeled." }
                     return
                 }
                 val take = Take(key, route, ns, written * 1000 / (SAMPLE_RATE * 2),
@@ -228,13 +261,17 @@ internal class VoiceNoiseLab(context: Context) {
                 synchronized(gate) { status = "No usable sample recorded. Try again." }
             }
         } catch (_: Exception) {
-            synchronized(gate) { if (!closed) status = "Microphone unavailable or route rejected. Try Phone mic; check Android microphone permissions." }
+            synchronized(gate) { if (!closed) status = "Mic/communication route unavailable or rejected. Try Phone mic, reconnect earbuds, and check Android permissions." }
         } finally {
             wanted.set(false)
             level = 0
             runCatching { if (recorder?.recordingState == AudioRecord.RECORDSTATE_RECORDING) recorder.stop() }
             runCatching { effect?.release() }
             runCatching { recorder?.release() }
+            // Never leave the system in headset communication mode after the test.
+            if (communicationRouteOwned && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                runCatching { audioManager?.clearCommunicationDevice() }
+            previousMode?.let { mode -> runCatching { audioManager?.mode = mode } }
             microphone = null
             collected.fill(0)
             busy.set(false)
@@ -339,7 +376,7 @@ internal class VoiceNoiseLab(context: Context) {
         }
         val started = SystemClock.elapsedRealtime()
         enhanceInput = original
-        val bridge = GtcrnVoiceBridge(appContext) { enhanced ->
+        val bridge = BrrCleanVoiceBridge(appContext) { enhanced ->
             synchronized(gate) {
                 enhanceBusy.set(false)
                 enhanceBridge = null
@@ -350,13 +387,13 @@ internal class VoiceNoiseLab(context: Context) {
                         if (valid) {
                             enhancedClips.remove(key)?.fill(0)
                             enhancedClips[key] = enhanced!!
-                            takes[key] = previous.copy(enhanceStatus = "GTCRN processed",
+                            takes[key] = previous.copy(enhanceStatus = "brrClean native GTCRN processed",
                                 enhanceMs = SystemClock.elapsedRealtime() - started)
-                            status = "GTCRN finished. Replay original and enhanced from ONE recording."
+                            status = "brrClean finished. Replay original and enhanced from ONE recording."
                         } else {
                             enhanced?.fill(0)
-                            takes[key] = previous.copy(enhanceStatus = "GTCRN failed or timed out · raw safe")
-                            status = "GTCRN could not process this take. Original audio is intact; keyboard is safe."
+                            takes[key] = previous.copy(enhanceStatus = "brrClean failed or timed out · raw safe")
+                            status = "brrClean could not process this take. Original audio is intact; keyboard is safe."
                         }
                     } else enhanced?.fill(0)
                 } else enhanced?.fill(0)
@@ -445,7 +482,7 @@ internal class VoiceNoiseLab(context: Context) {
         runCatching {
             val type = manager.activeRecordingConfigurations.firstOrNull {
                 it.clientAudioSessionId == sessionId
-            }?.audioDevice?.type ?: return@runCatching false
+            }?.audioDevice?.type ?: return@runCatching input == Input.EARBUDS
             when (input) {
                 Input.PHONE -> type != AudioDeviceInfo.TYPE_BUILTIN_MIC
                 Input.EARBUDS -> type != AudioDeviceInfo.TYPE_BLUETOOTH_SCO &&

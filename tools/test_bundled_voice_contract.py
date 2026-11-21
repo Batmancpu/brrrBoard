@@ -91,6 +91,15 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         for workflow in (debug, release):
             self.assertIn("bash tools/fetch-board-gtcrn.sh", workflow)
             self.assertIn("bash tools/verify-gtcrn-packaging.sh", workflow)
+            self.assertIn("bash tools/fetch-board-brrclean.sh", workflow)
+            self.assertIn("bash tools/verify-brrclean-packaging.sh", workflow)
+        native_fetch = self.read("tools/fetch-board-brrclean.sh")
+        native_verify = self.read("tools/verify-brrclean-packaging.sh")
+        self.assertIn("2014cd0d06b2effa24b1ab1c95013f785f38dc80", native_fetch)
+        self.assertIn("4db48ff819e5ac18f5ccad1dfdce0968dde1a209c0cbbf9f24ba9dc4d9f48ded", native_verify)
+        self.assertIn("libbrrclean", native_verify)
+        self.assertIn("Copyright (c) 2026 chabandou",
+            self.read("app/src/main/assets/licenses/brrclean-poise-mit.txt"))
         fetch = self.read("tools/fetch-board-gtcrn.sh")
         verify = self.read("tools/verify-gtcrn-packaging.sh")
         parakeet_policy = self.read("tools/verify-voice-model-packaging.sh")
@@ -116,12 +125,14 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertNotIn("PrivateGtcrnDenoiser(", recognizer)
         self.assertNotIn("enhanceIfNoisy(", recognizer)
         self.assertIn("shouldDenoise(samples: FloatArray)", gate)
-        self.assertIn("Bundled GTCRN (isolated process)", dashboard)
+        self.assertIn("brrClean native GTCRN (isolated process)", dashboard)
         self.assertNotIn("microphone.routedDevice", mic)
-        # Platform AudioRecord noise suppression is now observable, but native
-        # GTCRN enhancement counters must never imply active filtering.
+        # Both platform effect state and actual native success/fallback counters
+        # are observable; only the service callback may count native successes.
         self.assertIn("voiceNoise.platformNoiseSuppression", dashboard)
-        self.assertNotIn("voiceNoise.enhancedWindows", dashboard)
+        self.assertIn("voiceNoise.enhancedWindows", dashboard)
+        self.assertIn("VoiceDenoiseMetrics.enhanced", self.read(
+            "app/src/main/java/helium314/keyboard/latin/voice/BrrCleanVoiceBridge.kt"))
         self.assertNotIn("setPreferredDevice(", mic)
         for banned in ("http://", "https://", "HttpURLConnection", "Socket("):
             self.assertNotIn(banned, enhancer)
@@ -207,7 +218,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("NoiseSuppressor.create(recorder.audioSessionId)", effect)
         self.assertIn("MODE_IN_COMMUNICATION", effect)
         self.assertIn("Current blue-mic engine:", dashboard)
-        self.assertIn("Our GTCRN", self.read("app/src/main/java/helium314/keyboard/settings/screens/VoiceNoiseLabScreen.kt"))
+        self.assertIn("brrClean", self.read("app/src/main/java/helium314/keyboard/settings/screens/VoiceNoiseLabScreen.kt"))
         self.assertNotIn("PrivateGtcrnDenoiser", source)
         self.assertNotIn("PrivateGtcrnDenoiser", effect)
 

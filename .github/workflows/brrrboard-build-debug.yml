@@ -98,6 +98,14 @@ jobs:
         run: bash tools/fetch-board-sherpa-onnx.sh
       - name: Stage pinned GTCRN enhancement model inside APK
         run: bash tools/fetch-board-gtcrn.sh
+      - name: Stage pinned brrClean native GTCRN weights inside APK
+        run: bash tools/fetch-board-brrclean.sh
+      - name: Verify native GTCRN against pinned model on host
+        run: |
+          g++ -std=c++17 -O2 -I app/src/main/jni/brrclean \
+            tools/test_brrclean_native.cpp app/src/main/jni/brrclean/gtcrn.cpp \
+            app/src/main/jni/brrclean/stft.cpp -o "$RUNNER_TEMP/brrclean-host-smoke"
+          "$RUNNER_TEMP/brrclean-host-smoke" app/src/main/assets/voice/brrclean_gtcrn.weights
       - name: Build debug APK
         shell: bash
         run: |
@@ -126,6 +134,7 @@ jobs:
           unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
           bash tools/verify-gtcrn-packaging.sh "$APK"
+          bash tools/verify-brrclean-packaging.sh "$APK"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"

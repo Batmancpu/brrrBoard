@@ -1,5 +1,27 @@
 # brrBoard agent instructions
 
+## 2026-11-21 — OWNER GO: brrClean native GTCRN rebuild, exact-SHA release
+
+The owner has explicitly authorized implementing a fresh native brrClean audio
+denoiser, replacing the old nonworking active sherpa/ONNX service. Treat this
+as the current voice workstream even when historical notes below say “paused.”
+Engine modes are OFF (raw), Android NoiseSuppressor (default), and native C++
+GTCRN in its **own non-exported process**. The native sources/weights are MIT
+Poise Android pinned at `2014cd0d`; weight SHA-256 begins `4db48ff8`, verified
+at APK packaging. Child crashes/timeouts must fall back to untouched Parakeet
+110M input; NEVER load brrClean JNI in the keyboard/UI process. In Voice Lab,
+Bluetooth requires accepted Android communication routing AND a confirmed
+recording input; silently unverified earbuds audio is not proof. No combined
+simultaneous phone+earbud recording is claimed. Never log/write PCM, expose
+network permissions or downgrade call guard. Existing GTCRN probe is legacy
+diagnostic; it is NOT the active engine. Read
+`docs/BRRCLEAN_NATIVE_GTCRN_2026_11_21.md` before editing this pipeline.
+Every subsequent AI agent MUST keep topic ledger, AGENTS.md, PROJECT_CONTEXT.md,
+ENGINEERING_HANDOFF.md, PROJECT_CONVERSATION.md and post-signed release notes
+synced to changes, verify native unit/Android/full CI, original-signer release,
+APK model/library/license provenance and privacy. Never claim Oppo/Nirvana Ion
+hardware acceptance from emulator/host/CI evidence. Main-only, non-force push.
+
 ## 2026-11-21 — OWNER GO for QuickType GitHub build and signed release
 
 Owner explicitly superseded the earlier local-only/no-upload boundary with

@@ -123,10 +123,16 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Current blue-mic engine: " +
-                        (if (VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID)
-                            "Android NoiseSuppressor" else "Bundled GTCRN (isolated process)"),
+                        when (VoiceNoiseChoice.selected(context)) {
+                            VoiceNoiseMode.OFF -> "OFF (raw microphone)"
+                            VoiceNoiseMode.ANDROID -> "Android NoiseSuppressor"
+                            VoiceNoiseMode.GTCRN -> "brrClean native GTCRN (isolated process)"
+                        },
                         fontWeight = FontWeight.SemiBold)
-                    Text("Set the two mutually exclusive options in Voice & Noise Reduction. GTCRN runs after recording for up to 12 seconds, never while typing; native failure falls back to original speech.",
+                    Text("Choose OFF, Android, or brrClean in Voice & Noise Reduction. Native GTCRN runs after recording for up to 12 seconds, never while typing; failure falls back to original speech.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Native GTCRN successes: ${voiceNoise.enhancedWindows} · raw fallbacks: ${voiceNoise.fallbacks} · last latency: " +
+                        (if (voiceNoise.lastEnhancementMs < 0) "not measured" else "${voiceNoise.lastEnhancementMs} ms"),
                         style = MaterialTheme.typography.bodySmall)
                     Text(if (voiceNoise.blueMicCapturing) "Blue microphone LIVE: recording now"
                          else "Blue microphone idle · no background recording",

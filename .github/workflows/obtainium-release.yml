@@ -59,6 +59,8 @@ jobs:
         run: bash tools/fetch-board-sherpa-onnx.sh
       - name: Stage pinned GTCRN enhancement model inside every APK
         run: bash tools/fetch-board-gtcrn.sh
+      - name: Stage pinned brrClean native GTCRN weights inside every APK
+        run: bash tools/fetch-board-brrclean.sh
       - name: Bundle pinned English ASR model only when explicitly requested
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model }}
         run: bash tools/prepare-offline-voice-pack.sh
@@ -167,6 +169,7 @@ jobs:
           # bootstrap MUST include all four SHA-256-pinned weights.
           bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_VOICE"
           bash tools/verify-gtcrn-packaging.sh "$apk"
+          bash tools/verify-brrclean-packaging.sh "$apk"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done

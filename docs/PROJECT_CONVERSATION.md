@@ -25,6 +25,18 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-21 — Owner authorizes native audio rebuild
+
+After experiencing no working suppression selection and silence from Nirvana
+Ion earbuds, the owner said to start the audio noise suppression code from
+zero; after the read-only design period they explicitly said “Go ahead
+implement.” The new candidate is brrClean: one audio take, genuine OFF/Android/
+native MIT Poise GTCRN options, separate native worker and untouched Parakeet
+fallback, Android 12+ Bluetooth communication-device activation and confirmed
+input, in-memory BR Brain counters/latency, exact source SHA/signing gates.
+Older Android vs GTCRN/earbuds claims remain historical. Source attribution,
+privacy and physical acceptance are in `docs/BRRCLEAN_NATIVE_GTCRN_2026_11_21.md`.
+
 ## 2026-11-18 — Continuing all-symbol icon overhaul during the Stage 1 build
 
 To honor the owner's instruction not to wait idle during CI, while Stage 1 `f74b9037` ran independent debug #213 and original-signer #118, work proceeded in a separate unpushed Stage 2 local candidate: reauthor all remaining 16 Material-path resources used by the rounded keyboard defaults, add seven original round-line Settings/Clipboard vectors, redirect old direct Compose and Clipboard Search resources, and cover all 23 with Robolectric inflation smoke test. Physical 1:1 likeness and both release gates remain unverified at this source note. Handoff and acceptance `docs/APPLE_INSPIRED_ICON_STAGE2_2026_11_18.md`; do not push Stage 2 before v118 publication or alter approved glass/footer/typing permissions.

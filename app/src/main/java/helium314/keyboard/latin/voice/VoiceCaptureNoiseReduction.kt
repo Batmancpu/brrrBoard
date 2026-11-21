@@ -19,11 +19,10 @@ internal object VoiceCaptureNoiseReduction {
     private const val PREF_ENABLED = "brr_voice_platform_noise_suppression"
 
     fun enabled(context: Context): Boolean =
-        VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID &&
-            context.prefs().getBoolean(PREF_ENABLED, true)
+        VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID
 
     fun setEnabled(context: Context, enabled: Boolean) {
-        context.prefs().edit().putBoolean(PREF_ENABLED, enabled).apply()
+        VoiceNoiseChoice.select(context, if (enabled) VoiceNoiseMode.ANDROID else VoiceNoiseMode.OFF)
     }
 
     fun callIsActive(context: Context): Boolean = runCatching {

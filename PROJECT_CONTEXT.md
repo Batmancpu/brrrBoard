@@ -1,5 +1,23 @@
 # brrBoard project context
 
+## 2026-11-21 — Current brrClean native voice implementation
+
+Owner authorized a clean rebuild of optional voice noise reduction after
+old ONNX child/service, UI switch and Bluetooth microphone failed in use.
+Active implementation: `BrrCleanVoiceBridge` → non-exported
+`:brr_clean_denoise` `BrrCleanVoiceService` → `BrrCleanNative` JNI →
+vendored Poise native GTCRN C++ (16 kHz, 256-sample hop) and 211,220-byte
+SHA-256-pinned model shipped in every APK. Three modes OFF/Android/brrClean;
+Android default. Raw PCM fallback and Parakeet 110M unchanged, no background
+GTCRN while typing, no Internet. Lab requests real Android 12+ Bluetooth
+communication route and confirms route, instead of only setting a preferred
+AudioRecord device. MIT attribution, manifest normal MODIFY_AUDIO_SETTINGS,
+build-time source hash, native host test and APK gates included. Details,
+source pin, risk, hardware acceptance: [brrClean ledger](docs/BRRCLEAN_NATIVE_GTCRN_2026_11_21.md).
+Ignore earlier “GTCRN paused”/old service implementation notes for CURRENT
+behavior. Full exact-SHA debug+original-signer CI, Oppo/Nirvana Ion physical
+acceptance and crash-free keyboard smoothness are separate mandatory gates.
+
 ## RESUME HERE — 2026-11-21 owner authorized QuickType remote CI/release
 
 The owner said "Android build is pending, so go ahead," superseding the

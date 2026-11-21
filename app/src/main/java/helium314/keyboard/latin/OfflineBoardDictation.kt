@@ -16,7 +16,7 @@ import helium314.keyboard.latin.voice.VoiceDecodeRequest
 import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
-import helium314.keyboard.latin.voice.GtcrnVoiceBridge
+import helium314.keyboard.latin.voice.BrrCleanVoiceBridge
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
 import helium314.keyboard.latin.voice.VoiceNoiseMode
 
@@ -35,7 +35,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var source: KeyboardPcmAudioSource? = null
     private var pcmBuffer: PrivatePcmBuffer? = null
     private var decodeRequest: VoiceDecodeRequest? = null
-    private var denoiseBridge: GtcrnVoiceBridge? = null
+    private var denoiseBridge: BrrCleanVoiceBridge? = null
     private var denoiseOriginal: ByteArray? = null
     private var footer: BoardFooterView? = null
     private var originalConnection: InputConnection? = null
@@ -166,7 +166,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (VoiceNoiseChoice.selected(ime) == VoiceNoiseMode.GTCRN &&
             VoiceNoiseChoice.eligible(bytes.size)) {
             denoiseOriginal = bytes
-            val bridge = GtcrnVoiceBridge(ime) { enhanced ->
+            val bridge = BrrCleanVoiceBridge(ime) { enhanced ->
                 denoiseBridge = null
                 val original = denoiseOriginal
                 denoiseOriginal = null

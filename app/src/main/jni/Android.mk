@@ -104,6 +104,17 @@ include $(BUILD_SHARED_LIBRARY)
 #################### Clean up the tmp vars
 include $(LOCAL_PATH)/CleanupNativeFileList.mk
 
+# brrClean: self-contained native GTCRN. Never linked into libjni_latinime.
+# Loaded only inside the non-exported :brr_clean_denoise process.
+include $(CLEAR_VARS)
+LOCAL_MODULE := libbrrclean
+LOCAL_SRC_FILES := brrclean/brrclean_jni.cpp brrclean/gtcrn.cpp brrclean/stft.cpp
+LOCAL_CPPFLAGS := -std=c++17 -O2 -fno-exceptions
+LOCAL_SDK_VERSION := 21
+LOCAL_NDK_STL_VARIANT := c++_static
+LOCAL_LDFLAGS := -Wl,-z,max-page-size=16384 -Wl,--build-id=none
+include $(BUILD_SHARED_LIBRARY)
+
 #################### Unit test on host environment
 #include $(LOCAL_PATH)/HostUnitTests.mk
 

@@ -388,3 +388,15 @@ Behavioral and undelivered-voice recovery source `5c816954` passed debug `447133
 # 2026-11-21 — new isolated GTCRN source after v1.0.203 (gates pending)
 
 Owner GO to repair the one-take BR Brain Voice Lab and actually use the bundled GTCRN as an **opt-in** second suppression mode, leaving Android NoiseSuppressor default. Source changes: VoiceNoiseMode, GtcrnVoiceBridge/Service Messenger + isolated :brr_voice_gtcrn subprocess with bounded 12-second PCM and watchdog; OfflineBoardDictation passes safe enhanced PCM to existing Parakeet (fallback to original on native crash), VoiceNoiseLab/Screen replay one original/processed take and refuse invalid Bluetooth routes, BrainDashboard selects modes in lab. No simultaneous phone/headset capture, extra engine, model download, 600 MB ASR, Internet permission, signer or user-data change. See docs/GTCRN_ISOLATED_VOICE_RELEASE_2026_11_21.md and refreshed notes.json. Important: earlier owner screenshot showed native EXIT_SELF/255 at LOADING_MODEL, so Android default remains, and neither GTCRN function nor physical crash freedom can be claimed until Oppo acceptance. Local Gradle wrapper cannot fetch distribution; require full remote debug test and original-signed Obtainium exact-source build, then inspect release APK. One-hour automation had no repository side effect.
+# 2026-11-21 — brrClean native voice GO (newest voice implementation)
+
+The owner replaced the previous stalled GTCRN plan with implementation GO.
+New voice engine OFF/Android/brrClean modes, pinned MIT Poise native GTCRN
+JNI in separate `:brr_clean_denoise`, 8s/9s child/parent watchdog and raw
+Parakeet fallback; one-take lab with Bluetooth communication routing +
+confirmed audio input. CI prepares/checks exact bundled 211,220-byte weights,
+native `.so` and MIT license; checks native model on host. Do not re-enable
+old `GtcrnVoiceBridge/Service`; probe remains historical only. See
+`docs/BRRCLEAN_NATIVE_GTCRN_2026_11_21.md` and first AGENTS.md section.
+GitHub debug/full unit, signed release and Oppo/Nirvana Ion mic test are
+distinct evidence gates; do not mark any unobserved outcome as passed.
