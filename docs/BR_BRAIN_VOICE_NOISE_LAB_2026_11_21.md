@@ -36,3 +36,6 @@ Status: **owner GO, implementation source candidate; Android CI / original-signe
 ## Agent continuation
 
 Update `AGENTS.md`, `PROJECT_CONTEXT.md`, `docs/PROJECT_CONVERSATION.md`, `docs/POST_V1_0_19_RENO10_PLAN.md`, this ledger and `docs/ENGINEERING_HANDOFF.md` at each confirmed source/CI/device checkpoint. Never invent WER gain without matched ground truth. Preserve original signer, package and zero-Internet manifest.
+# 21 Nov later revision — see isolated GTCRN implementation
+
+This document's earlier six-mode separate-takes design was superseded by owner feedback. New candidate has only **Android** vs **our bundled GTCRN**, one microphone recording per trial with original-vs-GTCRN same-PCM playback, 12s bounded isolated GTCRN, true silence/route rejection, fallback without keyboard process crash, and mode choice used for actual offline blue dictation. This document below is historical. New source of truth: [isolated GTCRN release plan](GTCRN_ISOLATED_VOICE_RELEASE_2026_11_21.md). CI/original APK/physical Oppo acceptance pending.

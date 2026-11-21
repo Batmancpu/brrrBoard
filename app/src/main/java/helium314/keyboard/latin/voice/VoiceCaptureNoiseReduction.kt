@@ -8,9 +8,9 @@ import android.media.audiofx.NoiseSuppressor
 import helium314.keyboard.latin.utils.prefs
 
 /**
- * Uses the phone's already-installed microphone processing, if offered by its
- * audio HAL. Never loads the GTCRN JNI model that exited while initializing
- * on the owner's Oppo; never opens a second microphone or runs a neural worker.
+ * Uses the phone's already-installed microphone processing if Android is
+ * selected. GTCRN mode uses a distinct isolated post-capture process; attaching
+ * both app effects to one capture is explicitly prohibited.
  *
  * Some Android devices pre-process VOICE_RECOGNITION audio or do not expose a
  * NoiseSuppressor. The effect is optional and always releases with AudioRecord.
@@ -18,7 +18,9 @@ import helium314.keyboard.latin.utils.prefs
 internal object VoiceCaptureNoiseReduction {
     private const val PREF_ENABLED = "brr_voice_platform_noise_suppression"
 
-    fun enabled(context: Context): Boolean = context.prefs().getBoolean(PREF_ENABLED, true)
+    fun enabled(context: Context): Boolean =
+        VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID &&
+            context.prefs().getBoolean(PREF_ENABLED, true)
 
     fun setEnabled(context: Context, enabled: Boolean) {
         context.prefs().edit().putBoolean(PREF_ENABLED, enabled).apply()

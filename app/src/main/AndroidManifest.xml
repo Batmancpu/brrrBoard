@@ -62,6 +62,12 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                  android:process=":brr_voice_probe"
                  android:exported="false" />
 
+        <!-- GTCRN inference never shares the live keyboard process. Native aborts,
+             timeouts and model loading cannot terminate the IME. -->
+        <service android:name="helium314.keyboard.latin.voice.GtcrnVoiceService"
+                 android:process=":brr_voice_gtcrn"
+                 android:exported="false" />
+
         <!-- Activities -->
         <activity android:name="helium314.keyboard.settings.SettingsActivity"
                 android:theme="@style/platformActivityTheme"

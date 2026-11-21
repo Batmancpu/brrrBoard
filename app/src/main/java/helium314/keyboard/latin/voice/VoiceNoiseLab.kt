@@ -13,6 +13,9 @@ import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.media.audiofx.NoiseSuppressor
 import android.os.SystemClock
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -35,12 +38,17 @@ internal class VoiceNoiseLab(context: Context) {
         val scoredReference: String? = null,
         val wordErrorPercent: Int? = null,
         val decodeMs: Long? = null,
+        val enhancedTranscript: String? = null,
+        val enhancedWordErrorPercent: Int? = null,
+        val enhanceMs: Long? = null,
+        val enhanceStatus: String = "Not requested",
     )
     data class Snapshot(
         val status: String,
         val recording: Boolean,
         val playing: Boolean,
         val decoding: Boolean,
+        val enhancing: Boolean,
         val activeKey: Key?,
         val levelPercent: Int,
         val takes: List<Take>,
@@ -51,6 +59,7 @@ internal class VoiceNoiseLab(context: Context) {
     private val busy = AtomicBoolean(false)
     private val playBusy = AtomicBoolean(false)
     private val decodeBusy = AtomicBoolean(false)
+    private val enhanceBusy = AtomicBoolean(false)
     private val wanted = AtomicBoolean(false)
     private var closed = false
     @Volatile private var microphone: AudioRecord? = null
@@ -59,17 +68,20 @@ internal class VoiceNoiseLab(context: Context) {
     @Volatile private var activeKey: Key? = null
     @Volatile private var status = "Ready. Nothing is being recorded."
     private val clips = LinkedHashMap<Key, ByteArray>()
+    private val enhancedClips = LinkedHashMap<Key, ByteArray>()
     private val takes = LinkedHashMap<Key, Take>()
     private var decodeRequest: VoiceDecodeRequest? = null
+    private var enhanceBridge: GtcrnVoiceBridge? = null
+    private var enhanceInput: ByteArray? = null
 
     fun snapshot(): Snapshot = synchronized(gate) {
-        Snapshot(status, busy.get(), playBusy.get(), decodeBusy.get(), activeKey,
+        Snapshot(status, busy.get(), playBusy.get(), decodeBusy.get(), enhanceBusy.get(), activeKey,
             level, takes.values.toList())
     }
 
     fun record(key: Key): Boolean {
         synchronized(gate) {
-            if (closed || busy.get() || playBusy.get() || decodeBusy.get()) return false
+            if (closed || busy.get() || playBusy.get() || decodeBusy.get() || enhanceBusy.get()) return false
             if (appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 status = "Allow microphone access in Android settings before recording."
                 return false
@@ -82,8 +94,11 @@ internal class VoiceNoiseLab(context: Context) {
             wanted.set(true)
             activeKey = key
             level = 0
-            clips.remove(key)?.fill(0)
-            takes.remove(key)
+            clips.values.forEach { it.fill(0) }
+            enhancedClips.values.forEach { it.fill(0) }
+            clips.clear()
+            enhancedClips.clear()
+            takes.clear()
             status = "Opening ${key.input.title.lowercase()}…"
         }
         Thread({ capture(key) }, "brrBoard-voice-lab-record").apply { isDaemon = true }.start()
@@ -108,6 +123,9 @@ internal class VoiceNoiseLab(context: Context) {
             if (!wanted.get()) return
             val manager = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val device = chooseInput(manager, key.input)
+            if (key.input == Input.EARBUDS) check(device != null) {
+                "Android exposes no Bluetooth microphone"
+            }
             val minBytes = AudioRecord.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT)
             check(minBytes > 0) { "Unsupported microphone format" }
@@ -125,12 +143,18 @@ internal class VoiceNoiseLab(context: Context) {
             check(mic.state == AudioRecord.STATE_INITIALIZED) { "Microphone unavailable" }
             microphone = mic
             val accepted = if (device == null) false else mic.setPreferredDevice(device)
+            if (key.input == Input.EARBUDS) check(accepted) {
+                "Android refused Bluetooth microphone selection"
+            }
             effect = VoiceCaptureNoiseReduction.attachForLab(mic, key.suppression)
-            val ns = if (!key.suppression) "App effect OFF" else if (effect != null)
-                "Android effect ACTIVE" else "Effect unavailable"
+            val ns = if (!key.suppression) "Android extra suppression OFF · GTCRN after recording"
+                else if (effect != null) "Android effect ACTIVE" else "Android effect UNAVAILABLE"
             if (!wanted.get() || VoiceCaptureNoiseReduction.callIsActive(appContext)) return
             mic.startRecording()
             check(mic.recordingState == AudioRecord.RECORDSTATE_RECORDING) { "Could not record" }
+            if (Build.VERSION.SDK_INT >= 29) check(!isCaptureSilenced(manager, mic.audioSessionId)) {
+                "Android silenced this capture"
+            }
             val actual = activeRoute(manager, mic.audioSessionId)
             var checkedRoute = actual != null
             var route = if (actual != null) actual else when {
@@ -171,20 +195,40 @@ internal class VoiceNoiseLab(context: Context) {
             if (!closed && written >= SAMPLE_RATE * 2 / 4) {
                 val saved = collected.copyOf(written)
                 val signal = VoiceLabScore.signal(saved)
+                // A headset route silently returning zeros must not appear as a valid take.
+                val audible = saved.indices.step(2).any { i ->
+                    val value = ((saved[i + 1].toInt() shl 8) or
+                        (saved[i].toInt() and 0xff)).toShort().toInt()
+                    value > 32 || value < -32
+                }
+                if (!audible) {
+                    saved.fill(0)
+                    synchronized(gate) { status = "Silence received. Android may not have routed the earbuds microphone; reconnect or use Phone mic." }
+                    return
+                }
+                if (key.input != Input.AUTO && activeRouteDoesNotMatch(manager, mic.audioSessionId, key.input)) {
+                    saved.fill(0)
+                    synchronized(gate) { status = "Android used a different mic. This recording was discarded, not mislabeled." }
+                    return
+                }
                 val take = Take(key, route, ns, written * 1000 / (SAMPLE_RATE * 2),
                     signal.levelPercent, signal.clippingPercent)
                 synchronized(gate) {
                     if (!closed) {
                         clips[key] = saved
                         takes[key] = take
-                        status = "Take saved in memory. Replay or transcribe; compare another mode."
+                        status = if (!key.suppression) "Take saved. GTCRN processes the same PCM in an isolated process."
+                            else "Android-processed take saved in memory. Replay or transcribe."
                     } else saved.fill(0)
                 }
+                if (!key.suppression) Handler(Looper.getMainLooper()).postDelayed({
+                    enhance(key)
+                }, 80L) // capture.finally must release its recording gate first
             } else if (!closed) {
                 synchronized(gate) { status = "No usable sample recorded. Try again." }
             }
         } catch (_: Exception) {
-            synchronized(gate) { if (!closed) status = "Microphone test failed. Try Android auto or reconnect the earbuds." }
+            synchronized(gate) { if (!closed) status = "Microphone unavailable or route rejected. Try Phone mic; check Android microphone permissions." }
         } finally {
             wanted.set(false)
             level = 0
@@ -198,11 +242,13 @@ internal class VoiceNoiseLab(context: Context) {
         }
     }
 
-    fun play(key: Key): Boolean {
+    fun play(key: Key, enhanced: Boolean = false): Boolean {
         val pcm = synchronized(gate) {
-            if (closed || busy.get() || decodeBusy.get() || !playBusy.compareAndSet(false, true))
+            if (closed || busy.get() || decodeBusy.get() || enhanceBusy.get() ||
+                !playBusy.compareAndSet(false, true))
                 return false
-            clips[key]?.copyOf() ?: run { playBusy.set(false); return false }
+            (if (enhanced) enhancedClips[key] else clips[key])?.copyOf()
+                ?: run { playBusy.set(false); return false }
         }
         Thread({
             var track: AudioTrack? = null
@@ -245,16 +291,18 @@ internal class VoiceNoiseLab(context: Context) {
         return true
     }
 
-    fun transcribe(key: Key, reference: String): Boolean {
+    fun transcribe(key: Key, reference: String, enhanced: Boolean = false): Boolean {
         val pcm = synchronized(gate) {
-            if (closed || busy.get() || playBusy.get() || !decodeBusy.compareAndSet(false, true))
+            if (closed || busy.get() || playBusy.get() || enhanceBusy.get() ||
+                !decodeBusy.compareAndSet(false, true))
                 return false
             if (!VoiceModelInstaller.isInstalled(appContext)) {
                 status = "The existing offline model must be installed to score transcription."
                 decodeBusy.set(false)
                 return false
             }
-            clips[key]?.copyOf() ?: run { decodeBusy.set(false); return false }
+            (if (enhanced) enhancedClips[key] else clips[key])?.copyOf()
+                ?: run { decodeBusy.set(false); return false }
         }
         val started = SystemClock.elapsedRealtime()
         synchronized(gate) { status = "Transcribing this take offline with the existing model…" }
@@ -267,8 +315,10 @@ internal class VoiceNoiseLab(context: Context) {
                     val previous = takes[key]
                     if (previous != null && answer.isSuccess) {
                         val text = answer.getOrNull().orEmpty()
-                        takes[key] = previous.copy(transcript = text,
-                            scoredReference = reference,
+                        takes[key] = if (enhanced) previous.copy(enhancedTranscript = text,
+                            enhancedWordErrorPercent = VoiceLabScore.wordErrorPercent(reference, text),
+                            scoredReference = reference)
+                        else previous.copy(transcript = text, scoredReference = reference,
                             wordErrorPercent = VoiceLabScore.wordErrorPercent(reference, text),
                             decodeMs = SystemClock.elapsedRealtime() - started)
                         status = "Offline recognition complete. Compare the result with the displayed phrase."
@@ -280,11 +330,56 @@ internal class VoiceNoiseLab(context: Context) {
         return true
     }
 
+    /** The *same* stored microphone take is enhanced without reopening AudioRecord. */
+    private fun enhance(key: Key) {
+        val original = synchronized(gate) {
+            if (closed || busy.get() || playBusy.get() || decodeBusy.get() ||
+                !enhanceBusy.compareAndSet(false, true)) return
+            clips[key]?.copyOf() ?: run { enhanceBusy.set(false); return }
+        }
+        val started = SystemClock.elapsedRealtime()
+        enhanceInput = original
+        val bridge = GtcrnVoiceBridge(appContext) { enhanced ->
+            synchronized(gate) {
+                enhanceBusy.set(false)
+                enhanceBridge = null
+                if (!closed) {
+                    val previous = takes[key]
+                    if (previous != null) {
+                        val valid = enhanced != null && enhanced.size == original.size
+                        if (valid) {
+                            enhancedClips.remove(key)?.fill(0)
+                            enhancedClips[key] = enhanced!!
+                            takes[key] = previous.copy(enhanceStatus = "GTCRN processed",
+                                enhanceMs = SystemClock.elapsedRealtime() - started)
+                            status = "GTCRN finished. Replay original and enhanced from ONE recording."
+                        } else {
+                            enhanced?.fill(0)
+                            takes[key] = previous.copy(enhanceStatus = "GTCRN failed or timed out · raw safe")
+                            status = "GTCRN could not process this take. Original audio is intact; keyboard is safe."
+                        }
+                    } else enhanced?.fill(0)
+                } else enhanced?.fill(0)
+            }
+            original.fill(0)
+            enhanceInput = null
+        }
+        enhanceBridge = bridge
+        if (!bridge.run(original) && enhanceBridge === bridge) {
+            enhanceBridge = null
+            original.fill(0)
+            enhanceInput = null
+            enhanceBusy.set(false)
+        }
+    }
+
     fun clear() {
         synchronized(gate) {
-            if (closed || busy.get() || playBusy.get() || decodeBusy.get()) return
+            if (closed || busy.get() || playBusy.get() || decodeBusy.get() || enhanceBusy.get()) return
             clips.values.forEach { it.fill(0) }
+            enhancedClips.values.forEach { it.fill(0) }
             clips.clear()
+            enhancedClips.clear()
             takes.clear()
             status = "All trial audio and transcripts erased from memory."
         }
@@ -294,9 +389,15 @@ internal class VoiceNoiseLab(context: Context) {
         synchronized(gate) {
             closed = true
             wanted.set(false)
+            enhanceBridge?.cancel()
+            enhanceBridge = null
+            enhanceInput?.fill(0)
+            enhanceInput = null
             decodeRequest?.cancel()
             clips.values.forEach { it.fill(0) }
+            enhancedClips.values.forEach { it.fill(0) }
             clips.clear()
+            enhancedClips.clear()
             takes.clear()
         }
         stopRecording()
@@ -334,6 +435,24 @@ internal class VoiceNoiseLab(context: Context) {
             else -> "Android audio input (confirmed type ${actualDevice.type})"
         }
     }.getOrNull()
+
+    private fun isCaptureSilenced(manager: AudioManager, sessionId: Int): Boolean = runCatching {
+        manager.activeRecordingConfigurations.firstOrNull { it.clientAudioSessionId == sessionId }
+            ?.isClientSilenced ?: false
+    }.getOrDefault(false)
+
+    private fun activeRouteDoesNotMatch(manager: AudioManager, sessionId: Int, input: Input): Boolean =
+        runCatching {
+            val type = manager.activeRecordingConfigurations.firstOrNull {
+                it.clientAudioSessionId == sessionId
+            }?.audioDevice?.type ?: return@runCatching false
+            when (input) {
+                Input.PHONE -> type != AudioDeviceInfo.TYPE_BUILTIN_MIC
+                Input.EARBUDS -> type != AudioDeviceInfo.TYPE_BLUETOOTH_SCO &&
+                    type != AudioDeviceInfo.TYPE_BLE_HEADSET
+                Input.AUTO -> false
+            }
+        }.getOrDefault(false)
 
     companion object {
         private const val SAMPLE_RATE = 16_000

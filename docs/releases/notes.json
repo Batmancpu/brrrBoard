@@ -1,34 +1,18 @@
 {
   "schema": 1,
-  "summary": "BR Brain Voice & Noise Reduction comparison lab and one consolidated smoother-suggestions update, preserving existing private Parakeet 110M voice, learned data and signing identity.",
+  "summary": "New after v1.0.203: choose Android noise suppression or the APK-bundled GTCRN denoiser for private offline blue-mic dictation; compare one actual microphone take in BR Brain, with native-crash isolation and raw-speech fallback.",
   "changes": [
     {
-      "title": "Private Voice & Noise Reduction Lab inside BR Brain",
-      "detail": "BR Brain now opens a separate voice-lab screen showing genuine blue-mic recording/idle state and the last Android suppression effect status. Test phone microphone, Bluetooth earbuds or Android automatic routing with the app-added noise suppressor off or on. Recording is user-initiated, at most twelve seconds, and held only in memory with explicit erase and automatic screen-exit cleanup."
+      "title": "Two selectable voice-noise engines, one mic capture",
+      "detail": "BR Brain → Voice & Noise Reduction now selects either Android's capture-time NoiseSuppressor or brrBoard's already-bundled GTCRN model running after capture. The choice also applies to the normal blue offline mic. Only one AudioRecord is opened. GTCRN inference runs in a separate, non-exported short-lived Android process, with a 17-second parent timeout and automatic original-audio fallback if it crashes or cannot enhance. Existing Parakeet 110M, package, original signing certificate and offline/no-Internet design remain unchanged."
     },
     {
-      "title": "Hear and score your own microphone comparisons",
-      "detail": "Replay each private short microphone take and optionally run the installed Parakeet 110M model on it. Display recognized text, decoding time and basic word error relative to the displayed English or Hinglish test phrase. Clip signal and clipping indicators are not invented speech-quality scores. Bluetooth source requests may be ignored by Android; only an Android-confirmed route is labeled confirmed. Different off/on recordings are separate takes."
+      "title": "Replay identical raw and processed audio",
+      "detail": "The lab now performs one explicit 12-second RAM-only recording per test. In GTCRN mode, its Original and GTCRN playback use exactly the same captured microphone sample; users can independently score both versions against the chosen English/Hinglish sentence. Android NoiseSuppressor cannot be post-applied to stored PCM, so OS-vs-GTCRN remains two distinct capture-time modes, not a fabricated same-take comparison."
     },
     {
-      "title": "Keep successful existing offline blue dictation unchanged",
-      "detail": "The owner's Oppo screenshot showed a successful one-session dictation and NOISE_ACTIVE; Android NoiseSuppressor was already ON by default. This update adds only RAM-only active-capture counters to the production recorder, does not enable GTCRN JNI, does not probe AudioRecord.routedDevice, and refuses lab capture while Android reports an active call. Existing offline model, no-Internet permission and signer stay intact."
-    },
-    {
-      "title": "Prediction letters now move into their new positions",
-      "detail": "On the iOS-style motion profile, the three existing suggestion slots render unchanged English letters shifting smoothly, replacing only outgoing and incoming glyphs. Expansion such as they to they're, contraction, inner-word replacements and fast consecutive predictions no longer depend on a suffix-only fade. Actual suggestions and tappable targets update immediately; no new predictive-engine delay. Complex-script and long-word suggestions retain the native TextView fallback. Precise iOS 27 frame measurements are not claimed."
-    },
-    {
-      "title": "Interrupted suggestion animations retarget from visible letters",
-      "detail": "When a newer prediction arrives mid-animation, the next transition begins at the currently drawn glyph positions and transparency, keeping the real latest word authoritative with one renderer per slot. Existing center confidence capsule, reduced-motion policy, no-cross-slot behavior and Previous Default preset remain intact."
-    },
-    {
-      "title": "BR Brain appears at the top of the Settings home",
-      "detail": "A dedicated first-screen BR Brain card opens existing live offline prediction and learning diagnostics directly, without hiding the dashboard under Dictionary. Version history remains available in About with release-specific detail and publication time."
-    },
-    {
-      "title": "Earlier behavioral and privacy work preserved",
-      "detail": "Retains session-scoped Emoji category navigation, guarded two-finger trackpad selection, safe autocorrection reversal, five encrypted undelivered-transcript recovery cards, field privacy checks and original offline Parakeet 110M voice path. No new network permission, model or migration; no data reset or change to signing identity. Oppo visual, earbud routing and TalkBack acceptance are still required."
+      "title": "Guard failed earbuds and native noise processing",
+      "detail": "The lab explicitly rejects a missing or refused Bluetooth microphone, rejects near-silent input, detects a mismatched Android-reported route and checks capture-silenced state where supported. GTCRN does not run on every keystroke, on an active call or for long dictation exceeding the bounded Binder transfer. Model failures do not propagate into the live keyboard process; its original speech can still be recognized."
     }
   ]
 }

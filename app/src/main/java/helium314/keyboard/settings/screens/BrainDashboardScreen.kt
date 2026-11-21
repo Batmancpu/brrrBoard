@@ -16,7 +16,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +32,8 @@ import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.voice.VoiceNativeCrashProbe
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
-import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
+import helium314.keyboard.latin.voice.VoiceNoiseChoice
+import helium314.keyboard.latin.voice.VoiceNoiseMode
 import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
@@ -55,9 +55,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
     var trialText by remember { mutableStateOf("") }
     var probeCopied by remember { mutableStateOf(false) }
     var voiceTrailCopied by remember { mutableStateOf(false) }
-    var noiseReductionEnabled by remember(context) {
-        mutableStateOf(VoiceCaptureNoiseReduction.enabled(context))
-    }
     // Settings can stay open alongside the IME. Refresh RAM-only diagnostic counters while visible.
     LaunchedEffect(Unit) {
         while (true) {
@@ -125,19 +122,12 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                 colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column(modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Use Android noise suppression", fontWeight = FontWeight.SemiBold)
-                            Text("Tries your phone's built-in microphone effect on the next blue offline recording. If unsupported, original audio is used. No extra neural model runs during typing.",
-                                style = MaterialTheme.typography.bodySmall)
-                        }
-                        Switch(checked = noiseReductionEnabled, onCheckedChange = { selected ->
-                            noiseReductionEnabled = selected
-                            VoiceCaptureNoiseReduction.setEnabled(context, selected)
-                        })
-                    }
+                    Text("Current blue-mic engine: " +
+                        (if (VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID)
+                            "Android NoiseSuppressor" else "Bundled GTCRN (isolated process)"),
+                        fontWeight = FontWeight.SemiBold)
+                    Text("Set the two mutually exclusive options in Voice & Noise Reduction. GTCRN runs after recording for up to 12 seconds, never while typing; native failure falls back to original speech.",
+                        style = MaterialTheme.typography.bodySmall)
                     Text(if (voiceNoise.blueMicCapturing) "Blue microphone LIVE: recording now"
                          else "Blue microphone idle · no background recording",
                         style = MaterialTheme.typography.bodySmall)
@@ -150,12 +140,9 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                     Button(onClick = onOpenVoiceNoiseLab, modifier = Modifier.fillMaxWidth()) {
                         Text("Open Voice & Noise Reduction Lab")
                     }
-                    Text("Compare phone vs Bluetooth microphone, suppression OFF vs ON, listen to short private samples and measure actual offline recognition against a displayed test sentence. Nothing records until you explicitly press Record.",
+                    Text("Record once from phone or Bluetooth mic; in GTCRN mode play the same take untreated and GTCRN-processed, then score both offline. No automatic recording.",
                         style = MaterialTheme.typography.bodySmall)
-                    Text("GTCRN filtering paused", fontWeight = FontWeight.SemiBold)
-                    Text("Your diagnostic stopped at GTCRN model loading, so its native filter remains isolated. This option uses Android's audio system instead and preserves Parakeet 110M.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Noise suppression may help in steady background noise, but can also distort speech on some earbuds. Turn it off here for a direct comparison. Voice typing is blocked when Android reports an active audio/video call.",
+                    Text("Earlier Oppo GTCRN initialization failed. It now runs only in a killable child process with a timeout. Results and real-device reliability still need verification; voice typing remains blocked during calls.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }

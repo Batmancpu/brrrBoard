@@ -14,6 +14,10 @@ class VoiceNoiseLabContractTest(unittest.TestCase):
         cls.ui = (SOURCE / "settings/screens/VoiceNoiseLabScreen.kt").read_text()
         cls.production = (SOURCE / "latin/KeyboardPcmAudioSource.kt").read_text()
         cls.effects = (SOURCE / "latin/voice/VoiceCaptureNoiseReduction.kt").read_text()
+        cls.choice = (SOURCE / "latin/voice/VoiceNoiseMode.kt").read_text()
+        cls.bridge = (SOURCE / "latin/voice/GtcrnVoiceBridge.kt").read_text()
+        cls.child = (SOURCE / "latin/voice/GtcrnVoiceService.kt").read_text()
+        cls.dictation = (SOURCE / "latin/OfflineBoardDictation.kt").read_text()
 
     def test_live_keyboard_does_not_reintroduce_suspected_route_probe(self):
         self.assertNotIn(".routedDevice", self.production)
@@ -38,6 +42,35 @@ class VoiceNoiseLabContractTest(unittest.TestCase):
         self.assertIn("attachForLab", self.effects)
         self.assertNotIn("setEnabled(context,", self.lab)
         self.assertIn("VoiceLabScore.wordErrorPercent", self.lab)
+
+    def test_one_take_two_engines_and_fail_closed_silent_bluetooth(self):
+        self.assertIn("VoiceNoiseChoice.select(context, mode)", self.ui)
+        self.assertIn("VoiceNoiseChoice.selected(context)", self.ui)
+        self.assertIn("Original and GTCRN use identical captured audio", self.ui)
+        self.assertIn("enhancedClips[key]", self.lab)
+        self.assertIn("Handler(Looper.getMainLooper()).postDelayed", self.lab)
+        self.assertIn("if (!audible)", self.lab)
+        self.assertIn("activeRouteDoesNotMatch", self.lab)
+        self.assertIn("isClientSilenced", self.lab)
+        self.assertIn("check(device != null)", self.lab)
+        self.assertIn("VoiceNoiseMode.ANDROID", self.choice)
+        self.assertIn("VoiceNoiseMode.GTCRN", self.choice)
+
+    def test_gtcrn_child_and_raw_dictation_fallback(self):
+        self.assertIn('android:process=":brr_voice_gtcrn"',
+            (ROOT / "app/src/main/AndroidManifest.xml").read_text())
+        self.assertIn('android:exported="false"',
+            (ROOT / "app/src/main/AndroidManifest.xml").read_text())
+        self.assertIn("VoiceNoiseChoice.eligible", self.dictation)
+        self.assertIn("decodeCaptured(accepted ?: original", self.dictation)
+        self.assertIn("denoiseBridge?.cancel()", self.dictation)
+        self.assertIn("PARENT_TIMEOUT_MS", self.bridge)
+        self.assertIn("pending?.fill(0)", self.bridge)
+        self.assertIn("Process.killProcess(Process.myPid())", self.child)
+        self.assertIn("THREAD_PRIORITY_BACKGROUND", self.child)
+        for source in (self.bridge, self.child):
+            for forbidden in ("HttpURLConnection", "Socket(", "FileOutputStream", "AudioRecord("):
+                self.assertNotIn(forbidden, source)
 
 
 if __name__ == "__main__":

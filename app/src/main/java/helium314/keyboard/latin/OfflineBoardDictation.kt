@@ -16,6 +16,9 @@ import helium314.keyboard.latin.voice.VoiceDecodeRequest
 import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
+import helium314.keyboard.latin.voice.GtcrnVoiceBridge
+import helium314.keyboard.latin.voice.VoiceNoiseChoice
+import helium314.keyboard.latin.voice.VoiceNoiseMode
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
@@ -32,6 +35,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var source: KeyboardPcmAudioSource? = null
     private var pcmBuffer: PrivatePcmBuffer? = null
     private var decodeRequest: VoiceDecodeRequest? = null
+    private var denoiseBridge: GtcrnVoiceBridge? = null
+    private var denoiseOriginal: ByteArray? = null
     private var footer: BoardFooterView? = null
     private var originalConnection: InputConnection? = null
     private var originalEditorInfo: EditorInfo? = null
@@ -158,6 +163,37 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             fail(R.string.board_voice_offline_failed)
             return
         }
+        if (VoiceNoiseChoice.selected(ime) == VoiceNoiseMode.GTCRN &&
+            VoiceNoiseChoice.eligible(bytes.size)) {
+            denoiseOriginal = bytes
+            val bridge = GtcrnVoiceBridge(ime) { enhanced ->
+                denoiseBridge = null
+                val original = denoiseOriginal
+                denoiseOriginal = null
+                if (original == null || id != generation ||
+                    (phase != Phase.DECODING && phase != Phase.RECOVERING)) {
+                    enhanced?.fill(0)
+                    original?.fill(0)
+                } else {
+                    val accepted = if (enhanced?.size == original.size) enhanced else null
+                    if (accepted != null) original.fill(0) else enhanced?.fill(0)
+                    decodeCaptured(accepted ?: original, id, connection)
+                }
+            }
+            denoiseBridge = bridge
+            if (!bridge.run(bytes)) {
+                // Failed binding may synchronously invoke raw fallback. Do not
+                // double-submit the same utterance.
+                if (denoiseBridge === bridge) {
+                    denoiseBridge = null
+                    denoiseOriginal = null
+                    decodeCaptured(bytes, id, connection)
+                }
+            }
+        } else decodeCaptured(bytes, id, connection)
+    }
+
+    private fun decodeCaptured(bytes: ByteArray, id: Long, connection: InputConnection) {
         decodeRequest = engine.transcribe(bytes) { answer ->
             if (id != generation || (phase != Phase.DECODING && phase != Phase.RECOVERING)) return@transcribe
             decodeRequest = null
@@ -234,6 +270,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         phase = Phase.IDLE
         decodeRequest?.cancel()
         decodeRequest = null
+        denoiseBridge?.cancel()
+        denoiseBridge = null
+        denoiseOriginal?.fill(0)
+        denoiseOriginal = null
         source?.close()
         source = null
         pcmBuffer?.discard()

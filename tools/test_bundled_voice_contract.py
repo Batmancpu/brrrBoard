@@ -111,12 +111,12 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
         mic = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
         self.assertIn("assetManager = context.assets", enhancer)
-        # Emergency rollback: native denoiser is *not* initialized or called
-        # from the live blue-mic path until ARM64 device tests prove stability.
+        # Native denoiser must still never initialize in LatinIME's shared
+        # decoder process; optional GTCRN is now isolated in a child service.
         self.assertNotIn("PrivateGtcrnDenoiser(", recognizer)
         self.assertNotIn("enhanceIfNoisy(", recognizer)
         self.assertIn("shouldDenoise(samples: FloatArray)", gate)
-        self.assertIn("GTCRN filtering paused", dashboard)
+        self.assertIn("Bundled GTCRN (isolated process)", dashboard)
         self.assertNotIn("microphone.routedDevice", mic)
         # Platform AudioRecord noise suppression is now observable, but native
         # GTCRN enhancement counters must never imply active filtering.
@@ -196,7 +196,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
                     "getStackTrace(", "android.util.Log"):
             self.assertNotIn(bad, report)
 
-    def test_noise_suppression_is_optional_local_and_never_calls_gtcrn_native(self):
+    def test_noise_suppression_is_local_and_never_calls_gtcrn_native_from_capture(self):
         source = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
         effect = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceCaptureNoiseReduction.kt")
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
@@ -206,7 +206,8 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("NoiseSuppressor.isAvailable()", effect)
         self.assertIn("NoiseSuppressor.create(recorder.audioSessionId)", effect)
         self.assertIn("MODE_IN_COMMUNICATION", effect)
-        self.assertIn("Use Android noise suppression", dashboard)
+        self.assertIn("Current blue-mic engine:", dashboard)
+        self.assertIn("Our GTCRN", self.read("app/src/main/java/helium314/keyboard/settings/screens/VoiceNoiseLabScreen.kt"))
         self.assertNotIn("PrivateGtcrnDenoiser", source)
         self.assertNotIn("PrivateGtcrnDenoiser", effect)
 
