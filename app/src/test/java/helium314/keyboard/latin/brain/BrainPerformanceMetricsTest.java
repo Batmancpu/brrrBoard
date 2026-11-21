@@ -24,7 +24,9 @@ public class BrainPerformanceMetricsTest {
         assertEquals(128, result.windowRequests);
         assertEquals(256.0, result.lastMs, 0.001);
         assertEquals(192.5, result.averageMs, 0.001);
+        assertEquals(192.0, result.p50Ms, 0.001);
         assertEquals(250.0, result.p95Ms, 0.001);
+        assertEquals(255.0, result.p99Ms, 0.001);
         assertEquals(256.0, result.worstMs, 0.001);
     }
 

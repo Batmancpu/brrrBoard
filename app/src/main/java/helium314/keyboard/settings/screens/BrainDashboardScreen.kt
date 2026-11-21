@@ -123,7 +123,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                 LatencyMetric("Strip update", stripUpdateSpeed, Modifier.weight(1f))
                 LatencyMetric("First suggestion", firstSuggestionFrame, Modifier.weight(1f))
             }
-            Text("The 95th percentile uses up to the most recent 128 eligible requests. A dash means this process hasn't measured that activity yet. Password, secure-app, no-personal-learning and incognito fields are not counted.",
+            Text("Percentiles use up to the most recent 128 eligible requests. P50/P95 appear after 20 samples; P99 appears after 100. A dash means this process hasn't measured that activity yet. Password, secure-app, no-personal-learning and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
             Text("Voice intelligence & noise reduction",
@@ -425,8 +425,11 @@ private fun LatencyMetric(
             Text(if (metric.totalRequests == 0L) "Awaiting samples"
                 else "Average " + latencyDisplay(metric.averageMs),
                 style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer)
-            Text(if (metric.windowRequests < 20) "P95: collecting samples"
-                else "P95 " + latencyDisplay(metric.p95Ms),
+            Text(if (metric.windowRequests < 20) "P50/P95: collecting samples"
+                else "P50 " + latencyDisplay(metric.p50Ms) + " · P95 " + latencyDisplay(metric.p95Ms),
+                style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer)
+            Text(if (metric.windowRequests < 100) "P99: collecting (100 samples needed)"
+                else "P99 " + latencyDisplay(metric.p99Ms),
                 style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer)
             Text(metric.totalRequests.toString() + " requests",
                 style = MaterialTheme.typography.labelSmall, color = colors.onPrimaryContainer)

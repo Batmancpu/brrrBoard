@@ -1,10 +1,10 @@
 # brrBoard project context
 
-## 2026-11-21 — GO in progress; v1.0.219 is latest checkpoint
+## 2026-11-21 — GO in progress; v1.0.220 is latest checkpoint
 
 The owner authorized the saved next-GO plan and clarified implementation must continue until the plan is done. v1.0.217 from `7910d96aeba5b2c45cadfaab6502218eaf31be0f` is only the first checkpoint, not completion. Its exact-SHA debug workflow **44897236271** and Obtainium workflow **44897236284** succeeded and published a non-prerelease APK (64,969,203 bytes; SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`). It preserves legacy Android NoiseSuppressor ON/OFF preferences and corrects README voice claims.
 
-The P0 key-to-first-suggestion-strip pre-draw diagnostic shipped in original-signed v1.0.219 from `8677ada9f9103facd47e939a93e21d9833ec2aa0`; exact-SHA debug/full suite `44899943405` and signer `44899943350` passed. APK SHA-256 `3ca7f55c2b9249077fde6d30f7f9e764ef9a8525051aee06219e82f282536945`, size 64,969,203 bytes. Password, secure-app, no-personal-learning and incognito fields are excluded; metrics stay in memory and contain no text or app identity. Current source adds synchronous strip-update timing as a separate P0 breakdown; its CI and release are pending. Existing QuickType/native strip improvements are present from earlier signed releases; ContextLM remains disabled because held-out quality lost to native. Continue P0–P4 from the master plan; device acceptance remains pending.
+The P0 key-to-first-suggestion pre-draw diagnostic shipped in v1.0.219, and the synchronous strip-update timing breakdown shipped in original-signed v1.0.220 from `11f3666b9067bd5e3e99259a028a0fa0b8ce49da`; exact-SHA debug/full suite `44900826645` and signer `44900826663` passed. APK SHA-256 `195e58657eaad86c21ee52ea7ce207add82e5e0cb17796664d5fd72a26d4a923`, size 64,969,203 bytes. Password, secure-app, no-personal-learning and incognito fields are excluded; metrics stay in memory and contain no text or app identity. Current source adds P50/P95/P99 reporting for the bounded window; CI and release are pending. Existing QuickType/native strip improvements are present from earlier signed releases; ContextLM remains disabled because held-out quality lost to native. Continue P0–P4 from the master plan; no adb/device was available for Reno10 acceptance.
 
 
 ## 2026-11-21 — owner GO: preserve legacy voice noise choices, exact-SHA release pending

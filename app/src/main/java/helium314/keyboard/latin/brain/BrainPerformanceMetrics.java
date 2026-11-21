@@ -49,14 +49,17 @@ public final class BrainPerformanceMetrics {
         }
 
         Snapshot snapshot() {
-            if (size == 0) return new Snapshot(totalCount, 0, 0, 0, 0, 0);
+            if (size == 0) return new Snapshot(totalCount, 0, 0, 0, 0, 0, 0, 0);
             final long[] ordered = Arrays.copyOf(samples, size);
             long sum = 0;
             for (final long ns : ordered) sum += ns;
             Arrays.sort(ordered);
+            final int p50Index = Math.max(0, (int) Math.ceil(size * 0.50) - 1);
             final int p95Index = Math.max(0, (int) Math.ceil(size * 0.95) - 1);
+            final int p99Index = Math.max(0, (int) Math.ceil(size * 0.99) - 1);
             return new Snapshot(totalCount, size, lastNs / 1_000_000.0,
-                    sum / (size * 1_000_000.0), ordered[p95Index] / 1_000_000.0,
+                    sum / (size * 1_000_000.0), ordered[p50Index] / 1_000_000.0,
+                    ordered[p95Index] / 1_000_000.0, ordered[p99Index] / 1_000_000.0,
                     ordered[size - 1] / 1_000_000.0);
         }
 
@@ -74,16 +77,21 @@ public final class BrainPerformanceMetrics {
         public final int windowRequests;
         public final double lastMs;
         public final double averageMs;
+        public final double p50Ms;
         public final double p95Ms;
+        public final double p99Ms;
         public final double worstMs;
 
         Snapshot(final long totalRequests, final int windowRequests, final double lastMs,
-                 final double averageMs, final double p95Ms, final double worstMs) {
+                 final double averageMs, final double p50Ms, final double p95Ms,
+                 final double p99Ms, final double worstMs) {
             this.totalRequests = totalRequests;
             this.windowRequests = windowRequests;
             this.lastMs = lastMs;
             this.averageMs = averageMs;
+            this.p50Ms = p50Ms;
             this.p95Ms = p95Ms;
+            this.p99Ms = p99Ms;
             this.worstMs = worstMs;
         }
     }
