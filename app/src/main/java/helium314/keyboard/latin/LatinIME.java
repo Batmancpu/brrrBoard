@@ -1250,6 +1250,8 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        helium314.keyboard.latin.brain.BrainPerformanceMetrics
+                .cancelPendingKeyToSuggestionPreDraw();
         mEditorFocusEpoch++;
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
@@ -2106,6 +2108,18 @@ public class LatinIME extends InputMethodService implements
     // should
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
+        // Keep only the time value: never retain the entered character, editor,
+        // package, or language. Private/protected fields are excluded.
+        if (!event.isFunctionalKeyEvent() && !event.isKeyRepeat() && !event.isDead()
+                && Character.isLetter(event.getCodePoint())
+                && !ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(),
+                        mSettings.getCurrent().mIncognitoModeEnabled)
+                && !SecureAppsPolicy.isSecure(KtxKt.prefs(this),
+                        getCurrentInputEditorInfo() == null ? null
+                                : getCurrentInputEditorInfo().packageName)) {
+            helium314.keyboard.latin.brain.BrainPerformanceMetrics
+                    .beginKeyToSuggestionPreDraw();
+        }
         if (event.getKeyCode() == KeyCode.ALPHA) {
             final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
             // A normal keyboard switch deliberately preserves an active inline

@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## Current owner GO status — 2026-11-21
+
+GO remains in progress; v1.0.217 is only the first delivery checkpoint. The owner explicitly corrected the prior premature completion claim and directed implementation of the full saved plan. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md), preserve package/certificate/data/privacy contracts, and do not stop at another small checkpoint. Current P0 source increment measures content-free letter-key-to-suggestion-strip pre-draw latency in memory, with password, secure-app, no-personal-learning and incognito editors excluded. Focused tests are added; exact-SHA debug/full suite, original-signer build, release publication and Oppo checks are pending. Local Gradle download is blocked by network restrictions. ContextLM stays disabled because held-out quality lost to native.
+
 ## 2026-11-21 — GO software delivery verified: signed v1.0.217
 
 The owner authorized the saved next-GO plan. The focused migration fix and voice documentation update shipped from `7910d96aeba5b2c45cadfaab6502218eaf31be0f` as original-signed **v1.0.217**. Debug workflow **44897236271** and Obtainium workflow **44897236284** both completed successfully on that exact SHA. Published APK: https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.217/brrBoard.apk — **64,969,203 bytes**, SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`. Release is non-prerelease and package/certificate and pinned voice packaging gates passed. The release change preserves legacy Android NoiseSuppressor ON/OFF preferences across upgrade while new installs default to brrClean, adds regression cases, and corrects README voice mode/streaming claims. Focused Python voice packaging/privacy contracts passed (8 + 5); JSON and `git diff --check` passed. Local Gradle could not download 8.14.4 through the runtime proxy, so the exact-SHA Android workflows were used.

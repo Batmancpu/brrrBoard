@@ -1,7 +1,11 @@
 {
   "schema": 1,
-  "summary": "Preserve voice noise-mode choices across upgrades and correct offline voice documentation. No neural ContextLM model or prediction change is included.",
+  "summary": "Add a privacy-safe first-suggestion latency diagnostic to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
   "changes": [
+    {
+      "title": "Measure first-suggestion responsiveness",
+      "detail": "BR Brain now reports local time from a letter key event to the next suggestion-strip pre-draw, separately from dictionary computation time. It stores no typed text or editor identity, excludes incognito, password and no-personal-learning fields, and keeps measurements only in memory. A pre-draw is not proof that the display presented the frame."
+    },
     {
       "title": "Keep voice processing choices during update",
       "detail": "Preserve an existing explicit Android NoiseSuppressor or OFF choice when upgrading from the legacy setting. New installs still default to brrClean, and saved current modes remain authoritative. Update the voice guide to explain local brrClean processing, raw-audio fallback, bounded streaming, and microphone routing limits. No prediction model weights or network permission are added."

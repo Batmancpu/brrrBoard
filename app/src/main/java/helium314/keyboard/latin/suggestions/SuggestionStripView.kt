@@ -38,6 +38,7 @@ import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.core.view.doOnNextLayout
+import androidx.core.view.doOnPreDraw
 import androidx.core.view.isVisible
 import androidx.core.graphics.ColorUtils
 import helium314.keyboard.event.HapticEvent
@@ -674,6 +675,14 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 layoutHelper.getConfidencePillVerticalInset().toFloat(), chips)
         }
         else wordMorph.cancel(wordViews)
+        if (shouldShowSuggestionContent(suggestedWords) &&
+            (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible)) {
+            doOnPreDraw {
+                if (isShown && (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible)) {
+                    BrainPerformanceMetrics.recordKeyToSuggestionPreDraw()
+                }
+            }
+        }
     }
 
     /**

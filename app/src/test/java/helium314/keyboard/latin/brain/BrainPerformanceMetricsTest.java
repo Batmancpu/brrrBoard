@@ -57,4 +57,20 @@ public class BrainPerformanceMetricsTest {
         assertEquals(0, BrainPerformanceMetrics.snapshot(
                 BrainPerformanceMetrics.Stage.SWIPE).totalRequests);
     }
+
+    @Test public void keyToPreDrawSampleIsConsumedOnce() {
+        BrainPerformanceMetrics.beginKeyToSuggestionPreDraw();
+        BrainPerformanceMetrics.recordKeyToSuggestionPreDraw();
+        BrainPerformanceMetrics.recordKeyToSuggestionPreDraw();
+        assertEquals(1, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW).totalRequests);
+    }
+
+    @Test public void editorBoundaryCancelsPendingKeyTiming() {
+        BrainPerformanceMetrics.beginKeyToSuggestionPreDraw();
+        BrainPerformanceMetrics.cancelPendingKeyToSuggestionPreDraw();
+        BrainPerformanceMetrics.recordKeyToSuggestionPreDraw();
+        assertEquals(0, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW).totalRequests);
+    }
 }

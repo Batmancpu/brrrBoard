@@ -7,20 +7,23 @@ import java.util.Arrays;
  * Per-process, content-free diagnostics for BR Brain. Nothing is written to disk,
  * uploaded, or correlated with a field, app, word, language or timestamp.
  *
- * Timings are computation time per suggestion request, NOT key-to-screen latency,
- * end-to-end accuracy, or neural-model inference time.
+ * Model-stage timings are computation time per suggestion request. The separate
+ * key-to-pre-draw timing measures the first strip draw after a letter key event;
+ * it is not a guarantee that a frame reached the display or evidence of accuracy.
  */
 public final class BrainPerformanceMetrics {
-    public enum Stage { TYPING, NEXT_WORD, SWIPE, SMART_EMOJI }
+    public enum Stage { TYPING, NEXT_WORD, SWIPE, SMART_EMOJI, KEY_TO_SUGGESTION_PREDRAW }
 
     private static final int WINDOW = 128;
     private static final long MAX_DURATION_NS = 10_000_000_000L;
+    private static final long MAX_KEY_TO_STRIP_NS = 2_000_000_000L;
     private static final Object LOCK = new Object();
     private static final Window[] WINDOWS = new Window[Stage.values().length];
     private static long suggestionBatches;
     private static long candidatesReturned;
     private static long textSuggestionTaps;
     private static long emojiSuggestionTaps;
+    private static long pendingKeyNs;
 
     static {
         for (int i = 0; i < WINDOWS.length; ++i) WINDOWS[i] = new Window();
@@ -99,6 +102,28 @@ public final class BrainPerformanceMetrics {
 
     public static long begin() { return System.nanoTime(); }
 
+    /** Starts one content-free sample; the next strip pre-draw consumes it. */
+    public static void beginKeyToSuggestionPreDraw() {
+        synchronized (LOCK) { pendingKeyNs = System.nanoTime(); }
+    }
+
+    /** Records at most one pending sample and rejects stale or implausible timings. */
+    public static void recordKeyToSuggestionPreDraw() {
+        final long started;
+        synchronized (LOCK) {
+            started = pendingKeyNs;
+            pendingKeyNs = 0;
+        }
+        if (started > 0) {
+            final long elapsed = System.nanoTime() - started;
+            if (elapsed <= MAX_KEY_TO_STRIP_NS) record(Stage.KEY_TO_SUGGESTION_PREDRAW, elapsed);
+        }
+    }
+
+    public static void cancelPendingKeyToSuggestionPreDraw() {
+        synchronized (LOCK) { pendingKeyNs = 0; }
+    }
+
     public static void end(final Stage stage, final long startedNs) {
         if (startedNs <= 0) return;
         final long elapsed = System.nanoTime() - startedNs;
@@ -144,6 +169,7 @@ public final class BrainPerformanceMetrics {
             candidatesReturned = 0;
             textSuggestionTaps = 0;
             emojiSuggestionTaps = 0;
+            pendingKeyNs = 0;
         }
     }
 }
