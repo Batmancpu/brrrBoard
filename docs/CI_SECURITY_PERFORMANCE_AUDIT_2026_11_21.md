@@ -29,6 +29,12 @@ These messages are now static sanitized event descriptions; their functional cod
 
 ## Required validation and follow-up
 
+### First remote attempt and recovery
+
+The first atomic source push reached remote commit `b5d5e82c47916bbbe659921d8fb8967910400b58`. Debug Actions [#315](https://github.com/Batmancpu/brrrBoard/actions/runs/44869383480) failed the existing early **Require per-release change notes** gate because this batch initially omitted `docs/releases/notes.json`. All newly added CI/privacy/brand/settings static gates passed. Signed Actions [#205](https://github.com/Batmancpu/brrrBoard/actions/runs/44869383477) built its unsigned APK and passed its signed-specific static checks, but correctly refused original signing because the exact-SHA debug run failed. This is a release-process mistake, not evidence of an Android compilation failure.
+
+Recovery: update the notes to describe **only changes after signed v1.0.204** and include `docs/releases/notes.json` in the signed workflow's push paths, so a notes-only repair triggers both debug and signed CI. Preserve the fail-closed exact-SHA debug gate. Retest and monitor the corrected commit to terminal success before claiming a signed update.
+
 - Run new static CI contract tests, existing brand/privacy tests, YAML parse checks, `git diff --check`, and Android unit tests/build when tools permit. **Do not claim complete Android verification from Python tests alone.**
 - After updating `main` only if its head remains unchanged and no other Actions job is active, require both the exact-SHA debug build/full unit suite and original-signed Obtainium workflow to finish successfully. Record final evidence accurately; if either fails, investigate and repair, never weaken the gate.
 - Compare post-change signed build/test step timings over several commits; do not invent a speedup from a single run or assume a task is cacheable.

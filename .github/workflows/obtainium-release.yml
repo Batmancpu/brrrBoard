@@ -11,6 +11,9 @@ on:
       - '*.gradle.kts'
       - 'gradle.properties'
       - 'gradlew'
+      # Release notes are bundled into version_history.json; a notes-only
+      # repair must be able to recover a failed same-SHA release gate.
+      - 'docs/releases/notes.json'
       - '.github/workflows/obtainium-release.yml'
   workflow_dispatch:
     inputs:
