@@ -15,7 +15,8 @@ import helium314.keyboard.latin.R;
  * scrolling beneath fixed controls, but are composited solely by the live
  * PanelGlassOverlayView instances instead of being drawn twice.
  *
- * The overlays record the ScrollView itself, bypassing this parent's clip.
+ * The overlays record the horizontal action rail itself, bypassing this
+ * parent's clip.
  * This never touches the IME's already-blurred host-app background.
  */
 public final class ToolbarGlassFrameLayout extends FrameLayout {

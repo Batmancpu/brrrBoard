@@ -160,13 +160,31 @@ public final class InputView extends FrameLayout {
                 appendGeometry(dimensions, "wrapper", findViewById(R.id.keyboard_view_wrapper));
                 appendGeometry(dimensions, "emoji", emoji);
                 appendGeometry(dimensions, "shell", findViewById(R.id.emoji_grid_shell));
+                final View pager = findViewById(R.id.emoji_pager);
+                appendGeometry(dimensions, "pager", pager);
                 appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
+                appendGeometry(dimensions, "firstEmojiRow", findFirstEmojiRow(pager));
                 appendGeometry(dimensions, "footer", findViewById(R.id.board_footer));
+                final View frame = findViewById(R.id.main_keyboard_frame);
+                if (frame != null) {
+                    dimensions.append(" framePadding=")
+                            .append(frame.getPaddingLeft()).append(',')
+                            .append(frame.getPaddingTop()).append(',')
+                            .append(frame.getPaddingRight()).append(',')
+                            .append(frame.getPaddingBottom());
+                }
                 android.util.Log.i("BrrImeBounds", dimensions.toString());
                 return true;
             }
         };
         observer.addOnPreDrawListener(mEmojiGeometryProbe);
+    }
+
+    /** Returns only the bounds of the visible row view; never reads Emoji text or keys. */
+    private static View findFirstEmojiRow(final View pager) {
+        if (pager == null) return null;
+        final View row = pager.findViewById(R.id.emoji_keyboard_page);
+        return row != null && row.getVisibility() == VISIBLE ? row : null;
     }
 
     private static void appendGeometry(final StringBuilder report, final String label,
@@ -207,8 +225,9 @@ public final class InputView extends FrameLayout {
                     && Settings.getValues().mToolbarSwipeDownToHide
                     && !AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
                     && !KeyboardSwitcher.getInstance().isResizeModeActive()
-                    // Scrollable toolbar tiles get first refusal until the list
-                    // reaches the top. A pull from any region can then dismiss.
+                    // A vertical dismiss pull is eligible only when there is no
+                    // toolbar content above. The compact Toolbar rail scrolls
+                    // horizontally, so vertical pulls remain available.
                     && (toolbarScroll == null || !toolbarScroll.canScrollVertically(-1));
             if (mMayDragToolbar) {
                 swipeArea.getLocationOnScreen(mStripLocation);

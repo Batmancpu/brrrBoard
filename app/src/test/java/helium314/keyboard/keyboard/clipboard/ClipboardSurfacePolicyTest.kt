@@ -12,6 +12,7 @@ class ClipboardSurfacePolicyTest {
         val input = 0xFFE7E9EF.toInt()
         val colors = ClipboardSurfacePolicy.headerStops(input)
         assertEquals(0, alpha(colors.last()))
+        assertTrue("The top must also remain translucent", alpha(colors.first()) < 255)
         assertTrue((1 until colors.size).all { alpha(colors[it - 1]) >= alpha(colors[it]) })
         assertTrue(colors.all { (it and 0x00FFFFFF) == (input and 0x00FFFFFF) })
     }

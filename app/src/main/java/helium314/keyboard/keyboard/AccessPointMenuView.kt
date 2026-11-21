@@ -15,8 +15,7 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.FrameLayout
-import android.widget.ScrollView
-import android.content.Intent
+import android.widget.HorizontalScrollView
 import androidx.core.graphics.drawable.DrawableCompat
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.KeyboardTypeface
@@ -37,8 +36,6 @@ import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.ToolbarMode
 import helium314.keyboard.latin.utils.getCodeForToolbarKey
 import helium314.keyboard.latin.utils.getEnabledToolbarKeys
-import helium314.keyboard.latin.utils.getPersistentToolbarKey
-import helium314.keyboard.latin.utils.getPinnedToolbarKeys
 import helium314.keyboard.latin.utils.getStringResourceOrName
 import helium314.keyboard.latin.utils.getToolbarKeyFromDragData
 import helium314.keyboard.latin.utils.isAvailableInToolbarUi
@@ -53,7 +50,7 @@ class AccessPointMenuView @JvmOverloads constructor(
 
     private var keyboardActionListener: KeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER
     private val grid: GridLayout
-    private val scroll: ScrollView
+    private val scroll: HorizontalScrollView
     private var accessDropPreviewView: View? = null
     private var accessDropPreviewIndex = -1
     private var ownGridDragIndex = -1
@@ -64,6 +61,8 @@ class AccessPointMenuView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
         grid = findViewById(R.id.access_point_grid)
         scroll = findViewById(R.id.access_point_scroll)
+        scroll.isHorizontalScrollBarEnabled = false
+        scroll.isSmoothScrollingEnabled = true
         PanelMaterial.extendIntoFooter(scroll.parent as View, scroll)
         scroll.setOnScrollChangeListener { _, _, _, _, _ ->
             findViewById<View>(R.id.access_point_header_scrim)?.postInvalidateOnAnimation()
@@ -123,30 +122,10 @@ class AccessPointMenuView @JvmOverloads constructor(
             val tile = inflater.inflate(R.layout.menu_tile_item, grid, false)
             tile.tag = key
             try {
-                tile.setBackgroundResource(android.R.color.transparent)
                 val iconView = tile.findViewById<ImageButton>(R.id.menu_tile_icon)
-                if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_ROUNDED || colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {
-                    val drawable = android.graphics.drawable.GradientDrawable()
-                    if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {
-                        drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-                        val lp = iconView.layoutParams
-                        lp.width = lp.height
-                        iconView.layoutParams = lp
-                    } else {
-                        drawable.shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                        drawable.cornerRadius = 1000f
-                        val lp = iconView.layoutParams
-                        lp.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                        iconView.layoutParams = lp
-                    }
-                    drawable.setColor(android.graphics.Color.WHITE)
-                    colors.setColor(drawable, ColorType.KEY_BACKGROUND)
-                    iconView.background = drawable
-                } else {
-                    val keyboardViewAttr = context.obtainStyledAttributes(null, R.styleable.KeyboardView, R.attr.keyboardViewStyle, R.style.KeyboardView)
-                    iconView.background = colors.selectAndColorDrawable(keyboardViewAttr, ColorType.KEY_BACKGROUND)
-                    keyboardViewAttr.recycle()
-                }
+                // The Toolbar is a continuous icon rail; large theme-colored
+                // keycaps waste room and visually fragment the panel.
+                iconView.setBackgroundResource(android.R.color.transparent)
                 val labelView = tile.findViewById<TextView>(R.id.menu_tile_label)
 
                 var drawable: android.graphics.drawable.Drawable? = null
@@ -406,33 +385,10 @@ class AccessPointMenuView @JvmOverloads constructor(
     }
 
     fun updateThemeColors(colors: helium314.keyboard.latin.common.Colors) {
-        val keyboardViewAttr = context.obtainStyledAttributes(null, R.styleable.KeyboardView, R.attr.keyboardViewStyle, R.style.KeyboardView)
         for (i in 0 until grid.childCount) {
             val tile = grid.getChildAt(i)
             val iconView = tile.findViewById<ImageButton>(R.id.menu_tile_icon)
-            if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_ROUNDED || colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {
-                val drawable = android.graphics.drawable.GradientDrawable()
-                if (colors.themeStyle == helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE) {
-                    drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-                    val lp = iconView.layoutParams
-                    lp.width = lp.height
-                    iconView.layoutParams = lp
-                } else {
-                    drawable.shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                    drawable.cornerRadius = 1000f
-                    val lp = iconView.layoutParams
-                    lp.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                    iconView.layoutParams = lp
-            }
-            drawable.setColor(android.graphics.Color.WHITE)
-            colors.setColor(drawable, ColorType.KEY_BACKGROUND)
-            iconView.background = drawable
-        } else {
-                val lp = iconView.layoutParams
-                lp.width = android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                iconView.layoutParams = lp
-                iconView.background = colors.selectAndColorDrawable(keyboardViewAttr, ColorType.KEY_BACKGROUND)
-            }
+            iconView.setBackgroundResource(android.R.color.transparent)
 
             val labelView = tile.findViewById<TextView>(R.id.menu_tile_label)
             val keyboardTextColor = colors.get(helium314.keyboard.latin.common.ColorType.KEY_TEXT)
@@ -444,7 +400,6 @@ class AccessPointMenuView @JvmOverloads constructor(
                 applyKeyTextIcon(iconView, drawable, keyboardTextColor)
             }
         }
-        keyboardViewAttr.recycle()
     }
 
     private fun applyKeyTextIcon(iconView: ImageButton, icon: Drawable?, keyboardTextColor: Int) {

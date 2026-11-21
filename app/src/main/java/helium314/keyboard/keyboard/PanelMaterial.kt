@@ -30,8 +30,8 @@ object PanelMaterial {
         (rgb and 0x00FFFFFF) or (opacity.coerceIn(0, 255) shl 24)
 
     fun headerStops(rgb: Int): IntArray = intArrayOf(
-        alpha(rgb, 242), alpha(rgb, 225), alpha(rgb, 184),
-        alpha(rgb, 110), alpha(rgb, 0),
+        alpha(rgb, 232), alpha(rgb, 208), alpha(rgb, 156),
+        alpha(rgb, 78), alpha(rgb, 0),
     )
 
     // No transparent top ramp: its divider is straight. The subdued content

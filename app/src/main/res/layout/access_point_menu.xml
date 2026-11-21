@@ -7,25 +7,25 @@
     android:clipToPadding="false"
     android:background="@android:color/transparent">
 
-    <!-- The first and last tiles can scroll clear of fixed material layers. -->
-    <ScrollView
+    <!-- Compact tool actions stay in one horizontal rail beneath the title. -->
+    <HorizontalScrollView
         android:id="@+id/access_point_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="false"
         android:clipToPadding="false"
-        android:paddingTop="@dimen/panel_toolbar_content_top_inset"
+        android:paddingTop="@dimen/panel_header_height"
         android:paddingBottom="@dimen/panel_toolbar_content_bottom_inset"
         android:overScrollMode="ifContentScrolls"
         android:scrollbars="none">
         <GridLayout
             android:id="@+id/access_point_grid"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:columnCount="4"
+            android:rowCount="1"
             android:clipChildren="false"
             android:clipToPadding="false" />
-    </ScrollView>
+    </HorizontalScrollView>
 
     <helium314.keyboard.keyboard.PanelGlassOverlayView
         android:id="@+id/access_point_header_scrim"

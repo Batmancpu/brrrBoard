@@ -1,5 +1,13 @@
 # brrBoard engineering handoff
 
+## 2026-11-21 — Emoji/Toolbar UI and performance work in progress
+
+Latest user request: investigate the persistent Emoji top band, improve Smart Emoji/context intelligence, compact the Toolbar into a horizontal rail without gray cards, refine progressive top glass, audit speed/reliability, and plan ContextLM plus the larger Parakeet Ultra migration. Durable work plan: [EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md](EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md).
+
+Working tree source candidate changes the Toolbar from four-column vertical scrolling to a single horizontal action rail and uses transparent icon treatments; it also adjusts the shared Toolbar/Clipboard progressive top fade. Existing action routing and drag ordering remain in `AccessPointMenuView`. Emoji opening now reads bounded editor context once and shares a single ranked list with the Smart row and Recents ordering. The screenshot gap's precise owner is still open: this branch already has the one-shot content-free `BrrImeBounds` trace, which now includes the pager, first visible Emoji row and frame padding. Actual Reno10 rectangles are needed before another geometry patch. No source-level fix is claimed for that band yet. XML parsing and `git diff --check` pass. Local Gradle tests are blocked because Gradle 8.14.4 is not cached and network sockets are unavailable. No build/APK/signature/device check has happened for this working tree.
+
+Parakeet Ultra remains a benchmark/migration plan; current engine/model are untouched. Official candidate is the 671 MB sherpa-onnx INT8 export of Moondream Parakeet Ultra, CC-BY-4.0. ContextLM remains inactive because prior held-out quality lost to native. Follow the explicit quality/privacy/device gates in the linked plan.
+
 ## Current owner GO status — 2026-11-21
 
 The cumulative P0–P4 software scope shipped as original-signed v1.0.223; exact-SHA debug/full-suite and original-signer gates passed. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md) for the Reno10 physical acceptance checklist. The workspace has no adb/device, so install/update, visual, accessibility, audio-routing/WER and device latency gates remain open and must not be called passed. The ContextLM gate intentionally rejected activation because held-out proxy recall lost to native; B16B synthetic evaluator tests are not native-decoder quality evidence. Latest APK SHA-256 `eb7ce3b5bb13c4ce9b22e4f60fb1f2c8fd4da8adaba367ec1984d11876b3dce1`.

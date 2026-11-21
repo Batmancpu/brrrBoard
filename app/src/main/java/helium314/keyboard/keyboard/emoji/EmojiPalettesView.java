@@ -738,15 +738,23 @@ public final class EmojiPalettesView extends LinearLayout
         if (headerGlass != null) headerGlass.setEmojiContentTone(toneEnabled, dark);
         if (bottomGlass != null) bottomGlass.setEmojiContentTone(toneEnabled, dark);
         if (headerGlass != null) headerGlass.setVisibility(View.VISIBLE);
-        getRecentsKeyboard().flushPendingRecentKeys();
-        updateAdaptiveEmojiOrder();
+        final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
+        recentsKeyboard.flushPendingRecentKeys();
+        final int maxRankedCount = Math.min(recentsKeyboard.getMaxKeyCount(),
+                Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
+        // One bounded editor-context read and one rank pass feed both the
+        // visible Smart row and the Recents ordering. Avoid duplicate Binder
+        // queries/ranking while the keyboard is opening.
+        final List<BrrSmartEmojiEngine.Pick> contextPicks = readContextEmojiPicks(
+                editorInfo, Math.max(5, maxRankedCount));
+        updateAdaptiveEmojiOrder(recentsKeyboard, contextPicks, maxRankedCount);
         mMainKeyboardActionListener = keyboardActionListener;
         mKeyboardActionListener = keyboardActionListener;
         if (mSearchMode) {
             exitSearchMode(false, false);
         }
         setSearchText("", 0);
-        updateContextSmartPicks(editorInfo);
+        updateContextSmartPicks(editorInfo, contextPicks);
 
         if (mCategoryPagerAdapter != null && mNavigationSession.consumeResetOnOpen()) {
             // Reset only navigation, never actual Emoji Recents or learned data.
@@ -2123,7 +2131,26 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     /** Ephemeral, reviewed Smart picks. Actual saved Recents remain in their grid. */
-    private void updateContextSmartPicks(final EditorInfo editorInfo) {
+    private List<BrrSmartEmojiEngine.Pick> readContextEmojiPicks(
+            final EditorInfo editorInfo, final int maxPicks) {
+        if (!EmojiContextEligibility.isEligible(editorInfo,
+                Settings.getValues().mIncognitoModeEnabled)) return List.of();
+        final LatinIME ime = findHostingIme(getContext());
+        if (ime == null || ime.getCurrentInputEditorInfo() != editorInfo) return List.of();
+        final InputConnection connection = ime.getCurrentInputConnection();
+        if (connection == null) return List.of();
+        final CharSequence beforeCursor;
+        try {
+            beforeCursor = connection.getTextBeforeCursor(160, 0);
+        } catch (RuntimeException unavailableEditor) {
+            return List.of();
+        }
+        return BrrSmartEmojiEngine.suggest(
+                getContext(), editorInfo, beforeCursor, maxPicks, false);
+    }
+
+    private void updateContextSmartPicks(final EditorInfo editorInfo,
+            final List<BrrSmartEmojiEngine.Pick> candidates) {
         mHasContextSmartPicks = false;
         mContextSmartEditor = null;
         if (mContextSmartRow == null) return;
@@ -2138,24 +2165,9 @@ public final class EmojiPalettesView extends LinearLayout
             updateContextSmartVisibility();
             return;
         }
-        final InputConnection connection = ime.getCurrentInputConnection();
-        if (connection == null) {
-            updateContextSmartVisibility();
-            return;
-        }
-        final CharSequence beforeCursor;
-        try {
-            beforeCursor = connection.getTextBeforeCursor(160, 0);
-        } catch (RuntimeException unavailableEditor) {
-            updateContextSmartVisibility();
-            return;
-        }
-        // Empty prose fields can still show app-appropriate learned/frequent
-        // picks; no blank Smart row and no host text is stored.
-        final List<BrrSmartEmojiEngine.Pick> candidates = BrrSmartEmojiEngine.suggest(
-                getContext(), editorInfo, beforeCursor, 5, false);
         final float density = getResources().getDisplayMetrics().density;
-        for (final BrrSmartEmojiEngine.Pick candidate : candidates) {
+        for (final BrrSmartEmojiEngine.Pick candidate : candidates.subList(
+                0, Math.min(5, candidates.size()))) {
             final Key key = mEmojiCategory.findEmojiKey(candidate.emoji);
             if (key == null) continue;
             final TextView cell = new TextView(getContext());
@@ -2229,30 +2241,13 @@ public final class EmojiPalettesView extends LinearLayout
         return null;
     }
 
-    private void updateAdaptiveEmojiOrder() {
-        if (Settings.getValues().mIncognitoModeEnabled) {
-            return;
-        }
-        final DynamicGridKeyboard recentsKeyboard = getRecentsKeyboard();
-        final int maxRankedCount = Math.min(recentsKeyboard.getMaxKeyCount(),
-                Math.max(1, recentsKeyboard.getOccupiedColumnCount() * 3));
-        // The first Recents rows share the same app/field/context recommender.
-        // The historical Recents data still exists and is never replaced.
-        final LatinIME ime = findHostingIme(getContext());
-        final EditorInfo editor = ime == null ? null : ime.getCurrentInputEditorInfo();
-        CharSequence context = "";
-        if (EmojiContextEligibility.isEligible(editor, Settings.getValues().mIncognitoModeEnabled)
-                && ime != null) {
-            try {
-                final InputConnection connection = ime.getCurrentInputConnection();
-                if (connection != null) context = connection.getTextBeforeCursor(160, 0);
-            } catch (RuntimeException ignored) {
-                context = "";
-            }
-        }
+    private void updateAdaptiveEmojiOrder(final DynamicGridKeyboard recentsKeyboard,
+            final List<BrrSmartEmojiEngine.Pick> candidates, final int maxRankedCount) {
+        if (Settings.getValues().mIncognitoModeEnabled) return;
+        // The first Recents rows share the Smart-row ranking. Historical
+        // Recent Emoji remain intact and are only reordered for this session.
         final ArrayList<String> ranked = new ArrayList<>();
-        for (final BrrSmartEmojiEngine.Pick pick : BrrSmartEmojiEngine.suggest(
-                getContext(), editor, context, maxRankedCount, false)) {
+        for (final BrrSmartEmojiEngine.Pick pick : candidates) {
             ranked.add(pick.emoji);
         }
         recentsKeyboard.prioritizeKeys(ranked, maxRankedCount);

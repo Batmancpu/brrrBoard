@@ -154,9 +154,11 @@ class PanelGlassOverlayView @JvmOverloads constructor(
             drawBlurredSource(canvas, content)
             fadeMask.shader = headerMaskShader ?: LinearGradient(
                 0f, 0f, 0f, height.toFloat(),
-                intArrayOf(Color.WHITE, Color.WHITE, 0xDFFFFFFF.toInt(),
-                    0x78FFFFFF, Color.TRANSPARENT),
-                floatArrayOf(0f, 0.20f, 0.48f, 0.78f, 1f),
+                // Begin translucent immediately; a fully opaque plateau at
+                // the top reads like a static ribbon instead of receding glass.
+                intArrayOf(0xE8FFFFFF.toInt(), 0xD0FFFFFF.toInt(),
+                    0x9CFFFFFF.toInt(), 0x4EFFFFFF, Color.TRANSPARENT),
+                floatArrayOf(0f, 0.18f, 0.42f, 0.72f, 1f),
                 Shader.TileMode.CLAMP
             ).also { headerMaskShader = it }
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), fadeMask)

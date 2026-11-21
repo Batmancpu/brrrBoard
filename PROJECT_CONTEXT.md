@@ -1,5 +1,11 @@
 # brrBoard project context
 
+## 2026-11-21 — Emoji/Toolbar performance work in progress
+
+Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Working tree started from `c91c9b9645c835a69675857e4fd897f43bff1cdc`. Toolbar UI candidate now uses a compact, horizontally scrollable one-row rail with transparent icons and preserved action routing/drag order. Shared Toolbar/Clipboard header fade starts translucent and progressively clears. Emoji open now shares one bounded context query/ranking between Smart row and Recents; the content-free `BrrImeBounds` probe captures pager, first Emoji row and outer-frame padding as well as prior bounds. These are unbuilt source changes; local Gradle could not download 8.14.4 because network sockets are blocked. XML parsing and `git diff --check` passed.
+
+The blank Emoji band remains unlocalized until the Reno10 trace identifies the first mismatched layer; do not add a guessed offset. Smart Emoji already has reviewed phrase/CLDR and encrypted opt-in personalization, but no ContextLM; prior held-out ContextLM evaluation lost to native, so no weights are activated. Ultra is a 671 MB model feasibility/quality plan only; existing Parakeet 110M is unchanged. No APK or device result exists for this working tree.
+
 ## 2026-11-21 — Software delivery released; device acceptance open
 
 The owner authorized the saved next-GO plan and clarified implementation must continue until the plan is done. v1.0.217 from `7910d96aeba5b2c45cadfaab6502218eaf31be0f` is only the first checkpoint, not completion. Its exact-SHA debug workflow **44897236271** and Obtainium workflow **44897236284** succeeded and published a non-prerelease APK (64,969,203 bytes; SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`). It preserves legacy Android NoiseSuppressor ON/OFF preferences and corrects README voice claims.
