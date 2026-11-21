@@ -2,7 +2,7 @@
 
 Date: 21 November 2026  
 Base: v1.0.227 source `ff2d082e`  
-Status: source is pushed to `main`; initial Android build compiled, but the full suite exposed one stale one-row layout assertion. Corrected source must pass exact-SHA CI and original signer before release.
+Status: **released as original-signed v1.0.230** from `ff33da1e1d5c3bc2cf1e1fdc49f47681986e89d4`.
 
 ## Implemented in source
 
@@ -15,9 +15,10 @@ Status: source is pushed to `main`; initial Android build compiled, but the full
 ## Validation and open gates
 
 - `git diff --check`: passed at initial review; rerun after all documentation edits.
-- Android compile: passed in debug workflow `44936337456` (APK built and verified). The full suite ran 522 tests and failed only `ToolbarPanelCompositionTest`, which asserted the old one-row count and 76x68dp tile size. The test is updated for the new two-row, 72x60dp design; a new exact-SHA run is required. Local Gradle 8.14.4 remains unavailable because `services.gradle.org` refuses connections.
-- The first correction commit `bdf953f6` was stopped before compilation by the repository's mandatory per-commit release-note gate; its test fix is intact. The corrected commit also updates `docs/releases/notes.json` and must run both exact-SHA workflows again.
-- APK and signed release: not produced by this source candidate. It must pass exact-SHA Android CI and the original signer workflow before being called released.
+- Android debug/full suite `44937170179`: passed, including 522 tests after updating `ToolbarPanelCompositionTest` to expect two rows and 72x60dp tiles.
+- Original signer `44937170230`: passed same-commit debug gate, signing and publication.
+- Signed APK: [v1.0.230](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.230), 64,969,203 bytes, SHA-256 `5ab4454364e4840a76e8cf31a566265daf17593b19feda0b4e558d2727a5176b`; independently downloaded and hash-verified.
+- CI recovery: first SHA `60d77e35` compiled and had 521/522 tests pass; the sole failure was the stale Toolbar layout assertion. First repair SHA `bdf953f6` was rejected before compilation because the required release notes file was omitted. Final SHA `ff33da1e` included the test and notes correction and passed both gates.
 - Reno10 visual/touch/accessibility and Emoji top-gap root cause: not verified. The repository includes a content-free `BrrImeBounds` probe, but no Reno10 trace or adb device is available here. Do not add a guessed margin or claim that the gap is fixed.
 - ContextLM: not activated or packaged. The existing candidate lost held-out Recall@3 versus the native proxy, and held-out fusion selected native-only (neural weight 0.0); the runtime rejects unapproved manifests. A generic on-device LLM is not a substitute for measured keyboard prediction quality, field privacy, memory and latency.
 - Voice: keep the established Parakeet TDT 110M unchanged. The Ultra export is hundreds of MB and has no matched English/Hinglish WER, actual-device latency, memory, thermal or cancellation win. One-time model bundling authorization does not make Ultra an evidence-based upgrade.
