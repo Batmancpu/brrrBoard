@@ -2110,13 +2110,15 @@ public class LatinIME extends InputMethodService implements
     public void onEvent(@NonNull final Event event) {
         // Keep only the time value: never retain the entered character, editor,
         // package, or language. Private/protected fields are excluded.
-        if (!event.isFunctionalKeyEvent() && !event.isKeyRepeat() && !event.isDead()
+        final boolean measureKeyLatency = !event.isFunctionalKeyEvent()
+                && !event.isKeyRepeat() && !event.isDead()
                 && Character.isLetter(event.getCodePoint())
                 && !ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(),
                         mSettings.getCurrent().mIncognitoModeEnabled)
                 && !SecureAppsPolicy.isSecure(KtxKt.prefs(this),
                         getCurrentInputEditorInfo() == null ? null
-                                : getCurrentInputEditorInfo().packageName)) {
+                                : getCurrentInputEditorInfo().packageName);
+        if (measureKeyLatency) {
             helium314.keyboard.latin.brain.BrainPerformanceMetrics
                     .beginKeyToSuggestionPreDraw();
         }
@@ -2143,9 +2145,16 @@ public class LatinIME extends InputMethodService implements
                 || event.getKeyCode() == KeyCode.GIFS || event.getKeyCode() == KeyCode.STICKERS) {
             return;
         }
+        final long transactionStarted = measureKeyLatency
+                ? helium314.keyboard.latin.brain.BrainPerformanceMetrics.begin() : 0L;
         final InputTransaction completeInputTransaction = mInputLogic.onCodeInput(mSettings.getCurrent(), event,
                 mKeyboardSwitcher.getKeyboardShiftMode(),
                 mKeyboardSwitcher.getCurrentKeyboardScript(), mHandler);
+        if (transactionStarted > 0) {
+            helium314.keyboard.latin.brain.BrainPerformanceMetrics.end(
+                    helium314.keyboard.latin.brain.BrainPerformanceMetrics.Stage.KEY_TO_INPUT_TRANSACTION,
+                    transactionStarted);
+        }
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
     }

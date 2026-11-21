@@ -83,4 +83,13 @@ public class BrainPerformanceMetricsTest {
         assertEquals(0, BrainPerformanceMetrics.snapshot(
                 BrainPerformanceMetrics.Stage.TYPING).totalRequests);
     }
+
+    @Test public void inputTransactionTimingUsesAnIndependentStage() {
+        BrainPerformanceMetrics.record(
+                BrainPerformanceMetrics.Stage.KEY_TO_INPUT_TRANSACTION, 1_500_000L);
+        assertEquals(1, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.KEY_TO_INPUT_TRANSACTION).totalRequests);
+        assertEquals(0, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW).totalRequests);
+    }
 }

@@ -13,7 +13,8 @@ import java.util.Arrays;
  */
 public final class BrainPerformanceMetrics {
     public enum Stage {
-        TYPING, NEXT_WORD, SWIPE, SMART_EMOJI, STRIP_UPDATE, KEY_TO_SUGGESTION_PREDRAW
+        TYPING, NEXT_WORD, SWIPE, SMART_EMOJI, KEY_TO_INPUT_TRANSACTION,
+        STRIP_UPDATE, KEY_TO_SUGGESTION_PREDRAW
     }
 
     private static final int WINDOW = 128;

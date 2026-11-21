@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Add privacy-safe first-suggestion latency diagnostics with P50/P95/P99 reporting to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
+  "summary": "Add privacy-safe input and first-suggestion latency diagnostics with P50/P95/P99 reporting to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
   "changes": [
     {
       "title": "Measure first-suggestion responsiveness",
-      "detail": "BR Brain now reports local time from a letter key event to the next suggestion-strip pre-draw and synchronous suggestion-strip update time, separately from dictionary computation time, with P50/P95/P99 over a bounded recent sample window. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards stale samples, and keeps measurements only in memory. A pre-draw is not proof that the display presented the frame."
+      "detail": "BR Brain now reports local input-transaction time, suggestion-strip update time, and time from a letter key event to the next suggestion-strip pre-draw, separately from dictionary computation time, with P50/P95/P99 over a bounded recent sample window. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards stale samples, and keeps measurements only in memory. These values are not touchscreen-to-photon latency; a pre-draw is not proof that the display presented the frame."
     },
     {
       "title": "Keep voice processing choices during update",

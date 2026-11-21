@@ -1,8 +1,8 @@
 # brrBoard agent instructions
 
-## 2026-11-21 — GO in progress; v1.0.220 is latest checkpoint
+## 2026-11-21 — GO in progress; v1.0.221 is latest checkpoint
 
-The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. v1.0.220 (`11f3666b9067bd5e3e99259a028a0fa0b8ce49da`) is a checkpoint, not completion. Exact-SHA debug/full suite `44900826645` and original signer `44900826663` succeeded; APK SHA-256 `195e58657eaad86c21ee52ea7ce207add82e5e0cb17796664d5fd72a26d4a923`. Continue from `docs/NEXT_GO_MASTER_PLAN_2026_11_21.md`; do not report completion until all software gates and a fresh original-signed APK are delivered. Current source adds P50/P95/P99 to bounded privacy-safe timing windows and awaits CI. No adb/device was available here.
+The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. v1.0.221 (`74f74806cb6bd440670905463eca6746520e7fd1`) is a checkpoint, not completion. Exact-SHA debug/full suite `44901548362` and original signer `44901548390` succeeded; APK SHA-256 `40efc381c6928f37ec41ecac14d8178ad0f6c96a7e2a7b31b48e41e475572a0f`. Continue from `docs/NEXT_GO_MASTER_PLAN_2026_11_21.md`; do not report completion until all software gates and a fresh original-signed APK are delivered. Current source adds privacy-gated input-transaction processing time to the bounded timing dashboard and awaits CI. No adb/device was available here.
 
 Existing QuickType/native strip improvements are present from earlier signed releases; the neural ContextLM remains unshipped because independent held-out candidate quality was worse than native. Oppo visual, mic/WER and install/update acceptance remain device checks, not claimed passed.
 
