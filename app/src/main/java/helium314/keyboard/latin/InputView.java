@@ -23,8 +23,11 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import helium314.keyboard.accessibility.AccessibilityUtils;
+import helium314.keyboard.keyboard.Key;
+import helium314.keyboard.keyboard.Keyboard;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.MainKeyboardView;
+import helium314.keyboard.keyboard.emoji.EmojiPageKeyboardView;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.suggestions.MoreSuggestionsView;
@@ -165,7 +168,9 @@ public final class InputView extends FrameLayout {
                 final View pager = findViewById(R.id.emoji_pager);
                 appendGeometry(dimensions, "pager", pager);
                 appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
-                appendGeometry(dimensions, "firstEmojiRow", findFirstEmojiRow(pager));
+                final View firstRow = findFirstEmojiRow(pager);
+                appendGeometry(dimensions, "firstEmojiRow", firstRow);
+                appendFirstEmojiKeyBand(dimensions, firstRow);
                 appendGeometry(dimensions, "footer", findViewById(R.id.board_footer));
                 appendWindowInsets(dimensions, getRootView());
                 dimensions.append(" orientation=")
@@ -192,6 +197,51 @@ public final class InputView extends FrameLayout {
         if (pager == null) return null;
         final View row = pager.findViewById(R.id.emoji_keyboard_page);
         return row != null && row.getVisibility() == VISIBLE ? row : null;
+    }
+
+    /** Reports the drawn first-key band only; key labels and Emoji values are never inspected. */
+    private static void appendFirstEmojiKeyBand(final StringBuilder report, final View row) {
+        report.append(" firstKeyBand=");
+        if (!(row instanceof EmojiPageKeyboardView)) {
+            report.append("unavailable");
+            return;
+        }
+        final Keyboard keyboard = ((EmojiPageKeyboardView) row).getKeyboard();
+        if (keyboard == null || keyboard.getSortedKeys().isEmpty()) {
+            report.append("unavailable");
+            return;
+        }
+        int top = Integer.MAX_VALUE;
+        int bottom = Integer.MIN_VALUE;
+        int left = Integer.MAX_VALUE;
+        int right = Integer.MIN_VALUE;
+        for (final Key key : keyboard.getSortedKeys()) {
+            if (key.getWidth() <= 0 || key.getHeight() <= 0) continue;
+            final int keyTop = key.getY();
+            if (keyTop < top) {
+                top = keyTop;
+                bottom = keyTop + key.getHeight();
+                left = key.getX();
+                right = key.getX() + key.getWidth();
+            } else if (keyTop == top) {
+                bottom = Math.max(bottom, keyTop + key.getHeight());
+                left = Math.min(left, key.getX());
+                right = Math.max(right, key.getX() + key.getWidth());
+            }
+        }
+        if (top == Integer.MAX_VALUE) {
+            report.append("empty");
+            return;
+        }
+        final int[] location = new int[2];
+        row.getLocationOnScreen(location);
+        final int screenTop = location[1] + row.getPaddingTop() + top;
+        report.append(location[0] + row.getPaddingLeft() + left).append(',')
+                .append(screenTop).append(':').append(right - left).append('x')
+                .append(bottom - top).append(" localTop=").append(top)
+                .append(" viewPaddingTop=").append(row.getPaddingTop())
+                .append(" keyboardTopPadding=").append(keyboard.mTopPadding)
+                .append(" verticalGap=").append(keyboard.mVerticalGap);
     }
 
     private static void appendGeometry(final StringBuilder report, final String label,
