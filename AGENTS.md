@@ -1,8 +1,8 @@
 # brrBoard agent instructions
 
-## 2026-11-21 — GO in progress; v1.0.217 is the first checkpoint
+## 2026-11-21 — GO in progress; v1.0.219 is latest checkpoint
 
-The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. v1.0.217 (`7910d96aeba5b2c45cadfaab6502218eaf31be0f`) is only the first checkpoint. Exact-SHA debug `44897236271` and Obtainium `44897236284` succeeded; APK SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`. Continue from `docs/NEXT_GO_MASTER_PLAN_2026_11_21.md`; do not report completion until all software gates and a fresh original-signed APK are delivered. Current P0 diagnostic metric and tests are pending CI. Local Gradle download is blocked by runtime network restrictions.
+The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. v1.0.219 (`8677ada9f9103facd47e939a93e21d9833ec2aa0`) is a later checkpoint, not completion. Exact-SHA debug/full suite `44899943405` and original signer `44899943350` succeeded; APK SHA-256 `3ca7f55c2b9249077fde6d30f7f9e764ef9a8525051aee06219e82f282536945`. Continue from `docs/NEXT_GO_MASTER_PLAN_2026_11_21.md`; do not report completion until all software gates and a fresh original-signed APK are delivered. Current source adds synchronous strip-update timing and awaits CI. Local Gradle download is blocked by runtime network restrictions.
 
 Existing QuickType/native strip improvements are present from earlier signed releases; the neural ContextLM remains unshipped because independent held-out candidate quality was worse than native. Oppo visual, mic/WER and install/update acceptance remain device checks, not claimed passed.
 

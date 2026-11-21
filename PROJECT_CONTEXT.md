@@ -1,10 +1,10 @@
 # brrBoard project context
 
-## 2026-11-21 — GO in progress; v1.0.217 is first checkpoint
+## 2026-11-21 — GO in progress; v1.0.219 is latest checkpoint
 
 The owner authorized the saved next-GO plan and clarified implementation must continue until the plan is done. v1.0.217 from `7910d96aeba5b2c45cadfaab6502218eaf31be0f` is only the first checkpoint, not completion. Its exact-SHA debug workflow **44897236271** and Obtainium workflow **44897236284** succeeded and published a non-prerelease APK (64,969,203 bytes; SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`). It preserves legacy Android NoiseSuppressor ON/OFF preferences and corrects README voice claims.
 
-Existing QuickType/native strip improvements are present from earlier signed releases; the neural ContextLM remains unshipped because independent held-out candidate quality was worse than native. Next P0 source increment adds a content-free in-memory key-to-suggestion-strip pre-draw metric, separately from decoder computation. Password, secure-app, no-personal-learning and incognito fields are excluded. Focused tests are added; exact-SHA CI and signer are pending. Local Gradle download is blocked by restricted outbound network. Continue P0–P4 from the master plan; device acceptance remains pending.
+The P0 key-to-first-suggestion-strip pre-draw diagnostic shipped in original-signed v1.0.219 from `8677ada9f9103facd47e939a93e21d9833ec2aa0`; exact-SHA debug/full suite `44899943405` and signer `44899943350` passed. APK SHA-256 `3ca7f55c2b9249077fde6d30f7f9e764ef9a8525051aee06219e82f282536945`, size 64,969,203 bytes. Password, secure-app, no-personal-learning and incognito fields are excluded; metrics stay in memory and contain no text or app identity. Current source adds synchronous strip-update timing as a separate P0 breakdown; its CI and release are pending. Existing QuickType/native strip improvements are present from earlier signed releases; ContextLM remains disabled because held-out quality lost to native. Continue P0–P4 from the master plan; device acceptance remains pending.
 
 
 ## 2026-11-21 — owner GO: preserve legacy voice noise choices, exact-SHA release pending

@@ -603,6 +603,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val service = LatinIME.getInstance()
         val eligibleEditor = EmojiContextEligibility.isEligible(
             service?.currentInputEditorInfo, Settings.getValues().mIncognitoModeEnabled)
+        val stripUpdateStarted = if (eligibleEditor) BrainPerformanceMetrics.begin() else 0L
         val suggestionsForStrip = if (
             eligibleEditor
                 && !suggestions.isEmpty
@@ -683,6 +684,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                     BrainPerformanceMetrics.recordKeyToSuggestionPreDraw()
                 }
             }
+        }
+        if (stripUpdateStarted > 0) {
+            BrainPerformanceMetrics.end(BrainPerformanceMetrics.Stage.STRIP_UPDATE,
+                stripUpdateStarted)
         }
     }
 

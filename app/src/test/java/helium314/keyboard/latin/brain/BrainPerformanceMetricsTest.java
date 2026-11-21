@@ -73,4 +73,12 @@ public class BrainPerformanceMetricsTest {
         assertEquals(0, BrainPerformanceMetrics.snapshot(
                 BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW).totalRequests);
     }
+
+    @Test public void stripUpdateTimingUsesAnIndependentBoundedStage() {
+        BrainPerformanceMetrics.record(BrainPerformanceMetrics.Stage.STRIP_UPDATE, 3_000_000L);
+        assertEquals(1, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.STRIP_UPDATE).totalRequests);
+        assertEquals(0, BrainPerformanceMetrics.snapshot(
+                BrainPerformanceMetrics.Stage.TYPING).totalRequests);
+    }
 }

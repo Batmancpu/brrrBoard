@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,6 +70,9 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
     val wordSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.NEXT_WORD) }
     val swipeSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SWIPE) }
     val emojiSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SMART_EMOJI) }
+    val stripUpdateSpeed = remember(refresh) {
+        BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.STRIP_UPDATE)
+    }
     val firstSuggestionFrame = remember(refresh) {
         BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW)
     }
@@ -107,7 +109,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
 
             Text("Real-time processing speed",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("Measured locally. Typing, next-word, swipe and emoji values are computation times per request. First suggestion is the time from a letter key event until the suggestion strip's next pre-draw; Android does not expose proof that the frame reached the display. None of these values measures accuracy or cloud latency. Values update every 1.8 seconds while this page is open.",
+            Text("Measured locally. Typing, next-word, swipe and emoji values are computation times per request. Strip update is synchronous time spent updating suggestion views. First suggestion is the time from a letter key event until actual suggestion content reaches the strip's next pre-draw; Android does not expose proof that the frame reached the display. None of these values measures accuracy or cloud latency. Values update every 1.8 seconds while this page is open.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 LatencyMetric("Typing", typingSpeed, Modifier.weight(1f))
@@ -118,8 +120,8 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                 LatencyMetric("Smart Emoji", emojiSpeed, Modifier.weight(1f))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                LatencyMetric("Strip update", stripUpdateSpeed, Modifier.weight(1f))
                 LatencyMetric("First suggestion", firstSuggestionFrame, Modifier.weight(1f))
-                Spacer(modifier = Modifier.weight(1f))
             }
             Text("The 95th percentile uses up to the most recent 128 eligible requests. A dash means this process hasn't measured that activity yet. Password, secure-app, no-personal-learning and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)

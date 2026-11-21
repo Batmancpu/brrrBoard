@@ -2,7 +2,7 @@
 
 ## Current owner GO status — 2026-11-21
 
-GO remains in progress; v1.0.217 is only the first delivery checkpoint. The owner explicitly corrected the prior premature completion claim and directed implementation of the full saved plan. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md), preserve package/certificate/data/privacy contracts, and do not stop at another small checkpoint. Current P0 source increment measures content-free letter-key-to-suggestion-strip pre-draw latency in memory, with password, secure-app, no-personal-learning and incognito editors excluded. Focused tests are added; exact-SHA debug/full suite, original-signer build, release publication and Oppo checks are pending. Local Gradle download is blocked by network restrictions. ContextLM stays disabled because held-out quality lost to native.
+GO remains in progress; v1.0.219 is a checkpoint, not completion. The owner explicitly corrected the prior premature completion claim and directed implementation of the full saved plan. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md), preserve package/certificate/data/privacy contracts, and do not stop at another small checkpoint. The key-to-first-suggestion pre-draw diagnostic shipped in v1.0.219 with exact-SHA debug/full-suite and original-signer success. Current source adds eligible-editor synchronous strip-update timing; CI, signer and release are pending. Password, secure-app, no-personal-learning and incognito fields are excluded. Local Gradle download is blocked by network restrictions. ContextLM stays disabled because held-out quality lost to native. Oppo acceptance remains pending.
 
 ## 2026-11-21 — GO software delivery verified: signed v1.0.217
 

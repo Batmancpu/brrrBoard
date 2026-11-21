@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Add a privacy-safe first-suggestion latency diagnostic to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
+  "summary": "Add privacy-safe first-suggestion and suggestion-strip responsiveness diagnostics to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
   "changes": [
     {
       "title": "Measure first-suggestion responsiveness",
-      "detail": "BR Brain now reports local time from a letter key event to the next suggestion-strip pre-draw, separately from dictionary computation time. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards samples older than two seconds, and keeps measurements only in memory. A pre-draw is not proof that the display presented the frame."
+      "detail": "BR Brain now reports local time from a letter key event to the next suggestion-strip pre-draw and synchronous suggestion-strip update time, separately from dictionary computation time. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards stale samples, and keeps measurements only in memory. A pre-draw is not proof that the display presented the frame."
     },
     {
       "title": "Keep voice processing choices during update",
