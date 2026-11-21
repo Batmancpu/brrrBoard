@@ -106,8 +106,12 @@ public class BrPersonalContextFeaturesTest {
         final BrPersonalContextFeatures.Snapshot turnedOff =
                 BrPersonalContextFeatures.fromNative(context, nativeWords, true, false);
         assertFalse(turnedOff.hasInheritedPersonalSignals);
-        assertEquals(1, turnedOff.candidates.size());
+        // Personal-history entries disappear, but an independently offered main-dictionary
+        // "meeting" remains legal and must not be erased by an OFF setting.
+        assertEquals(2, turnedOff.candidates.size());
         assertEquals("office", turnedOff.candidates.get(0).word);
+        assertEquals("meeting", turnedOff.candidates.get(1).word);
+        assertEquals(Source.NATIVE, turnedOff.candidates.get(1).source);
 
         final BrPersonalContextFeatures.Snapshot protectedEditor =
                 BrPersonalContextFeatures.fromNative(context, nativeWords, false, true);

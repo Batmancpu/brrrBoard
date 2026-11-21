@@ -18,9 +18,16 @@ Unsigned experiment manifest rejected by Java reference loader. A separate
 nonfeature-removing size fix instances material symbols settings font at the
 exact previously used axes, reducing raw TTF 15.08 MB to ~1.7 MB while
 keeping all mapped glyph outlines; physical styling and APK ZIP savings
-pending. Local Gradle distribution missing. Publish only main fast-forward
-after notes and all handoffs; poll exact-SHA debug and original-signed release
+pending. Local Gradle distribution missing. The first main fast-forward is
+published; publish only corrected fast-forward after notes and all handoffs;
+poll exact-SHA debug and original-signed release
 and compare total bytes. See [ContextLM ledger](BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md).
+**First CI attempt:** `4d53825` debug `44885924143` compiled and passed APK
+identity but failed 1/508 unit tests at `BrPersonalContextFeaturesTest:109`:
+it expected one remaining native result after personal OFF while the actual
+correct list contains `office` and an independent main-dictionary `meeting`.
+Signed `44885924121` correctly refused publication. Update assertion to two
+native results and rerun exact-SHA CI. No released APK or live LM yet.
 
 ## 2026-11-21 — brrClean default + online-during-recording offline dictation
 

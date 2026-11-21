@@ -21,7 +21,7 @@ Target self-trained causal DFSMN: 5 memory layers, 128 channels, 4 taps, tied ca
 - `HinGE`, CC BY 4.0, pinned revision `e25a10382d9adb77f3a4f03b721fbd0a43c0de4c`. The human-generated Hinglish list and English parallel sentence are used; verify subcorpus IITB parallel-source rights separately before redistributing derived weights.
 - Verify all annotations' source rights, Llama-derived outputs, train/eval partition independence, public-source PII filtering, attribution and model-card provenance before any bundled weights. Personal phone text, contacts, clipboard, voice/audio, app labels and private dictionary are **never training data**.
 
-## Local source work, no GitHub push as of current ledger
+## Prepared source work, first CI attempt blocked by one test assertion
 
 - `brain/BrPersonalContextFeatures.java`: bounded `NgramContext` + 12 native candidate feature input; direct learned-history / user-dictionary bits, native score/rank, contacts/app/host exclusions; **no persisted private history copy**.
 - `brain/BrContextLmInt8.java`: bounded asset reader, SHA-256 checks, strict dimensions/architecture, CPU-only reference evaluator; no packaged model yet.
@@ -35,7 +35,7 @@ Target self-trained causal DFSMN: 5 memory layers, 128 channels, 4 taps, tied ca
 3. Corrective training samples **hard candidates from observed offline n-gram continuations** instead of random words. After three epochs, synthetic development top-1 reached **30.47% vs synthetic native proxy 14.53%**, but the more honest held-out ranking STILL FAILED: `tn` 20.20% vs n-gram 23.19%, `mt` 32.24% vs 36.17%, `hinge` 13.25% vs 16.87% (Recall@3; 802/915/83 cases). These dev and held-out sample distributions differ; the dev percentages must never be represented as true predictor improvement.
 4. `calibrate_fusion.py` tested native+neural blending, selecting weight only on 1,600 dev examples, then scoring an independent 1,600-case held-out proxy. **The best dev blend was 0.0 neural / 1.0 native**, 31.50% Recall@3, and the untouched holdout native baseline was 30.625%; any positive neural fraction reduced overall dev quality. This is a direct evidence-based STOP for enabling the current neural scorer. The training-export manifest is explicitly marked **NOT FOR APK** and the Java runtime loader rejects unapproved manifests. There are still **no pretrained weights in the app**.
 5. Repeated 512-case quantized-parity check on the corrected hard-negative model: **100% top-1 agreement** versus floating-point reference, worst score delta **0.02717**. This only tests numerics; the model still fails held-out ranking and real native/Oppo criteria.
-6. Local Gradle 8.14.4 cannot bootstrap because `services.gradle.org` is unreachable; JVM/Android compilation and the 500+-test suite require exact-SHA GitHub debug CI. No emulator/adb or actual Oppo access exists in this environment. Do not claim physical installability or latency until evidence.
+6. Local Gradle 8.14.4 cannot bootstrap because `services.gradle.org` is unreachable. Remote Android source **compiled** at `4d53825` but the full 508-test suite had one new assertion failure; see recovery below. No emulator/adb or actual Oppo access exists here. Do not claim physical installability or latency until evidence.
 
 ## Safe APK-size optimization discovered while model remains gated
 
@@ -61,4 +61,28 @@ The settings/search icon face was `material_symbols_rounded.ttf`, a **15,080,092
 3. Validate Java INT8 runtime golden vectors and executor benchmarks; only once real candidate quality passes, integrate async shadow scoring using live native features without visual changes or privacy regressions.
 4. Confirm model licensing/provenance, build compact next-word index only if candidate recall improves, and require same-source original-signed size, privacy and real Oppo p95 before making any neural ranking active.
 
-**Unverified now:** JVM compilation, model real-quality gain, target-phone latency, final signed APK size, install/update, and any user-visible ContextLM improvement. No files pushed to GitHub yet.
+**Unverified now:** a fully green Android unit suite, model real-quality gain, target-phone latency, final signed APK size, install/update, and any user-visible ContextLM improvement. The first source candidate was published, but no accepted signed APK from it exists.
+
+## CI recovery after first preparatory main publication
+
+- The entire staged source tree was fast-forward-published on `main` at
+  `4d53825f2054eba4afd4919b198aa79c6c55a7b3`, after blob-level SHA
+  verification and a stable expected HEAD. It triggered debug
+  [44885924143](https://github.com/Batmancpu/brrrBoard/actions/runs/44885924143)
+  and original-signed Obtainium
+  [44885924121](https://github.com/Batmancpu/brrrBoard/actions/runs/44885924121).
+- Both debug and unsigned Obtainium APKs **compiled** and the debug APK
+  identity/embedded asset checks succeeded. The full Android suite reported
+  **508 completed, one failure**, in our newly added test
+  `BrPersonalContextFeaturesTest.upgradeUsesPreviouslyLearnedNativeWordAsActualModelInput`
+  line 109. The test incorrectly expected only `office` after personal OFF:
+  the native list legitimately also contains an independent ordinary-main
+  `meeting` candidate, and the adapter preserves it. Runtime logic is correct;
+  expected count is **two** and second source `NATIVE`. This recovery changes
+  only test expectations plus mandated handoff/release notes; do not remove
+  ordinary native suggestions to make a mistaken assertion pass.
+- Debug failed on the test gate, and signed Obtainium correctly failed its
+  same-commit debug-success gate. **No signed release from 4d53825 exists.**
+  The previous v1.0.214 is still the latest successful installed version.
+  A corrected source needs another exact-SHA full Android pass and original-
+  signer Obtainium success. The experimental neural weights remain absent.

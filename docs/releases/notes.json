@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "Compact settings font and safe ContextLM groundwork",
-      "detail": "Reduce the bundled variable settings/search icon font to its exact existing fixed visual style; mapped glyph outlines and names are preserved. Add a read-only adapter that passes current native suggestions and inherited user-history/user-dictionary signals as future neural model inputs, plus a bounded INT8 reference and fail-closed model-validation tests. The offline experimental model failed realistic prediction-quality gates: no model weights, runtime suggestion hook or changed predictions are shipped. Keep native learning, QuickType, swipe, voice, network policy, original package and signer unchanged. Real APK bytes, runtime stability and Oppo visuals require verification."
+      "detail": "Reduce the bundled variable settings/search icon font to its exact existing fixed visual style; mapped glyph outlines and names are preserved. Add a read-only adapter that passes current native suggestions and inherited user-history/user-dictionary signals as future neural model inputs, plus a bounded INT8 reference and fail-closed model-validation tests. Experimental model quality failed: no weights, suggestion hook or changed predictions ship. Correct one test expectation after the first CI build; runtime logic stays unchanged. Preserve native learning, QuickType, swipe, voice, network policy, package and signer. Signed APK bytes and Oppo visuals require verification."
     }
   ]
 }

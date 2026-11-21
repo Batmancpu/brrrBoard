@@ -13,11 +13,18 @@ hard-negative training still fell below held-out n-gram candidate Recall@3;
 neural fusion calibration is exploratory, not native/Oppo proof. Guard rejects
 experimental model manifest. A safe independent APK-size reduction replaces
 the 15.08 MB variable settings icon font with its ~1.7 MB identical fixed
-style; ~4,008 mapped glyph outlines and cmap preserved, but CI/Oppo checks
-remain. No release/push/Android compile claimed until exact source debug and
-original signer verify. Owner's previous signed APK: 70,900,211 bytes.
+style; ~4,008 mapped glyph outlines and cmap preserved, but Oppo checks
+remain. First candidate compiled on GitHub but cannot release until its
+corrected exact-source tests and original signer succeed. Owner's previous
+signed APK: 70,900,211 bytes.
 Full rationale, model failures, font hashes and risks in
 `docs/BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md`.
+First main candidate `4d53825` compiled; the 508-test debug suite found a
+single mistake in its **new** personalization-OFF test expectation: native
+main-dictionary `meeting` rightly remains beside `office`, for two results.
+No runtime code needs weakening. Debug `44885924143` failed and signed
+`44885924121` stopped at its matching debug gate; no new signed APK.
+Corrected test/docs/notes requires another full exact-SHA verification.
 
 ## 2026-11-21 — current owner-accepted brrClean, background chunked dictation
 

@@ -24,6 +24,12 @@ Keep voice/QuickType/native dictionary untouched, no Internet, original
 signer/package/main-only nonforce. Update all handoffs, post-v214 notes, exact-
 SHA full debug and signed Obtainium CI and ask owner for Oppo checks. No
 ContextLM capability or user-visible gain may be claimed until actual gates.
+**First CI recovery:** `4d53825` built debug and unsigned APKs, but 508
+Android tests included one bad new assertion (test line 109 expected only
+`office` with personalization OFF; native `meeting` remains valid too). Debug
+`44885924143` failed and signed `44885924121` correctly refused release.
+Correct only the test to expect both normal native candidates, retain privacy
+OFF filtering and all other native behavior; rerun exact-SHA tests and signer.
 
 ## 2026-11-21 — OWNER GO: default brrClean, real-time 5–6s private voice streaming
 

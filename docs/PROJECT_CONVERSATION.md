@@ -43,6 +43,13 @@ needs exact-source Android CI, signed APK byte comparison and owner Oppo
 visual acceptance. Existing personal dictionary, voice/GTCRN, swipe,
 QuickType, privacy, signer and package remain unchanged. Full source/evidence:
 `docs/BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md`.
+First remote `main` commit `4d53825` compiled both APK variants but debug
+Android unit suite had 1/508 failure in newly written personalization test:
+the OFF path intentionally rejects history but permits another ordinary
+main-dictionary candidate for the same word. Debug Actions `44885924143`
+failed; Obtainium `44885924121` stayed blocked and failed without signing.
+The agent fixed only the mistaken expected count and documented recovery;
+no native suggestions/learning/privacy logic was removed or changed.
 
 ## 2026-11-21 — owner GO for QuickType source, CI and signed release
 
