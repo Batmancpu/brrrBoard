@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Make the Toolbar compact and horizontally scrollable, refine progressive panel glass, and reduce duplicate context work when opening Emoji.",
+  "summary": "Make the Toolbar compact and horizontally scrollable, refine progressive panel glass, and expand privacy-safe Emoji gap diagnostics.",
   "changes": [
     {
       "title": "Scroll Toolbar actions horizontally",
@@ -13,6 +13,10 @@
     {
       "title": "Reuse Emoji context work on panel open",
       "detail": "Emoji opening reads one bounded context snapshot and shares one ranking pass between the Smart row and Recents ordering. The existing local privacy checks and explicit Emoji insertion behavior remain in place; no ContextLM or voice model weights are added."
+    },
+    {
+      "title": "Measure Emoji panel layout without capturing content",
+      "detail": "The one-shot Emoji geometry trace now includes measured and on-screen bounds, parent padding, layout margins, translations, scroll offsets, and system, IME, and gesture insets. It records no typed text, app identity, Emoji contents, or screenshots, making it possible to isolate the Reno10 top gap from actual layout evidence."
     }
   ]
 }

@@ -19,6 +19,8 @@ import android.view.VelocityTracker;
 import android.widget.FrameLayout;
 
 import androidx.core.view.ViewKt;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import helium314.keyboard.accessibility.AccessibilityUtils;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
@@ -165,6 +167,11 @@ public final class InputView extends FrameLayout {
                 appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
                 appendGeometry(dimensions, "firstEmojiRow", findFirstEmojiRow(pager));
                 appendGeometry(dimensions, "footer", findViewById(R.id.board_footer));
+                appendWindowInsets(dimensions, getRootView());
+                dimensions.append(" orientation=")
+                        .append(getResources().getConfiguration().orientation)
+                        .append(" density=")
+                        .append(getResources().getDisplayMetrics().density);
                 final View frame = findViewById(R.id.main_keyboard_frame);
                 if (frame != null) {
                     dimensions.append(" framePadding=")
@@ -195,7 +202,49 @@ public final class InputView extends FrameLayout {
         final int[] location = new int[2];
         view.getLocationOnScreen(location);
         report.append(location[0]).append(',').append(location[1])
-                .append(':').append(view.getWidth()).append('x').append(view.getHeight());
+                .append(':').append(view.getWidth()).append('x').append(view.getHeight())
+                .append(" measured=").append(view.getMeasuredWidth()).append('x')
+                .append(view.getMeasuredHeight()).append(" localY=").append(view.getY())
+                .append(" translationY=").append(view.getTranslationY())
+                .append(" scrollY=").append(view.getScrollY())
+                .append(" padding=").append(view.getPaddingLeft()).append(',')
+                .append(view.getPaddingTop()).append(',').append(view.getPaddingRight())
+                .append(',').append(view.getPaddingBottom());
+        final View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
+        if (parent != null) {
+            report.append(" parent=").append(parent.getWidth()).append('x')
+                    .append(parent.getHeight()).append(" parentPadding=")
+                    .append(parent.getPaddingLeft()).append(',').append(parent.getPaddingTop())
+                    .append(',').append(parent.getPaddingRight()).append(',')
+                    .append(parent.getPaddingBottom());
+        }
+        final ViewGroup.LayoutParams params = view.getLayoutParams();
+        if (params != null) {
+            report.append(" layout=").append(params.width).append('x').append(params.height);
+            if (params instanceof ViewGroup.MarginLayoutParams) {
+                final ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
+                report.append(" margins=").append(margins.leftMargin).append(',')
+                        .append(margins.topMargin).append(',').append(margins.rightMargin)
+                        .append(',').append(margins.bottomMargin);
+            }
+        }
+    }
+
+    private static void appendWindowInsets(final StringBuilder report, final View root) {
+        final WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
+        report.append(" windowInsets=");
+        if (insets == null) {
+            report.append("absent");
+            return;
+        }
+        final androidx.core.graphics.Insets bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars());
+        final androidx.core.graphics.Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+        final androidx.core.graphics.Insets gestures = insets.getInsets(
+                WindowInsetsCompat.Type.systemGestures());
+        report.append("bars:").append(bars.top).append(',').append(bars.bottom)
+                .append(" ime:").append(ime.top).append(',').append(ime.bottom)
+                .append(" gestures:").append(gestures.top).append(',').append(gestures.bottom);
     }
 
     @Override protected void onDetachedFromWindow() {

@@ -1,8 +1,8 @@
 # brrBoard project context
 
-## 2026-11-21 — v1.0.224 Emoji/Toolbar software shipped; Reno10 acceptance open
+## 2026-11-21 — v1.0.224 shipped; expanded Emoji gap trace pending release
 
-Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Source `4a5b6d9e6c750e97dd91152552acf056e7a0df1a` passed exact-SHA debug/full suite `44922263448` and original-signer release `44922263449`; signed v1.0.224 APK is 64,969,203 bytes, SHA-256 `bfcea040ed056fe90240934d33b59baed60f8516fdd60d4a3ca7b7a5a0e53e7c`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.224. Toolbar is a compact horizontal rail, shared Toolbar/Clipboard top fade is progressive, Emoji-open context ranking is reused once, and the content-free `BrrImeBounds` probe now includes the first Emoji row and frame padding. The blank Emoji band is still unlocalized until Reno10 view bounds are measured.
+Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Source `4a5b6d9e6c750e97dd91152552acf056e7a0df1a` passed exact-SHA debug/full suite `44922263448` and original-signer release `44922263449`; signed v1.0.224 APK is 64,969,203 bytes, SHA-256 `bfcea040ed056fe90240934d33b59baed60f8516fdd60d4a3ca7b7a5a0e53e7c`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.224. Toolbar is a compact horizontal rail, shared Toolbar/Clipboard top fade is progressive, and Emoji-open context ranking is reused once. The next source candidate extends `BrrImeBounds` with screen/measured/local parent geometry and root system/IME/gesture insets. The blank Emoji band remains unlocalized until a Reno10 trace arrives.
 
 Smart Emoji already has reviewed phrase/CLDR and encrypted opt-in personalization, but no ContextLM; prior held-out ContextLM evaluation lost to native, so no weights are activated. Ultra is a 671 MB model feasibility/quality plan only; existing Parakeet 110M is unchanged. Reno10 top-gap/visual/drag/touch acceptance and actual build install remain owner-device checks.
 
