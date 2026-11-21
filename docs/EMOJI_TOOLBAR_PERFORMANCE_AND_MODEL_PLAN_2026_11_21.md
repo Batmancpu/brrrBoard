@@ -76,11 +76,11 @@ Scope: owner-directed implementation after the current v1.0.223 release. The goa
 |---|---|---|
 | A | Plan + baseline audit | This document and source audit complete; root cause awaits device trace |
 | B | Emoji geometry diagnosis and repair | Expanded one-shot content-free `BrrImeBounds` shipped in v1.0.225. A follow-up source change now also reports the drawn first-key band (position/size only) plus keyboard top padding, distinguishing row-container placement from internal key placement. That follow-up is pending CI/release. Actual Oppo trace, first divergent boundary, and corrective source remain **open pending device measurement**. |
-| C | Horizontal compact Toolbar and progressive material/performance | Source shipped in v1.0.224; exact-SHA CI passed. Reno10 drag/touch/visual acceptance remains open. |
+| C | Horizontal compact Toolbar and progressive material/performance | Compact rail and progressive material shipped in v1.0.224. A follow-up adds drag-edge autoscroll and pointer-position reorder targeting with policy regression tests; pending exact-SHA CI/release and Reno10 drag/touch/visual acceptance. |
 | D | Smart Emoji latency, cancellation, quality and robustness | One bounded editor-context query/ranking pass now feeds Smart row + Recents and passed the full Android suite. Async lifecycle guards, held-out quality and profiling remain open. |
 | E | ContextLM evaluation/integration decision | Reproducible holdout report; activated only if it wins gates |
 | F | 0.6B Parakeet feasibility | Export/license/device benchmark; model migration only if it wins gates |
-| G | UI and diagnostic source releases | **v1.0.224 UI batch and v1.0.225 diagnostics shipped**, both after exact-SHA debug/full suite and original signature. The first-key geometry follow-up is in progress. Overall plan remains active; Reno10 geometry/visual and future gated model work remain. |
+| G | UI and diagnostic source releases | **v1.0.224 UI batch and v1.0.225 diagnostics shipped**, both after exact-SHA debug/full suite and original signature. First-key geometry and Toolbar drag-edge follow-ups are in progress. Overall plan remains active; Reno10 geometry/visual and future gated model work remain. |
 
 ## 21 November execution checkpoint
 

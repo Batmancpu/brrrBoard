@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.PorterDuff
 import android.graphics.drawable.Drawable
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.DragEvent
 import android.view.LayoutInflater
@@ -56,6 +58,32 @@ class AccessPointMenuView @JvmOverloads constructor(
     private var ownGridDragIndex = -1
     private val dragTargetScreenLocation = IntArray(2)
     private val gridScreenLocation = IntArray(2)
+    private val dragAutoScrollHandler = Handler(Looper.getMainLooper())
+    private var dragAutoScrollDirection = 0
+    private var dragAutoScrollX = 0f
+    private val dragAutoScroll = object : Runnable {
+        override fun run() {
+            val direction = dragAutoScrollDirection
+            if (direction == 0 || !scroll.isLaidOut || grid.width <= 0) return
+            val maxScroll = (grid.width - scroll.width + scroll.paddingLeft + scroll.paddingRight)
+                .coerceAtLeast(0)
+            val edge = (48f * resources.displayMetrics.density).coerceAtLeast(1f)
+            val penetration = if (direction < 0) {
+                (edge - dragAutoScrollX).coerceIn(0f, edge)
+            } else {
+                (dragAutoScrollX - (scroll.width - edge)).coerceIn(0f, edge)
+            }
+            val frameStep = ToolbarDragAutoScrollPolicy.frameStepPx(
+                resources.displayMetrics.density, penetration / edge)
+            val nextScroll = (scroll.scrollX + direction * frameStep).coerceIn(0, maxScroll)
+            if (nextScroll == scroll.scrollX) {
+                stopDragAutoScroll()
+                return
+            }
+            scroll.scrollTo(nextScroll, 0)
+            dragAutoScrollHandler.postDelayed(this, 16L)
+        }
+    }
 
     init {
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
@@ -72,6 +100,21 @@ class AccessPointMenuView @JvmOverloads constructor(
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }
         setOnDragListener(dropPinnedKeyListener)
         grid.setOnDragListener(dropPinnedKeyListener)
+        scroll.setOnDragListener { _, event ->
+            when (event.action) {
+                DragEvent.ACTION_DRAG_STARTED -> getToolbarKeyFromDragData(
+                    event.localState, event.clipData) != null
+                DragEvent.ACTION_DRAG_LOCATION -> {
+                    updateDragAutoScroll(event.x)
+                    true
+                }
+                DragEvent.ACTION_DRAG_EXITED, DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
+                    stopDragAutoScroll()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     fun setKeyboardActionListener(listener: KeyboardActionListener) {
@@ -189,15 +232,22 @@ class AccessPointMenuView @JvmOverloads constructor(
                     DragEvent.ACTION_DRAG_STARTED -> getToolbarKeyFromDragData(event.localState, event.clipData) != null
                     DragEvent.ACTION_DRAG_ENTERED -> {
                         if (ownGridDraggedView != null && ownGridDraggedView != v) {
-                            previewOwnGridMove(ownGridDraggedView, grid.indexOfChild(v))
+                            previewOwnGridMove(ownGridDraggedView, accessDropIndexFromEvent(v, event))
                         } else if (dragState?.source == ToolbarDragSource.PINNED_ROW) {
-                            previewPinnedKeyInAccessMenu(dragState.key, grid.indexOfChild(v))
+                            previewPinnedKeyInAccessMenu(dragState.key,
+                                accessDropIndexFromEvent(v, event))
                         }
                         true
                     }
                     DragEvent.ACTION_DRAG_LOCATION -> {
+                        updateDragAutoScroll(event.x + grid.left + v.left - scroll.scrollX)
+                        if (ownGridDraggedView != null && ownGridDraggedView != v) {
+                            previewOwnGridMove(ownGridDraggedView,
+                                accessDropIndexFromEvent(v, event))
+                        }
                         if (dragState?.source == ToolbarDragSource.PINNED_ROW) {
-                            previewPinnedKeyInAccessMenu(dragState.key, grid.indexOfChild(v))
+                            previewPinnedKeyInAccessMenu(dragState.key,
+                                accessDropIndexFromEvent(v, event))
                         }
                         true
                     }
@@ -206,6 +256,7 @@ class AccessPointMenuView @JvmOverloads constructor(
                         true
                     }
                     DragEvent.ACTION_DROP -> {
+                        stopDragAutoScroll()
                         if (ownGridDraggedView != null) {
                             grid.post {
                                 for (i in 0 until grid.childCount) {
@@ -226,6 +277,7 @@ class AccessPointMenuView @JvmOverloads constructor(
                         true
                     }
                     DragEvent.ACTION_DRAG_ENDED -> {
+                        stopDragAutoScroll()
                         grid.post {
                             for (i in 0 until grid.childCount) {
                                 grid.getChildAt(i).alpha = 1.0f
@@ -249,8 +301,13 @@ class AccessPointMenuView @JvmOverloads constructor(
     }
 
     private fun onPinnedKeyDropFromStrip(target: View, event: DragEvent): Boolean {
-        val dragState = event.localState as? ToolbarDragState ?: return false
-        if (dragState.source != ToolbarDragSource.PINNED_ROW) return false
+        val dragState = event.localState as? ToolbarDragState
+        if (event.action == DragEvent.ACTION_DRAG_LOCATION && dragState != null) {
+            target.getLocationOnScreen(dragTargetScreenLocation)
+            scroll.getLocationOnScreen(gridScreenLocation)
+            updateDragAutoScroll(event.x + dragTargetScreenLocation[0] - gridScreenLocation[0])
+        }
+        if (dragState?.source != ToolbarDragSource.PINNED_ROW) return false
         return when (event.action) {
             DragEvent.ACTION_DRAG_STARTED -> true
             DragEvent.ACTION_DRAG_ENTERED -> {
@@ -266,17 +323,42 @@ class AccessPointMenuView @JvmOverloads constructor(
                 true
             }
             DragEvent.ACTION_DROP -> {
+                stopDragAutoScroll()
                 alpha = 1.0f
                 commitPinnedKeyDropToAccess(dragState.key)
                 true
             }
             DragEvent.ACTION_DRAG_ENDED -> {
+                stopDragAutoScroll()
                 alpha = 1.0f
                 clearAccessDropPreview()
                 true
             }
             else -> true
         }
+    }
+
+    private fun updateDragAutoScroll(pointerXInViewport: Float) {
+        dragAutoScrollX = pointerXInViewport
+        val edge = 48f * resources.displayMetrics.density
+        val maxScroll = (grid.width - scroll.width + scroll.paddingLeft + scroll.paddingRight)
+            .coerceAtLeast(0)
+        val direction = ToolbarDragAutoScrollPolicy.direction(pointerXInViewport,
+            scroll.width, edge, scroll.scrollX, maxScroll)
+        if (direction == dragAutoScrollDirection) return
+        dragAutoScrollHandler.removeCallbacks(dragAutoScroll)
+        dragAutoScrollDirection = direction
+        if (direction != 0) dragAutoScrollHandler.post(dragAutoScroll)
+    }
+
+    private fun stopDragAutoScroll() {
+        dragAutoScrollDirection = 0
+        dragAutoScrollHandler.removeCallbacks(dragAutoScroll)
+    }
+
+    override fun onDetachedFromWindow() {
+        stopDragAutoScroll()
+        super.onDetachedFromWindow()
     }
 
     private fun commitPinnedKeyDropToAccess(key: ToolbarKey) {

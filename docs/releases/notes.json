@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Make the Toolbar compact and horizontally scrollable, refine progressive panel glass, and measure the first drawn Emoji keys without capturing content.",
+  "summary": "Make the Toolbar compact, add drag edge scrolling, refine progressive glass, and expand Emoji geometry diagnostics.",
   "changes": [
     {
       "title": "Scroll Toolbar actions horizontally",
-      "detail": "The Toolbar now presents its tools in one compact horizontal rail instead of a tall four-column grid. Large gray icon cards are removed, labels stay visible, and the existing tool actions, ordering, and drag-reorder behavior remain available."
+      "detail": "The Toolbar now presents its tools in one compact horizontal rail instead of a tall four-column grid. Large gray icon cards are removed, labels stay visible, and drag reorder follows the pointer and scrolls the rail when a drag reaches either edge."
     },
     {
       "title": "Refine progressive panel glass",
