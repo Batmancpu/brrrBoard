@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "Browse Toolbar actions in two rows",
-      "detail": "Toolbar actions now use two compact rows inside a horizontal scroller. Drag reorder remains supported and follows the pointer as the rail scrolls."
+      "detail": "Toolbar actions now use two compact rows inside a horizontal scroller, with row-major placement for both even and odd tool counts. Drag reorder remains supported and follows the pointer as the rail scrolls."
     },
     {
       "title": "Keep settings in the Toolbar",
