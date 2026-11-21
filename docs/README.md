@@ -16,6 +16,8 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**Next GO master plan** — source baseline, full implementation order, objective intelligence and typing gates, iOS 27 research, and autonomous original-signed APK release protocol](NEXT_GO_MASTER_PLAN_2026_11_21.md)
+
 - [**QuickType first-frame predictions and continuous suggestion animation** — signed v207 evidence, later repair candidate, Android CI gates, and Oppo acceptance checklist](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md)
 - [**BR Brain Voice & Noise Reduction Lab** — private phone/earbud microphone comparison, playback, offline scoring, source limitations and physical QA gates](BR_BRAIN_VOICE_NOISE_LAB_2026_11_21.md)
 - [**iOS-style prediction glyph motion** — source implementation, evidence, timing limitations and one-APK acceptance matrix](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md)
