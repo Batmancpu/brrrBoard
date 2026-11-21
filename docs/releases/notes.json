@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "Add privacy-safe input and first-suggestion latency diagnostics with P50/P95/P99 reporting to BR Brain. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
+  "summary": "Add privacy-safe input and first-suggestion latency diagnostics with P50/P95/P99 reporting, plus synthetic typing replay coverage. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
   "changes": [
     {
       "title": "Measure first-suggestion responsiveness",
       "detail": "BR Brain now reports local input-transaction time, suggestion-strip update time, and time from a letter key event to the next suggestion-strip pre-draw, separately from dictionary computation time, with P50/P95/P99 over a bounded recent sample window. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards stale samples, and keeps measurements only in memory. These values are not touchscreen-to-photon latency; a pre-draw is not proof that the display presented the frame."
+    },
+    {
+      "title": "Cover fast typing and field-switch replays",
+      "detail": "Add an offline synthetic replay corpus for English, Indian English and Romanized Hinglish. It checks that immediate previews stay prefix-safe and that late dictionary responses are rejected after rapid typing, pauses, space, Backspace or editor switches. No personal typing data is used; replay tests do not claim device latency or dictionary accuracy."
     },
     {
       "title": "Keep voice processing choices during update",
