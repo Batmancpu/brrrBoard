@@ -2,7 +2,7 @@
 
 ## Current owner GO status — 2026-11-21
 
-GO remains in progress; v1.0.222 is a checkpoint, not completion. The owner explicitly corrected the prior premature completion claim and directed implementation of the full saved plan. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md), preserve package/certificate/data/privacy contracts, and do not stop at another small checkpoint. Key-to-first-suggestion pre-draw, strip-update, P50/P95/P99 and local input-transaction timings shipped with exact-SHA debug/full-suite and original-signer success. Current source adds a synthetic QuickType replay corpus for three language partitions and stale-result transitions; CI, signer and release are pending. Metrics exclude password, secure-app, no-personal-learning and incognito contexts. Local Gradle download is blocked by network restrictions. ContextLM stays disabled because held-out quality lost to native. Oppo acceptance remains pending; this environment has no adb/device.
+The cumulative P0–P4 software scope shipped as original-signed v1.0.223; exact-SHA debug/full-suite and original-signer gates passed. Continue from [the master plan](NEXT_GO_MASTER_PLAN_2026_11_21.md) for the Reno10 physical acceptance checklist. The workspace has no adb/device, so install/update, visual, accessibility, audio-routing/WER and device latency gates remain open and must not be called passed. The ContextLM gate intentionally rejected activation because held-out proxy recall lost to native; B16B synthetic evaluator tests are not native-decoder quality evidence. Latest APK SHA-256 `eb7ce3b5bb13c4ce9b22e4f60fb1f2c8fd4da8adaba367ec1984d11876b3dce1`.
 
 ## 2026-11-21 — GO software delivery verified: signed v1.0.217
 

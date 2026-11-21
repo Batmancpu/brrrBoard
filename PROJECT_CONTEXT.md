@@ -1,10 +1,10 @@
 # brrBoard project context
 
-## 2026-11-21 — GO in progress; v1.0.222 is latest checkpoint
+## 2026-11-21 — Software delivery released; device acceptance open
 
 The owner authorized the saved next-GO plan and clarified implementation must continue until the plan is done. v1.0.217 from `7910d96aeba5b2c45cadfaab6502218eaf31be0f` is only the first checkpoint, not completion. Its exact-SHA debug workflow **44897236271** and Obtainium workflow **44897236284** succeeded and published a non-prerelease APK (64,969,203 bytes; SHA-256 `348309bdfbece47fd6d8270c3378306ac4ef4bc5cad660f36b2b45523f6b43a4`). It preserves legacy Android NoiseSuppressor ON/OFF preferences and corrects README voice claims.
 
-The P0 latency diagnostic sequence shipped in v1.0.219–v1.0.222. Latest: original-signed v1.0.222 from `cdd15fb29918e3accc57927760c4dcf2e628f235`; exact-SHA debug/full suite `44902240795` and signer `44902240800` passed. APK SHA-256 `635b133eeb09d4228bbd01cd47cbcb75607c9687cd50ee4cda7dcf1bad93a27d`, size 64,969,203 bytes. Password, secure-app, no-personal-learning and incognito fields are excluded; metrics stay in memory and contain no text or app identity. Current source adds synthetic QuickType replay coverage for English, Indian English and Romanized Hinglish; exact-SHA CI and release are pending. Existing QuickType/native strip improvements are present from earlier signed releases; ContextLM remains disabled because held-out quality lost to native. Continue P0–P4 from the master plan; no adb/device was available for Reno10 acceptance.
+The cumulative P0–P4 software scope shipped in original-signed v1.0.223 from `e593a631a7c8a994cabe5194d7a13c77ce70cfcc`; exact-SHA debug/full suite `44902877247` and signer `44902877209` passed. APK SHA-256 `eb7ce3b5bb13c4ce9b22e4f60fb1f2c8fd4da8adaba367ec1984d11876b3dce1`, size 64,969,203 bytes: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.223. Latency metrics are content-free/in-memory and exclude password, secure-app, no-personal-learning and incognito contexts. Synthetic replay coverage uses English, Indian English and Romanized Hinglish; it proves policy behavior only. ContextLM remains off because held-out proxy recall lost to native. The only open plan gates are physical Reno10 install/update, audio, visual, accessibility and on-device latency acceptance; this workspace has no adb/device, so those are not claimed passed.
 
 
 ## 2026-11-21 — owner GO: preserve legacy voice noise choices, exact-SHA release pending

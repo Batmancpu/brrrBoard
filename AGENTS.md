@@ -1,8 +1,8 @@
 # brrBoard agent instructions
 
-## 2026-11-21 — GO in progress; v1.0.222 is latest checkpoint
+## 2026-11-21 — Software release delivered; Reno10 acceptance open
 
-The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. v1.0.222 (`cdd15fb29918e3accc57927760c4dcf2e628f235`) is a checkpoint, not completion. Exact-SHA debug/full suite `44902240795` and original signer `44902240800` succeeded; APK SHA-256 `635b133eeb09d4228bbd01cd47cbcb75607c9687cd50ee4cda7dcf1bad93a27d`. Continue from `docs/NEXT_GO_MASTER_PLAN_2026_11_21.md`; do not report completion until all software gates and a fresh original-signed APK are delivered. Current source adds synthetic QuickType replay tests for three language partitions and stale-result transitions; CI pending. No adb/device was available here.
+The owner authorized the saved next-GO plan and clarified implementation must continue through the whole plan. Cumulative software scope shipped as original-signed v1.0.223 (`e593a631a7c8a994cabe5194d7a13c77ce70cfcc`); exact-SHA debug/full suite `44902877247` and original signer `44902877209` succeeded. APK SHA-256 `eb7ce3b5bb13c4ce9b22e4f60fb1f2c8fd4da8adaba367ec1984d11876b3dce1`. Reno10 installation/update, visual, accessibility, audio and physical latency gates remain open because this workspace has no adb/device. Do not claim them passed.
 
 Existing QuickType/native strip improvements are present from earlier signed releases; the neural ContextLM remains unshipped because independent held-out candidate quality was worse than native. Oppo visual, mic/WER and install/update acceptance remain device checks, not claimed passed.
 
