@@ -19,6 +19,24 @@ latency and input route. More rationale and acceptance steps in
 voice documentation below is historical. Required new exact-SHA debug/full
 unit + original-signer Obtainium + owner Oppo proof remain separate gates.
 
+## 2026-11-21 — newest local QuickType behavior repair (UNVERIFIED)
+
+Owner-submitted keyboard video showed real empty suggestion frames and snapping.
+The current local-only patch replaces the typed-only visual fallback with a
+prefix-filtered preview from the native decoder's existing suggestions, requests
+typing results without delay, holds a temporarily empty next-word result for
+164 ms without click targets, retains three-slot/chip views, and animates both
+related letter changes and unrelated full-word replacements. A newly opened
+keyboard continues to display its safety-gated first row without motion. The
+confidence pill samples its actual interrupted state; no dictionary learning,
+BR Brain, voice, network, signer or model changes. Gradle 8.14.4 is not cached
+and services.gradle.org is unreachable: Java/Kotlin compile, Robolectric,
+signed APK and physical Oppo timing remain unverified. Owner now explicitly
+authorized GitHub `main` implementation; reconcile against signed v1.0.213,
+pass debug/full unit and original-signer release before offering an APK, and
+never claim actual phone animation acceptance without the owner checking it.
+See `docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md`.
+
 ## 2026-11-21 — Current brrClean native voice implementation
 
 Owner authorized a clean rebuild of optional voice noise reduction after

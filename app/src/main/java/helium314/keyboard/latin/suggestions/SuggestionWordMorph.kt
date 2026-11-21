@@ -17,7 +17,8 @@ import helium314.keyboard.latin.KeyboardMotionSpec
  */
 internal class SuggestionWordMorph(private val owner: ViewGroup) {
     data class Frame(val labels: List<String?>, val centerConfidence: Boolean,
-                     val centerPillWidth: Float, val visibleWords: List<SuggestionGlyphFrame?>)
+                     val centerPillWidth: Float, val centerPillOpacity: Float,
+                     val visibleWords: List<SuggestionGlyphFrame?>)
 
     private val easing = PathInterpolator(.20f, 0f, .20f, 1f)
     private val active = ArrayList<MorphingSuggestionTextView>(5)
@@ -33,9 +34,11 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
         val visible = words.map { word ->
             if (canAnimateLetters) (word as? MorphingSuggestionTextView)?.snapshot() else null
         }
+        val sampledPillWidth = pill?.currentWidth() ?: words.getOrNull(1)?.let(::pillWidth) ?: 0f
+        val sampledPillOpacity = pill?.currentOpacity() ?: if (centerConfidence) 1f else 0f
         stopMotion()
         return Frame(words.map { it.text?.toString()?.takeIf { label -> label.isNotBlank() } },
-            centerConfidence, words.getOrNull(1)?.let(::pillWidth) ?: 0f, visible)
+            centerConfidence, sampledPillWidth, sampledPillOpacity, visible)
     }
 
     fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
@@ -54,13 +57,13 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
         }
 
         val center = words[1]
-        if (!chips && (centerConfidence || previous.centerConfidence)
+        if (!chips && (centerConfidence || previous.centerPillOpacity > 0f)
             && center.isShown && center.width > 0) {
             pillFallbackBackground = if (centerConfidence) null else center.background
             val destination = pillWidth(center)
-            val origin = if (previous.centerConfidence) previous.centerPillWidth else destination
+            val origin = if (previous.centerPillOpacity > 0f) previous.centerPillWidth else destination
             pill = SuggestionConfidencePillDrawable(fillColor, origin, destination,
-                if (previous.centerConfidence) 1f else 0f,
+                previous.centerPillOpacity,
                 if (centerConfidence) 1f else 0f,
                 verticalInset).also { drawable ->
                 drawable.setProgress(0f)

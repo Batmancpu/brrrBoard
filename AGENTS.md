@@ -23,6 +23,28 @@ PROJECT_CONTEXT, ENGINEERING_HANDOFF, PROJECT_CONVERSATION, topic ledger and
 post-signed release notes for future agents. This newest instruction supersedes
 the historical Android-suppression default listed below.
 
+## 2026-11-21 — OWNER GO: repair QuickType instability after phone video (LOCAL SOURCE)
+
+The owner reviewed an actual 30-fps Oppo recording: suggestions visibly blanked
+for several frames, side slots popped separately, and replacement words snapped.
+They now explicitly authorized a source fix. Current local working tree revises
+the QuickType path only: prefix-filter existing native candidates immediately
+while the latest asynchronous dictionary query starts without the 15-ms typing
+debounce; retain attached three-word and chip views across one-word/length
+changes; bound an empty post-Space prediction to a 164-ms untappable visual hold;
+render strong related-prefix glyph fades/translations and unrelated whole-word
+replacements, with complex-script native fallback and interrupted-pill retarget.
+First keyboard-open suggestions remain present with NO entrance animation.
+Never promote a provisional preview to auto-correction, reuse stale click tags,
+expose private contents, override OS autofill, or alter BR Brain, voice, package,
+signer, privacy gates or learned dictionary. Regression tests were added but
+Android compilation/CI/Oppo QA are **not verified**: the local Gradle 8.14.4
+distribution cannot download. The owner subsequently gave **GO for GitHub
+implementation and release**; upload only after reconciling latest signed main
+and including post-v1.0.213 notes, then require exact-SHA CI + original signer.
+Never call the animation physically accepted without Oppo visual proof.
+See `docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md` for exact details.
+
 ## 2026-11-21 — OWNER GO: brrClean native GTCRN rebuild, exact-SHA release
 
 The owner has explicitly authorized implementing a fresh native brrClean audio

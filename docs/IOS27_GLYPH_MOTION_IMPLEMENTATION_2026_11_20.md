@@ -1,5 +1,43 @@
 # iOS-style QuickType glyph-motion implementation (20 November 2026)
 
+## 21 November 2026 — owner-video correction, local source only
+
+The owner's 35.8-second / 30-fps real keyboard recording shows blank suggestion
+rows for ~0.37s and ~0.33s, disjoint slot updates, and barely visible/missing
+word morphs. Earlier 164ms and LCS-based design passed Android CI but never
+passed physical animation acceptance. The following new candidate addresses
+the actual pipeline and view lifecycle, not just the animation duration:
+
+- `SuggestionPrefixPreview` immediately carries forward only existing native
+  dictionary candidates matching the full current prefix, never Emoji, typed
+  candidates or app completions. The typed prefix remains an untappable last
+  resort, and previews never claim decoder auto-correction or stored learning.
+- `InputLogic` filters the current prefix before async decode; ordinary typing
+  requests dispatch without the former 15ms delay, and editor/request/caret
+  freshness validation still discards stale results. Exact no-suggestion words
+  prohibit eager word completions. Native ranking remains authoritative.
+- `LatinIME` briefly keeps the old next-word row only for an eligible general
+  editor and dictionary-empty prediction response. It revokes click tags at
+  once, clears after 164ms if no real result arrives, and cancels the timer on
+  newer results or editor switch. Clipboard/autofill/privacy retain priority.
+- `SuggestionStripLayoutHelper` never collapses a one-word/wide-word result
+  into a separate full-width slot; the existing three views and dividers remain
+  attached. Five-chip mode also rebinds existing views without clearing the
+  whole chip strip on each keystroke.
+- `SuggestionGlyphMotion` now distinguishes a real shared **prefix of even one
+  letter** from coincidental LCS matches between unrelated words. Incoming
+  letters grow/fade in, outgoing letters fade/translate, and an unrelated or
+  complex-script replacement uses a visible full-word native transition.
+  `SuggestionWordMorph` samples the actual confidence-pill opacity/width before
+  an interrupted transition. New editor startup retains NO entrance motion.
+- Added `SuggestionPrefixPreviewTest`, expanded glyph-transition tests, and
+  retained existing accessibility/RTL/secure/Emoji contracts. Tests have **not
+  executed**: `./gradlew --offline --no-daemon :app:testRunTests` fails before
+  compiling because the Gradle 8.14.4 download host is unreachable; `git diff
+  --check` passes. No GitHub upload or APK was performed. Test on Oppo and
+  obtain matching high-FPS Apple reference before asserting timing parity.
+
+
 ## 21 November 2026 — second replacement after signed v1.0.207
 
 Owner reports signed v1.0.207 still lacks perceptible iOS-like replacement animation. The old source explicitly *snapped* at fewer than two shared prefix/suffix characters and at unrelated words, ran for only 112ms, and skipped five-word chips and typing-to-prediction style changes. Therefore v207 CI success proved compilation, **not** that the owner-requested behavior worked on Oppo.

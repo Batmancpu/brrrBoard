@@ -17,14 +17,16 @@ class SuggestionGlyphMotionTest {
         SuggestionGlyphMotion.plan(SuggestionGlyphFrame(old, positions(old)),
             next, positions(next), limit)
 
-    @Test fun newSuggestionHasEveryCharacterVisibleOnTheFirstFrame() {
+    @Test fun newSuggestionIsLegibleAndNewSuffixFadesIn() {
         val result = requireNotNull(plan("they", "they're"))
         assertEquals("they're", result.word)
         assertEquals(7, result.startOffsets.size)
         assertEquals(7, result.startScales.size)
-        // Unlike v1.0.202, there is no alpha track and no postponed glyph.
-        assertTrue(result.startScales.all { it >= .88f && it <= 1f })
-        assertTrue(result.startScales.slice(4..6).all { it == .88f })
+        assertTrue(result.startAlphas.all { it >= .58f && it <= 1f })
+        assertTrue(result.startScales.all { it >= .80f && it <= 1f })
+        assertTrue(result.startScales.slice(4..6).all { it == .80f })
+        assertEquals(.58f, SuggestionGlyphMotion.incomingAlpha(result, 4, 0f), 0f)
+        assertEquals(1f, SuggestionGlyphMotion.incomingAlpha(result, 4, 1f), 0f)
     }
 
     @Test fun contractionAndExpansionMoveRetainedLettersWithinSmallBound() {
@@ -43,7 +45,7 @@ class SuggestionGlyphMotionTest {
         assertEquals(1f, result.startScales[2], 0f)
         assertEquals(1f, result.startScales[3], 0f)
         assertEquals(1f, result.startScales.last(), 0f)
-        assertEquals(.88f, result.startScales[4], 0f)
+        assertEquals(.80f, result.startScales[4], 0f)
     }
 
     @Test fun interruptedMotionStartsFromActuallyVisiblePosition() {
@@ -58,6 +60,8 @@ class SuggestionGlyphMotionTest {
         val unrelated = requireNotNull(plan("cat", "dog"))
         assertTrue(unrelated.startOffsets.any { abs(it) > 1f })
         assertTrue(unrelated.outgoingVisible.all { it })
+        assertFalse(unrelated.isRelated)
+        assertTrue(unrelated.startScales.all { it < 1f })
         assertTrue(SuggestionGlyphMotion.outgoingAlpha(unrelated, 0, 0f) > 0f)
         assertEquals(0f, SuggestionGlyphMotion.outgoingAlpha(unrelated, 0, 1f), 0f)
         val oneLetter = requireNotNull(plan("t", "there"))
@@ -71,8 +75,17 @@ class SuggestionGlyphMotionTest {
         val second = requireNotNull(plan("there", "they"))
         assertTrue(first.startOffsets.any { abs(it) > 0f })
         assertTrue(second.startOffsets.any { abs(it) > 0f })
-        assertTrue(first.startScales.any { it == .88f })
-        assertTrue(second.startScales.any { it == .88f })
+        assertTrue(first.startScales.any { it == .80f })
+        assertTrue(second.startScales.any { it == .80f })
+        assertTrue(first.isRelated)
+        assertTrue(second.isRelated)
+    }
+
+    @Test fun coincidentalSharedLetterDoesNotGlueUnrelatedWordsTogether() {
+        val result = requireNotNull(plan("ask", "music"))
+        assertFalse(result.isRelated)
+        assertTrue(result.outgoingVisible.all { it })
+        assertTrue(result.startScales.all { it < 1f })
     }
 
     @Test fun unchangedWordsNeedNoAnimation() {

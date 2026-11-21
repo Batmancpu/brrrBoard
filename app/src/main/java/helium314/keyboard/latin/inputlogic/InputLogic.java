@@ -31,6 +31,7 @@ import helium314.keyboard.keyboard.KeyboardLayoutSet;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.dictionary.Dictionary;
+import helium314.keyboard.latin.dictionary.BrrPersonalDictionary;
 import helium314.keyboard.latin.DictionaryFacilitator;
 import helium314.keyboard.latin.dictionary.DictionaryFactory;
 import helium314.keyboard.latin.LastComposedWord;
@@ -56,6 +57,7 @@ import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
 import helium314.keyboard.latin.settings.SpacingAndPunctuations;
 import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
+import helium314.keyboard.latin.suggestions.SuggestionPrefixPreview;
 import helium314.keyboard.latin.utils.AsyncResultHolder;
 import helium314.keyboard.latin.utils.DictionaryInfoUtils;
 import helium314.keyboard.latin.utils.InputTypeUtils;
@@ -2104,9 +2106,9 @@ public final class InputLogic {
     }
 
     /**
-     * Never leave the first eligible typed character visually empty while the
-     * dictionary thread starts. This provisional label is the user's own text,
-     * not a correction, ranked prediction, or extra insertion action.
+     * Never leave an eligible new prefix visually empty while the decoder runs.
+     * Compatible native suggestions are provisional manual choices; otherwise
+     * the user's typed text is a visible, disabled fallback, never an insertion.
      */
     public void showImmediateTypedWordIfNeeded(final SettingsValues settingsValues) {
         if (!settingsValues.needsToLookupSuggestions()
@@ -2115,21 +2117,20 @@ public final class InputLogic {
                 || mInputLogicHandler.isInBatchInput() || isInlineEmojiSearchAction()) return;
         final String typed = mWordComposer.getTypedWord();
         if (typed.isEmpty()) return;
-        // Avoid replacing genuine candidates with a placeholder on every key.
-        if (typed.length() > 1 && !mSuggestedWords.isEmpty()
-                && mSuggestedWords.getWordCountToShow() > 0) return;
-        publishTypedWordFallback(typed);
+        // The editor has advanced: old candidates are no longer an honest
+        // representation of its prefix. Immediately filter the existing native
+        // list to the new prefix while the next dictionary query is in flight.
+        // Only a genuinely new prefix needs a UI update.
+        if (mSuggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING
+                && mSuggestedWords.mTypedWordInfo != null
+                && typed.equals(mSuggestedWords.mTypedWordInfo.mWord)) return;
+        mSuggestionStripViewAccessor.setSuggestions(SuggestionPrefixPreview.forTypedPrefix(
+                mSuggestedWords, typed, BrrPersonalDictionary.isNoSuggestionWord(typed)));
     }
 
     private void publishTypedWordFallback(final String typed) {
-        final SuggestedWordInfo info = new SuggestedWordInfo(typed, "", SuggestedWordInfo.MAX_SCORE,
-                SuggestedWordInfo.KIND_TYPED, Dictionary.DICTIONARY_USER_TYPED,
-                SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE);
-        final ArrayList<SuggestedWordInfo> infos = new ArrayList<>(1);
-        infos.add(info);
-        mSuggestionStripViewAccessor.setSuggestions(new SuggestedWords(infos, null, info,
-                false, false, false, SuggestedWords.INPUT_STYLE_TYPING,
-                SuggestedWords.NOT_A_SEQUENCE_NUMBER));
+        mSuggestionStripViewAccessor.setSuggestions(SuggestionPrefixPreview.forTypedPrefix(
+                SuggestedWords.getEmptyInstance(), typed, true));
     }
 
     public void performUpdateSuggestionStripAsync(final SettingsValues settingsValues, final int inputStyle) {

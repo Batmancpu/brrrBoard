@@ -16,6 +16,32 @@ is authoritative. Latest signed starting baseline is v1.0.212 (`f96964dc`);
 new exact-SHA debug/full unit, original-signer Obtainium and real Oppo mic/
 WER performance evidence remain required. Keep this ledger and release notes.
 
+## 2026-11-21 — user-video-driven QuickType repair (local, pending compilation)
+
+35.8-second owner recording (30 fps) showed two all-blank suggestion intervals
+of about 0.37s and 0.33s around 7–9s and frequent slot snaps. Root cause in
+source: typed-only fallback discarded native candidates; a one-word/wide-word
+response rebuilt all strip children; chips always rebuilt; changed letters
+arrived opaque at frame zero, and complex fallbacks barely moved. New local
+code uses `SuggestionPrefixPreview` to derive immediate prefix-compatible native
+candidates without false correction, zero-delay typed decoder requests, stable
+three-slot/chip rebinding, 164-ms untappable context-empty hold, common-prefix
+letter motion plus unrelated whole-word replacements, and interrupted pill
+state sampling. Added `SuggestionPrefixPreviewTest` and updated glyph tests.
+No main push, GitHub workflow, APK, phone installation, package, signer,
+BR Brain, GTCRN or learned data change. Local `./gradlew --offline --no-daemon
+:app:testRunTests` stopped before compilation because Gradle 8.14.4 cannot be
+downloaded. **No Android/device acceptance yet.** Owner has now explicitly
+authorized the GitHub release workflow on main after signed v1.0.213. Validate
+the complete source in exact-SHA CI; actual owner Oppo visual acceptance and
+exact current iOS
+timing is not publicly documented or measured. Source ledger:
+[glyph motion](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md).
+
+## 2026-11-21 — QuickType recovery from release-note size gate
+
+The new animation implementation was fast-forward-published at `1ad48c3af159d93719b456ad005b1861e154154b` atop the independently signed v1.0.210 voice source. Debug `44874840884` failed at `test_generate_version_history` because the QuickType note detail had 999 characters (maximum 800), **before Android compilation**. Signed `44874840913` stopped at its equivalent notes gate, no APK. The follow-up narrows release notes to only post-v1.0.210 QuickType behavior, drops already-signed voice notes, and passes the local 4-test version-history suite. App source is unchanged from `1ad48c3`; rerun full Android debug CI and original-signed Obtainium on the next exact SHA. Never claim shipped/phone-matched until those workflows finish and the owner checks Oppo. Details in [QuickType ledger](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+
 ## 2026-11-21 — post-v1.0.207 iOS-profile animation and keyboard-open seed
 
 The previous QuickType first-key source was published as `709b01b4ff434b37525171f79e28d988c3c50a0d` / signed v1.0.207; same-SHA debug `44871798905` and original Obtainium `44871798882` succeeded. Owner's subsequent *physical* report says the word animation still does not work as desired. This is consistent with the former ≥2-shared-letters guard and the 112ms motion skip for unrelated pairs, style changes and chips. New work removes those skips, runs a bounded 164ms retargetable morph even for zero/one letter overlap, keeps center typed-only prefix stable and untappable, animates five-word chips, and synchronously seeds an English-only, privacy-gated, non-autocorrecting generic row before keyboard opening (never animated). Real decoder words replace the seed. `StartupSuggestionPolicyTest` covers negative gates; `SuggestionGlyphMotionTest` covers unrelated/one-letter/rapid changes. Apple did not publish a verifiable exact iOS 27 animation duration; direct video playback could not be measured. Local Gradle wrapper is unavailable, so this candidate requires exact-SHA full Android debug CI, original signed Obtainium release, and owner Oppo visual check before claiming success. See [motion ledger](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md) and [startup ledger](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md). Preserve original signer/package, offline policy, BR Brain/voice and user data.

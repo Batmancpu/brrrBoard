@@ -625,6 +625,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val wasAttachedStrip = !isExternalSuggestionVisible && suggestionsStrip.isVisible &&
             !shouldUseChipSuggestions() &&
             (0..2).all { index -> suggestionsStrip.getChildAt(index * 2) === wordViews[index] }
+        val wasAttachedChips = !isExternalSuggestionVisible && suggestionsChipScroll.isVisible &&
+            shouldUseChipSuggestions() && suggestionsChipStrip.childCount > 0
         val previousLayoutDirection = suggestionsStrip.layoutDirection
         isExternalSuggestionVisible = false
         setRtl(isRtlLanguage)
@@ -634,6 +636,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             previousLayoutDirection == suggestionsStrip.layoutDirection &&
             !shouldUseChipSuggestions(suggestedWords)) {
             layoutHelper.updateAttachedWordSlots(context, suggestedWords, suggestionsStrip)
+        } else if (wasAttachedChips && suggestionsChipScroll.isVisible &&
+            previousLayoutDirection == suggestionsStrip.layoutDirection &&
+            shouldUseChipSuggestions(suggestedWords)) {
+            layoutHelper.updateAttachedChips(context, suggestedWords, suggestionsChipStrip)
         } else -1
         if (reusedIndex >= 0) {
             startIndexOfMoreSuggestions = reusedIndex
@@ -668,6 +674,22 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 layoutHelper.getConfidencePillVerticalInset().toFloat(), chips)
         }
         else wordMorph.cancel(wordViews)
+    }
+
+    /**
+     * A context lookup can briefly have no next-word result at a word boundary.
+     * Keep the previous visual frame for one transition budget, but revoke ALL
+     * stale click targets immediately. Real results always rebind them.
+     */
+    fun holdUnselectablePredictions(): Boolean {
+        if (isExternalSuggestionVisible || isShowingMoreSuggestionPanel ||
+            suggestedWords.isEmpty ||
+            (!suggestionsStrip.isVisible && !suggestionsChipScroll.isVisible)) return false
+        for (word in wordViews) {
+            word.tag = null
+            word.isEnabled = false
+        }
+        return true
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {

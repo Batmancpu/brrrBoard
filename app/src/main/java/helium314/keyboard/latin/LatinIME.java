@@ -203,6 +203,8 @@ public class LatinIME extends InputMethodService implements
     private boolean mInlineProviderViewActive;
     // Only a synchronous first-frame placeholder, never an input/correction source.
     private boolean mStartupSuggestionSeedVisible;
+    // A transient visual hold, not a candidate cache or a valid tap target.
+    private Runnable mPendingEmptyPredictionClear;
     private long mEditorFocusEpoch;
     private long mInlineRequestEpoch = -1;
 
@@ -380,9 +382,13 @@ public class LatinIME extends InputMethodService implements
                 ime.mInputLogic.showImmediateTypedWordIfNeeded(ime.mSettings.getCurrent());
             }
             removeMessages(MSG_UPDATE_SUGGESTION_STRIP);
+            // The frame already contains a synchronous prefix-filtered preview.
+            // Request the actual dictionary candidates immediately for typing;
+            // retain the normal coalescing delay for other update styles.
             sendMessageDelayed(obtainMessage(MSG_UPDATE_SUGGESTION_STRIP, inputStyle,
                     0 /* ignored */, ime.mEditorSessionGeneration.current()),
-                    mDelayInMillisecondsToUpdateSuggestions);
+                    inputStyle == SuggestedWords.INPUT_STYLE_TYPING
+                            ? 0 : mDelayInMillisecondsToUpdateSuggestions);
         }
 
         public void postReopenDictionaries() {
@@ -1373,6 +1379,7 @@ public class LatinIME extends InputMethodService implements
         // sends onStartInputInternal between two visible editor sessions.
         SecureAppTemporaryOptOut.clear();
         mStartupSuggestionSeedVisible = false;
+        cancelPendingEmptyPredictionClear();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
 
@@ -2332,6 +2339,7 @@ public class LatinIME extends InputMethodService implements
         if (mIsDestroyed) {
             return;
         }
+        cancelPendingEmptyPredictionClear();
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         mInputLogic.setSuggestedWords(suggestedWords);
         // Dictation-independent credentials come from the Android provider. A
@@ -2382,6 +2390,32 @@ public class LatinIME extends InputMethodService implements
                         SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION)) return;
         mStartupSuggestionSeedVisible = false;
         if (suggestedWords.isEmpty()) {
+            // The decoder has no contextual next word yet. Do not tear down
+            // the three-slot row for a transient lookup gap after Space.
+            // Old labels are DISPLAY ONLY: their tap tags are revoked now, and
+            // they disappear after one bounded settle if no new result arrives.
+            final SettingsValues values = mSettings.getCurrent();
+            if (mInputLogic.getComposingLength() == 0
+                    && (suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_PREDICTION
+                    || suggestedWords.mInputStyle ==
+                            SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION)
+                    && values.needsToLookupSuggestions()
+                    && values.mInputAttributes.mIsGeneralTextInput
+                    && !values.mIncognitoModeEnabled
+                    && !values.isApplicationSpecifiedCompletionsOn()
+                    && mSuggestionStripView != null
+                    && mSuggestionStripView.holdUnselectablePredictions()) {
+                cancelPendingEmptyPredictionClear();
+                mInputLogic.setSuggestedWords(suggestedWords);
+                final long generation = mEditorSessionGeneration.current();
+                mPendingEmptyPredictionClear = () -> {
+                    if (generation != mEditorSessionGeneration.current()) return;
+                    mPendingEmptyPredictionClear = null;
+                    setNeutralSuggestionStrip();
+                };
+                mHandler.postDelayed(mPendingEmptyPredictionClear, 164L);
+                return;
+            }
             // avoids showing clipboard suggestion when starting gesture typing
             // should be fine, as there will be another suggestion in a few ms
             // (but not a great style to avoid this visual glitch, maybe revert this commit
@@ -2395,6 +2429,12 @@ public class LatinIME extends InputMethodService implements
         // user
         // touches a key that will insert it.
         AccessibilityUtils.Companion.getInstance().setAutoCorrection(suggestedWords);
+    }
+
+    private void cancelPendingEmptyPredictionClear() {
+        if (mPendingEmptyPredictionClear == null) return;
+        mHandler.removeCallbacks(mPendingEmptyPredictionClear);
+        mPendingEmptyPredictionClear = null;
     }
 
     @Override

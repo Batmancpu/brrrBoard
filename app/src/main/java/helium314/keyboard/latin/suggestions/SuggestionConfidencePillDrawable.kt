@@ -25,6 +25,10 @@ internal class SuggestionConfidencePillDrawable(
         invalidateSelf()
     }
 
+    /** Sample the painted geometry before retargeting an interrupted transition. */
+    fun currentWidth(): Float = fromWidth + (toWidth - fromWidth) * progress
+    fun currentOpacity(): Float = fromOpacity + (toOpacity - fromOpacity) * progress
+
     override fun draw(canvas: Canvas) {
         if (bounds.isEmpty) return
         val eased = progress

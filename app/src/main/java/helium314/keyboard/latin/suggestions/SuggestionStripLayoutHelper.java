@@ -469,30 +469,9 @@ final class SuggestionStripLayoutHelper {
         final boolean centerConfidence = isCenterConfidenceActive(
                 suggestedWords.mWillAutoCorrect, (Integer) centerWordView.getTag());
         final int stripWidth = stripView.getWidth();
-        final int centerWidth = getSuggestionWidth(mCenterPositionInStrip, stripWidth);
-        if ((wordCountToShow == 1 && !shouldShowTypedFallback(suggestedWords))
-                || getTextScaleX(centerWordView.getText(), centerWidth,
-                centerWordView.getPaint()) < MIN_TEXT_XSCALE) {
-            // Layout only the most relevant suggested word at the center of the suggestion strip
-            // by consolidating all slots in the strip.
-            final int countInStrip = 1;
-            mMoreSuggestionsAvailable = (wordCountToShow > countInStrip);
-            layoutWord(context, mCenterPositionInStrip, stripWidth - mPadding, suggestedWords.mWillAutoCorrect);
-            if (shouldShowTypedFallback(suggestedWords)) {
-                // The prefix already exists in the editor; tapping must not
-                // commit it again or turn it into an autocorrection.
-                centerWordView.setTag(null);
-                centerWordView.setEnabled(false);
-            }
-            stripView.addView(centerWordView);
-            setLayoutWeight(centerWordView, 1.0f, ViewGroup.LayoutParams.MATCH_PARENT);
-            if (SuggestionStripView.DEBUG_SUGGESTIONS) {
-                layoutDebugInfo(mCenterPositionInStrip, placerView, stripWidth);
-            }
-            final Integer lastIndex = (Integer)centerWordView.getTag();
-            return (lastIndex == null ? 0 : lastIndex) + 1;
-        }
-
+        // Never collapse a one-word decoder response into a different layout.
+        // Empty neighbors retain their real-sized (disabled) touch regions so
+        // the next result can morph into them without removing attached views.
         final int countInStrip = mSuggestionsCountInStrip;
         mMoreSuggestionsAvailable = (wordCountToShow > countInStrip);
         @SuppressWarnings("unused")
@@ -517,13 +496,18 @@ final class SuggestionStripLayoutHelper {
                 layoutDebugInfo(positionInStrip, placerView, (int) stripView.getX() + x);
             }
         }
+        if (shouldShowTypedFallback(suggestedWords)) {
+            // This text is already in the editor, never a second insertion.
+            centerWordView.setTag(null);
+            centerWordView.setEnabled(false);
+        }
         return startIndexOfMoreSuggestions;
     }
 
     /**
      * Hot path for ordinary three-slot predictions: retain the same attached
      * TextViews, dividers, touch targets and measured row. Full layout is still
-     * used for punctuation, chips, one-word collapse and unusually wide text.
+     * used for punctuation, chips and genuine changes of presentation mode.
      * Returns -1 when structural layout is required.
      */
     public int updateAttachedWordSlots(final Context context, final SuggestedWords words,
@@ -542,10 +526,8 @@ final class SuggestionStripLayoutHelper {
         final int nextIndex = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
                 words, mSuggestionsCountInStrip);
         final TextView center = mWordViews.get(mCenterPositionInStrip);
-        if (getTextScaleX(center.getText(),
-                getSuggestionWidth(mCenterPositionInStrip, stripView.getWidth()),
-                center.getPaint()) < MIN_TEXT_XSCALE) return -1;
-
+        // Long words are scaled/ellipsized inside the same center slot. A
+        // different width must not tear down the entire row on a keystroke.
         final boolean confidence = isCenterConfidenceActive(words.mWillAutoCorrect,
                 (Integer)center.getTag());
         mMoreSuggestionsAvailable = words.getWordCountToShow()
@@ -588,6 +570,32 @@ final class SuggestionStripLayoutHelper {
         final int startIndexOfMoreSuggestions = maxShownIndex + 1;
         mMoreSuggestionsAvailable = suggestedWords.size() > startIndexOfMoreSuggestions;
         return startIndexOfMoreSuggestions;
+    }
+
+    /** Rebind the existing chip views instead of detaching the entire row each key. */
+    public int updateAttachedChips(final Context context, final SuggestedWords words,
+            final ViewGroup chipStripView) {
+        if (SuggestionStripView.DEBUG_SUGGESTIONS || words.isEmpty()
+                || words.isPunctuationSuggestions()) return -1;
+        final ArrayList<Integer> indexes = getChipSuggestionIndexes(words);
+        final int width = chipStripView.getRootView() == null
+                ? chipStripView.getResources().getDisplayMetrics().widthPixels
+                : chipStripView.getRootView().getWidth();
+        final int attached = chipStripView.getChildCount();
+        for (int position = 0; position < attached; position++) {
+            if (chipStripView.getChildAt(position) != mWordViews.get(position)) return -1;
+        }
+        for (int position = 0; position < indexes.size(); position++) {
+            final TextView view = layoutChipWord(context, words, indexes.get(position), position, width);
+            if (position >= attached) chipStripView.addView(view);
+        }
+        for (int position = attached - 1; position >= indexes.size(); position--) {
+            chipStripView.removeViewAt(position);
+        }
+        int lastIndex = -1;
+        for (final int index : indexes) lastIndex = Math.max(lastIndex, index);
+        mMoreSuggestionsAvailable = words.size() > lastIndex + 1;
+        return lastIndex + 1;
     }
 
     /**

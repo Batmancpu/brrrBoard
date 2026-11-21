@@ -17,7 +17,7 @@ import kotlin.math.abs
 /**
  * Ordinary TextView with a finite, interruptible replacement transition.
  * Its actual text, TalkBack label and click tag always describe the NEW word.
- * Shaped scripts use native TextView ink with a tiny presentation-only settle.
+ * Shaped scripts use native TextView ink with a bounded full-word replacement.
  */
 internal class MorphingSuggestionTextView(context: Context, attrs: AttributeSet?, defStyle: Int) :
     TextView(context, attrs, defStyle) {
@@ -95,11 +95,17 @@ internal class MorphingSuggestionTextView(context: Context, attrs: AttributeSet?
         val plan = running.plan
         val ink = running.ink
         if (plan == null || ink == null) {
-            // Canvas-only movement: native TextView continues shaping ligatures,
-            // RTL and Emoji; no text alpha, click-target or accessibility delay.
+            // Native shaping for Emoji, RTL, Indic text, font ligatures and an
+            // empty-to-filled slot. Its ink remains legible from the first frame.
+            val alpha = (.62f + .38f * progress).coerceIn(0f, 1f)
             val save = canvas.save()
-            canvas.translate(0f, (1f - progress) * resources.displayMetrics.density * 2.5f)
+            canvas.translate(0f, (1f - progress) * resources.displayMetrics.density * 4f)
+            val scale = .94f + .06f * progress
+            canvas.scale(scale, scale, width / 2f, height / 2f)
+            val layer = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(),
+                (255f * alpha).toInt())
             super.onDraw(canvas)
+            canvas.restoreToCount(layer)
             canvas.restoreToCount(save)
             return
         }
@@ -109,17 +115,36 @@ internal class MorphingSuggestionTextView(context: Context, attrs: AttributeSet?
         val clip = canvas.save()
         canvas.clipRect(compoundPaddingLeft, 0, width - compoundPaddingRight, height)
         val opaqueAlpha = ink.alpha
+        if (!plan.isRelated) {
+            // Unrelated candidates have no letters that should pretend to be
+            // the same glyph. Cross-replace coherent whole words instead.
+            val shift = resources.displayMetrics.density * 6f
+            ink.alpha = (opaqueAlpha * (.9f * (1f - progress))).toInt().coerceIn(0, 255)
+            canvas.drawText(plan.outgoingWord,
+                middle - ink.measureText(plan.outgoingWord) / 2f - shift * progress,
+                baselineY, ink)
+            ink.alpha = (opaqueAlpha * (.58f + .42f * progress)).toInt().coerceIn(0, 255)
+            canvas.drawText(plan.word,
+                middle - ink.measureText(plan.word) / 2f + shift * (1f - progress),
+                baselineY, ink)
+            ink.alpha = opaqueAlpha
+            canvas.restoreToCount(clip)
+            return
+        }
         for (index in plan.outgoingWord.indices) {
             val fading = SuggestionGlyphMotion.outgoingAlpha(plan, index, progress)
             if (fading <= 0f) continue
             ink.alpha = (opaqueAlpha * fading).toInt().coerceIn(0, 255)
             canvas.drawText(plan.outgoingWord, index, index + 1,
-                middle + plan.outgoingPositions[index], baselineY, ink)
+                middle + plan.outgoingPositions[index] +
+                    SuggestionGlyphMotion.outgoingOffset(plan, index, progress,
+                        resources.displayMetrics.density * 10f), baselineY, ink)
         }
-        ink.alpha = opaqueAlpha
         for (index in plan.word.indices) {
             val x = middle + SuggestionGlyphMotion.x(plan, index, progress)
             val scale = SuggestionGlyphMotion.scale(plan, index, progress)
+            ink.alpha = (opaqueAlpha * SuggestionGlyphMotion.incomingAlpha(plan, index, progress))
+                .toInt().coerceIn(0, 255)
             if (scale == 1f) {
                 canvas.drawText(plan.word, index, index + 1, x, baselineY, ink)
             } else {

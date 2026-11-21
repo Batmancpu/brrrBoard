@@ -25,6 +25,28 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-21 — owner GO for QuickType source, CI and signed release
+
+Owner reported the currently installed keyboard suggestion animation is buggy,
+supplied a 35.8-second 30-fps recording, and asked for a source-level iOS/iPadOS
+comparison before authorizing a fix. The review found ~0.37s and ~0.33s
+empty suggestion intervals, abrupt candidate snaps and asynchronously populated
+side slots. Source review implicated the single-typed-word fallback, layout
+teardown on single/wide words and five-chip updates, barely visible native-text
+fallback and an unmeasured 164-ms motion constant. Owner then said to fix the
+entire path and subsequently explicitly said **"Go ahead and implement"** on
+GitHub. Latest signed baseline is **v1.0.213** (`a8e1793`, successful Android
+debug and original-signer Actions), whose independent brrClean voice changes
+must remain untouched. New QuickType source adds an immediate prefix-filtered
+bridge from native candidates, zero-delay typing lookup, stable three-slot and
+chip rebinding, short untappable empty prediction hold, real prefix glyph and
+unrelated whole-word transitions and interrupted confidence-pill sampling.
+First keyboard-open suggestions remain present without separate animation.
+No new network/data store/dictionary ranker/voice/BR Brain change. Android
+compile/tests/signing and actual Oppo 120-Hz visual acceptance must be tracked
+separately, never assumed from local source-only checks; exact iOS timing is
+unmeasured. Ledger: `docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md`.
+
 ## 2026-11-21 — owner tested brrClean and authorized default streaming upgrade
 
 Owner: “Yo, I tested this BRR clean and it works. It works. My earbuds were

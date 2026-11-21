@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Background brrClean voice streaming and phone-microphone priority after signed v1.0.212. New source requires exact-SHA debug/full Android CI and original-signed Obtainium before release.",
+  "summary": "QuickType prediction continuity and more visible iOS-style word transitions after signed v1.0.213. Oppo visual acceptance remains pending.",
   "changes": [
     {
-      "title": "brrClean default and private streaming dictation",
-      "detail": "Default the already-installed, offline native GTCRN cleaner on new keyboards while retaining saved explicit OFF or Android choices. Prefer Android's built-in phone microphone even when earbuds connect, and fail safely on confirmed silenced/misrouted capture; dedicated earbuds testing remains in BR Brain. Feed 5–6-second PCM16 segments with 320-ms overlap into isolated native cleaning and sequential background Parakeet 110M recognition WHILE the microphone is recording, instead of waiting until a two-minute capture ends. Join recognized pieces once, protect editor and cursor ownership, wipe canceled audio, retain original PCM fallback for any native error, and show actual chunk latency, backlog and phone input route in BR Brain. No new ASR model, runtime download, network permission, simultaneous dual-mic claims or raw audio logging. Oppo acoustic accuracy and one-to-two-second final response remain owner test targets, not proven guarantees."
+      "title": "Stable QuickType suggestions and animated word replacements",
+      "detail": "Immediately filter earlier native candidates to the current typed prefix while the decoder runs without a typing debounce. Keep three stable suggestion views and reuse five-chip views instead of rebuilding the row. Briefly hold an empty next-word result with old taps disabled, then clear after 164 ms. Animate retained prefix letters, inserted/removed letters and unrelated whole-word crossfades; retarget confidence pills from their visible state. Initial suggestions are already present when the keyboard opens, without entrance motion. Preserve protected fields, autofill, Emoji, native ranking/learning, BR Brain, offline voice, package and signing. Latest iOS timing parity and Oppo appearance remain unverified."
     }
   ]
 }
