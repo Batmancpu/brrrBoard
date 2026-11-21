@@ -10,20 +10,19 @@ import android.widget.Toast
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.voice.OfflineVoiceEngine
-import helium314.keyboard.latin.voice.PrivatePcmBuffer
+import helium314.keyboard.latin.voice.PrivateVoiceStreamingPipeline
 import helium314.keyboard.latin.voice.VoiceModelInstaller
-import helium314.keyboard.latin.voice.VoiceDecodeRequest
 import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
-import helium314.keyboard.latin.voice.BrrCleanVoiceBridge
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
-import helium314.keyboard.latin.voice.VoiceNoiseMode
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
  * network request or other dictation app is involved. A held mic captures once; release
  * ends it, and a private background worker returns one English transcript to this editor.
+ * Five-to-six second PCM windows are cleaned and decoded while capture continues;
+ * partial text is never inserted into an unverified or changing input field.
  */
 internal class OfflineBoardDictation(private val ime: LatinIME) {
     private enum class Phase { IDLE, STARTING, CAPTURING, DECODING, RECOVERING }
@@ -33,10 +32,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private val engine by lazy(LazyThreadSafetyMode.NONE) { OfflineVoiceEngine.shared(ime) }
     private var phase = Phase.IDLE
     private var source: KeyboardPcmAudioSource? = null
-    private var pcmBuffer: PrivatePcmBuffer? = null
-    private var decodeRequest: VoiceDecodeRequest? = null
-    private var denoiseBridge: BrrCleanVoiceBridge? = null
-    private var denoiseOriginal: ByteArray? = null
+    private var streaming: PrivateVoiceStreamingPipeline? = null
     private var footer: BoardFooterView? = null
     private var originalConnection: InputConnection? = null
     private var originalEditorInfo: EditorInfo? = null
@@ -102,8 +98,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         originalSelectionStart = start
         originalSelectionEnd = end
         footer = currentFooter
-        val buffer = PrivatePcmBuffer()
-        pcmBuffer = buffer
+        val pipeline = PrivateVoiceStreamingPipeline(ime, engine,
+            VoiceNoiseChoice.selected(ime)) { result ->
+            if (generation == id && (phase == Phase.DECODING || phase == Phase.RECOVERING)) {
+                onTranscriptionCompleted(result, id, connection)
+            }
+        }
+        streaming = pipeline
         phase = Phase.STARTING
         VoiceSessionCrashTrail.begin(ime) // No-op unless the owner armed one real-mic test.
         currentFooter.clearContextAction()
@@ -128,8 +129,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
                     fail(R.string.board_voice_offline_failed)
                 }
             },
-            onPcmFrame = { bytes, count -> buffer.append(bytes, 0, count) },
-            onCaptureFinished = { if (generation == id) finishCapture(connection) },
+            onPcmFrame = { bytes, count -> pipeline.append(bytes, count) },
+            onCaptureFinished = { if (generation == id) finishCapture() },
             toBrrSpeak = false,
         )
         source = capture
@@ -148,55 +149,23 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         }
     }
 
-    private fun finishCapture(connection: InputConnection) {
+    private fun finishCapture() {
+        if (phase == Phase.CAPTURING) {
+            // The 170s recording cap is a normal end, not a discarded take.
+            phase = Phase.DECODING
+            footer?.showDictationProcessing(offline = true)
+        }
         if (phase != Phase.DECODING && phase != Phase.RECOVERING) {
             cancel()
             return
         }
-        val id = generation
         VoiceSessionCrashTrail.note(ime, "MIC_CAPTURE_STOPPED")
-        val bytes = pcmBuffer?.drain()
-        pcmBuffer = null
         source = null
-        if (bytes == null || bytes.isEmpty()) {
-            bytes?.fill(0)
-            fail(R.string.board_voice_offline_failed)
-            return
-        }
-        if (VoiceNoiseChoice.selected(ime) == VoiceNoiseMode.GTCRN &&
-            VoiceNoiseChoice.eligible(bytes.size)) {
-            denoiseOriginal = bytes
-            val bridge = BrrCleanVoiceBridge(ime) { enhanced ->
-                denoiseBridge = null
-                val original = denoiseOriginal
-                denoiseOriginal = null
-                if (original == null || id != generation ||
-                    (phase != Phase.DECODING && phase != Phase.RECOVERING)) {
-                    enhanced?.fill(0)
-                    original?.fill(0)
-                } else {
-                    val accepted = if (enhanced?.size == original.size) enhanced else null
-                    if (accepted != null) original.fill(0) else enhanced?.fill(0)
-                    decodeCaptured(accepted ?: original, id, connection)
-                }
-            }
-            denoiseBridge = bridge
-            if (!bridge.run(bytes)) {
-                // Failed binding may synchronously invoke raw fallback. Do not
-                // double-submit the same utterance.
-                if (denoiseBridge === bridge) {
-                    denoiseBridge = null
-                    denoiseOriginal = null
-                    decodeCaptured(bytes, id, connection)
-                }
-            }
-        } else decodeCaptured(bytes, id, connection)
+        streaming?.finishCapture()
     }
 
-    private fun decodeCaptured(bytes: ByteArray, id: Long, connection: InputConnection) {
-        decodeRequest = engine.transcribe(bytes) { answer ->
-            if (id != generation || (phase != Phase.DECODING && phase != Phase.RECOVERING)) return@transcribe
-            decodeRequest = null
+    private fun onTranscriptionCompleted(answer: Result<String>, id: Long, connection: InputConnection) {
+            if (id != generation || (phase != Phase.DECODING && phase != Phase.RECOVERING)) return
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
             val validDestination = validEditor && destinationUnchanged()
@@ -232,7 +201,6 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             } else if (validEditor) {
                 statusFooter?.showDictationError(R.string.board_voice_offline_failed)
             }
-        }
     }
 
     /** Only an explicit Cancel/mic-discard gesture may play the discard feedback. */
@@ -268,16 +236,10 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         val statusFooter = footer
         generation++
         phase = Phase.IDLE
-        decodeRequest?.cancel()
-        decodeRequest = null
-        denoiseBridge?.cancel()
-        denoiseBridge = null
-        denoiseOriginal?.fill(0)
-        denoiseOriginal = null
+        streaming?.cancel()
+        streaming = null
         source?.close()
         source = null
-        pcmBuffer?.discard()
-        pcmBuffer = null
         originalConnection = null
         originalEditorInfo = null
         originalEditorGeneration = -1L

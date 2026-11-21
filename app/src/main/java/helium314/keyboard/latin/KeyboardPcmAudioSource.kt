@@ -3,10 +3,13 @@ package helium314.keyboard.latin
 
 import android.content.Context
 import android.media.AudioFormat
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.media.audiofx.NoiseSuppressor
 import android.os.Handler
+import android.os.Build
 import android.os.Looper
 import android.os.ParcelFileDescriptor
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
@@ -77,6 +80,16 @@ internal class KeyboardPcmAudioSource(
                 }
                 recorder = microphone
                 if (!toBrrSpeak) {
+                    // Normal blue-mic dictation always prefers the phone's own
+                    // microphone array. Bluetooth communication routing is
+                    // deliberately confined to the explicit BR Brain lab.
+                    val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    val phone = audio.getDevices(AudioManager.GET_DEVICES_INPUTS)
+                        .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_MIC }
+                    val requested = phone != null && microphone.setPreferredDevice(phone)
+                    VoiceDenoiseMetrics.inputRoute(if (requested)
+                        "Phone microphone preferred (Android route not yet verified)"
+                        else "Phone preference unavailable; Android controls route")
                     suppression = VoiceCaptureNoiseReduction.attach(context, microphone)
                     val noiseStage = if (!VoiceCaptureNoiseReduction.enabled(context)) "NOISE_OFF"
                         else if (suppression != null) "NOISE_ACTIVE" else "NOISE_UNAVAILABLE"
@@ -90,6 +103,20 @@ internal class KeyboardPcmAudioSource(
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("Microphone could not start")
                 }
+                if (!toBrrSpeak && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                    val actual = runCatching {
+                        audio.activeRecordingConfigurations.firstOrNull {
+                            it.clientAudioSessionId == microphone.audioSessionId
+                        }
+                    }.getOrNull()
+                    if (actual?.isClientSilenced == true) throw IOException("Android silenced microphone")
+                    val type = actual?.audioDevice?.type
+                    if (type != null && type != AudioDeviceInfo.TYPE_BUILTIN_MIC)
+                        throw IOException("Android routed offline dictation away from phone mic")
+                    if (type == AudioDeviceInfo.TYPE_BUILTIN_MIC)
+                        VoiceDenoiseMetrics.inputRoute("Phone microphone (Android confirmed)")
+                }
                 if (!toBrrSpeak) VoiceDenoiseMetrics.blueCaptureStarted()
                 startPipeWriter()
                 mainHandler.post {
@@ -98,8 +125,15 @@ internal class KeyboardPcmAudioSource(
                 val samples = ByteArray(bufferSize)
                 try {
                     val startedAt = android.os.SystemClock.elapsedRealtime()
+                    var nextCallCheck = startedAt + 2_000L
                     while (wanted.get() && !closed.get() &&
                         android.os.SystemClock.elapsedRealtime() - startedAt < MAX_CAPTURE_MS) {
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        if (!toBrrSpeak && now >= nextCallCheck) {
+                            nextCallCheck = now + 2_000L
+                            if (VoiceCaptureNoiseReduction.callIsActive(context))
+                                throw IOException("Call claimed the microphone during dictation")
+                        }
                         val count = microphone.read(samples, 0, samples.size, AudioRecord.READ_BLOCKING)
                         if (count < 0) {
                             if (!wanted.get() || closed.get()) break

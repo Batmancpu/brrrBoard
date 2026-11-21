@@ -1,5 +1,28 @@
 # brrBoard agent instructions
 
+## 2026-11-21 — OWNER GO: default brrClean, real-time 5–6s private voice streaming
+
+The owner confirmed brrClean works on their actual phone without earbuds,
+then authorized a default clean-before-ASR blue mic, actual phone microphone
+preference/fallback, and 120-second streaming sessions. Full implementation
+is in `docs/BRRCLEAN_STREAMING_2026_11_21.md` and must be read before edits.
+Newest voice design: default brrClean for new installs while honoring prior
+explicit OFF/Android; single Android built-in input (hardware may combine
+multiple internal capsules); time-bounded overlapped 5–6s RAM-only chunks
+processed through non-exported GTCRN child → one existing Parakeet 110M worker
+while recording continues. Keep native ASR at background priority, ordered
+segments, no partial/editor-unsafe text commit, raw per-chunk fallback, secure
+password/incognito/call guards, cancellation wiping and BR Brain actual
+latency/backlog/route visibility. **Simultaneous separate phone+earbuds PCM
+cannot be promised** because Android HAL may silence/reroute; do not implement
+fake dual-mic fusion or replace the owner-proven GTCRN without WER measurements.
+Main-only, no force; before any release verify exact SHA debug/full unit and
+original signed Obtainium plus APK/model/permission provenance; require actual
+Oppo/Nirvana Ion acceptance for acoustic performance. Always update AGENTS,
+PROJECT_CONTEXT, ENGINEERING_HANDOFF, PROJECT_CONVERSATION, topic ledger and
+post-signed release notes for future agents. This newest instruction supersedes
+the historical Android-suppression default listed below.
+
 ## 2026-11-21 — OWNER GO: brrClean native GTCRN rebuild, exact-SHA release
 
 The owner has explicitly authorized implementing a fresh native brrClean audio

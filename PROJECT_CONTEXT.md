@@ -1,5 +1,24 @@
 # brrBoard project context
 
+## 2026-11-21 — current owner-accepted brrClean, background chunked dictation
+
+Owner confirms brrClean functions with no earbuds, wants it default for blue
+mic and phone's natural microphone input even with connected headphones.
+The 2-minute path now feeds `PrivateVoiceChunker` 16-kHz PCM16 (5–6s with
+320ms overlap, at quiet boundaries) during the ongoing mic recording. Each
+bounded chunk is sequentially processed in `PrivateVoiceStreamingPipeline`:
+child-process native GTCRN (or original on failure), then background Parakeet
+110M, accumulating private text in memory until one editor-guarded commit.
+170s capture cap covers 120s; no unbounded queued native jobs, no disk/cloud
+or stale text after cancel. New installs default brrClean;
+existing explicit OFF/Android retained. Blue mic requests `TYPE_BUILTIN_MIC`
+and inspects Android's actual input when available; no unproven simultaneous
+physical phone+earbuds fusion. BR Brain displays real chunk count/backlog/
+latency and input route. More rationale and acceptance steps in
+`docs/BRRCLEAN_STREAMING_2026_11_21.md`. Previous Android default/full-take
+voice documentation below is historical. Required new exact-SHA debug/full
+unit + original-signer Obtainium + owner Oppo proof remain separate gates.
+
 ## 2026-11-21 — Current brrClean native voice implementation
 
 Owner authorized a clean rebuild of optional voice noise reduction after

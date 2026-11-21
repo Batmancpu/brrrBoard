@@ -133,7 +133,10 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("voiceNoise.enhancedWindows", dashboard)
         self.assertIn("VoiceDenoiseMetrics.enhanced", self.read(
             "app/src/main/java/helium314/keyboard/latin/voice/BrrCleanVoiceBridge.kt"))
-        self.assertNotIn("setPreferredDevice(", mic)
+        # Only the phone's built-in mic may be preferred on the live keyboard.
+        # BT communication routing stays in the optional lab; routedDevice
+        # (the old ColorOS native crash suspect) remains forbidden.
+        self.assertEqual(1, mic.count("setPreferredDevice("))
         for banned in ("http://", "https://", "HttpURLConnection", "Socket("):
             self.assertNotIn(banned, enhancer)
         # GTCRN is independent of the large optional Parakeet bootstrap.
@@ -214,6 +217,10 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("VOICE_RECOGNITION", source)
         self.assertIn("VoiceCaptureNoiseReduction.attach(context, microphone)", source)
         self.assertIn("suppression?.release()", source)
+        self.assertIn("AudioDeviceInfo.TYPE_BUILTIN_MIC", source)
+        self.assertIn("microphone.setPreferredDevice(phone)", source)
+        self.assertIn("Android routed offline dictation away from phone mic", source)
+        self.assertNotIn("AudioDeviceInfo.TYPE_BLUETOOTH_SCO", source)
         self.assertIn("NoiseSuppressor.isAvailable()", effect)
         self.assertIn("NoiseSuppressor.create(recorder.audioSessionId)", effect)
         self.assertIn("MODE_IN_COMMUNICATION", effect)

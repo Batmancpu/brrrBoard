@@ -1,5 +1,21 @@
 # brrBoard engineering handoff
 
+## 2026-11-21 — brrClean default + online-during-recording offline dictation
+
+Newest owner request after confirming working brrClean: prefer real phone mic
+regardless of connected earbuds; default native GTCRN on fresh installs and
+process 120s recordings in background 5–6s overlapping batches. Source:
+`PrivateVoiceChunker`, `PrivateVoiceStreamingPipeline`, `OfflineBoardDictation`,
+`OfflineVoiceEngine` background-priority transcription, BR Brain live metrics,
+`KeyboardPcmAudioSource` built-in mic preference and fallback checks. A
+single original editor receives the joined final result; each child failure
+feeds its raw chunk to the same existing ASR model. No fake simultaneous
+earbud+phone capture, cloud, large model, extra inference on keyboard touch
+thread or new user-data persistence. `docs/BRRCLEAN_STREAMING_2026_11_21.md`
+is authoritative. Latest signed starting baseline is v1.0.212 (`f96964dc`);
+new exact-SHA debug/full unit, original-signer Obtainium and real Oppo mic/
+WER performance evidence remain required. Keep this ledger and release notes.
+
 ## 2026-11-21 — post-v1.0.207 iOS-profile animation and keyboard-open seed
 
 The previous QuickType first-key source was published as `709b01b4ff434b37525171f79e28d988c3c50a0d` / signed v1.0.207; same-SHA debug `44871798905` and original Obtainium `44871798882` succeeded. Owner's subsequent *physical* report says the word animation still does not work as desired. This is consistent with the former ≥2-shared-letters guard and the 112ms motion skip for unrelated pairs, style changes and chips. New work removes those skips, runs a bounded 164ms retargetable morph even for zero/one letter overlap, keeps center typed-only prefix stable and untappable, animates five-word chips, and synchronously seeds an English-only, privacy-gated, non-autocorrecting generic row before keyboard opening (never animated). Real decoder words replace the seed. `StartupSuggestionPolicyTest` covers negative gates; `SuggestionGlyphMotionTest` covers unrelated/one-letter/rapid changes. Apple did not publish a verifiable exact iOS 27 animation duration; direct video playback could not be measured. Local Gradle wrapper is unavailable, so this candidate requires exact-SHA full Android debug CI, original signed Obtainium release, and owner Oppo visual check before claiming success. See [motion ledger](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md) and [startup ledger](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md). Preserve original signer/package, offline policy, BR Brain/voice and user data.

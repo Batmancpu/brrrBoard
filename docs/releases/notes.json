@@ -1,14 +1,10 @@
 {
   "schema": 1,
-  "summary": "brrClean native GTCRN voice rebuild and QuickType first-frame/animation improvements after signed v1.0.207. Requires exact-SHA debug/full Android CI and original-signed Obtainium verification before release.",
+  "summary": "Background brrClean voice streaming and phone-microphone priority after signed v1.0.212. New source requires exact-SHA debug/full Android CI and original-signed Obtainium before release.",
   "changes": [
     {
-      "title": "Keyboard-open predictions and continuous iOS-profile glyph transitions",
-      "detail": "Populate a safe, generic three-word English prediction row synchronously before the keyboard's first frame in eligible empty prose fields; real decoder candidates replace it when ready. Never seed passwords, secure/incognito editors, non-English fields, app completions, active autofill, hardware keyboards or clipboard accessories. No entrance animation on keyboard opening. Once typing begins, run an interruptible 164ms bounded glyph settle for every changed candidate, including one shared letter, zero shared letters, style transitions and visible five-word chips. Keep the typed-only center slot stable and non-inserting; preserve immediate text, click tags, native complex-script shaping, reduced-motion and decoder autocorrect authority. The 164ms value is an iOS-inspired approximation, not a measured Apple timing. BR Brain, voice, package, models, dictionary ranking, saved user data and signer are unchanged by the QuickType portion; Oppo visual and frame-time acceptance remain pending."
-    },
-    {
-      "title": "brrClean native noise reduction and verified microphone routing",
-      "detail": "Replace the failing active ONNX denoiser with pinned MIT native C++ GTCRN, bundled weights and a separate short-lived crash-contained process; retain offline Parakeet 110M and exact raw-audio fallback. Add true OFF/Android/brrClean selection (OFF also disables enhancement in the lab), actual native success/fallback/latency in BR Brain, same-take original/processed lab listening, and Android 12+ Bluetooth communication-device activation with confirmed-route/silence rejection. Guard ARM64-only NEON instructions so the engine also compiles for ARM32. Add source-hash, C++ model smoke and APK native/library/license gates. No speech or audio logs, runtime network, bigger ASR model or background denoising while typing. Bluetooth on Oppo/Nirvana Ion still requires owner hardware acceptance."
+      "title": "brrClean default and private streaming dictation",
+      "detail": "Default the already-installed, offline native GTCRN cleaner on new keyboards while retaining saved explicit OFF or Android choices. Prefer Android's built-in phone microphone even when earbuds connect, and fail safely on confirmed silenced/misrouted capture; dedicated earbuds testing remains in BR Brain. Feed 5–6-second PCM16 segments with 320-ms overlap into isolated native cleaning and sequential background Parakeet 110M recognition WHILE the microphone is recording, instead of waiting until a two-minute capture ends. Join recognized pieces once, protect editor and cursor ownership, wipe canceled audio, retain original PCM fallback for any native error, and show actual chunk latency, backlog and phone input route in BR Brain. No new ASR model, runtime download, network permission, simultaneous dual-mic claims or raw audio logging. Oppo acoustic accuracy and one-to-two-second final response remain owner test targets, not proven guarantees."
     }
   ]
 }

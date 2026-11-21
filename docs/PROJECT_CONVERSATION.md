@@ -25,6 +25,22 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-21 — owner tested brrClean and authorized default streaming upgrade
+
+Owner: “Yo, I tested this BRR clean and it works. It works. My earbuds were
+not connected but it works.” Requested phone+earbud microphone fusion if
+real hardware allows, upgraded everyday household/traffic denoising, cleaner
+phone microphones as fallback, brrClean default for blue mic, and a ~2-minute
+session split into short background native clean+Parakeet chunks rather than
+waiting for the final recording. Must first check that GitHub Actions is idle
+and then implement, poll failed workflows to success and deliver an APK.
+Agent verified Actions idle (last succeeded v1.0.212), researched Android
+audio HAL concurrency: separate phone/Bluetooth simultaneous PCM is not
+guaranteed, often one is silenced/rerouted; no fake fusion. Proceeding with
+working 206KB GTCRN, one preferred phone audio input, small overlapped
+segments and in-memory queued/transcribed results. Design and tests:
+`docs/BRRCLEAN_STREAMING_2026_11_21.md`.
+
 ## 2026-11-21 — Owner authorizes native audio rebuild
 
 After experiencing no working suppression selection and silence from Nirvana

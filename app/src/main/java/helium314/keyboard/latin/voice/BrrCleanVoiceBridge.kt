@@ -23,6 +23,7 @@ internal class BrrCleanVoiceBridge(
     private val finished = AtomicBoolean(false)
     private val started = SystemClock.elapsedRealtime()
     private var bound = false
+    private var remote: Messenger? = null
     private var reply: Messenger? = null
     private var pending: ByteArray? = null
     private val timeout = Runnable { complete(null) }
@@ -34,7 +35,7 @@ internal class BrrCleanVoiceBridge(
                 val message = Message.obtain(null, BrrCleanWire.REQUEST)
                 message.replyTo = reply
                 message.data = Bundle().apply { putByteArray(BrrCleanWire.PCM, pending) }
-                Messenger(binder).send(message)
+                remote = Messenger(binder).also { it.send(message) }
             } catch (_: Exception) { complete(null) }
             finally { pending?.fill(0); pending = null }
         }
@@ -72,6 +73,12 @@ internal class BrrCleanVoiceBridge(
         handler.removeCallbacks(timeout)
         pending?.fill(0)
         pending = null
+        // Owner cancel/timeout kills the child, so stale native work cannot
+        // continue eating CPU while the user has resumed normal typing.
+        if (!notify || bytes == null) runCatching {
+            remote?.send(Message.obtain(null, BrrCleanWire.CANCEL))
+        }
+        remote = null
         if (bound) runCatching { context.unbindService(connection) }
         bound = false
         reply = null

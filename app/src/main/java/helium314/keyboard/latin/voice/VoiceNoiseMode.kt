@@ -14,9 +14,11 @@ internal object VoiceNoiseChoice {
         VoiceNoiseMode.GTCRN.name -> VoiceNoiseMode.GTCRN
         VoiceNoiseMode.OFF.name -> VoiceNoiseMode.OFF
         VoiceNoiseMode.ANDROID.name -> VoiceNoiseMode.ANDROID
-        // Preserve the prior Android-effect OFF preference when migrating.
-        else -> if (context.prefs().getBoolean("brr_voice_platform_noise_suppression", true))
-            VoiceNoiseMode.ANDROID else VoiceNoiseMode.OFF
+        // New installs start with the owner's validated private cleaner. For
+        // legacy installs only an explicit OFF is carried forward; an explicit
+        // choice of Android/OFF/brrClean above is never overwritten.
+        else -> if (!context.prefs().getBoolean("brr_voice_platform_noise_suppression", true))
+            VoiceNoiseMode.OFF else VoiceNoiseMode.GTCRN
     }
 
     fun select(context: Context, mode: VoiceNoiseMode) {

@@ -18,7 +18,10 @@ class BrrCleanVoiceService : Service() {
     private val started = AtomicBoolean(false)
     private val handler = Handler(Looper.getMainLooper())
     private val inbound = Messenger(Handler(Looper.getMainLooper()) { message ->
-        if (message.what == BrrCleanWire.REQUEST && started.compareAndSet(false, true)) {
+        if (message.what == BrrCleanWire.CANCEL) {
+            // Only this expendable child dies, never the LatinIME process.
+            Process.killProcess(Process.myPid())
+        } else if (message.what == BrrCleanWire.REQUEST && started.compareAndSet(false, true)) {
             val pcm = message.data.getByteArray(BrrCleanWire.PCM)
             val caller = message.replyTo
             handler.postDelayed({ Process.killProcess(Process.myPid()) }, BrrCleanWire.CHILD_TIMEOUT_MS)
@@ -89,6 +92,7 @@ class BrrCleanVoiceService : Service() {
 internal object BrrCleanWire {
     const val REQUEST = 1
     const val RESULT = 2
+    const val CANCEL = 3
     const val PCM = "pcm"
     const val CHILD_TIMEOUT_MS = 8_000L
     const val PARENT_TIMEOUT_MS = 9_000L

@@ -16,6 +16,9 @@ internal object VoiceDenoiseMetrics {
         val platformNoiseSuppression: String,
         val blueMicCapturing: Boolean,
         val completedBlueCaptures: Long,
+        val streamingChunks: Long,
+        val lastChunkLatencyMs: Long,
+        val queuedChunks: Long,
     )
     private val enhanced = AtomicLong()
     private val bypassed = AtomicLong()
@@ -25,6 +28,9 @@ internal object VoiceDenoiseMetrics {
     private val platform = AtomicReference("Not measured")
     private val capturing = AtomicBoolean(false)
     private val captures = AtomicLong()
+    private val chunks = AtomicLong()
+    private val chunkMs = AtomicLong(-1L)
+    private val backlog = AtomicLong()
 
     fun enhanced(elapsedMs: Long) {
         lastMs.set(elapsedMs.coerceAtLeast(0))
@@ -38,6 +44,12 @@ internal object VoiceDenoiseMetrics {
     fun blueCaptureStopped() {
         if (capturing.getAndSet(false)) captures.incrementAndGet()
     }
+    fun streamingChunkComplete(elapsedMs: Long) {
+        chunks.incrementAndGet()
+        chunkMs.set(elapsedMs.coerceAtLeast(0))
+    }
+    fun streamingBacklog(count: Int) { backlog.set(count.coerceAtLeast(0).toLong()) }
     fun snapshot() = Snapshot(enhanced.get(), bypassed.get(), fallback.get(), lastMs.get(),
-        route.get(), platform.get(), capturing.get(), captures.get())
+        route.get(), platform.get(), capturing.get(), captures.get(),
+        chunks.get(), chunkMs.get(), backlog.get())
 }

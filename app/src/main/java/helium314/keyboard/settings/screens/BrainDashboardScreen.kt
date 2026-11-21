@@ -134,6 +134,13 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                     Text("Native GTCRN successes: ${voiceNoise.enhancedWindows} · raw fallbacks: ${voiceNoise.fallbacks} · last latency: " +
                         (if (voiceNoise.lastEnhancementMs < 0) "not measured" else "${voiceNoise.lastEnhancementMs} ms"),
                         style = MaterialTheme.typography.bodySmall)
+                    Text("Streaming voice chunks decoded: ${voiceNoise.streamingChunks} · queued: ${voiceNoise.queuedChunks} · last chunk end-to-end latency: " +
+                        (if (voiceNoise.lastChunkLatencyMs < 0) "not measured" else "${voiceNoise.lastChunkLatencyMs} ms"),
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Blue-mic hardware source: ${voiceNoise.lastInputRoute}",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("Phone mic preferred. Short overlapping segments are processed in the background while you speak; final text is delivered once after stopping. No partial text leaves volatile memory.",
+                        style = MaterialTheme.typography.bodySmall)
                     Text(if (voiceNoise.blueMicCapturing) "Blue microphone LIVE: recording now"
                          else "Blue microphone idle · no background recording",
                         style = MaterialTheme.typography.bodySmall)

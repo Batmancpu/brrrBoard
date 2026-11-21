@@ -4,6 +4,7 @@ package helium314.keyboard.latin.voice
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.os.SystemClock
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
@@ -21,7 +22,10 @@ import java.util.concurrent.Future
  */
 internal class OfflineVoiceEngine(private val context: Context) {
     private val worker = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "brrBoard-private-stt").apply { isDaemon = true }
+        Thread({
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
+            runnable.run()
+        }, "brrBoard-private-stt").apply { isDaemon = true }
     }
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: OfflineRecognizer? = null // worker thread only
@@ -46,7 +50,11 @@ internal class OfflineVoiceEngine(private val context: Context) {
      * Owns [pcm16] immediately. The returned handle can cancel queued work and wipe
      * its bytes, or stop a running transcription at the next segment boundary.
      */
-    fun transcribe(pcm16: ByteArray, callback: (Result<String>) -> Unit): VoiceDecodeRequest {
+    fun transcribe(
+        pcm16: ByteArray,
+        formatTranscript: Boolean = true,
+        callback: (Result<String>) -> Unit,
+    ): VoiceDecodeRequest {
         val request = VoiceDecodeRequest(pcm16)
         worker.execute {
             if (!request.begin()) return@execute
@@ -83,7 +91,8 @@ internal class OfflineVoiceEngine(private val context: Context) {
                     lastUsedAt = SystemClock.elapsedRealtime()
                     VoiceSessionCrashTrail.note(context, "ASR_DECODED")
                     check(!request.isCancelled) { "Dictation was cancelled" }
-                    VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(pieces))
+                    val combined = VoiceTranscriptJoiner.merge(pieces)
+                    if (formatTranscript) VoiceTranscriptFormatter.format(combined) else combined
                 }
             } finally {
                 request.finish()
