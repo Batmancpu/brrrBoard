@@ -104,7 +104,8 @@ data class SearchState(
 )
 val LocalSearchState = staticCompositionLocalOf<SearchState?> { null }
 
-val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 0f), FontVariation.Setting("wght", 400f))))
+// Same exact style as the former variable font; the installed icon font is static.
+val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded))
 
 val googleSansFlex = FontFamily(
     Font(R.font.google_sans_flex, weight = FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400), FontVariation.Setting("ROND", 100f))),

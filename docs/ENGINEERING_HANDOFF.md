@@ -1,5 +1,27 @@
 # brrBoard engineering handoff
 
+## 2026-11-21 — monitored ContextLM phase-one source and APK size experiment
+
+Owner authorized live monitoring and five-minute idle delay before ContextLM
+integration. Both previous runs (debug `44882039159`, signed `44882039152`)
+were successful; no active `main` runs during 07:55:52–08:01:00 UTC. Signed
+v1.0.214 baseline APK 70,900,211 B. New local source adds bounded native
+suggestion/personal-history feature snapshot, pure-Java INT8 causal DFSMN
+reference, corrupt-model/learned-history tests and reproducible **offline**
+training, candidate-proxy, quantized-parity and conservative-fusion scripts.
+No private typing data is exported; learned history remains untouched; no
+model assets, `Suggest` hook or user-visible ContextLM prediction exists.
+Corrected hard-negative proxy STILL underperforms native n-gram proxy
+(Hinglish 20.20 vs 23.19%, MT 32.24 vs 36.17% Recall@3); do not enable
+until real native/Oppo quality, privacy, license, latency and size pass.
+Unsigned experiment manifest rejected by Java reference loader. A separate
+nonfeature-removing size fix instances material symbols settings font at the
+exact previously used axes, reducing raw TTF 15.08 MB to ~1.7 MB while
+keeping all mapped glyph outlines; physical styling and APK ZIP savings
+pending. Local Gradle distribution missing. Publish only main fast-forward
+after notes and all handoffs; poll exact-SHA debug and original-signed release
+and compare total bytes. See [ContextLM ledger](BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md).
+
 ## 2026-11-21 — brrClean default + online-during-recording offline dictation
 
 Newest owner request after confirming working brrClean: prefer real phone mic

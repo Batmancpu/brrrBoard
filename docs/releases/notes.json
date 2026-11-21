@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "QuickType prediction continuity and more visible iOS-style word transitions after signed v1.0.213. Oppo visual acceptance remains pending.",
+  "summary": "Smaller settings icon font and guarded offline ContextLM preparation after signed v1.0.214. No new neural suggestions are enabled yet; Oppo acceptance remains pending.",
   "changes": [
     {
-      "title": "Stable QuickType suggestions and animated word replacements",
-      "detail": "Immediately filter earlier native candidates to the current typed prefix while the decoder runs without a typing debounce. Keep three stable suggestion views and reuse five-chip views instead of rebuilding the row. Briefly hold an empty next-word result with old taps disabled, then clear after 164 ms. Animate retained prefix letters, inserted/removed letters and unrelated whole-word crossfades; retarget confidence pills from their visible state. Initial suggestions are already present when the keyboard opens, without entrance motion. Preserve protected fields, autofill, Emoji, native ranking/learning, BR Brain, offline voice, package and signing. Latest iOS timing parity and Oppo appearance remain unverified."
+      "title": "Compact settings font and safe ContextLM groundwork",
+      "detail": "Reduce the bundled variable settings/search icon font to its exact existing fixed visual style; mapped glyph outlines and names are preserved. Add a read-only adapter that passes current native suggestions and inherited user-history/user-dictionary signals as future neural model inputs, plus a bounded INT8 reference and fail-closed model-validation tests. The offline experimental model failed realistic prediction-quality gates: no model weights, runtime suggestion hook or changed predictions are shipped. Keep native learning, QuickType, swipe, voice, network policy, original package and signer unchanged. Real APK bytes, runtime stability and Oppo visuals require verification."
     }
   ]
 }

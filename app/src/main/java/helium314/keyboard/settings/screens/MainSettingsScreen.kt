@@ -71,7 +71,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
@@ -113,7 +112,10 @@ import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.Preference
 import helium314.keyboard.latin.utils.previewDark
 
-val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded, variationSettings = FontVariation.Settings(FontVariation.Setting("FILL", 0f), FontVariation.Setting("wght", 400f))))
+// The bundled font is a fixed instance of exactly FILL=0, GRAD=0, opsz=24, wght=400.
+// Keeping it static preserves the settings icon outlines while avoiding ~13 MB of
+// variation deltas in every APK.
+val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded))
 
 @Composable
 fun MainSettingsScreen(

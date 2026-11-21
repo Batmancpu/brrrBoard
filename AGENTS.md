@@ -1,5 +1,30 @@
 # brrBoard agent instructions
 
+## 2026-11-21 — owner ContextLM GO after five-minute idle; quality-gated build
+
+The owner authorized live polling of every `main` GitHub Actions status and
+starting ContextLM implementation after FIVE continuous minutes with none
+active. Debug `44882039159` and original-signed Obtainium `44882039152`
+finished success and published baseline `v1.0.214` (70,900,211-byte APK).
+Polling remained zero-active from 07:55:52 through 08:01:00 UTC, and work
+began afterward on unchanged `7d856d6`. Preserve all old native personal
+learning and display native predictions instantly: new `BrPersonalContextFeatures`
+passes existing user-history/personal dictionary flags, native rank and score
+DIRECTLY into a bounded CPU DFSMN scorer, without exporting/erasing data.
+Current training is NOT approved: even hard-negative model Recall@3 lagged
+the held-out public n-gram proxy across English, Hinglish and HinGE. NO MODEL
+WEIGHTS MAY BE SHIPPED OR ACTIVATED until native candidate tests, privacy,
+licensing, real Oppo latency and signed APK size all pass; Java loader rejects
+unapproved manifests. New scaffolding is not wired into keyboard suggestions.
+For APK space, the exact fixed-style instance of the 15,080,092-byte settings
+icon font is ~1.7 MB; all mapped glyph outlines/cmap validated equivalent,
+but on-device styling and compressed signed APK savings remain unverified.
+Read `docs/BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md` before edits.
+Keep voice/QuickType/native dictionary untouched, no Internet, original
+signer/package/main-only nonforce. Update all handoffs, post-v214 notes, exact-
+SHA full debug and signed Obtainium CI and ask owner for Oppo checks. No
+ContextLM capability or user-visible gain may be claimed until actual gates.
+
 ## 2026-11-21 — OWNER GO: default brrClean, real-time 5–6s private voice streaming
 
 The owner confirmed brrClean works on their actual phone without earbuds,

@@ -25,6 +25,25 @@ Total output lines: 556
 
 # FrostKeys / brrrBoard conversation record
 
+## 2026-11-21 — owner approved ContextLM implementation after quiet workflows
+
+Prior owner planning required a very small offline context LM whose inference
+DIRECTLY includes the native predictions and old user-learning signals,
+without losing past typing history or adding hot-path latency. Owner now said
+to monitor all GitHub Actions, wait five minutes with no active workflow,
+then start implementing, while researching efficiency, bugs and crashes.
+Observed successful debug/signed v1.0.214 workflows, zero active actions
+continuously 07:55:52–08:01:00 UTC, then started local work. Native-history
+feature contract, SHA/shape-checked Java DFSMN reference and safety tests
+exist, but no UI hook or bundled model: first random-negative model and the
+corrected hard-negative model both lost genuine held-out public n-gram proxy
+Recall@3. Faking an improvement would violate owner's goal. New static-icon
+font experiment preserves glyphs while reducing raw size by ~13.4 MB; still
+needs exact-source Android CI, signed APK byte comparison and owner Oppo
+visual acceptance. Existing personal dictionary, voice/GTCRN, swipe,
+QuickType, privacy, signer and package remain unchanged. Full source/evidence:
+`docs/BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md`.
+
 ## 2026-11-21 — owner GO for QuickType source, CI and signed release
 
 Owner reported the currently installed keyboard suggestion animation is buggy,

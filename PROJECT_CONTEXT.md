@@ -1,5 +1,24 @@
 # brrBoard project context
 
+## 2026-11-21 — ContextLM after idle, experimental model safely unshipped
+
+Following explicit owner GO, `main` Actions debug/release became idle after
+successful v1.0.214, and stayed idle over five minutes (07:55:52–08:01:00
+UTC). Local source now includes read-only `BrPersonalContextFeatures` and a
+bounded SHA-checked CPU/INT8 DFSMN reference with direct native next-word
+rank/score, user-history/user-dictionary input, privacy exclusions, and tests.
+These are NOT hooked into `Suggest`; no model weights are bundled and native
+next-word suggestions/old personal history remain unchanged. Public-corpus
+hard-negative training still fell below held-out n-gram candidate Recall@3;
+neural fusion calibration is exploratory, not native/Oppo proof. Guard rejects
+experimental model manifest. A safe independent APK-size reduction replaces
+the 15.08 MB variable settings icon font with its ~1.7 MB identical fixed
+style; ~4,008 mapped glyph outlines and cmap preserved, but CI/Oppo checks
+remain. No release/push/Android compile claimed until exact source debug and
+original signer verify. Owner's previous signed APK: 70,900,211 bytes.
+Full rationale, model failures, font hashes and risks in
+`docs/BR_CONTEXTLM_PERSONALIZED_INTEGRATION_2026_11_21.md`.
+
 ## 2026-11-21 — current owner-accepted brrClean, background chunked dictation
 
 Owner confirms brrClean functions with no earbuds, wants it default for blue
