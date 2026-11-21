@@ -37,7 +37,9 @@ Never run denoising while a user types or while a telephone/video call is active
   offline Parakeet. Memory buffers are wiped after use. Entire old active
   `GtcrnVoiceService`/`GtcrnVoiceBridge` path was removed, not layered upon.
   Historical opt-in synthetic GTCRN probe remains for old diagnostics only.
-- Lab records **one** physical take. Original and brrClean outputs come from
+- Lab records **one** physical take. OFF never queues a native job in the
+  lab either; only selecting brrClean performs same-PCM enhancement. Original
+  and brrClean outputs come from
   that identical PCM; they are replayable/scorable in memory. Android's
   platform effect is capture-time and cannot honestly be replayed with the
   same untreated input after the fact. A/B scores only mean something when

@@ -26,7 +26,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class VoiceNoiseLab(context: Context) {
     enum class Input(val title: String) { AUTO("Android auto"), PHONE("Phone mic"), EARBUDS("Earbuds mic") }
 
-    data class Key(val input: Input, val suppression: Boolean)
+    data class Key(val input: Input, val mode: VoiceNoiseMode) {
+        val suppression: Boolean get() = mode == VoiceNoiseMode.ANDROID
+        val enhance: Boolean get() = mode == VoiceNoiseMode.GTCRN
+    }
     data class Take(
         val key: Key,
         val source: String,
@@ -177,8 +180,12 @@ internal class VoiceNoiseLab(context: Context) {
                 "Android refused Bluetooth microphone selection"
             }
             effect = VoiceCaptureNoiseReduction.attachForLab(mic, key.suppression)
-            val ns = if (!key.suppression) "Android extra suppression OFF · GTCRN after recording"
-                else if (effect != null) "Android effect ACTIVE" else "Android effect UNAVAILABLE"
+            val ns = when {
+                key.enhance -> "Android extra suppression OFF · brrClean after recording"
+                !key.suppression -> "OFF · raw microphone; no denoiser"
+                effect != null -> "Android effect ACTIVE"
+                else -> "Android effect UNAVAILABLE"
+            }
             // We changed MODE_IN_COMMUNICATION ourselves for Bluetooth, so the
             // normal call guard here would otherwise block this legitimate lab test.
             if (!wanted.get() || (key.input != Input.EARBUDS &&
@@ -250,11 +257,11 @@ internal class VoiceNoiseLab(context: Context) {
                     if (!closed) {
                         clips[key] = saved
                         takes[key] = take
-                        status = if (!key.suppression) "Take saved. GTCRN processes the same PCM in an isolated process."
-                            else "Android-processed take saved in memory. Replay or transcribe."
+                        status = if (key.enhance) "Take saved. brrClean processes the same PCM in an isolated process."
+                            else "Take saved in memory with ${if (key.suppression) "Android effect" else "OFF"}. Replay or transcribe."
                     } else saved.fill(0)
                 }
-                if (!key.suppression) Handler(Looper.getMainLooper()).postDelayed({
+                if (key.enhance) Handler(Looper.getMainLooper()).postDelayed({
                     enhance(key)
                 }, 80L) // capture.finally must release its recording gate first
             } else if (!closed) {

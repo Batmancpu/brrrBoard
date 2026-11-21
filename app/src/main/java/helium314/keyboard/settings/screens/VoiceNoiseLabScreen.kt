@@ -56,7 +56,7 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
     val state = remember(refresh) { lab.snapshot() }
     val live = remember(refresh) { VoiceDenoiseMetrics.snapshot() }
     val reference = if (hinglish) HINGLISH_SENTENCE else ENGLISH_SENTENCE
-    val key = VoiceNoiseLab.Key(input, mode == VoiceNoiseMode.ANDROID)
+    val key = VoiceNoiseLab.Key(input, mode)
     val take = state.takes.firstOrNull()
     val busy = state.recording || state.playing || state.decoding || state.enhancing
     val palette = MaterialTheme.colorScheme
@@ -168,14 +168,14 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { lab.play(take.key) }, enabled = !busy) { Text("▶ Original") }
-                        if (!take.key.suppression) OutlinedButton(
+                        if (take.key.enhance) OutlinedButton(
                             onClick = { lab.play(take.key, enhanced = true) },
                             enabled = !busy && take.enhanceMs != null) { Text("▶ brrClean") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { lab.transcribe(take.key, reference) },
                             enabled = !busy) { Text("Score original") }
-                        if (!take.key.suppression) OutlinedButton(
+                        if (take.key.enhance) OutlinedButton(
                             onClick = { lab.transcribe(take.key, reference, enhanced = true) },
                             enabled = !busy && take.enhanceMs != null) { Text("Score brrClean") }
                     }
