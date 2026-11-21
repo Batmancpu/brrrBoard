@@ -1,5 +1,9 @@
 # First-keystroke QuickType delivery and stable strip — release verification ledger
 
+## 2026-11-21 v1.0.207 release and owner-reported remaining motion failure
+
+The preceding QuickType source was published on `main` as `709b01b4ff434b37525171f79e28d988c3c50a0d`. Exact-SHA debug workflow `44871798905` and original-signed Obtainium workflow `44871798882` completed **SUCCESS**, and signed release `v1.0.207` was published. This is Android CI/signature evidence, not Oppo animation acceptance. Owner subsequently reported that initial words should appear with the keyboard **without** an entrance transition, and *every later replacement* should animate, including unrelated pairs and words with only one shared character, across three-slot/chip updates. The prior v207 glyph plan deliberately suppressed those transitions. The new source fixes this design gap and synchronously seeds safe, generic English starting words for eligible empty prose fields without waiting for an asynchronous decoder. Real native candidates are still authoritative; the generic row is not a model prediction or autocorrect. Exclusions: privacy, secure/non-prose/non-English fields, app completions, inline autofill, clipboard, hardware keyboard, unknown/non-zero caret positions, disabled predictions. The exact current iOS 27 timing is **not publicly documented or frame-measured**; 164ms remains a reference-inspired approximation until high-FPS iPhone/Oppo verification. No APK claiming this newer behavior is accepted yet.
+
 ## 2026-11-21 owner GO: remote Android build and signed update
 
 The owner now explicitly said "Android build is pending, so go ahead." This

@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "brrClean native GTCRN voice rebuild and QuickType availability improvements after signed v1.0.206. Requires exact-SHA debug/full Android CI and original-signed Obtainium verification before release.",
+  "summary": "brrClean native GTCRN voice rebuild and QuickType first-frame/animation improvements after signed v1.0.207. Requires exact-SHA debug/full Android CI and original-signed Obtainium verification before release.",
   "changes": [
     {
-      "title": "First-keystroke QuickType availability and stable word animation",
-      "detail": "Prepare next-word predictions when eligible text fields open; show an immediate, non-inserting literal-prefix fallback after the first key; deliver completed decoder results asynchronously only to the matching editor, request, text and cursor; refresh after dictionary loading; and reuse fixed three-slot suggestion views during ordinary updates. Keep all first-frame text fully opaque with native text-shaping fallbacks. Autocorrection at Space/Return retains a bounded freshness guard. No prediction ranking, BR Brain, voice, package, model, permissions, learning or signing change. Oppo hardware behavior remains to be confirmed by its owner."
+      "title": "Keyboard-open predictions and continuous iOS-profile glyph transitions",
+      "detail": "Populate a safe, generic three-word English prediction row synchronously before the keyboard's first frame in eligible empty prose fields; real decoder candidates replace it when ready. Never seed passwords, secure/incognito editors, non-English fields, app completions, active autofill, hardware keyboards or clipboard accessories. No entrance animation on keyboard opening. Once typing begins, run an interruptible 164ms bounded glyph settle for every changed candidate, including one shared letter, zero shared letters, style transitions and visible five-word chips. Keep the typed-only center slot stable and non-inserting; preserve immediate text, click tags, native complex-script shaping, reduced-motion and decoder autocorrect authority. The 164ms value is an iOS-inspired approximation, not a measured Apple timing. BR Brain, voice, package, models, dictionary ranking, saved user data and signer are unchanged by the QuickType portion; Oppo visual and frame-time acceptance remain pending."
     },
     {
       "title": "brrClean native noise reduction and verified microphone routing",

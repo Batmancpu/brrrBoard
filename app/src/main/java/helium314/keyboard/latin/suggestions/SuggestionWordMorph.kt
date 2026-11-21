@@ -20,7 +20,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
                      val centerPillWidth: Float, val visibleWords: List<SuggestionGlyphFrame?>)
 
     private val easing = PathInterpolator(.20f, 0f, .20f, 1f)
-    private val active = ArrayList<MorphingSuggestionTextView>(3)
+    private val active = ArrayList<MorphingSuggestionTextView>(5)
     private var animator: ValueAnimator? = null
     private var pill: SuggestionConfidencePillDrawable? = null
     private var pillView: TextView? = null
@@ -39,11 +39,13 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
     }
 
     fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
-              fillColor: Int, verticalInset: Float) {
+              fillColor: Int, verticalInset: Float, chips: Boolean) {
         if (!KeyboardMotionSpec.enabled() || !owner.isShown || words.size < 3) return
 
         if (KeyboardMotionSpec.isIos27(owner.context)) {
-            for (index in 0..2) {
+            // Chips also replace words in place; each visible chip has a real
+            // transition rather than silently snapping an unrelated candidate.
+            for (index in words.indices) {
                 val word = words[index] as? MorphingSuggestionTextView ?: continue
                 if (!word.isShown || word.text.isNullOrBlank() ||
                     previous.labels.getOrNull(index) == word.text.toString()) continue
@@ -52,7 +54,8 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
         }
 
         val center = words[1]
-        if ((centerConfidence || previous.centerConfidence) && center.isShown && center.width > 0) {
+        if (!chips && (centerConfidence || previous.centerConfidence)
+            && center.isShown && center.width > 0) {
             pillFallbackBackground = if (centerConfidence) null else center.background
             val destination = pillWidth(center)
             val origin = if (previous.centerConfidence) previous.centerPillWidth else destination

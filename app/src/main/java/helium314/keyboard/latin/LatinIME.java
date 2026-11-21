@@ -201,6 +201,8 @@ public class LatinIME extends InputMethodService implements
     private InsetsOutlineProvider mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
     private boolean mInlineProviderViewActive;
+    // Only a synchronous first-frame placeholder, never an input/correction source.
+    private boolean mStartupSuggestionSeedVisible;
     private long mEditorFocusEpoch;
     private long mInlineRequestEpoch = -1;
 
@@ -1370,6 +1372,7 @@ public class LatinIME extends InputMethodService implements
         // branch. Revoke RAM-only consent here too, even when the system never
         // sends onStartInputInternal between two visible editor sessions.
         SecureAppTemporaryOptOut.clear();
+        mStartupSuggestionSeedVisible = false;
         mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
 
@@ -1541,13 +1544,36 @@ public class LatinIME extends InputMethodService implements
             // Space state must be updated before calling updateShiftState
             switcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
         }
+        if (hasSuggestionStripView()) mSuggestionStripView.onNewEditorSession();
         // Set neutral suggestions and show the toolbar if the "Auto show toolbar"
         // setting is enabled.
         if (!mHandler.hasPendingResumeSuggestions()) {
             mHandler.cancelUpdateSuggestionStrip();
-            setNeutralSuggestionStrip();
-            if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar && !tryShowClipboardSuggestion()) {
-                mSuggestionStripView.setToolbarVisibility(true);
+            // Publish an initial row synchronously, BEFORE the keyboard's first
+            // draw. A posted dictionary callback cannot populate the entry frame.
+            // Clipboard/inline autofill, privacy and application completions win.
+            final boolean shouldSeed = helium314.keyboard.latin.suggestions.StartupSuggestionPolicy
+                    .eligible(mRichImm.getCurrentSubtypeLocale(),
+                            currentSettingsValues.mInputAttributes.mIsGeneralTextInput,
+                            currentSettingsValues.needsToLookupSuggestions(),
+                            currentSettingsValues.mBigramPredictionEnabled,
+                            currentSettingsValues.isSuggestionsEnabledPerUserSettings(),
+                            secureEditor || currentSettingsValues.mIncognitoModeEnabled,
+                            currentSettingsValues.isApplicationSpecifiedCompletionsOn(),
+                            mInlineProviderViewActive, isImeSuppressedByHardwareKeyboard(),
+                            needToCallLoadKeyboardLater,
+                            editorInfo.initialSelStart, editorInfo.initialSelEnd);
+            if (shouldSeed && hasSuggestionStripView() && onEvaluateInputViewShown()
+                    && !tryShowClipboardSuggestion()) {
+                mStartupSuggestionSeedVisible = true;
+                setSuggestedWords(helium314.keyboard.latin.suggestions.StartupSuggestionPolicy
+                        .initialEnglishWords());
+            } else {
+                setNeutralSuggestionStrip();
+                if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar
+                        && !tryShowClipboardSuggestion()) {
+                    mSuggestionStripView.setToolbarVisibility(true);
+                }
             }
             // Warm the very first context candidates while the keyboard is
             // already visible, instead of waiting for a second character.
@@ -2346,6 +2372,15 @@ public class LatinIME extends InputMethodService implements
         if (mIsDestroyed) {
             return;
         }
+        // A dictionary warming up may emit an empty prediction callback. Keep
+        // the already-rendered first-frame row until a real update or typing;
+        // never keep it over a completed word or a typing-state transition.
+        if (mStartupSuggestionSeedVisible && mInputLogic.getComposingLength() == 0
+                && suggestedWords.isEmpty()
+                && (suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_PREDICTION
+                || suggestedWords.mInputStyle ==
+                        SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION)) return;
+        mStartupSuggestionSeedVisible = false;
         if (suggestedWords.isEmpty()) {
             // avoids showing clipboard suggestion when starting gesture typing
             // should be fine, as there will be another suggestion in a few ms

@@ -170,6 +170,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val debugInfoViews = ArrayList<TextView>()
     private val dividerViews = ArrayList<View>()
     private val wordMorph by lazy { SuggestionWordMorph(this) }
+    private var hasTypedInCurrentSession = false
+
+    /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
+    fun onNewEditorSession() {
+        hasTypedInCurrentSession = false
+        wordMorph.cancel(wordViews)
+    }
 
     init {
         val inflater = LayoutInflater.from(context)
@@ -584,8 +591,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val previousWords = wordMorph.capture(wordViews,
             SuggestionStripLayoutHelper.isCenterConfidenceActive(
                 suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int))
-        val previousInputStyle = suggestedWords.mInputStyle
         val previousDirection = direction
+        if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING &&
+            !suggestions.mTypedWordInfo?.mWord.isNullOrEmpty()) {
+            hasTypedInCurrentSession = true
+        }
         val hasMultipleEmojiCandidates = suggestions.size() > 1
             && (0 until suggestions.size()).count { suggestions.getInfo(it).isEmoji() } > 1
         val service = LatinIME.getInstance()
@@ -647,13 +657,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
                 }
         }
         updateKeys()
-        if (previousDirection == direction && previousInputStyle == suggestedWords.mInputStyle
-            && suggestionsStrip.isVisible && !shouldUseChipSuggestions(suggestedWords)) {
+        val chips = shouldUseChipSuggestions(suggestedWords)
+        if (hasTypedInCurrentSession && previousDirection == direction &&
+            (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible) &&
+            !suggestedWords.isPunctuationSuggestions && !isExternalSuggestionVisible) {
             val confident = SuggestionStripLayoutHelper.isCenterConfidenceActive(
                 suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int)
             wordMorph.morph(previousWords, wordViews, confident,
                 layoutHelper.getConfidencePillFillColor(),
-                layoutHelper.getConfidencePillVerticalInset().toFloat())
+                layoutHelper.getConfidencePillVerticalInset().toFloat(), chips)
         }
         else wordMorph.cancel(wordViews)
     }

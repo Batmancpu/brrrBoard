@@ -23,8 +23,8 @@ class SuggestionGlyphMotionTest {
         assertEquals(7, result.startOffsets.size)
         assertEquals(7, result.startScales.size)
         // Unlike v1.0.202, there is no alpha track and no postponed glyph.
-        assertTrue(result.startScales.all { it >= .97f && it <= 1f })
-        assertTrue(result.startScales.slice(4..6).all { it == .97f })
+        assertTrue(result.startScales.all { it >= .88f && it <= 1f })
+        assertTrue(result.startScales.slice(4..6).all { it == .88f })
     }
 
     @Test fun contractionAndExpansionMoveRetainedLettersWithinSmallBound() {
@@ -43,7 +43,7 @@ class SuggestionGlyphMotionTest {
         assertEquals(1f, result.startScales[2], 0f)
         assertEquals(1f, result.startScales[3], 0f)
         assertEquals(1f, result.startScales.last(), 0f)
-        assertEquals(.97f, result.startScales[4], 0f)
+        assertEquals(.88f, result.startScales[4], 0f)
     }
 
     @Test fun interruptedMotionStartsFromActuallyVisiblePosition() {
@@ -54,10 +54,30 @@ class SuggestionGlyphMotionTest {
         assertEquals(-3f, SuggestionGlyphMotion.x(result, 0, 1f), 0f)
     }
 
-    @Test fun unrelatedWordsAndUnchangedWordsUseNativeTextView() {
-        assertNull(plan("hello", "world"))
+    @Test fun unrelatedAndOneLetterTransitionsNeverSnap() {
+        val unrelated = requireNotNull(plan("cat", "dog"))
+        assertTrue(unrelated.startOffsets.any { abs(it) > 1f })
+        assertTrue(unrelated.outgoingVisible.all { it })
+        assertTrue(SuggestionGlyphMotion.outgoingAlpha(unrelated, 0, 0f) > 0f)
+        assertEquals(0f, SuggestionGlyphMotion.outgoingAlpha(unrelated, 0, 1f), 0f)
+        val oneLetter = requireNotNull(plan("t", "there"))
+        assertEquals(1f, oneLetter.startScales.first(), 0f)
+        assertTrue(oneLetter.startScales.drop(1).all { it < 1f })
+        assertTrue(oneLetter.outgoingVisible.none { it })
+    }
+
+    @Test fun competingCandidatesAfterTheFirstLetterBothAnimate() {
+        val first = requireNotNull(plan("tree", "there"))
+        val second = requireNotNull(plan("there", "they"))
+        assertTrue(first.startOffsets.any { abs(it) > 0f })
+        assertTrue(second.startOffsets.any { abs(it) > 0f })
+        assertTrue(first.startScales.any { it == .88f })
+        assertTrue(second.startScales.any { it == .88f })
+    }
+
+    @Test fun unchangedWordsNeedNoAnimation() {
         assertNull(plan("hello", "hello"))
-        assertNull(plan("a", "an"))
+        assertNotNull(plan("a", "an"))
     }
 
     @Test fun longUnicodeRtlAndInvalidCoordinatesUseNativeTextView() {
@@ -80,7 +100,7 @@ class SuggestionGlyphMotionTest {
         assertEquals(0f, SuggestionGlyphMotion.eased(0f), 0f)
         assertEquals(1f, SuggestionGlyphMotion.eased(1f), 0f)
         assertEquals(1f, SuggestionGlyphMotion.eased(2f), 0f)
-        assertTrue(SuggestionGlyphMotion.SETTLE_MS <= 120L)
+        assertEquals(164L, SuggestionGlyphMotion.SETTLE_MS)
         for (i in result.word.indices) {
             assertEquals(result.positions[i], SuggestionGlyphMotion.x(result, i, 1f), 0f)
             assertEquals(1f, SuggestionGlyphMotion.scale(result, i, 1f), 0f)

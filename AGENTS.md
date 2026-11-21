@@ -22,6 +22,10 @@ synced to changes, verify native unit/Android/full CI, original-signer release,
 APK model/library/license provenance and privacy. Never claim Oppo/Nirvana Ion
 hardware acceptance from emulator/host/CI evidence. Main-only, non-force push.
 
+## RESUME HERE — 2026-11-21 post-signed-v1.0.207 animation acceptance repair
+
+The QuickType first-keystroke source was already fast-forward-published at `709b01b4ff434b37525171f79e28d988c3c50a0d`; Android debug `44871798905` and original-signed Obtainium `44871798882` succeeded, producing v1.0.207. **Owner reports its animation is still wrong on their phone.** Do not call v207 a motion acceptance success. This follow-up replaces the old requirement for ≥2 overlapping letters with bounded 164ms glyph animation for ANY changed word (zero/one overlap included), all visible chip slots and cross-style changes. A new safe English generic startup row is set before the keyboard draws, with NO entrance animation; native predictions supersede it. The typed-only fallback keeps three attached slots and is untappable. Restrict startup to safe empty general-English prose, suggestions on, no private/secure/clipboard/autofill/app completion/hardware keyboard. Avoid altering native model, ranker, word commitment, BR Brain, voice, package, signer or user data. Local Gradle 8.14.4 bootstrap unavailable; the new patch is not Android-compiled until exact-SHA CI passes. The 164ms iOS-inspired budget is **not** a measured latest-Apple timing; hardware footage/owner visual review still needed. Maintain [motion](docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md) and [first-keystroke](docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md) ledgers, all handoffs and post-v207 release notes. Normal main fast-forward only, exact-SHA debug/full unit gate before original-signed Obtainium, no forced update, verify workflows before claiming release.
+
 ## 2026-11-21 — OWNER GO for QuickType GitHub build and signed release
 
 Owner explicitly superseded the earlier local-only/no-upload boundary with

@@ -18,6 +18,10 @@ Ignore earlier “GTCRN paused”/old service implementation notes for CURRENT
 behavior. Full exact-SHA debug+original-signer CI, Oppo/Nirvana Ion physical
 acceptance and crash-free keyboard smoothness are separate mandatory gates.
 
+## RESUME HERE — 2026-11-21 post-v1.0.207 owner-reported animation failure
+
+Latest signed QuickType v1.0.207 came from `709b01b4ff434b37525171f79e28d988c3c50a0d`: exact-commit debug `44871798905` and original signed Obtainium `44871798882` **SUCCESS**. Owner subsequently reports animation still not working as expected. Source indeed skipped unrelated candidates and word pairs with fewer than two shared prefix/suffix letters, and skipped style transitions/5-chip motion. New follow-up candidate moves/fades glyphs for every changed word with a 164ms finite interrupted-settle clock; the initial English safe-gated generic prediction row is present before keyboard first draw and does not animate. Initial typed-only prefix remains a disabled stable center slot. Real native suggestions supersede generic startup words. Same privacy, original signer, package, BR Brain, voice and models. 164ms is not proven exact current iOS timing; Apple does not expose that public spec, and the public video could not be frame-measured. Local Gradle wrapper distribution unavailable; **new source not yet verified by full Android CI, signed release or Oppo**. See [QuickType ledger](docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md) and [glyph ledger](docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md). Release gate: expected-head fast-forward `main`, matching debug full-unit success, original-certificate Obtainium success, then real Oppo visual acceptance.
+
 ## RESUME HERE — 2026-11-21 owner authorized QuickType remote CI/release
 
 The owner said "Android build is pending, so go ahead," superseding the

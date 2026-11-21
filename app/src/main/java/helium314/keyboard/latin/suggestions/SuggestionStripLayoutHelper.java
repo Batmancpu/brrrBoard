@@ -470,7 +470,8 @@ final class SuggestionStripLayoutHelper {
                 suggestedWords.mWillAutoCorrect, (Integer) centerWordView.getTag());
         final int stripWidth = stripView.getWidth();
         final int centerWidth = getSuggestionWidth(mCenterPositionInStrip, stripWidth);
-        if (wordCountToShow == 1 || getTextScaleX(centerWordView.getText(), centerWidth,
+        if ((wordCountToShow == 1 && !shouldShowTypedFallback(suggestedWords))
+                || getTextScaleX(centerWordView.getText(), centerWidth,
                 centerWordView.getPaint()) < MIN_TEXT_XSCALE) {
             // Layout only the most relevant suggested word at the center of the suggestion strip
             // by consolidating all slots in the strip.
@@ -528,8 +529,9 @@ final class SuggestionStripLayoutHelper {
     public int updateAttachedWordSlots(final Context context, final SuggestedWords words,
             final ViewGroup stripView) {
         if (SuggestionStripView.DEBUG_SUGGESTIONS || words.isEmpty()
-                || words.isPunctuationSuggestions() || shouldShowTypedFallback(words)
-                || words.getWordCountToShow() + (shouldQuoteOriginal(words) ? 1 : 0) < 2
+                || words.isPunctuationSuggestions()
+                || words.getWordCountToShow()
+                    + (shouldQuoteOriginal(words) || shouldShowTypedFallback(words) ? 1 : 0) < 1
                 || stripView.getWidth() <= 0
                 || stripView.getChildCount() != mSuggestionsCountInStrip * 2 - 1) return -1;
         for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
@@ -547,11 +549,17 @@ final class SuggestionStripLayoutHelper {
         final boolean confidence = isCenterConfidenceActive(words.mWillAutoCorrect,
                 (Integer)center.getTag());
         mMoreSuggestionsAvailable = words.getWordCountToShow()
-                + (shouldQuoteOriginal(words) ? 1 : 0) > mSuggestionsCountInStrip;
+                + (shouldQuoteOriginal(words) || shouldShowTypedFallback(words) ? 1 : 0)
+                > mSuggestionsCountInStrip;
         for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
             if (i > 0) mDividerViews.get(i).setVisibility(confidence ? View.INVISIBLE : View.VISIBLE);
             layoutWord(context, i, getSuggestionWidth(i, stripView.getWidth()),
                     words.mWillAutoCorrect);
+        }
+        if (shouldShowTypedFallback(words)) {
+            // Keep a stable center slot without making the typed prefix tappable.
+            center.setTag(null);
+            center.setEnabled(false);
         }
         return nextIndex;
     }
