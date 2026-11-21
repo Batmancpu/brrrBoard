@@ -248,9 +248,20 @@ final class SuggestionStripLayoutHelper {
         final SettingsValues settingsValues = Settings.getValues();
         final boolean shouldOmitTypedWord = shouldOmitTypedWord(suggestedWords.mInputStyle,
                 settingsValues.mGestureFloatingPreviewTextEnabled, true)
-                && !shouldQuoteOriginal(suggestedWords);
+                && !shouldQuoteOriginal(suggestedWords)
+                && !shouldShowTypedFallback(suggestedWords);
         return getPositionInSuggestionStrip(indexInSuggestedWords, suggestedWords.mWillAutoCorrect,
                 shouldOmitTypedWord, mCenterPositionInStrip, mTypedWordPositionWhenAutocorrect);
+    }
+
+    /** A lone typed prefix is display-only until real suggestions arrive. */
+    static boolean shouldShowTypedFallback(final SuggestedWords words) {
+        return words != null && words.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING
+                && !words.mWillAutoCorrect && words.size() == 1
+                && words.getWord(SuggestedWords.INDEX_OF_TYPED_WORD) != null
+                && !words.getWord(SuggestedWords.INDEX_OF_TYPED_WORD).isEmpty()
+                && words.getInfo(SuggestedWords.INDEX_OF_TYPED_WORD)
+                        .isKindOf(SuggestedWordInfo.KIND_TYPED);
     }
 
     static boolean shouldOmitTypedWord(final int inputStyle,
@@ -450,7 +461,7 @@ final class SuggestionStripLayoutHelper {
         // Normal typing omits index 0, but the quoted literal is an actual third
         // tappable slot for a pending iOS-profile autocorrection.
         final int wordCountToShow = suggestedWords.getWordCountToShow()
-                + (shouldQuoteOriginal(suggestedWords) ? 1 : 0);
+                + (shouldQuoteOriginal(suggestedWords) || shouldShowTypedFallback(suggestedWords) ? 1 : 0);
         final int startIndexOfMoreSuggestions = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
                 suggestedWords, mSuggestionsCountInStrip);
         final TextView centerWordView = mWordViews.get(mCenterPositionInStrip);
@@ -466,6 +477,12 @@ final class SuggestionStripLayoutHelper {
             final int countInStrip = 1;
             mMoreSuggestionsAvailable = (wordCountToShow > countInStrip);
             layoutWord(context, mCenterPositionInStrip, stripWidth - mPadding, suggestedWords.mWillAutoCorrect);
+            if (shouldShowTypedFallback(suggestedWords)) {
+                // The prefix already exists in the editor; tapping must not
+                // commit it again or turn it into an autocorrection.
+                centerWordView.setTag(null);
+                centerWordView.setEnabled(false);
+            }
             stripView.addView(centerWordView);
             setLayoutWeight(centerWordView, 1.0f, ViewGroup.LayoutParams.MATCH_PARENT);
             if (SuggestionStripView.DEBUG_SUGGESTIONS) {
@@ -500,6 +517,43 @@ final class SuggestionStripLayoutHelper {
             }
         }
         return startIndexOfMoreSuggestions;
+    }
+
+    /**
+     * Hot path for ordinary three-slot predictions: retain the same attached
+     * TextViews, dividers, touch targets and measured row. Full layout is still
+     * used for punctuation, chips, one-word collapse and unusually wide text.
+     * Returns -1 when structural layout is required.
+     */
+    public int updateAttachedWordSlots(final Context context, final SuggestedWords words,
+            final ViewGroup stripView) {
+        if (SuggestionStripView.DEBUG_SUGGESTIONS || words.isEmpty()
+                || words.isPunctuationSuggestions() || shouldShowTypedFallback(words)
+                || words.getWordCountToShow() + (shouldQuoteOriginal(words) ? 1 : 0) < 2
+                || stripView.getWidth() <= 0
+                || stripView.getChildCount() != mSuggestionsCountInStrip * 2 - 1) return -1;
+        for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
+            if (stripView.getChildAt(i * 2) != mWordViews.get(i)) return -1;
+            if (i > 0 && stripView.getChildAt(i * 2 - 1) != mDividerViews.get(i)) return -1;
+        }
+
+        final int nextIndex = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
+                words, mSuggestionsCountInStrip);
+        final TextView center = mWordViews.get(mCenterPositionInStrip);
+        if (getTextScaleX(center.getText(),
+                getSuggestionWidth(mCenterPositionInStrip, stripView.getWidth()),
+                center.getPaint()) < MIN_TEXT_XSCALE) return -1;
+
+        final boolean confidence = isCenterConfidenceActive(words.mWillAutoCorrect,
+                (Integer)center.getTag());
+        mMoreSuggestionsAvailable = words.getWordCountToShow()
+                + (shouldQuoteOriginal(words) ? 1 : 0) > mSuggestionsCountInStrip;
+        for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
+            if (i > 0) mDividerViews.get(i).setVisibility(confidence ? View.INVISIBLE : View.VISIBLE);
+            layoutWord(context, i, getSuggestionWidth(i, stripView.getWidth()),
+                    words.mWillAutoCorrect);
+        }
+        return nextIndex;
     }
 
     /**
@@ -619,6 +673,10 @@ final class SuggestionStripLayoutHelper {
         wordView.setTextScaleX(scaleX);
         wordView.setEnabled(!TextUtils.isEmpty(word)
                 || AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled());
+        if (shouldShowTypedFallback(suggestedWords)) {
+            wordView.setTag(null);
+            wordView.setEnabled(false);
+        }
 
         final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -653,7 +711,8 @@ final class SuggestionStripLayoutHelper {
     private ArrayList<Integer> getChipSuggestionIndexes(final SuggestedWords suggestedWords) {
         final SettingsValues settingsValues = Settings.getValues();
         final boolean shouldOmitTypedWord = shouldOmitTypedWord(suggestedWords.mInputStyle,
-                settingsValues.mGestureFloatingPreviewTextEnabled, true);
+                settingsValues.mGestureFloatingPreviewTextEnabled, true)
+                && !shouldShowTypedFallback(suggestedWords);
         final ArrayList<Integer> indexes = new ArrayList<>(CHIP_SUGGESTIONS_COUNT_IN_STRIP);
         if (shouldOmitTypedWord) {
             addChipIndex(indexes, suggestedWords, SuggestedWords.INDEX_OF_AUTO_CORRECTION,

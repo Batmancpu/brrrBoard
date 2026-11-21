@@ -1,18 +1,10 @@
 {
   "schema": 1,
-  "summary": "New after v1.0.204: improve private keyboard diagnostics and make APK builds more efficient without dropping Android tests or weakening original signing verification.",
+  "summary": "QuickType suggestion availability and visible letter motion after signed v1.0.206. New source requires exact-SHA Android CI and original-signed Obtainium verification before release.",
   "changes": [
     {
-      "title": "Private diagnostics without typed-word logging",
-      "detail": "Keyboard/editor mismatch messages, spelling and swipe diagnostics, dynamic word dictionaries, contact/app dictionary entries, blacklist changes, clipboard image paths, custom key labels and sticker paths no longer put raw personal values in Android or in-app log history. The optional full dictionary word dump now reports privacy suppression rather than enumerating private words. Keyboard typing, predictions, offline voice, personal learning, stored data and permissions are otherwise unchanged."
-    },
-    {
-      "title": "Faster verified Android releases",
-      "detail": "The duplicate complete Android unit-test execution was removed from the signed workflow, but every test still runs in the independent debug workflow for the exact same source commit. Original-signing and Obtainium release creation remain blocked until that run succeeds; certificate, privacy/network permission, model/dictionary and APK integrity checks remain mandatory."
-    },
-    {
-      "title": "Remove unused audit build path",
-      "detail": "Removed an obsolete audit-branch-only debug workflow, kept the regular main-branch debug and original-signed Obtainium workflows, and added early regression checks for the exact-commit test gate and safe diagnostic messages. The package name and original update-signing key are unchanged."
+      "title": "First-keystroke QuickType availability and stable word animation",
+      "detail": "Prepare next-word predictions when eligible text fields open; show an immediate, non-inserting literal-prefix fallback after the first key; deliver completed decoder results asynchronously only to the matching editor, request, text and cursor; refresh after dictionary loading; and reuse fixed three-slot suggestion views during ordinary updates. Keep all first-frame text fully opaque with native text-shaping fallbacks. Autocorrection at Space/Return retains a bounded freshness guard. No prediction ranking, BR Brain, voice, package, model, permissions, learning or signing change. Oppo hardware behavior remains to be confirmed by its owner."
     }
   ]
 }

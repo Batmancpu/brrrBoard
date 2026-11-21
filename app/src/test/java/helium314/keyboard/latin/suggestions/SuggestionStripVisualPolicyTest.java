@@ -14,9 +14,31 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
 import helium314.keyboard.latin.SuggestedWords;
+import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
+import helium314.keyboard.latin.dictionary.Dictionary;
+import java.util.ArrayList;
 
 @RunWith(RobolectricTestRunner.class)
 public class SuggestionStripVisualPolicyTest {
+    private static SuggestedWords oneTypedWord(final String value) {
+        final SuggestedWordInfo typed = new SuggestedWordInfo(value, "", SuggestedWordInfo.MAX_SCORE,
+                SuggestedWordInfo.KIND_TYPED, Dictionary.DICTIONARY_USER_TYPED,
+                SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE);
+        final ArrayList<SuggestedWordInfo> infos = new ArrayList<>();
+        infos.add(typed);
+        return new SuggestedWords(infos, null, typed, false, false, false,
+                SuggestedWords.INPUT_STYLE_TYPING, SuggestedWords.NOT_A_SEQUENCE_NUMBER);
+    }
+
+    @Test public void initialTypedPrefixDoesNotDisappearWhenNoDecoderCandidatesExist() {
+        assertTrue(SuggestionStripLayoutHelper.shouldShowTypedFallback(oneTypedWord("t")));
+        assertTrue(SuggestionStripLayoutHelper.shouldShowTypedFallback(oneTypedWord("th")));
+        assertFalse(SuggestionStripLayoutHelper.shouldShowTypedFallback(oneTypedWord("")));
+        assertFalse(SuggestionStripLayoutHelper.shouldShowTypedFallback(SuggestedWords.getEmptyInstance()));
+        assertEquals(1, SuggestionStripLayoutHelper.getPositionInSuggestionStrip(
+                0, false, false, 1, 0));
+    }
+
     @Test public void highlightedOnlyForDecoderApprovedCenterCorrection() {
         assertTrue(SuggestionStripLayoutHelper.isCenterConfidenceActive(true,
                 SuggestedWords.INDEX_OF_AUTO_CORRECTION));

@@ -144,6 +144,9 @@ public final class InputLogic {
     private long mRejectedSwipeAt;
     private long mLastInteractionUptime;
     private boolean mIgnoreOldContextUntilWordCommit;
+    // UI-thread-only token. A completed decoder result must never revive an older
+    // prefix, keyboard session, or editor after a newer input request.
+    private long mSuggestionRequestSerial;
 
     private boolean mayLearnSwipe(final SettingsValues values) {
         return values != null && SwipeCorrectionLearner.isAllowed(mLatinIME,
@@ -212,6 +215,7 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        invalidateSuggestionRequests();
         mCorrectionRejection.clear();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
@@ -280,6 +284,7 @@ public final class InputLogic {
      * Clean up the input logic after input is finished.
      */
     public void finishInput() {
+        invalidateSuggestionRequests();
         mCorrectionRejection.clear();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
@@ -2093,11 +2098,45 @@ public final class InputLogic {
         return result;
     }
 
-    public void performUpdateSuggestionStripSync(final SettingsValues settingsValues, final int inputStyle) {
+    /** Called on the UI thread when any newer input invalidates pending decoder results. */
+    public void invalidateSuggestionRequests() {
+        ++mSuggestionRequestSerial;
+    }
+
+    /**
+     * Never leave the first eligible typed character visually empty while the
+     * dictionary thread starts. This provisional label is the user's own text,
+     * not a correction, ranked prediction, or extra insertion action.
+     */
+    public void showImmediateTypedWordIfNeeded(final SettingsValues settingsValues) {
+        if (!settingsValues.needsToLookupSuggestions()
+                || settingsValues.isApplicationSpecifiedCompletionsOn()
+                || !mWordComposer.isComposingWord()
+                || mInputLogicHandler.isInBatchInput() || isInlineEmojiSearchAction()) return;
+        final String typed = mWordComposer.getTypedWord();
+        if (typed.isEmpty()) return;
+        // Avoid replacing genuine candidates with a placeholder on every key.
+        if (typed.length() > 1 && !mSuggestedWords.isEmpty()
+                && mSuggestedWords.getWordCountToShow() > 0) return;
+        publishTypedWordFallback(typed);
+    }
+
+    private void publishTypedWordFallback(final String typed) {
+        final SuggestedWordInfo info = new SuggestedWordInfo(typed, "", SuggestedWordInfo.MAX_SCORE,
+                SuggestedWordInfo.KIND_TYPED, Dictionary.DICTIONARY_USER_TYPED,
+                SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE);
+        final ArrayList<SuggestedWordInfo> infos = new ArrayList<>(1);
+        infos.add(info);
+        mSuggestionStripViewAccessor.setSuggestions(new SuggestedWords(infos, null, info,
+                false, false, false, SuggestedWords.INPUT_STYLE_TYPING,
+                SuggestedWords.NOT_A_SEQUENCE_NUMBER));
+    }
+
+    public void performUpdateSuggestionStripAsync(final SettingsValues settingsValues, final int inputStyle) {
         long startTimeMillis = 0;
         if (DebugFlags.DEBUG_ENABLED) {
             startTimeMillis = SystemClock.elapsedRealtime();
-            Log.d(TAG, "performUpdateSuggestionStripSync()");
+            Log.d(TAG, "performUpdateSuggestionStripAsync()");
         }
         // Check if we have a suggestion engine attached.
         if (!settingsValues.needsToLookupSuggestions()) {
@@ -2115,42 +2154,70 @@ public final class InputLogic {
             return;
         }
 
-        final AsyncResultHolder<SuggestedWords> holder = new AsyncResultHolder<>("Suggest");
+        final long requestSerial = mSuggestionRequestSerial;
+        final long editorGeneration = mLatinIME.mHandler.editorGeneration();
+        final String expectedTypedWord = mWordComposer.getTypedWord();
+        final int selectionStart = mConnection.getExpectedSelectionStart();
+        final int selectionEnd = mConnection.getExpectedSelectionEnd();
+        // Never block the IME's UI thread or silently discard a result after 40ms.
+        // The callback runs on the existing decoder thread, then returns to UI.
         mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(
                 inputStyle, SuggestedWords.NOT_A_SEQUENCE_NUMBER,
-                suggestedWords -> {
-                    final String typedWordString = mWordComposer.getTypedWord();
-                    final SuggestedWordInfo typedWordInfo = new SuggestedWordInfo(
-                            typedWordString, "", SuggestedWordInfo.MAX_SCORE, SuggestedWordInfo.KIND_TYPED,
-                            Dictionary.DICTIONARY_USER_TYPED, SuggestedWordInfo.NOT_AN_INDEX,
-                            SuggestedWordInfo.NOT_A_CONFIDENCE);
-                    // Show new suggestions if we have at least one. Otherwise keep the old
-                    // suggestions with the new typed word. Exception: if the length of the
-                    // typed word is <= 1 (after a deletion typically) we clear old suggestions.
-                    if (suggestedWords.size() > 1 || typedWordString.length() <= 1) {
-                        holder.set(suggestedWords);
-                    } else {
-                        holder.set(retrieveOlderSuggestions(typedWordInfo, mSuggestedWords));
-                    }
-                }));
-        // This line may cause the current thread to wait.
-        final SuggestedWords suggestedWords = holder.get(null,
-                Constants.GET_SUGGESTED_WORDS_TIMEOUT);
-        if (suggestedWords != null) {
-            // Prefer clipboard suggestions (if available and setting is enabled) over
-            // beginning of sentence predictions.
-            if (!(suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
-                    && mLatinIME.tryShowClipboardSuggestion())) {
-                mSuggestionStripViewAccessor.setSuggestions(suggestedWords);
-            }
-            if (!suggestedWords.isEmpty() && settingsValues.isSuggestionsEnabledPerUserSettings()
-                    && isInlineEmojiSearchAction()) {
-                mSuggestionStripViewAccessor.showSuggestionStrip();
-            }
-        }
+                suggestedWords -> mLatinIME.mHandler.post(() -> applySuggestionResultIfCurrent(
+                        editorGeneration, requestSerial, expectedTypedWord,
+                        selectionStart, selectionEnd, suggestedWords))));
         if (DebugFlags.DEBUG_ENABLED) {
             long runTimeMillis = SystemClock.elapsedRealtime() - startTimeMillis;
-            Log.d(TAG, "performUpdateSuggestionStripSync() : " + runTimeMillis + " ms to finish");
+            Log.d(TAG, "performUpdateSuggestionStripAsync() : " + runTimeMillis + " ms to schedule");
+        }
+    }
+
+    /**
+     * Space/Return commits need the best correction known at that instant.
+     * Preserve the old bounded wait only for this explicit commit boundary;
+     * ordinary typed-letter updates never wait for dictionary work.
+     */
+    private void refreshPendingCorrectionBeforeCommit(final SettingsValues settingsValues) {
+        if (!settingsValues.needsToLookupSuggestions() || !mWordComposer.isComposingWord()) return;
+        final String expectedTyped = mWordComposer.getTypedWord();
+        final AsyncResultHolder<SuggestedWords> holder = new AsyncResultHolder<>("SuggestCommit");
+        mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(
+                SuggestedWords.INPUT_STYLE_TYPING, SuggestedWords.NOT_A_SEQUENCE_NUMBER,
+                holder::set));
+        final SuggestedWords fresh = holder.get(null, Constants.GET_SUGGESTED_WORDS_TIMEOUT);
+        if (fresh != null && fresh.size() > 1
+                && expectedTyped.equals(mWordComposer.getTypedWord())) {
+            mSuggestionStripViewAccessor.setSuggestions(fresh);
+        } else {
+            // A slow decoder must not auto-commit an obsolete correction.
+            publishTypedWordFallback(expectedTyped);
+        }
+    }
+
+    /** UI-thread delivery: no stale words, auto-corrections, or taps across editors. */
+    private void applySuggestionResultIfCurrent(final long editorGeneration,
+            final long requestSerial, final String expectedTypedWord,
+            final int expectedSelectionStart, final int expectedSelectionEnd,
+            final SuggestedWords suggestedWords) {
+        if (!SuggestionDeliveryPolicy.isCurrent(editorGeneration, mLatinIME.mHandler.editorGeneration(),
+                requestSerial, mSuggestionRequestSerial,
+                expectedTypedWord, mWordComposer.getTypedWord(),
+                expectedSelectionStart, mConnection.getExpectedSelectionStart(),
+                expectedSelectionEnd, mConnection.getExpectedSelectionEnd())) return;
+        final SettingsValues values = Settings.getValues();
+        if (values == null || !values.needsToLookupSuggestions()
+                || values.isApplicationSpecifiedCompletionsOn()) return;
+        // Do not resurrect obsolete completions from a previous prefix when the
+        // dictionary genuinely has no candidate. The typed-word fallback stays.
+        if (suggestedWords.isEmpty() && !expectedTypedWord.isEmpty()) return;
+        // Clipboard/OS accessory suggestions retain their established priority.
+        if (!(suggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
+                && mLatinIME.tryShowClipboardSuggestion())) {
+            mSuggestionStripViewAccessor.setSuggestions(suggestedWords);
+        }
+        if (!suggestedWords.isEmpty() && values.isSuggestionsEnabledPerUserSettings()
+                && isInlineEmojiSearchAction()) {
+            mSuggestionStripViewAccessor.showSuggestionStrip();
         }
     }
 
@@ -2864,7 +2931,17 @@ public final class InputLogic {
             // auto-correct,
             // so we don't come here either. Hence, the input style is necessarily
             // INPUT_STYLE_TYPING.
-            performUpdateSuggestionStripSync(settingsValues, SuggestedWords.INPUT_STYLE_TYPING);
+            invalidateSuggestionRequests();
+            refreshPendingCorrectionBeforeCommit(settingsValues);
+        }
+        // A worker result for a shorter prefix may still be in flight. A
+        // separator must not accept that previous word's correction.
+        final SuggestedWordInfo displayedTyped = mSuggestedWords.mTypedWordInfo;
+        if (mWordComposer.isComposingWord()
+                && (displayedTyped == null
+                    || !mWordComposer.getTypedWord().equalsIgnoreCase(displayedTyped.mWord))) {
+            invalidateSuggestionRequests();
+            publishTypedWordFallback(mWordComposer.getTypedWord());
         }
         final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();

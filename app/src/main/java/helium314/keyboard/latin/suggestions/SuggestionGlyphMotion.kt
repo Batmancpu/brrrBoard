@@ -1,103 +1,86 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.suggestions
 
-/** One *visible* character, measured relative to the center of its fixed suggestion slot. */
-internal data class SuggestionGlyphSnapshot(
-    val character: Char,
-    val x: Float,
-    val opacity: Float = 1f,
-    val scale: Float = 1f,
+import kotlin.math.abs
+
+/** Positions of the one word actually visible in a suggestion slot. */
+internal data class SuggestionGlyphFrame(val word: String, val positions: FloatArray)
+
+/** The current suggestion is completely visible from the very first frame. */
+internal data class SuggestionGlyphPlan(
+    val word: String,
+    val positions: FloatArray,
+    val startOffsets: FloatArray,
+    val startScales: FloatArray,
 )
 
-internal data class SuggestionGlyphTrack(
-    val character: Char,
-    val fromX: Float,
-    val toX: Float,
-    val fromOpacity: Float,
-    val toOpacity: Float,
-    val fromScale: Float,
-    val toScale: Float,
-    val kind: Kind,
-    val order: Int,
-) {
-    enum class Kind { RETAINED, REMOVED, INSERTED }
-    // Avoid allocating one String per character on every display frame.
-    val ink: String = character.toString()
-}
-
 /**
- * Small, deterministic, allocation-free-on-frame layout policy for ASCII QuickType words.
- * Matching by longest common subsequence preserves moving letters through interior edits.
- * Complex-script shaping remains with Android's ordinary TextView renderer.
+ * Bounded, linear-time presentation policy. This never influences prediction,
+ * word text, accessibility, or tap handling.
+ *
+ * Match stable prefix/suffix letters, move them a few pixels, and gently settle
+ * inserted letters at full opacity. No LCS, old-word ghost, or delayed reveal.
  */
 internal object SuggestionGlyphMotion {
-    const val MAX_CHARACTERS = 32
+    const val MAX_ANIMATED_CHARACTERS = 18
+    const val SETTLE_MS = 112L
+    private const val MIN_VISIBLE_MOVEMENT = .35f
+    private const val NEW_LETTER_SCALE = .97f
 
-    fun supported(value: String): Boolean = value.length in 1..MAX_CHARACTERS &&
-        value.all { it in ' '..'~' }
+    fun supported(word: String): Boolean = word.length in 1..MAX_ANIMATED_CHARACTERS &&
+        word.all { it in 'a'..'z' || it in 'A'..'Z' || it == '\'' || it == '-' }
 
-    fun plan(previous: List<SuggestionGlyphSnapshot>, next: String,
-             newPositions: List<Float>): List<SuggestionGlyphTrack> {
-        if (previous.size > MAX_CHARACTERS || !supported(next) ||
-            newPositions.size != next.length) return emptyList()
-        val old = previous.map { it.character }
-        val n = old.size
-        val m = next.length
-        // At most 33×33 cells, computed once per suggestion replacement.
-        val lcs = Array(n + 1) { IntArray(m + 1) }
-        for (i in n - 1 downTo 0) for (j in m - 1 downTo 0) {
-            lcs[i][j] = if (old[i] == next[j]) 1 + lcs[i + 1][j + 1]
-                else maxOf(lcs[i + 1][j], lcs[i][j + 1])
+    fun plan(previous: SuggestionGlyphFrame?, next: String,
+             nextPositions: FloatArray, maxShiftPx: Float): SuggestionGlyphPlan? {
+        if (previous == null || previous.word == next ||
+            !supported(previous.word) || !supported(next) ||
+            previous.positions.size != previous.word.length ||
+            nextPositions.size != next.length || maxShiftPx <= 0f || !maxShiftPx.isFinite() ||
+            !previous.positions.all { it.isFinite() } || !nextPositions.all { it.isFinite() }) {
+            return null
         }
-        val matchingOld = IntArray(m) { -1 }
-        var i = 0
-        var j = 0
-        while (i < n && j < m) {
-            when {
-                old[i] == next[j] -> { matchingOld[j] = i; i++; j++ }
-                lcs[i + 1][j] >= lcs[i][j + 1] -> i++
-                else -> j++
-            }
+
+        val original = previous.word
+        var prefix = 0
+        while (prefix < original.length && prefix < next.length &&
+            original[prefix] == next[prefix]) prefix++
+
+        var suffix = 0
+        while (suffix < original.length - prefix && suffix < next.length - prefix &&
+            original[original.lastIndex - suffix] == next[next.lastIndex - suffix]) suffix++
+
+        // Unrelated candidates replace instantly, using native TextView ink.
+        if (prefix + suffix < 2) return null
+
+        val offsets = FloatArray(next.length)
+        val scales = FloatArray(next.length) { NEW_LETTER_SCALE }
+        var hasMotion = false
+
+        fun retain(nextIndex: Int, oldIndex: Int) {
+            offsets[nextIndex] = (previous.positions[oldIndex] - nextPositions[nextIndex])
+                .coerceIn(-maxShiftPx, maxShiftPx)
+            scales[nextIndex] = 1f
+            if (abs(offsets[nextIndex]) > MIN_VISIBLE_MOVEMENT) hasMotion = true
         }
-        val matchedOld = BooleanArray(n)
-        val result = ArrayList<SuggestionGlyphTrack>(n + m)
-        for (index in 0 until m) {
-            val oldIndex = matchingOld[index]
-            if (oldIndex < 0) continue
-            matchedOld[oldIndex] = true
-            val glyph = previous[oldIndex]
-            result.add(SuggestionGlyphTrack(next[index], glyph.x, newPositions[index],
-                glyph.opacity, 1f, glyph.scale, 1f,
-                SuggestionGlyphTrack.Kind.RETAINED, index))
+
+        for (index in 0 until prefix) retain(index, index)
+        for (offset in 0 until suffix) {
+            retain(next.lastIndex - offset, original.lastIndex - offset)
         }
-        // Outgoing ink is never drawn a second time for a matched letter.
-        for (index in previous.indices) {
-            if (matchedOld[index]) continue
-            val glyph = previous[index]
-            result.add(SuggestionGlyphTrack(glyph.character, glyph.x, glyph.x,
-                glyph.opacity, 0f, glyph.scale, .88f,
-                SuggestionGlyphTrack.Kind.REMOVED, index))
-        }
-        for (index in 0 until m) {
-            if (matchingOld[index] >= 0) continue
-            result.add(SuggestionGlyphTrack(next[index], newPositions[index], newPositions[index],
-                0f, 1f, .86f, 1f, SuggestionGlyphTrack.Kind.INSERTED, index))
-        }
-        return result
+
+        if (prefix + suffix < next.length) hasMotion = true
+        return if (hasMotion) SuggestionGlyphPlan(next, nextPositions.copyOf(), offsets, scales)
+            else null
     }
 
-    fun progress(track: SuggestionGlyphTrack, fraction: Float): Float {
-        val elapsed = fraction.coerceIn(0f, 1f)
-        val delay = when (track.kind) {
-            SuggestionGlyphTrack.Kind.RETAINED -> 0f
-            SuggestionGlyphTrack.Kind.REMOVED -> .02f
-            SuggestionGlyphTrack.Kind.INSERTED -> .10f + (track.order.coerceAtMost(8) * .018f)
-        }
-        val normalized = ((elapsed - delay) / (1f - delay)).coerceIn(0f, 1f)
-        val remaining = 1f - normalized
-        return 1f - remaining * remaining * remaining * remaining
+    fun eased(progress: Float): Float {
+        val remaining = 1f - progress.coerceIn(0f, 1f)
+        return 1f - remaining * remaining * remaining
     }
 
-    fun interpolate(start: Float, end: Float, progress: Float): Float =
-        start + (end - start) * progress
+    fun x(plan: SuggestionGlyphPlan, index: Int, progress: Float): Float =
+        plan.positions[index] + plan.startOffsets[index] * (1f - progress)
+
+    fun scale(plan: SuggestionGlyphPlan, index: Int, progress: Float): Float =
+        plan.startScales[index] + (1f - plan.startScales[index]) * progress
 }

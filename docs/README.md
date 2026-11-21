@@ -16,6 +16,7 @@ Start with the [main README](../README.md) for the app, install link and privacy
 
 ## Design and implementation
 
+- [**QuickType first-keystroke and visible suggestions** — source changes, exact-SHA Android/signed release gate, and Oppo acceptance checklist](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md)
 - [**BR Brain Voice & Noise Reduction Lab** — private phone/earbud microphone comparison, playback, offline scoring, source limitations and physical QA gates](BR_BRAIN_VOICE_NOISE_LAB_2026_11_21.md)
 - [**iOS-style prediction glyph motion** — source implementation, evidence, timing limitations and one-APK acceptance matrix](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md)
 - [**Private blue-mic crash diagnostics and Android noise suppression** — owner Oppo EXIT_SELF/255 evidence, real-session one-shot stages, privacy and accuracy testing](ONE_SHOT_VOICE_CRASH_DIAGNOSTICS_2026_11_20.md)

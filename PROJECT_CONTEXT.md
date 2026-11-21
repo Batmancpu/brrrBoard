@@ -1,5 +1,35 @@
 # brrBoard project context
 
+## RESUME HERE — 2026-11-21 owner authorized QuickType remote CI/release
+
+The owner said "Android build is pending, so go ahead," superseding the
+earlier local-only QuickType boundary. The two local commits are ready for
+normal, non-forced `main` publication subject to a fresh expected-HEAD check.
+Require both exact-source debug/full-Android-unit and original-signed Obtainium
+workflows to complete successfully, preserving BR Brain, private voice,
+keyboard data, no-Internet policy, package and original signer. Last verified
+remote main `c4e2882` had successful corrective workflow runs and signed
+v1.0.206; that is not QuickType proof. Device/real Oppo startup latency and
+animation behavior remain unverified until owner tests the signed update.
+Evidence and status: [QuickType ledger](docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+
+## RESUME HERE — 2026-11-21 first suggestion startup and QuickType delivery (LOCAL ONLY)
+
+After a ten-minute live Actions watch, the owner-directed first-keystroke
+suggestion fix was implemented locally. Root issue is suggestion delivery,
+not only animation: blank editor lacks startup lookup, 40ms UI timeout loses
+late results, the typed-only result is hidden, and each update rebuilds views.
+New local candidate offers immediate literal-prefix placeholder, asynchronous
+current-editor delivery, cold dictionary refresh, stable 3-slot updates and
+bounded native-font-safe motion; no predictive model, ranking, voice, BR Brain,
+network, signer or installed app modification. New privacy fixes on remote
+`b5d5e82` were preserved; `c4e2882` separately fixes red workflow notes gate
+and has its own running debug/release jobs, neither of which verifies this
+unpublished candidate. Static diff/JSON checks passed; Android Gradle wrapper
+unavailable so actual compile, CI and phone QA remain pending. Follow exact
+design, tests, stop conditions and handoff in
+[`docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md`](docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+
 ## 2026-11-21 — workflow simplification and security/efficiency audit
 
 First pushed source `b5d5e82` debug #315 failed before Gradle because its mandatory release notes update was omitted; signed #205 assembled unsigned but correctly blocked original signing on failed exact-SHA debug. Recovery candidate updates `docs/releases/notes.json` with the post-v1.0.204 CI/privacy changes and allows that notes-only correction to trigger the signed workflow. Do not mark APK delivered until both updated-SHA workflows succeed. See CI audit ledger.
@@ -7,6 +37,10 @@ First pushed source `b5d5e82` debug #315 failed before Gradle because its mandat
 Owner directed five minutes of idle GitHub Actions polling before workflow changes and then authorized implementation. All 11 polls were idle; `main` alone exists at initial source SHA `c343761`. CI cleanup candidate removes dead `brrrboard-audit-*` APK workflow, keeps independent debug/full-Android-unit-test run and signed Obtainium publisher, and relies on the existing exact-commit debug success gate instead of executing `testRunTests` twice. An early Python test protects those workflow invariants. Original package/signer, no-network policy, voice/model package verification, all other Python gates, and 16 KB native packaging remain untouched. Historical actions timings and evidence/risks: [CI ledger](docs/CI_SECURITY_PERFORMANCE_AUDIT_2026_11_21.md). Do not confuse source candidate/static test pass with a completed original-signed APK or Oppo hardware validation; poll latest exact-SHA Actions to terminal and update evidence. Preserve parallel GTCRN and prediction work as well as older unpushed local privacy commit.
 
 In this batch, a privacy scan also found source diagnostics logging raw editor/typed words, contact and app names, ngram/learned dictionary content, swipe suggestion objects, blacklist entries, clipboard URIs and filenames. The custom logger stores Android and in-app history, making this consequential even on diagnostic builds. Replace those messages with content-free event codes/descriptions; suppress the optional full dictionary word dump without removing the method; add a dedicated static private-log regression test. Details/limits in the CI audit ledger. No production input/typing semantics intentionally changed.
+
+## RESUME HERE — 2026-11-21 IST local QuickType renderer rewrite, NO GitHub upload
+
+Owner's installed v1.0.202 made suggestion text late/unclear; BR Brain's first-screen card is accepted and is not in scope. Owner explicitly directed an entirely new suggestion-appearance implementation **locally only**, with no GitHub push, workflow, release, or app installation. Fresh source base `main` `c343761a` includes independent voice/GTCRN work that must be preserved. Replaced the old LCS/transparent-glyph animation with a bounded prefix/suffix continuity renderer in `SuggestionGlyphMotion`, `MorphingSuggestionTextView`, `SuggestionWordMorph`. The correct new text and click tags still arrive synchronously via `SuggestionStripLayoutHelper`; any visual animation is fully opaque from frame zero, 112ms, <=18 ASCII characters, max 8dp motion, otherwise plain TextView. Updated focused unit cases; `git diff --check` passed, but Gradle 8.14.4 wrapper could not download and Android tests/compile/device testing **have not run**. No APK, signing, private data/model, BR Brain, prediction ranking, or GitHub remote was modified. Next: obtain an Android-capable local test environment or wait for explicit authorization to run remote CI, then check rapid uninterrupted Oppo suggestions, confidence pill, RTL/Emoji/style fallback and real p95 before any release. See `docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md`.
 
 ## RESUME HERE — owner GO, BR Brain Voice & Noise Reduction implementation (2026-11-21 IST)
 

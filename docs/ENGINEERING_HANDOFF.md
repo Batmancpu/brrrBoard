@@ -1,5 +1,39 @@
 # brrBoard engineering handoff
 
+## 2026-11-21 — owner GO, QuickType exact-SHA Android release in progress
+
+Owner explicitly authorized proceeding despite unavailable local Android
+Gradle distribution: push QuickType first-keystroke/animation source to
+`main` without force and await exact-commit debug/full-unit and original-signed
+Obtainium success. Source began atop `c4e2882`, after that commit's separate
+debug and signed release succeeded (latest tag v1.0.206). Prior no-upload
+instructions in the historical sections below are now superseded **only for
+this QuickType release**. Do not claim Android compilation, signed APK or Oppo
+visual acceptance until the matching workflow/artifact evidence exists.
+Keep no-network, package, original certificate, voice, BR Brain and private
+learned data untouched. Follow the [QuickType acceptance ledger](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+
+## 2026-11-21 — first visible suggestion and nonblocking QuickType (LOCAL, CI PENDING)
+
+Ten-minute Actions watch completed: old `c343761` workflows succeeded, new
+`b5d5e82` debug/release failed due missing required release notes, no jobs
+active at watch end, and later `c4e2882` corrective jobs began. Kept separate
+workflow/privacy source and rebased existing local QuickType motion without
+publishing. New typing update path returns background decoder results to UI
+with editor/serial/prefix/cursor guards instead of losing them after a 40ms
+wait; current typed prefix displays when no genuine word ready; blank editor
+warms predictions, dictionary readiness refreshes, BOS candidates precede
+pinned slots where permitted, and normal three-slot candidate updates reuse
+views. Separator-time correction still uses bounded freshness check with
+literal fallback. No change to BR Brain/voice, model, package, key, network or
+private learned data. New tests and device matrix:
+[first suggestion ledger](QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+`git diff --check` and notes JSON pass; Gradle wrapper 8.14.4 download fails
+before Android compilation, so do not call this CI/device accepted, signed or
+released. Owner earlier prohibited GitHub/app uploads; obtain explicit
+authorization to publish before running an exact-SHA debug and Obtainium
+release cycle.
+
 ## 2026-11-21 — CI duplicate-work cleanup (verification pending)
 
 **Failure/recovery:** Remote source `b5d5e82` debug #315 failed at the required per-release `docs/releases/notes.json` gate (not a compile or privacy-test failure); signed #205 assembled but refused original signing because debug did not pass. Recovery adds truthful release notes after v1.0.204 and includes this file in signed `push.paths`. Do not weaken the test gate; verify both workflows again on the corrected SHA before reporting an APK. Details in the CI audit ledger.
@@ -7,6 +41,10 @@
 After owner-directed five-minute, 11-poll idle check, isolated clean `main` base `c343761` without touching an earlier unpushed local security commit. Proposed tracked patch removes inactive audit-branch-only APK build, limits debug to `main`, keeps its entire Android suite and newly adds early workflow-contract tests, and omits only duplicate `testRunTests` invocation from signed Obtainium. Crucially, signed CI must still observe the matching source SHA's debug workflow **completed SUCCESS** before original signing; all model/package/dictionary/privacy/certificate and Python checks remain. Record measured before/after timings and exact CI evidence in [workflow audit](CI_SECURITY_PERFORMANCE_AUDIT_2026_11_21.md). Do not relax the gates or claim completed release while remote checks are pending. Later separate investigations: time-based debug version code, native `-j1`, untracked ELF patch, cache hits, dependency pinning, and runtime microphone/IME memory safety.
 
 Confirmed adjacent privacy hardening: no raw editor echo/typed word, ngram context, blacklist/learned dictionary or complete word-dump, contact/app label, swipe suggestion, clipboard URI, custom key labels or sticker names in the shared Android/in-app diagnostic log history. The public dump API now reports privacy suppression, preserving its method contract without O(n) private enumeration. `test_private_log_contract.py` is an early static debug gate. No keyboard prediction/dictionary data mutation behavior or voice path changes are intended. Verify via exact-SHA Android tests/build and Oppo device checks before claiming all leaks or performance issues solved.
+
+## 2026-11-21 — LOCAL-ONLY QuickType rendering replacement (no upload permitted)
+
+**Owner report:** v1.0.202 QuickType animation reduced apparent suggestion responsiveness; BR Brain settings card is acceptable. Original source showed inserted glyph opacity 0 until their stagger starts and a fallback 10%-opacity ink span, plus per-letter outgoing/retained drawing. **Current local implementation:** reset from remote `main` `c343761a` without changing any unrelated file. Replaced the three suggestion-motion sources with a fully opaque current-word, bounded 112ms motion (<=18 printable ASCII, prefix/suffix only, max 8dp displacement), native TextView fallback for unrelated, complex, long, RTL or mixed-style words. Removed outgoing ghost glyphs and hidden/revealed letters. `SuggestionGlyphMotionTest` now covers full first-frame visibility, contractions/expansions, interruption, unsupported fields and bounded timing. `git diff --check` passes. `./gradlew --offline --no-daemon :app:testRunTests` fails before compilation due unavailable Gradle 8.14.4 download; NOT a source-test result. No local APK; absolutely no GitHub push, Actions dispatch, release or app upload. Physical Oppo/latency/typographic acceptance remains unverified. See [local repair ledger](IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md). The independent voice/GTCRN candidate on main must not be disturbed.
 
 ## 2026-11-21 — Owner-approved BR Brain Voice Lab source candidate
 

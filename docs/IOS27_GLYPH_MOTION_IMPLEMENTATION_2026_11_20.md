@@ -1,5 +1,18 @@
 # iOS-style QuickType glyph-motion implementation (20 November 2026)
 
+## 21 November 2026 — superseding LOCAL-ONLY renderer repair, not published
+
+Owner device feedback from installed **v1.0.202** supersedes earlier source optimism: predictions felt slower, new animation effectively absent, and the previous presentation was preferable. Source audit of the old implementation found new letters beginning at zero opacity and a different fallback at 10% alpha; on-screen lateness was plausible even though decoder latency was not measured. The old renderer also issued up to `old + new` canvas glyph draws per slot/frame, including outgoing ghosts. No full Oppo trace exists, so do not present those mechanisms as a proven measured root cause.
+
+On fresh local `main` `c343761a`, three motion components were rewritten from the ground up without modifying BR Brain, the native decoder, ranker, suggestion tap tags or confidence-pill eligibility:
+
+- `SuggestionGlyphMotion`: simple linear prefix/suffix retention, up to 18 printable ASCII characters and 8dp movement, 112ms settle; no LCS, removed-letter tracks, hidden letters or delay. Unrelated/identical/long/complex words immediately use normal Android TextView.
+- `MorphingSuggestionTextView`: fully opaque new word from **frame zero**. Only its currently valid word is drawn, once per glyph, with subtle retained-position movement and near-full-scale insertion. Its TextView still owns the real text, accessibility and hitbox. Positions and paint are prepared once per suggestion change, never in the animation callback.
+- `SuggestionWordMorph`: one finite clock for current ink and the existing center confidence capsule, safe cancellation/retarget from the currently visible frame, no span opacity fallback. Motion is disabled by existing Android accessibility/reduced-motion and non-iOS policy.
+- `SuggestionGlyphMotionTest`: first-frame visibility, expansion/contraction, interior change, retarget, unrelated-native fallback, RTL/non-ASCII rejection and finite duration.
+
+This is intentionally a **safety-first approximation**, not exact iOS frame-data reproduction. Real typography (kerning, partial spans), fast all-slot replacement, clip boundaries, confidence pill, RTL/Emoji and p95 frame budget still require actual Android/Oppo QA. The underlying `SuggestionStripView.setSuggestions` still rebuilds its layout each update; that larger legacy layout cost has not been benchmarked or rewritten during this narrowly scoped visual change. `git diff --check` passed. Local Gradle could not download 8.14.4 (network unreachable), so **no Kotlin compile, Android test, signed APK or device verification is claimed**. OWNER SAYS NO GITHUB UPLOAD, so do not dispatch CI or publish this local state without a later explicit go.
+
 ## Owner authorization and release boundary
 
 Owner said **GO** for the consolidated behavior package and requested **one next testable original-signed APK**, not an APK for every internal source iteration. Baseline is published v1.0.201 at `29d3903`; current GitHub `main` at start was `26982d2`. The previous B0–B9 implementation, v1.0.201 voice crash trail, version history, failed-transcript recovery and BR Brain dashboard are **already present** and must not be replaced or silently re-released as new features. The separate 0.6B voice migration/GTCRN JNI remains on hold. Owner's Oppo Reno 10 5G cannot be simulated by CI.

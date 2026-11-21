@@ -1,5 +1,36 @@
 # brrBoard agent instructions
 
+## 2026-11-21 — OWNER GO for QuickType GitHub build and signed release
+
+Owner explicitly superseded the earlier local-only/no-upload boundary with
+"Android build is pending, so go ahead." Publish the already-reviewed first-
+keystroke QuickType source via a **normal fast-forward push to `main` only**;
+then monitor the matching source SHA's Android debug/full-unit CI and
+original-signer Obtainium release until both finish. Never force-push, bypass
+the exact-SHA debug gate, or claim the installed Oppo keyboard works before
+owner hardware acceptance. The earlier local-only notes below describe the
+historical phase, not the current publication authorization. Release notes
+must cover only QuickType changes after signed v1.0.206. Record CI IDs, APK
+provenance and any failures in the first-suggestion ledger and handoffs.
+
+## 2026-11-21 IST — first-keystroke QuickType repair after ten-minute Actions watch (LOCAL SOURCE)
+
+Owner explicitly authorized implementation after watching GitHub Actions for
+ten minutes. Watch saw new `b5d5e82` CI failures (missing required release
+notes), then no active jobs at the ten-minute mark; `c4e2882` corrective runs
+started after local implementation began. Previous QuickType renderer work
+was rebased without losing independent workflow/private-log fixes. This
+unpublished source candidate warms eligible initial predictions, displays an
+immediate non-inserting typed prefix, removes the ordinary 40ms suggestion UI
+wait, rejects delayed results by editor/request/prefix/cursor, refreshes after
+dictionary load, and reuses attached three-slot suggestion views. It preserves
+the separate BR Brain, voice and signing/privacy behavior. Details and
+verification in [first-keystroke ledger](docs/QUICKTYPE_FIRST_SUGGESTION_LOCAL_2026_11_21.md).
+**No GitHub push or app upload/install was authorized by the earlier local-only
+boundary.** `git diff --check` and JSON validation pass, but local Gradle
+8.14.4 distribution is unavailable, so Android tests/CI/Oppo proof are pending.
+Do not claim CI success or a finished signed APK for this local candidate.
+
 ## 2026-11-21 — Owner GO: workflow consolidation and efficiency/security gate (SOURCE CANDIDATE)
 
 **RELEASE RECOVERY:** First source commit `b5d5e82` caused debug #315 to fail the pre-existing per-release notes gate because `docs/releases/notes.json` was omitted; signed #205 compiled but refused signing as designed. Correct by writing post-v1.0.204 notes and adding the notes file to signed workflow `push.paths`, then verify both exact-SHA workflows. Never bypass this gate or claim the failed source release is installable. Details in the CI audit ledger.
@@ -7,6 +38,10 @@
 After 11 read-only Actions polls over five minutes showed no active jobs, the owner authorized CI cleanup. Clean remote-main worktree baseline `c343761a25`; preserve the unrelated older local `a984d55` unpushed privacy-hardening commit. The audit-only branch workflow was obsolete because `main` is the only remote branch; remove its YAML and the matching debug trigger. Both main CI jobs had run the same full `testRunTests` suite. Retain that complete suite once in debug, retain signed Obtainium's exact-SHA success requirement **before** signing, and keep every security, model, package, privacy, and signer check. Add an early three-test CI contract to catch accidental gate removal. Never claim the suite was deleted: its required execution and publishing gate remain. Record exact CI outcomes and pre/post timings in [the audit ledger](docs/CI_SECURITY_PERFORMANCE_AUDIT_2026_11_21.md), update handoffs without overwriting newer GTCRN notes, and do not force-push. Full remote Android build/unit and original signer release remain **PENDING** until their exact SHA is observed. Runtime performance/privacy riskier changes require independent profiling, regression coverage, and Oppo evidence.
 
 The same source audit identified plaintext keyboard content in diagnostic logging: typed words/editor echoes, ngram context, dynamic dictionaries and full private dictionary dumps, blacklist words, contact/app labels, clipboard URI, swipe suggestions, sticker names and custom key labels. Replace these outputs with static event descriptors, keep the callable dictionary dump entry point but no private iteration/output, and run `test_private_log_contract.py` early in debug CI. Custom `Log` also retains Android/in-app history; never log content even behind debug flags. The privacy fix does not change keyboard processing, native engines, permissions, package identity or signer. Exact-SHA Android CI and Oppo acceptance are still outstanding.
+
+## 2026-11-21 IST — LOCAL ONLY: owner-reported v1.0.202 QuickType regression and fresh renderer
+
+Owner reports the new per-character QuickType transition in installed **v1.0.202** made suggestions appear late and did not show the intended animation. **Explicit latest instruction: replace the suggestion-entry animation from scratch, inspect/test locally, and DO NOT push to GitHub, dispatch Actions, publish an APK, or install on a phone.** Working copy was fetched from `main` `c343761a25b1758fd045674cd828954ef728101f` (preserving the separately changing BR Brain/voice work). The source-only candidate replaces `SuggestionGlyphMotion.kt`, `MorphingSuggestionTextView.kt`, `SuggestionWordMorph.kt` and their focused pure tests. Every latest word is fully visible on the first frame; no outgoing letter, zero-alpha insertion or 10%-opacity fallback. At most 18 ASCII glyphs per slot, one 112-ms visual-only settle, linear prefix/suffix matching, bounded 8dp displacement; otherwise native TextView. Click tags, candidate computation, confidence decision, BR Brain, keyboard layout, data/model/privacy, signer and network remain untouched. `git diff --check` passed; local `./gradlew --offline --no-daemon :app:testRunTests` was blocked **before compilation** because Gradle 8.14.4 is not cached and the distribution host is unreachable. This is NOT CI-passed, signed, released or Oppo-accepted. Inspect tests/source, then only after a NEW owner authorization to upload may a future agent reconcile fresh main, run exact-SHA Android CI and test the genuine Oppo rendering/latency. Detailed ledger: `docs/IOS27_GLYPH_MOTION_IMPLEMENTATION_2026_11_20.md`. Keep these changes local.
 
 > **Latest implementation (2026-11-21 after v1.0.203):** The owner directed the two-mode, one-take Android-vs-bundled-GTCRN implementation with isolated native process and raw fallback. Read the latest **"OWNER GO: isolated bundled GTCRN"** addendum at the end of this file and [current ledger](docs/GTCRN_ISOLATED_VOICE_RELEASE_2026_11_21.md). Older first-page "GTCRN paused" and six-way lab sections are release history, not current behavior. Never claim an APK until full exact-source CI and original signer succeed; Oppo hardware still pending.
 

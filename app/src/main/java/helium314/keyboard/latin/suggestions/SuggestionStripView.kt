@@ -612,24 +612,40 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         } else {
             suggestions
         }
+        val wasAttachedStrip = !isExternalSuggestionVisible && suggestionsStrip.isVisible &&
+            !shouldUseChipSuggestions() &&
+            (0..2).all { index -> suggestionsStrip.getChildAt(index * 2) === wordViews[index] }
+        val previousLayoutDirection = suggestionsStrip.layoutDirection
         isExternalSuggestionVisible = false
-        clear()
         setRtl(isRtlLanguage)
         suggestedWords = suggestionsForStrip
         updateSuggestionContainersVisibility(true)
-        startIndexOfMoreSuggestions =
-            if (!shouldShowSuggestionContent(suggestedWords)) {
-                suggestedWords.size()
-            } else if (shouldUseChipSuggestions(suggestedWords)) {
-                suggestionsChipScroll.scrollTo(0, 0)
-                layoutHelper.layoutChipsAndReturnStartIndexOfMoreSuggestions(
-                    context, suggestedWords, suggestionsChipStrip
-                )
-            } else {
-                layoutHelper.layoutAndReturnStartIndexOfMoreSuggestions(
-                    context, suggestedWords, suggestionsStrip, this
-                )
-            }
+        val reusedIndex = if (wasAttachedStrip && suggestionsStrip.isVisible &&
+            previousLayoutDirection == suggestionsStrip.layoutDirection &&
+            !shouldUseChipSuggestions(suggestedWords)) {
+            layoutHelper.updateAttachedWordSlots(context, suggestedWords, suggestionsStrip)
+        } else -1
+        if (reusedIndex >= 0) {
+            startIndexOfMoreSuggestions = reusedIndex
+            dismissMoreSuggestionsPanel()
+            wordViews.forEach { it.setOnTouchListener(null) }
+        } else {
+            clear()
+            updateSuggestionContainersVisibility(true)
+            startIndexOfMoreSuggestions =
+                if (!shouldShowSuggestionContent(suggestedWords)) {
+                    suggestedWords.size()
+                } else if (shouldUseChipSuggestions(suggestedWords)) {
+                    suggestionsChipScroll.scrollTo(0, 0)
+                    layoutHelper.layoutChipsAndReturnStartIndexOfMoreSuggestions(
+                        context, suggestedWords, suggestionsChipStrip
+                    )
+                } else {
+                    layoutHelper.layoutAndReturnStartIndexOfMoreSuggestions(
+                        context, suggestedWords, suggestionsStrip, this
+                    )
+                }
+        }
         updateKeys()
         if (previousDirection == direction && previousInputStyle == suggestedWords.mInputStyle
             && suggestionsStrip.isVisible && !shouldUseChipSuggestions(suggestedWords)) {
@@ -984,11 +1000,14 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     private fun shouldShowSuggestionContent(words: SuggestedWords = suggestedWords): Boolean {
-        return !words.isEmpty && !words.isPunctuationSuggestions && words.getWordCountToShow() > 0
+        return !words.isEmpty && !words.isPunctuationSuggestions &&
+            (words.getWordCountToShow() > 0 || SuggestionStripLayoutHelper.shouldShowTypedFallback(words))
     }
 
     private fun shouldPreferPinnedKeysOverPredictions(words: SuggestedWords = suggestedWords): Boolean {
-        return words.mInputStyle == SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
+        // In a prediction-enabled editor, real beginning-of-sentence candidates
+        // take priority. Explicit toolbar-only modes are still respected below.
+        return false
     }
 
     private fun updateSuggestionContainersVisibility(showSuggestions: Boolean) {

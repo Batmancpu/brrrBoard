@@ -308,7 +308,7 @@ public class LatinIME extends InputMethodService implements
                     cancelUpdateSuggestionStrip();
                     if (!(msg.obj instanceof Long)
                             || !latinIme.mEditorSessionGeneration.accepts((Long) msg.obj)) break;
-                    latinIme.mInputLogic.performUpdateSuggestionStripSync(
+                    latinIme.mInputLogic.performUpdateSuggestionStripAsync(
                             latinIme.mSettings.getCurrent(), msg.arg1 /* inputStyle */);
                     break;
                 case MSG_UPDATE_SHIFT_STATE:
@@ -373,6 +373,10 @@ public class LatinIME extends InputMethodService implements
         public void postUpdateSuggestionStrip(final int inputStyle) {
             final LatinIME ime = getOwnerInstance();
             if (ime == null) return;
+            ime.mInputLogic.invalidateSuggestionRequests();
+            if (inputStyle == SuggestedWords.INPUT_STYLE_TYPING) {
+                ime.mInputLogic.showImmediateTypedWordIfNeeded(ime.mSettings.getCurrent());
+            }
             removeMessages(MSG_UPDATE_SUGGESTION_STRIP);
             sendMessageDelayed(obtainMessage(MSG_UPDATE_SUGGESTION_STRIP, inputStyle,
                     0 /* ignored */, ime.mEditorSessionGeneration.current()),
@@ -430,6 +434,10 @@ public class LatinIME extends InputMethodService implements
 
         public void cancelUpdateSuggestionStrip() {
             removeMessages(MSG_UPDATE_SUGGESTION_STRIP);
+            final LatinIME ime = getOwnerInstance();
+            if (ime != null && ime.mInputLogic != null) {
+                ime.mInputLogic.invalidateSuggestionRequests();
+            }
         }
 
         public void cancelResumeSuggestions() {
@@ -985,14 +993,26 @@ public class LatinIME extends InputMethodService implements
         // transition and mask the newly available lexical candidates. This
         // callback may run off the UI thread; LruCache.evictAll is synchronized.
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
-        final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
-        if (mainKeyboardView != null) {
-            mainKeyboardView.setMainDictionaryAvailability(isMainDictionaryAvailable);
-        }
-        if (mHandler.hasPendingWaitForDictionaryLoad()) {
-            mHandler.cancelWaitForDictionaryLoad();
-            mHandler.postResumeSuggestions(false /* shouldDelay */);
-        }
+        final long generation = mHandler.editorGeneration();
+        mHandler.post(() -> {
+            if (!mEditorSessionGeneration.accepts(generation) || mIsDestroyed) return;
+            final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
+            if (mainKeyboardView != null) {
+                mainKeyboardView.setMainDictionaryAvailability(isMainDictionaryAvailable);
+            }
+            if (mHandler.hasPendingWaitForDictionaryLoad()) {
+                mHandler.cancelWaitForDictionaryLoad();
+                mHandler.postResumeSuggestions(false /* shouldDelay */);
+            }
+            // An initial lookup can have returned only the typed prefix while
+            // main dictionaries were cold. Re-evaluate the visible editor once
+            // the dictionary becomes usable; never reuse a cached blank result.
+            if (isMainDictionaryAvailable && mSettings.getCurrent().needsToLookupSuggestions()
+                    && !mSettings.getCurrent().isApplicationSpecifiedCompletionsOn()
+                    && onEvaluateInputViewShown()) {
+                mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+            }
+        });
     }
 
     void resetDictionaryFacilitatorIfNecessary() {
@@ -1528,6 +1548,15 @@ public class LatinIME extends InputMethodService implements
             setNeutralSuggestionStrip();
             if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar && !tryShowClipboardSuggestion()) {
                 mSuggestionStripView.setToolbarVisibility(true);
+            }
+            // Warm the very first context candidates while the keyboard is
+            // already visible, instead of waiting for a second character.
+            if (currentSettingsValues.needsToLookupSuggestions()
+                    && currentSettingsValues.mBigramPredictionEnabled
+                    && !currentSettingsValues.isApplicationSpecifiedCompletionsOn()
+                    && !needToCallLoadKeyboardLater
+                    && !isImeSuppressedByHardwareKeyboard()) {
+                mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_PREDICTION);
             }
         }
 
