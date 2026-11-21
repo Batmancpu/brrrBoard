@@ -8,7 +8,7 @@
     },
     {
       "title": "brrClean native noise reduction and verified microphone routing",
-      "detail": "Replace the failing active ONNX denoiser with pinned MIT native C++ GTCRN, bundled weights and a separate short-lived crash-contained process; retain offline Parakeet 110M and exact raw-audio fallback. Add true OFF/Android/brrClean selection (OFF also disables enhancement in the lab), actual native success/fallback/latency in BR Brain, same-take original/processed lab listening, and Android 12+ Bluetooth communication-device activation with confirmed-route/silence rejection. Add source-hash, C++ model smoke and APK native/library/license gates. No speech or audio logs, runtime network, bigger ASR model or background denoising while typing. Bluetooth on Oppo/Nirvana Ion still requires owner hardware acceptance."
+      "detail": "Replace the failing active ONNX denoiser with pinned MIT native C++ GTCRN, bundled weights and a separate short-lived crash-contained process; retain offline Parakeet 110M and exact raw-audio fallback. Add true OFF/Android/brrClean selection (OFF also disables enhancement in the lab), actual native success/fallback/latency in BR Brain, same-take original/processed lab listening, and Android 12+ Bluetooth communication-device activation with confirmed-route/silence rejection. Guard ARM64-only NEON instructions so the engine also compiles for ARM32. Add source-hash, C++ model smoke and APK native/library/license gates. No speech or audio logs, runtime network, bigger ASR model or background denoising while typing. Bluetooth on Oppo/Nirvana Ion still requires owner hardware acceptance."
     }
   ]
 }

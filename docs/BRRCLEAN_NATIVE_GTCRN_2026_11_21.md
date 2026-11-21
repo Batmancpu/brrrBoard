@@ -67,6 +67,11 @@ Never run denoising while a user types or while a telephone/video call is active
   with the pinned weights and checks finite output and no silent failure. It
   does **not** establish North Indian English WER improvement. It runs in
   exact-SHA debug CI before the Android build.
+- First release attempt exposed Poise upstream's ARM64-only `vmlal_high_s8`
+  and `vaddvq_s32` under a broader `__ARM_NEON` guard. This repository still
+  builds `armeabi-v7a`, so use the verified generic integer matvec for ARM32
+  and retain the NEON fast path on arm64. The initial failed release is not a
+  successful APK; new exact-SHA workflows must pass with this fix.
 - Complete Gradle/Robolectric Android tests, both GitHub exact-SHA debug and
   original-signer Obtainium, APK hash/permissions, and physical Oppo/Nirvana
   Ion audio comparison must pass before calling this a device-confirmed fix.

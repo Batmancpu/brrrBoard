@@ -152,7 +152,7 @@ inline float quantize(const float *x, int n, int8_t *q) {
 inline void matvec_i8(const int8_t *w, const float *ws, const int8_t *x, float xs, const float *b, float *y,
                       int rows, int cols) {
   for (int r = 0; r < rows; r++, w += cols) {
-#ifdef __ARM_NEON
+#if defined(__ARM_NEON) && defined(__aarch64__)
     int32x4_t a = vdupq_n_s32(0), c = vdupq_n_s32(0);
     for (int k = 0; k < cols; k += 32) {
       int8x16_t w0 = vld1q_s8(w + k), x0 = vld1q_s8(x + k), w1 = vld1q_s8(w + k + 16), x1 = vld1q_s8(x + k + 16);
