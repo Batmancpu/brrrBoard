@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="72dp"
-    android:layout_height="60dp"
-    android:layout_marginHorizontal="2dp"
+    android:layout_width="0dp"
+    android:layout_height="76dp"
+    android:layout_marginHorizontal="1dp"
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
     android:gravity="center"
     android:orientation="vertical"
-    android:paddingVertical="2dp">
+    android:paddingVertical="4dp">
 
     <ImageButton
         android:id="@+id/menu_tile_icon"
         android:layout_width="match_parent"
-        android:layout_height="27dp"
+        android:layout_height="43dp"
         android:background="@android:color/transparent"
         android:clickable="false"
         android:focusable="false"
-        android:padding="4dp"
+        android:padding="5dp"
         android:scaleType="centerInside"
         android:tintMode="src_in" />
 
@@ -25,10 +25,10 @@
         android:id="@+id/menu_tile_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="1dp"
         android:ellipsize="end"
         android:gravity="center"
         android:maxLines="1"
         android:textColor="#FFFFFF"
-        android:textSize="10sp" />
+        android:textSize="11sp" />
 </LinearLayout>

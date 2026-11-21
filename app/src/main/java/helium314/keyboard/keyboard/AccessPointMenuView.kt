@@ -17,7 +17,7 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
+import android.widget.ScrollView
 import androidx.core.graphics.drawable.DrawableCompat
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
 import helium314.keyboard.keyboard.KeyboardTypeface
@@ -53,7 +53,7 @@ class AccessPointMenuView @JvmOverloads constructor(
 
     private var keyboardActionListener: KeyboardActionListener = KeyboardActionListener.EMPTY_LISTENER
     private val grid: GridLayout
-    private val scroll: HorizontalScrollView
+    private val scroll: ScrollView
     private var accessDropPreviewView: View? = null
     private var accessDropPreviewIndex = -1
     private var ownGridDragIndex = -1
@@ -61,27 +61,27 @@ class AccessPointMenuView @JvmOverloads constructor(
     private val gridScreenLocation = IntArray(2)
     private val dragAutoScrollHandler = Handler(Looper.getMainLooper())
     private var dragAutoScrollDirection = 0
-    private var dragAutoScrollX = 0f
+    private var dragAutoScrollY = 0f
     private val dragAutoScroll = object : Runnable {
         override fun run() {
             val direction = dragAutoScrollDirection
             if (direction == 0 || !scroll.isLaidOut || grid.width <= 0) return
-            val maxScroll = (grid.width - scroll.width + scroll.paddingLeft + scroll.paddingRight)
+            val maxScroll = (grid.height - scroll.height + scroll.paddingTop + scroll.paddingBottom)
                 .coerceAtLeast(0)
             val edge = (48f * resources.displayMetrics.density).coerceAtLeast(1f)
             val penetration = if (direction < 0) {
-                (edge - dragAutoScrollX).coerceIn(0f, edge)
+                (edge - dragAutoScrollY).coerceIn(0f, edge)
             } else {
-                (dragAutoScrollX - (scroll.width - edge)).coerceIn(0f, edge)
+                (dragAutoScrollY - (scroll.height - edge)).coerceIn(0f, edge)
             }
             val frameStep = ToolbarDragAutoScrollPolicy.frameStepPx(
                 resources.displayMetrics.density, penetration / edge)
-            val nextScroll = (scroll.scrollX + direction * frameStep).coerceIn(0, maxScroll)
-            if (nextScroll == scroll.scrollX) {
+            val nextScroll = (scroll.scrollY + direction * frameStep).coerceIn(0, maxScroll)
+            if (nextScroll == scroll.scrollY) {
                 stopDragAutoScroll()
                 return
             }
-            scroll.scrollTo(nextScroll, 0)
+            scroll.scrollTo(0, nextScroll)
             dragAutoScrollHandler.postDelayed(this, 16L)
         }
     }
@@ -90,7 +90,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.access_point_menu, this, true)
         grid = findViewById(R.id.access_point_grid)
         scroll = findViewById(R.id.access_point_scroll)
-        scroll.isHorizontalScrollBarEnabled = false
+        scroll.isVerticalScrollBarEnabled = false
         scroll.isSmoothScrollingEnabled = true
         PanelMaterial.extendIntoFooter(scroll.parent as View, scroll)
         scroll.setOnScrollChangeListener { _, _, _, _, _ ->
@@ -106,7 +106,7 @@ class AccessPointMenuView @JvmOverloads constructor(
                 DragEvent.ACTION_DRAG_STARTED -> getToolbarKeyFromDragData(
                     event.localState, event.clipData) != null
                 DragEvent.ACTION_DRAG_LOCATION -> {
-                    updateDragAutoScroll(event.x)
+                    updateDragAutoScroll(event.y - scroll.paddingTop)
                     true
                 }
                 DragEvent.ACTION_DRAG_EXITED, DragEvent.ACTION_DROP, DragEvent.ACTION_DRAG_ENDED -> {
@@ -157,11 +157,11 @@ class AccessPointMenuView @JvmOverloads constructor(
         val prefs = context.prefs()
         // The full panel replaces the pinned suggestion strip; show all tools
         // here, including entries previously omitted as pinned/persistent.
-        val enabledKeys = getEnabledToolbarKeys(prefs).filter {
+        val enabledKeys = ToolbarGridPlacement.settingsFirst(getEnabledToolbarKeys(prefs).filter {
             it.isAvailableInToolbarUi()
-        }
-        grid.rowCount = 2
-        grid.columnCount = ToolbarGridPlacement.columnCount(enabledKeys.size)
+        })
+        grid.rowCount = ToolbarGridPlacement.rowCount(enabledKeys.size)
+        grid.columnCount = ToolbarGridPlacement.COLUMN_COUNT
 
         val inflater = LayoutInflater.from(context)
         for ((index, key) in enabledKeys.withIndex()) {
@@ -243,7 +243,7 @@ class AccessPointMenuView @JvmOverloads constructor(
                         true
                     }
                     DragEvent.ACTION_DRAG_LOCATION -> {
-                        updateDragAutoScroll(event.x + grid.left + v.left - scroll.scrollX)
+                        updateDragAutoScroll(pointerYInScrollViewport(v, event))
                         if (ownGridDraggedView != null && ownGridDraggedView != v) {
                             previewOwnGridMove(ownGridDraggedView,
                                 accessDropIndexFromEvent(v, event))
@@ -302,7 +302,7 @@ class AccessPointMenuView @JvmOverloads constructor(
             val cell = ToolbarGridPlacement.cell(index, enabledKeys.size)
             val tileParams = tile.layoutParams as GridLayout.LayoutParams
             tileParams.rowSpec = GridLayout.spec(cell.row)
-            tileParams.columnSpec = GridLayout.spec(cell.column)
+            tileParams.columnSpec = GridLayout.spec(cell.column, 1, GridLayout.FILL, 1f)
             grid.addView(tile, tileParams)
         }
     }
@@ -310,9 +310,7 @@ class AccessPointMenuView @JvmOverloads constructor(
     private fun onPinnedKeyDropFromStrip(target: View, event: DragEvent): Boolean {
         val dragState = event.localState as? ToolbarDragState
         if (event.action == DragEvent.ACTION_DRAG_LOCATION && dragState != null) {
-            target.getLocationOnScreen(dragTargetScreenLocation)
-            scroll.getLocationOnScreen(gridScreenLocation)
-            updateDragAutoScroll(event.x + dragTargetScreenLocation[0] - gridScreenLocation[0])
+            updateDragAutoScroll(pointerYInScrollViewport(target, event))
         }
         if (dragState?.source != ToolbarDragSource.PINNED_ROW) return false
         return when (event.action) {
@@ -345,13 +343,14 @@ class AccessPointMenuView @JvmOverloads constructor(
         }
     }
 
-    private fun updateDragAutoScroll(pointerXInViewport: Float) {
-        dragAutoScrollX = pointerXInViewport
+    private fun updateDragAutoScroll(pointerYInViewport: Float) {
+        dragAutoScrollY = pointerYInViewport
         val edge = 48f * resources.displayMetrics.density
-        val maxScroll = (grid.width - scroll.width + scroll.paddingLeft + scroll.paddingRight)
+        val viewportHeight = scroll.height - scroll.paddingTop - scroll.paddingBottom
+        val maxScroll = (grid.height - scroll.height + scroll.paddingTop + scroll.paddingBottom)
             .coerceAtLeast(0)
-        val direction = ToolbarDragAutoScrollPolicy.direction(pointerXInViewport,
-            scroll.width, edge, scroll.scrollX, maxScroll)
+        val direction = ToolbarDragAutoScrollPolicy.direction(pointerYInViewport,
+            viewportHeight, edge, scroll.scrollY, maxScroll)
         if (direction == dragAutoScrollDirection) return
         dragAutoScrollHandler.removeCallbacks(dragAutoScroll)
         dragAutoScrollDirection = direction
@@ -417,15 +416,24 @@ class AccessPointMenuView @JvmOverloads constructor(
 
     /** Keep the visual row-major layout stable while drag previews reorder children. */
     private fun layoutGridChildren() {
-        val columnCount = ToolbarGridPlacement.columnCount(grid.childCount)
-        grid.rowCount = 2
-        grid.columnCount = columnCount
+        // Settings has a fixed primary position even when the user drag-reorders
+        // the remaining actions or inserts a pinned action into the full grid.
+        val settingsIndex = (0 until grid.childCount).firstOrNull {
+            grid.getChildAt(it).tag == ToolbarKey.SETTINGS
+        }
+        if (settingsIndex != null && settingsIndex > 0) {
+            val settingsTile = grid.getChildAt(settingsIndex)
+            grid.removeViewAt(settingsIndex)
+            grid.addView(settingsTile, 0)
+        }
+        grid.rowCount = ToolbarGridPlacement.rowCount(grid.childCount)
+        grid.columnCount = ToolbarGridPlacement.COLUMN_COUNT
         for (index in 0 until grid.childCount) {
             val child = grid.getChildAt(index)
             val params = child.layoutParams as? GridLayout.LayoutParams ?: continue
             val cell = ToolbarGridPlacement.cell(index, grid.childCount)
             params.rowSpec = GridLayout.spec(cell.row)
-            params.columnSpec = GridLayout.spec(cell.column)
+            params.columnSpec = GridLayout.spec(cell.column, 1, GridLayout.FILL, 1f)
             child.layoutParams = params
         }
     }
@@ -443,7 +451,20 @@ class AccessPointMenuView @JvmOverloads constructor(
                 return i
             }
         }
-        return grid.childCount
+        if (grid.childCount == 0) return 0
+        val columnWidth = (grid.width / ToolbarGridPlacement.COLUMN_COUNT.toFloat()).coerceAtLeast(1f)
+        val column = (xInGrid / columnWidth).toInt().coerceIn(0, ToolbarGridPlacement.COLUMN_COUNT - 1)
+        val fallbackTileHeight = (76f * resources.displayMetrics.density).coerceAtLeast(1f)
+        val rowHeight = (grid.getChildAt(0)?.height?.toFloat() ?: fallbackTileHeight)
+            .coerceAtLeast(1f)
+        return (yInGrid.coerceAtLeast(0f) / rowHeight).toInt()
+            .times(ToolbarGridPlacement.COLUMN_COUNT).plus(column).coerceIn(0, grid.childCount)
+    }
+
+    private fun pointerYInScrollViewport(target: View, event: DragEvent): Float {
+        target.getLocationOnScreen(dragTargetScreenLocation)
+        scroll.getLocationOnScreen(gridScreenLocation)
+        return event.y + dragTargetScreenLocation[1] - gridScreenLocation[1] - scroll.paddingTop
     }
 
     private fun createAccessDropPreviewTile(key: ToolbarKey): View {
@@ -477,7 +498,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         }
 
         val newEntries = mutableListOf<String>()
-        for (key in reorderedEnabled) {
+        for (key in ToolbarGridPlacement.settingsFirst(reorderedEnabled)) {
             newEntries.add("${key.name}${Constants.Separators.KV}true")
         }
         for (entry in allEntries) {

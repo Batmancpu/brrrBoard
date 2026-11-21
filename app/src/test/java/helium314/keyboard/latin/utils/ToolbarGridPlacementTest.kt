@@ -5,23 +5,31 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ToolbarGridPlacementTest {
-    @Test fun fillsFirstRowThenSecondWithoutGrowingVertically() {
-        val cells = (0 until 7).map { ToolbarGridPlacement.cell(it, 7) }
+    @Test fun fillsFourColumnsThenScrollsIntoAdditionalRows() {
+        val cells = (0 until 13).map { ToolbarGridPlacement.cell(it, 13) }
         assertEquals(listOf(
             ToolbarGridPlacement.Cell(0, 0),
-            ToolbarGridPlacement.Cell(0, 1),
-            ToolbarGridPlacement.Cell(0, 2),
             ToolbarGridPlacement.Cell(0, 3),
             ToolbarGridPlacement.Cell(1, 0),
-            ToolbarGridPlacement.Cell(1, 1),
-            ToolbarGridPlacement.Cell(1, 2),
-        ), cells)
-        assertEquals(4, ToolbarGridPlacement.columnCount(7))
+            ToolbarGridPlacement.Cell(2, 3),
+            ToolbarGridPlacement.Cell(3, 0),
+        ), listOf(cells[0], cells[3], cells[4], cells[11], cells[12]))
+        assertEquals(4, ToolbarGridPlacement.COLUMN_COUNT)
+        assertEquals(3, ToolbarGridPlacement.rowCount(12))
+        assertEquals(4, ToolbarGridPlacement.rowCount(13))
     }
 
     @Test fun zeroAndSingleItemHaveValidGridDimensions() {
-        assertEquals(1, ToolbarGridPlacement.columnCount(0))
         assertEquals(ToolbarGridPlacement.Cell(0, 0), ToolbarGridPlacement.cell(0, 1))
-        assertEquals(1, ToolbarGridPlacement.columnCount(1))
+        assertEquals(3, ToolbarGridPlacement.rowCount(0))
+        assertEquals(3, ToolbarGridPlacement.rowCount(1))
+    }
+
+    @Test fun settingsIsPromotedWithoutReorderingOtherTools() {
+        val ordered = ToolbarGridPlacement.settingsFirst(listOf(
+            ToolbarKey.CLIPBOARD, ToolbarKey.SETTINGS, ToolbarKey.UNDO, ToolbarKey.REDO,
+        ))
+        assertEquals(listOf(ToolbarKey.SETTINGS, ToolbarKey.CLIPBOARD,
+            ToolbarKey.UNDO, ToolbarKey.REDO), ordered)
     }
 }

@@ -3,14 +3,14 @@ package helium314.keyboard.keyboard
 
 import kotlin.math.roundToInt
 
-/** Pure edge and velocity policy for the horizontally scrollable Toolbar rail. */
+/** Pure edge and velocity policy for vertical Toolbar-grid drag scrolling. */
 internal object ToolbarDragAutoScrollPolicy {
-    fun direction(pointerX: Float, viewportWidth: Int, edgePx: Float,
-            scrollX: Int, maxScrollX: Int): Int {
+    fun direction(pointer: Float, viewportExtent: Int, edgePx: Float,
+            scrollOffset: Int, maxScrollOffset: Int): Int {
         val edge = edgePx.coerceAtLeast(1f)
         return when {
-            pointerX < edge && scrollX > 0 -> -1
-            pointerX > viewportWidth - edge && scrollX < maxScrollX -> 1
+            pointer < edge && scrollOffset > 0 -> -1
+            pointer > viewportExtent - edge && scrollOffset < maxScrollOffset -> 1
             else -> 0
         }
     }

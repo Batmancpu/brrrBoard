@@ -7,12 +7,12 @@
     android:clipToPadding="false"
     android:background="@android:color/transparent">
 
-    <!-- Two compact rows of actions share one horizontally scrollable rail. -->
-    <HorizontalScrollView
+    <!-- Four columns with three visible rows; additional actions scroll vertically. -->
+    <ScrollView
         android:id="@+id/access_point_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="false"
+        android:fillViewport="true"
         android:clipToPadding="false"
         android:paddingTop="@dimen/panel_header_height"
         android:paddingBottom="@dimen/panel_toolbar_content_bottom_inset"
@@ -20,12 +20,13 @@
         android:scrollbars="none">
         <GridLayout
             android:id="@+id/access_point_grid"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:rowCount="2"
+            android:columnCount="4"
+            android:rowCount="3"
             android:clipChildren="false"
             android:clipToPadding="false" />
-    </HorizontalScrollView>
+    </ScrollView>
 
     <helium314.keyboard.keyboard.PanelGlassOverlayView
         android:id="@+id/access_point_header_scrim"

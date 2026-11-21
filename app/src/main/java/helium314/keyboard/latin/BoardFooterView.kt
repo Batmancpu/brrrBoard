@@ -67,8 +67,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var returnToLetters = false
     private var toolbarNavigationActive = false
     private var rightFooterAccessibilityMode: Boolean? = null
-    private var micSwitchActionId: Int? = null
-    private var micVoiceActionId: Int? = null
+    private var footerPrimaryActionId: Int? = null
+    private var footerVoiceActionId: Int? = null
     private var cachedPasswordManagerIntent: android.content.Intent? = null
     private var passwordIntentCheckedAt = 0L
     private val privateEmojiIcon = FooterIncognitoEmojiDrawable(context)
@@ -470,7 +470,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         microphone.setOnClickListener {
             if (toolbarNavigationActive) {
                 feedback(it)
-                send(KeyCode.EMOJI)
+                openToolbarSettings()
                 return@setOnClickListener
             }
             // A direct/accessibility click during discard has the same immediate
@@ -682,9 +682,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             micPulse?.cancel()
             micPulse = null
             micUnderlight.setPhase(FooterMicUnderlightView.Phase.IDLE, dark)
-            microphone.setImageResource(R.drawable.ic_board_emoji)
+            microphone.setImageResource(R.drawable.sym_keyboard_settings_rounded)
             microphone.imageTintList = tint
-            microphone.contentDescription = resources.getString(R.string.board_footer_switch_emoji)
+            microphone.contentDescription = resources.getString(R.string.board_footer_open_settings)
         } else {
             pulsingMicIcon?.let { microphone.setImageDrawable(it) }
             if (dictationProcessing) showDictationProcessing()
@@ -1024,29 +1024,34 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private fun syncRightFooterAccessibilityActions() {
         if (rightFooterAccessibilityMode == toolbarNavigationActive) return
         rightFooterAccessibilityMode = toolbarNavigationActive
-        micSwitchActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
-        micVoiceActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
-        micSwitchActionId = null
-        micVoiceActionId = null
+        footerPrimaryActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
+        footerVoiceActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
+        footerPrimaryActionId = null
+        footerVoiceActionId = null
         if (toolbarNavigationActive) {
-            micSwitchActionId = ViewCompat.addAccessibilityAction(microphone,
-                resources.getString(R.string.board_footer_switch_emoji)) { _, _ ->
-                send(KeyCode.EMOJI)
+            footerPrimaryActionId = ViewCompat.addAccessibilityAction(microphone,
+                resources.getString(R.string.board_footer_open_settings)) { _, _ ->
+                openToolbarSettings()
                 true
             }
         } else {
-            micSwitchActionId = ViewCompat.addAccessibilityAction(microphone,
+            footerPrimaryActionId = ViewCompat.addAccessibilityAction(microphone,
                 resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
                 if (isMicProtected()) showProtectedMicDenial()
                 else ime.switchBoardInputMethod()
                 true
             }
-            micVoiceActionId = ViewCompat.addAccessibilityAction(microphone,
+            footerVoiceActionId = ViewCompat.addAccessibilityAction(microphone,
                 resources.getString(R.string.board_voice_offline_accessibility)) { _, _ ->
                 ime.toggleBoardOfflineDictation()
                 true
             }
         }
+    }
+
+    private fun openToolbarSettings() {
+        send(KeyCode.SETTINGS)
+        KeyboardSwitcher.getInstance().setAlphabetKeyboard()
     }
 
     private fun showShortcutArc() {

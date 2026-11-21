@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## Current local follow-up — four-column Toolbar (2026-11-21)
+
+Source changes are in progress for the owner-requested four-column, three-visible-row vertically scrollable Toolbar and Settings in the footer microphone slot while Toolbar is open. Settings is kept first through drag reorder. The exact change, status, and remaining plan gates are in `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`. Do not call this patch released until exact-source Android CI and original-signer publication succeed. Reno10 Emoji-gap diagnosis still needs its geometry-only trace; ContextLM and Parakeet Ultra remain evidence-gated.
+
 ## 2026-11-21 — v1.0.227 shipped; Reno10 acceptance open
 
 Current plan: [Emoji, Toolbar, performance, and model work](docs/EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md). Source `7b5237bcd8d431dc52ebd63c1ee01d036baaec43` passed exact-SHA debug/full suite `44932109989` and original-signer release `44932109753`; signed v1.0.227 APK is 64,969,203 bytes, SHA-256 `1e91f44a8124ba95f6366ffc0baebe65f3d86ac7574451d6de51b3a412a41ec6`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.227. The Toolbar rail now autoscrolls during edge drags with pointer-based reorder; `BrrImeBounds` now includes screen/measured/local geometry, parent/layout data, insets, and the first drawn key band. The APK is independently downloaded and hash-verified. The blank Emoji band remains unlocalized until Reno10 measurement.

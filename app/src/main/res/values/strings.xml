@@ -494,7 +494,7 @@
     <string name="about_mangoloads_description">Independent apps, thoughtfully made. Explore Mangoloads.</string>
     <string name="board_language_and_shortcuts">Emoji. Hold for clipboard or toolbar.</string>
     <string name="board_return_to_letters">Switch to letters. Hold for clipboard or toolbar.</string>
-    <string name="board_footer_switch_emoji">Switch to Emoji keyboard</string>
+    <string name="board_footer_open_settings">Open Settings</string>
     <string name="board_system_keyboard_picker">Switch Android keyboard</string>
     <string name="board_inline_dictation">Tap to record offline English, tap again to transcribe. Hold to record until release. Double-tap while idle to switch keyboards.</string>
     <string name="board_voice_offline_accessibility">Start or stop private offline English dictation</string>
