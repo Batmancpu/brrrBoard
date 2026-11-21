@@ -40,7 +40,7 @@ class AnimatedStickerProcessor(private val context: Context) {
         val oversizedMarkerFile = File(outputDir, "$OVERSIZED_MARKER_PREFIX${sourceFile.nameWithoutExtension}.marker")
 
         if (oversizedMarkerFile.exists()) {
-            Log.d(TAG, "Skipping known oversized sticker: ${sourceFile.name}")
+            Log.d(TAG, "Skipping known oversized sticker")
             return null
         }
 
@@ -98,7 +98,7 @@ class AnimatedStickerProcessor(private val context: Context) {
             Log.d(TAG, "Finished decoding. Total frames: ${frames.size}")
 
             if (frames.isEmpty()) {
-                Log.e(TAG, "No frames decoded from ${sourceFile.name}")
+                Log.e(TAG, "No frames decoded from sticker")
                 return null
             }
 
@@ -135,7 +135,7 @@ class AnimatedStickerProcessor(private val context: Context) {
 
             outputFile.delete()
             oversizedMarkerFile.writeText("too_large")
-            Log.w(TAG, "Sticker cannot fit under WhatsApp limit after retries: ${sourceFile.name}")
+            Log.w(TAG, "Sticker cannot fit under WhatsApp limit after retries")
             return null
 
         } catch (e: Exception) {

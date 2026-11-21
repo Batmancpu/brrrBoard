@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'brrrboard-audit-*'
   workflow_dispatch:
 
 permissions:
@@ -29,6 +28,12 @@ jobs:
 
       - name: Verify MangoLoads identity resources and motion contract
         run: python3 -m unittest discover -s tools/tests -p 'test_mangoloads_brand.py' -v
+
+      - name: Verify workflow security and unit-test gate contract
+        run: python3 -m unittest discover -s tools/tests -p 'test_ci_workflow_contract.py' -v
+
+      - name: Reject known private-content diagnostic logs
+        run: python3 -m unittest discover -s tools/tests -p 'test_private_log_contract.py' -v
 
       - name: Validate premium Settings navigation and resource contract
         run: python3 tools/check_premium_settings_contract.py

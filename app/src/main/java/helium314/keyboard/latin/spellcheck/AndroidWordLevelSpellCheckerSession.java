@@ -308,12 +308,12 @@ public abstract class AndroidWordLevelSpellCheckerSession extends Session {
 
             if (isInDictForAnyCapitalization(text, capitalizeType)) {
                 if (DebugFlags.DEBUG_ENABLED) {
-                    Log.i(TAG, "onGetSuggestionsInternal() : [" + text + "] is a valid word");
+                    Log.i(TAG, "onGetSuggestionsInternal() : checked word is valid");
                 }
                 return AndroidSpellCheckerService.getInDictEmptySuggestions();
             }
             if (DebugFlags.DEBUG_ENABLED) {
-                Log.i(TAG, "onGetSuggestionsInternal() : [" + text + "] is NOT a valid word");
+                Log.i(TAG, "onGetSuggestionsInternal() : checked word is not in dictionary");
             }
 
             // Handle word not in dictionary.

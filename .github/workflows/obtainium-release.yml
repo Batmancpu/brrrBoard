@@ -78,8 +78,9 @@ jobs:
             --release-notes-output "$RUNNER_TEMP/brrBoard-release-notes.md"
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
-      - name: Run complete Android unit test gate before publishing
-        run: ./gradlew --no-daemon --stacktrace testRunTests
+      # The complete Android unit suite runs once in the exact-SHA debug gate.
+      # Publication below remains blocked until that independent run succeeds.
+      # Never bypass that gate; duplicating the suite here wastes CI minutes.
       - name: Validate deterministic brrPersonal seed generator (B16A)
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
       - name: Verify offline-only mic routing and optional-model packaging contract

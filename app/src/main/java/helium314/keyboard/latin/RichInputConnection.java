@@ -796,7 +796,8 @@ public final class RichInputConnection implements PrivateCommandPerformer {
                     } catch (Exception e) {
                         Log.w(TAG, "Exception in setComposingText getTextBeforeCursor checkedText", e);
                     }
-                    Log.w(TAG, "did set " + text + ", but got " + checkedText + " as last character");
+                    // Never put the editor's text or echo into Android or in-app logs.
+                    Log.w(TAG, "setComposingText editor echo mismatch");
                     return false;
                 }
             }

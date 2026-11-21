@@ -280,7 +280,7 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
             final boolean isPossiblyOffensive, final int timestamp) {
         if (!mBinaryDictionary.addUnigramEntry(word, frequency, shortcutTarget, shortcutFreq,
                 false /* isBeginningOfSentence */, isNotAWord, isPossiblyOffensive, timestamp)) {
-            Log.e(TAG, "Cannot add unigram entry. word: " + word);
+            Log.e(TAG, "Cannot add unigram entry.");
         }
     }
 
@@ -297,7 +297,7 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
             runGCIfRequiredLocked(true /* mindsBlockByGC */);
             if (!binaryDictionary.removeUnigramEntry(word)) {
                 if (DEBUG) {
-                    Log.i(TAG, "Cannot remove unigram entry: " + word);
+                    Log.i(TAG, "Cannot remove unigram entry.");
                 }
             }
         });
@@ -323,7 +323,7 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
         if (!mBinaryDictionary.addNgramEntry(ngramContext, word, frequency, timestamp)) {
             if (DEBUG) {
                 Log.i(TAG, "Cannot add n-gram entry.");
-                Log.i(TAG, "  NgramContext: " + ngramContext + ", word: " + word);
+                // Dictionary contents may include private words learned from typing.
             }
         }
     }
@@ -341,8 +341,7 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
             if (!binaryDictionary.updateEntriesForWordWithNgramContext(ngramContext, word,
                     isValidWord, count, timestamp)) {
                 if (DEBUG) {
-                    Log.e(TAG, "Cannot update counter. word: " + word
-                            + " context: " + ngramContext);
+                    Log.e(TAG, "Cannot update dictionary counter.");
                 }
             }
         });
@@ -579,35 +578,9 @@ abstract public class ExpandableBinaryDictionary extends Dictionary {
     }
 
     public void dumpAllWordsForDebug() {
-        reloadDictionaryIfRequired();
-        final String tag = TAG;
-        final String dictName = mDictName;
-        asyncExecuteTaskWithLock(mLock.readLock(), () -> {
-            Log.d(tag, "Dump dictionary: " + dictName + " for " + mLocale);
-            final BinaryDictionary binaryDictionary = getBinaryDictionary();
-            if (binaryDictionary == null) {
-                return;
-            }
-            try {
-                final DictionaryHeader header = binaryDictionary.getHeader();
-                Log.d(tag, "Format version: " + binaryDictionary.getFormatVersion());
-                Log.d(tag, CombinedFormatUtils.formatAttributeMap(header.mDictionaryOptions.mAttributes));
-            } catch (final UnsupportedFormatException e) {
-                Log.d(tag, "Cannot fetch header information.", e);
-            }
-            int token = 0;
-            do {
-                final BinaryDictionary.GetNextWordPropertyResult result =
-                        binaryDictionary.getNextWordProperty(token);
-                final WordProperty wordProperty = result.mWordProperty;
-                if (wordProperty == null) {
-                    Log.d(tag, " dictionary is empty.");
-                    break;
-                }
-                Log.d(tag, wordProperty.toString());
-                token = result.mNextToken;
-            } while (token != 0);
-        });
+        // Diagnostics are retained, but dumping private dictionary contents to
+        // Android logcat and the in-app log buffer would expose learned words.
+        Log.i(TAG, "Private dictionary word dumping is disabled.");
     }
 
     /**

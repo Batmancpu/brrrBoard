@@ -196,7 +196,7 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
             val uri = ClipboardImageHistoryClip.decode(entry.text)?.uri ?: return@forEach
             val file = cachedImageFile(uri) ?: return@forEach
             if (file.exists() && !file.delete()) {
-                Log.e(TAG, "can't delete cached clipboard image: $file")
+                Log.e(TAG, "can't delete cached clipboard image")
             }
         }
     }
@@ -220,7 +220,7 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
             val filePath = canonicalFile.path
             if (filePath.startsWith("$dirPath${File.separator}")) canonicalFile else null
         } catch (e: Exception) {
-            Log.e(TAG, "can't resolve cached clipboard image: $uri", e)
+            Log.e(TAG, "can't resolve cached clipboard image (${e.javaClass.simpleName})")
             null
         }
     }

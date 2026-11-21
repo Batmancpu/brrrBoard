@@ -656,7 +656,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     suggestionsContainer.remove(suggestion)
                     suggestionsContainer.add(0, suggestion)
                     if (DebugFlags.DEBUG_ENABLED)
-                        Log.d(TAG, "replaced batch word $pseudoTypedWordInfo with $suggestion")
+                        Log.d(TAG, "Selected repeat-safe batch suggestion")
                     return suggestion
                 }
             }

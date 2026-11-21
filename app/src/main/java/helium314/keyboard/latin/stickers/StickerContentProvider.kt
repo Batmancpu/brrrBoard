@@ -33,7 +33,7 @@ class StickerContentProvider : ContentProvider() {
 
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? {
         val match = matcher.match(uri)
-        Log.d(TAG, "query: $uri, match: $match")
+        Log.d(TAG, "Sticker provider query, match: $match")
         return when (match) {
             METADATA -> getMetadataCursor()
             METADATA_ID -> {

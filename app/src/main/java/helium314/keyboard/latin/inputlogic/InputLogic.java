@@ -2924,7 +2924,7 @@ public final class InputLogic {
         long startTimeMillis = 0;
         if (DebugFlags.DEBUG_ENABLED) {
             startTimeMillis = SystemClock.elapsedRealtime();
-            Log.d(TAG, "commitChosenWord() : [" + chosenWord + "]");
+            Log.d(TAG, "commitChosenWord() started");
         }
         // essentially reverted
         // https://github.com/lineageos/android_packages_inputmethods_LatinIME/commit/ee6de1466bc98e27bd414c9a7451f2aee3f9e721
@@ -2950,7 +2950,7 @@ public final class InputLogic {
             long runTimeMillis = SystemClock.elapsedRealtime() - startTimeMillis;
             Log.d(TAG, "commitChosenWord() : " + runTimeMillis + " ms to run "
                     + "Connection.getNgramContextFromNthPreviousWord()");
-            Log.d(TAG, "commitChosenWord() : NgramContext = " + ngramContext);
+            Log.d(TAG, "commitChosenWord() : previous-word context collected");
             startTimeMillis = SystemClock.elapsedRealtime();
         }
         mConnection.commitText(chosenWordWithSuggestions, 1);
