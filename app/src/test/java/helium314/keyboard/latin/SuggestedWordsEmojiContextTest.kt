@@ -7,25 +7,42 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SuggestedWordsEmojiContextTest {
-    @Test fun previousTokenHintIsEphemeralAndDoesNotChangeCorrectionMetadata() {
+    @Test fun rankedEmojiCandidatesAreBoundedAndDoNotChangeCorrectionMetadata() {
         val words = SuggestedWords(
             arrayListOf<SuggestedWords.SuggestedWordInfo>(),
             null, null, false, false, false,
             SuggestedWords.INPUT_STYLE_TYPING,
             SuggestedWords.NOT_A_SEQUENCE_NUMBER,
-            "happy birthday"
+            listOf("🎂", "🎉")
         )
         assertTrue(words.isEmpty())
-        assertEquals("happy birthday", words.mEmojiContextHint)
+        assertEquals(listOf("🎂", "🎉"), words.mRankedEmojiCandidates)
         assertFalse(words.mWillAutoCorrect)
-        // Every non-typing call site retains the old constructor and gets no
-        // context hint, so ordinary application completions and gestures cannot
-        // accidentally reuse an editor's preceding words.
+        // Ordinary application completions and gestures carry no contextual
+        // Emoji list and cannot retain a previous editor's context text.
         val neutral = SuggestedWords(
             arrayListOf<SuggestedWords.SuggestedWordInfo>(), null, null, false, false, false,
             SuggestedWords.INPUT_STYLE_NONE,
             SuggestedWords.NOT_A_SEQUENCE_NUMBER
         )
-        assertEquals("", neutral.mEmojiContextHint)
+        assertTrue(neutral.mRankedEmojiCandidates.isEmpty())
+    }
+
+    @Test fun rankedEmojiCandidatesAreCopiedCappedAndImmutable() {
+        val mutable = (0 until 60).map { "emoji-$it" }.toMutableList()
+        val words = SuggestedWords(
+            arrayListOf<SuggestedWords.SuggestedWordInfo>(), null, null, false, false, false,
+            SuggestedWords.INPUT_STYLE_PREDICTION,
+            SuggestedWords.NOT_A_SEQUENCE_NUMBER, mutable
+        )
+        mutable.clear()
+        assertEquals(48, words.mRankedEmojiCandidates.size)
+        assertEquals("emoji-0", words.mRankedEmojiCandidates.first())
+        try {
+            (words.mRankedEmojiCandidates as MutableList<String>).add("stale")
+            throw AssertionError("suggestion snapshot should be immutable")
+        } catch (_: UnsupportedOperationException) {
+            // Expected: UI consumers must not mutate a shared ranking snapshot.
+        }
     }
 }

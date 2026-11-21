@@ -8,6 +8,7 @@ package helium314.keyboard.latin;
 
 import android.text.TextUtils;
 import android.view.inputmethod.CompletionInfo;
+import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,7 +21,9 @@ import helium314.keyboard.latin.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 public class SuggestedWords {
     public static final int INDEX_OF_TYPED_WORD = 0;
@@ -62,11 +65,12 @@ public class SuggestedWords {
     // INPUT_STYLE_* constants above.
     public final int mInputStyle;
     public final int mSequenceNumber; // Sequence number for auto-commit.
-    // Optional, bounded, ephemeral previous-token hint for ranking only the
-    // Emoji candidates already produced by the native decoder. Never logged,
-    // persisted, or used as a source of automatic text replacements.
+    /** Bounded contextual Emoji order computed with this exact native suggestion snapshot. */
     @NonNull
-    public final String mEmojiContextHint;
+    public final List<String> mRankedEmojiCandidates;
+    /** Identity token prevents a delayed ranking from crossing editor sessions. */
+    @Nullable
+    public final EditorInfo mEmojiSuggestionEditor;
     @NonNull
     protected final ArrayList<SuggestedWordInfo> mSuggestedWordInfoList;
     @Nullable
@@ -81,7 +85,7 @@ public class SuggestedWords {
             final int inputStyle,
             final int sequenceNumber) {
         this(suggestedWordInfoList, rawSuggestions, typedWordInfo, typedWordValid,
-                willAutoCorrect, isObsoleteSuggestions, inputStyle, sequenceNumber, "");
+                willAutoCorrect, isObsoleteSuggestions, inputStyle, sequenceNumber, List.of(), null);
     }
 
     public SuggestedWords(@NonNull final ArrayList<SuggestedWordInfo> suggestedWordInfoList,
@@ -92,7 +96,22 @@ public class SuggestedWords {
             final boolean isObsoleteSuggestions,
             final int inputStyle,
             final int sequenceNumber,
-            @NonNull final String emojiContextHint) {
+            @NonNull final List<String> rankedEmojiCandidates) {
+        this(suggestedWordInfoList, rawSuggestions, typedWordInfo, typedWordValid,
+                willAutoCorrect, isObsoleteSuggestions, inputStyle, sequenceNumber,
+                rankedEmojiCandidates, null);
+    }
+
+    public SuggestedWords(@NonNull final ArrayList<SuggestedWordInfo> suggestedWordInfoList,
+            @Nullable final ArrayList<SuggestedWordInfo> rawSuggestions,
+            @Nullable final SuggestedWordInfo typedWordInfo,
+            final boolean typedWordValid,
+            final boolean willAutoCorrect,
+            final boolean isObsoleteSuggestions,
+            final int inputStyle,
+            final int sequenceNumber,
+            @NonNull final List<String> rankedEmojiCandidates,
+            @Nullable final EditorInfo emojiSuggestionEditor) {
         mSuggestedWordInfoList = suggestedWordInfoList;
         mRawSuggestions = rawSuggestions;
         mTypedWordValid = typedWordValid;
@@ -101,7 +120,10 @@ public class SuggestedWords {
         mInputStyle = inputStyle;
         mSequenceNumber = sequenceNumber;
         mTypedWordInfo = typedWordInfo;
-        mEmojiContextHint = emojiContextHint;
+        mRankedEmojiCandidates = Collections.unmodifiableList(
+                new ArrayList<>(rankedEmojiCandidates.subList(0,
+                        Math.min(48, rankedEmojiCandidates.size()))));
+        mEmojiSuggestionEditor = emojiSuggestionEditor;
     }
 
     public boolean isEmpty() {

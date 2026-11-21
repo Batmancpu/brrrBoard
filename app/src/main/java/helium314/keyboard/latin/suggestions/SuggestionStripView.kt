@@ -46,7 +46,6 @@ import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
 import helium314.keyboard.keyboard.emoji.EmojiContextScorer
-import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
@@ -613,12 +612,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             // No Binder surrounding-text query on this keystroke-hot path.
             // The deterministic scorer only prioritizes already emitted Emoji;
             // all ordinary text candidates retain their visible slots.
-            val contextual = BrrSmartEmojiEngine.suggest(
-                context, service?.currentInputEditorInfo,
-                suggestions.mEmojiContextHint.ifEmpty {
-                    suggestions.mTypedWordInfo?.mWord.orEmpty()
-                }, 48, true
-            ).map { it.emoji }
+            val contextual = if (suggestions.mEmojiSuggestionEditor === service?.currentInputEditorInfo)
+                suggestions.mRankedEmojiCandidates else emptyList()
             val adaptive = EmojiPalettesView.AdaptiveEmojiEngine.getFastRowEmojis(context, 48)
             val rankedEmojis = (contextual + adaptive).distinct()
             layoutHelper.prioritizeEmojiSideSuggestions(suggestions, rankedEmojis)

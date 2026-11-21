@@ -1,22 +1,22 @@
 {
   "schema": 1,
-  "summary": "Make the Toolbar compact, add drag edge scrolling, refine progressive glass, and expand Emoji geometry diagnostics.",
+  "summary": "Add two-row Toolbar navigation and streamline contextual Emoji suggestions.",
   "changes": [
     {
-      "title": "Scroll Toolbar actions horizontally",
-      "detail": "The Toolbar now presents its tools in one compact horizontal rail instead of a tall four-column grid. Large gray icon cards are removed, labels stay visible, and drag reorder follows the pointer and scrolls the rail when a drag reaches either edge."
+      "title": "Browse Toolbar actions in two rows",
+      "detail": "Toolbar actions now use two compact rows inside a horizontal scroller. Drag reorder remains supported and follows the pointer as the rail scrolls."
     },
     {
-      "title": "Refine progressive panel glass",
-      "detail": "Toolbar and Clipboard share a smoother translucent top fade that clears progressively over the scrolling content. No host-app screenshot or clipboard copy is created by the panel glass."
+      "title": "Keep settings in the Toolbar",
+      "detail": "Emoji long-press shortcuts now lead only to Clipboard and Toolbar. Settings remains available from the Toolbar, avoiding a duplicate Settings shortcut in the Emoji footer."
     },
     {
-      "title": "Reuse Emoji context work on panel open",
-      "detail": "Emoji opening reads one bounded context snapshot and shares one ranking pass between the Smart row and Recents ordering. The existing local privacy checks and explicit Emoji insertion behavior remain in place; no ContextLM or voice model weights are added."
+      "title": "Switch from Toolbar to Emoji",
+      "detail": "When the Toolbar panel is open, its footer microphone position becomes a clearly described Emoji switch. Voice actions remain available in the normal typing footer."
     },
     {
-      "title": "Measure Emoji panel layout without capturing content",
-      "detail": "The one-shot Emoji geometry trace includes measured and on-screen bounds, parent padding, layout margins, translations, scroll offsets, and system, IME, and gesture insets. It also reports the first drawn Emoji key band and keyboard top padding using geometry only. No typed text, app identity, Emoji values, or screenshots are captured, helping isolate the Reno10 top gap from actual layout evidence."
+      "title": "Reduce repeated Emoji ranking",
+      "detail": "The suggestion strip reuses a bounded, immutable contextual Emoji ranking snapshot instead of scoring the same context again on the UI thread. Plain text typing skips the extra scoring when there are no Emoji candidates. ContextLM and voice model weights are unchanged."
     }
   ]
 }

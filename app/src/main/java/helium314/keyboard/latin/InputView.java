@@ -439,7 +439,8 @@ public final class InputView extends FrameLayout {
                     emojiBrowse);
             // All three internal panels expose the same direct ABC return route.
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
-                    FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive));
+                    FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive),
+                    toolbarActive);
         }
         final View resizeOverlay = findViewById(R.id.keyboard_resize_overlay);
         final int overlayVisibility = resizeOverlay == null ? View.GONE : resizeOverlay.getVisibility();

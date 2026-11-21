@@ -7,7 +7,7 @@
     android:clipToPadding="false"
     android:background="@android:color/transparent">
 
-    <!-- Compact tool actions stay in one horizontal rail beneath the title. -->
+    <!-- Two compact rows of actions share one horizontally scrollable rail. -->
     <HorizontalScrollView
         android:id="@+id/access_point_scroll"
         android:layout_width="match_parent"
@@ -22,7 +22,7 @@
             android:id="@+id/access_point_grid"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:rowCount="1"
+            android:rowCount="2"
             android:clipChildren="false"
             android:clipToPadding="false" />
     </HorizontalScrollView>

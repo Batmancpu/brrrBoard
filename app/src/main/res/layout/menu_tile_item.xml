@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="76dp"
-    android:layout_height="68dp"
+    android:layout_width="72dp"
+    android:layout_height="60dp"
     android:layout_marginHorizontal="2dp"
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
@@ -13,7 +13,7 @@
     <ImageButton
         android:id="@+id/menu_tile_icon"
         android:layout_width="match_parent"
-        android:layout_height="32dp"
+        android:layout_height="27dp"
         android:background="@android:color/transparent"
         android:clickable="false"
         android:focusable="false"
@@ -30,5 +30,5 @@
         android:gravity="center"
         android:maxLines="1"
         android:textColor="#FFFFFF"
-        android:textSize="11sp" />
+        android:textSize="10sp" />
 </LinearLayout>

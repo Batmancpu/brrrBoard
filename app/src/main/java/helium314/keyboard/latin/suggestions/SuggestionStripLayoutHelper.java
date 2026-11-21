@@ -436,7 +436,7 @@ final class SuggestionStripLayoutHelper {
         return new SuggestedWords(infos, original.mRawSuggestions, original.mTypedWordInfo,
                 original.mTypedWordValid, original.mWillAutoCorrect,
                 original.mIsObsoleteSuggestions, original.mInputStyle, original.mSequenceNumber,
-                original.mEmojiContextHint);
+                original.mRankedEmojiCandidates, original.mEmojiSuggestionEditor);
     }
 
     /**

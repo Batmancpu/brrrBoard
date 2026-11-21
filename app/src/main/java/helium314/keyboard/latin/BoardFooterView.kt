@@ -65,6 +65,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationOffline = false
     private var offlineHoldActive = false
     private var returnToLetters = false
+    private var toolbarNavigationActive = false
+    private var rightFooterAccessibilityMode: Boolean? = null
+    private var micSwitchActionId: Int? = null
+    private var micVoiceActionId: Int? = null
     private var cachedPasswordManagerIntent: android.content.Intent? = null
     private var passwordIntentCheckedAt = 0L
     private val privateEmojiIcon = FooterIncognitoEmojiDrawable(context)
@@ -402,7 +406,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val shortcuts = listOf(
         Shortcut(R.string.clipboard, R.drawable.ic_brr_clipboard, FooterShortcutPolicy.Action.CLIPBOARD),
         Shortcut(R.string.board_toolbar, R.drawable.ic_board_toolbar, FooterShortcutPolicy.Action.TOOLBAR),
-        Shortcut(R.string.settings, R.drawable.sym_keyboard_settings_rounded, FooterShortcutPolicy.Action.SETTINGS),
     )
 
     private data class Shortcut(val label: Int, val icon: Int, val action: FooterShortcutPolicy.Action)
@@ -465,6 +468,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // This footer control is not a virtual keyboard key; dispatch it directly to the
         // IME instead of sending -233 through key-coordinate/meta-state decoding.
         microphone.setOnClickListener {
+            if (toolbarNavigationActive) {
+                feedback(it)
+                send(KeyCode.EMOJI)
+                return@setOnClickListener
+            }
             // A direct/accessibility click during discard has the same immediate
             // restart semantics as a physical tap, without waiting for the morph.
             if (discardGlyph.visibility == VISIBLE) clearMicDiscardFeedback()
@@ -487,6 +495,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Touch-exploration double-taps activate an accessibility click, not the
         // IME-switch gesture. The dedicated accessibility switch action stays below.
         microphone.setOnTouchListener { view, event ->
+            if (toolbarNavigationActive) return@setOnTouchListener false
             if (isMicTouchExplorationEnabled()) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> view.isPressed = true
@@ -590,15 +599,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             micGestureDetector.onTouchEvent(event)
             true
         }
-        ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
-            if (isMicProtected()) showProtectedMicDenial()
-            else ime.switchBoardInputMethod()
-            true
-        }
-        ViewCompat.addAccessibilityAction(microphone, resources.getString(R.string.board_voice_offline_accessibility)) { _, _ ->
-            ime.toggleBoardOfflineDictation()
-            true
-        }
+        syncRightFooterAccessibilityActions()
         ViewCompat.addAccessibilityAction(emojiButton, resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
             ime.showInputPickerDialog()
             true
@@ -658,9 +659,11 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
 
-    fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean) {
+    fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean,
+        toolbarActive: Boolean = false) {
         visibility = if (show) VISIBLE else GONE
         returnToLetters = returnToAbc
+        toolbarNavigationActive = toolbarActive
         if (returnToAbc) emojiButton.setImageResource(R.drawable.ic_board_abc)
         else emojiButton.setImageDrawable(privateEmojiIcon)
         emojiButton.contentDescription = resources.getString(
@@ -675,10 +678,22 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         emojiButton.imageTintList = if (returnToAbc) tint else null
         syncEmojiPrivacy(animate = false)
         voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
-        if (dictationProcessing) showDictationProcessing()
-        else showDictationActive(dictationActive)
-        microphone.visibility = if (showMicrophone) VISIBLE else INVISIBLE
-        micUnderlight.setPrivacyShieldVisible(showMicrophone)
+        if (toolbarActive) {
+            micPulse?.cancel()
+            micPulse = null
+            micUnderlight.setPhase(FooterMicUnderlightView.Phase.IDLE, dark)
+            microphone.setImageResource(R.drawable.ic_board_emoji)
+            microphone.imageTintList = tint
+            microphone.contentDescription = resources.getString(R.string.board_footer_switch_emoji)
+        } else {
+            pulsingMicIcon?.let { microphone.setImageDrawable(it) }
+            if (dictationProcessing) showDictationProcessing()
+            else showDictationActive(dictationActive)
+            microphone.contentDescription = resources.getString(R.string.board_inline_dictation)
+        }
+        syncRightFooterAccessibilityActions()
+        microphone.visibility = if (show && (showMicrophone || toolbarActive)) VISIBLE else INVISIBLE
+        micUnderlight.setPrivacyShieldVisible(showMicrophone && !toolbarActive)
         // Do not add a password icon on ordinary text, email, incognito, etc.
         // Password fields naturally hide the mic, so reuse precisely that slot.
         val passwordField = Settings.getValues().mInputAttributes.mIsPasswordField
@@ -1003,7 +1018,34 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             // which intentionally rejects Emoji/Clipboard origins. The footer
             // shortcut is an explicit navigation command from any panel.
             FooterShortcutPolicy.Action.TOOLBAR -> switcher.setAccessPointKeyboard()
-            FooterShortcutPolicy.Action.SETTINGS -> send(KeyCode.SETTINGS)
+        }
+    }
+
+    private fun syncRightFooterAccessibilityActions() {
+        if (rightFooterAccessibilityMode == toolbarNavigationActive) return
+        rightFooterAccessibilityMode = toolbarNavigationActive
+        micSwitchActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
+        micVoiceActionId?.let { ViewCompat.removeAccessibilityAction(microphone, it) }
+        micSwitchActionId = null
+        micVoiceActionId = null
+        if (toolbarNavigationActive) {
+            micSwitchActionId = ViewCompat.addAccessibilityAction(microphone,
+                resources.getString(R.string.board_footer_switch_emoji)) { _, _ ->
+                send(KeyCode.EMOJI)
+                true
+            }
+        } else {
+            micSwitchActionId = ViewCompat.addAccessibilityAction(microphone,
+                resources.getString(R.string.board_system_keyboard_picker)) { _, _ ->
+                if (isMicProtected()) showProtectedMicDenial()
+                else ime.switchBoardInputMethod()
+                true
+            }
+            micVoiceActionId = ViewCompat.addAccessibilityAction(microphone,
+                resources.getString(R.string.board_voice_offline_accessibility)) { _, _ ->
+                ime.toggleBoardOfflineDictation()
+                true
+            }
         }
     }
 

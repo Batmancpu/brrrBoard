@@ -203,15 +203,24 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             if (resultsArePredictions) previous.takeLast(160)
             else (previous + " " + capitalizedTypedWord).takeLast(160)
         } else ""
+        // Rank once with the native snapshot. The strip consumes this bounded
+        // list instead of re-running the scorer on the UI thread.
+        val emojiService = LatinIME.getInstance()
+        val emojiSuggestionEditor = emojiService?.currentInputEditorInfo
+        val needsEmojiRanking = resultsArePredictions || suggestionsList.any { it.isEmoji }
+        val rankedEmojiCandidates = if (mayUseEmojiContext && emojiContext.isNotBlank()
+            && needsEmojiRanking && emojiService != null
+            && emojiService.currentInputEditorInfo === emojiSuggestionEditor) {
+            BrrSmartEmojiEngine.suggest(
+                emojiService, emojiSuggestionEditor, emojiContext, 48, true
+            ).map { it.emoji }
+        } else emptyList()
         if (resultsArePredictions && mayUseEmojiContext
             && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
             && suggestionsList.none { it.isEmoji }) {
-            val service = LatinIME.getInstance()
-            // One shared, app/field-aware Emoji brain; learned suggestions are
-            // manual actions only and never take either text-prediction slot.
-            val emoji = if (service != null) BrrSmartEmojiEngine.suggest(
-                service, service.currentInputEditorInfo, emojiContext, 1, true
-            ).firstOrNull()?.emoji else null
+            // Learned suggestions are manual actions only and never take either
+            // text-prediction slot.
+            val emoji = rankedEmojiCandidates.firstOrNull()
             if (emoji != null) {
                 // Preserve the two strongest text predictions in visible slots;
                 // an Emoji is a distinct insertion action, never a word candidate.
@@ -223,7 +232,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         }
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions,
             typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
-            emojiContext)
+            rankedEmojiCandidates, emojiSuggestionEditor.takeIf { rankedEmojiCandidates.isNotEmpty() })
     }
 
     // returns [allowsToBeAutoCorrected, hasAutoCorrection]

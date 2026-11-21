@@ -499,3 +499,7 @@ old `GtcrnVoiceBridge/Service`; probe remains historical only. See
 `docs/BRRCLEAN_NATIVE_GTCRN_2026_11_21.md` and first AGENTS.md section.
 GitHub debug/full unit, signed release and Oppo/Nirvana Ion mic test are
 distinct evidence gates; do not mark any unobserved outcome as passed.
+
+## 2026-11-21 — Emoji/Toolbar follow-up source candidate
+
+Owner asks for two Toolbar rows with horizontal overflow, Settings removed from Emoji long-press shortcuts, and Emoji in the footer mic slot while Toolbar is visible. A local candidate implements the UI/footer changes, moves bounded immutable Smart Emoji ranking into `SuggestedWords`, rejects cross-editor snapshots, and skips extra ranking on ordinary text-only typing. Focused tests and release notes are updated. Details: `docs/EMOJI_TOOLBAR_FOLLOWUP_IMPLEMENTATION_2026_11_21.md`. The source is not yet compiled, CI-verified, signed, or released; exact-SHA debug/full tests and original signer remain required. ContextLM remains inactive after failed held-out quality; current Parakeet 110M stays. Reno10 top-gap isolation still requires the geometry-only `BrrImeBounds` device line.

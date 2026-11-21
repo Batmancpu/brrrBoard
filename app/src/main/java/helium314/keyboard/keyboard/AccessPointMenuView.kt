@@ -36,6 +36,7 @@ import helium314.keyboard.latin.utils.ToolbarDragSource
 import helium314.keyboard.latin.utils.ToolbarDragState
 import helium314.keyboard.latin.utils.ToolbarKey
 import helium314.keyboard.latin.utils.ToolbarMode
+import helium314.keyboard.latin.utils.ToolbarGridPlacement
 import helium314.keyboard.latin.utils.getCodeForToolbarKey
 import helium314.keyboard.latin.utils.getEnabledToolbarKeys
 import helium314.keyboard.latin.utils.getStringResourceOrName
@@ -159,9 +160,11 @@ class AccessPointMenuView @JvmOverloads constructor(
         val enabledKeys = getEnabledToolbarKeys(prefs).filter {
             it.isAvailableInToolbarUi()
         }
+        grid.rowCount = 2
+        grid.columnCount = ToolbarGridPlacement.columnCount(enabledKeys.size)
 
         val inflater = LayoutInflater.from(context)
-        for (key in enabledKeys) {
+        for ((index, key) in enabledKeys.withIndex()) {
             val tile = inflater.inflate(R.layout.menu_tile_item, grid, false)
             tile.tag = key
             try {
@@ -296,7 +299,11 @@ class AccessPointMenuView @JvmOverloads constructor(
                 }
             }
 
-            grid.addView(tile)
+            val cell = ToolbarGridPlacement.cell(index, enabledKeys.size)
+            val tileParams = tile.layoutParams as GridLayout.LayoutParams
+            tileParams.rowSpec = GridLayout.spec(cell.row)
+            tileParams.columnSpec = GridLayout.spec(cell.column)
+            grid.addView(tile, tileParams)
         }
     }
 
@@ -378,6 +385,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         accessDropPreviewIndex = targetIndex
         if (preview.parent !== grid) {
             grid.addView(preview, targetIndex)
+            layoutGridChildren()
             return
         }
         moveGridChildToIndex(preview, targetIndex)
@@ -404,6 +412,22 @@ class AccessPointMenuView @JvmOverloads constructor(
         if (currentIndex < 0 || currentIndex == targetIndex) return
         grid.removeView(child)
         grid.addView(child, targetIndex)
+        layoutGridChildren()
+    }
+
+    /** Keep the visual row-major layout stable while drag previews reorder children. */
+    private fun layoutGridChildren() {
+        val columnCount = ToolbarGridPlacement.columnCount(grid.childCount)
+        grid.rowCount = 2
+        grid.columnCount = columnCount
+        for (index in 0 until grid.childCount) {
+            val child = grid.getChildAt(index)
+            val params = child.layoutParams as? GridLayout.LayoutParams ?: continue
+            val cell = ToolbarGridPlacement.cell(index, grid.childCount)
+            params.rowSpec = GridLayout.spec(cell.row)
+            params.columnSpec = GridLayout.spec(cell.column)
+            child.layoutParams = params
+        }
     }
 
     private fun accessDropIndexFromEvent(target: View, event: DragEvent): Int {

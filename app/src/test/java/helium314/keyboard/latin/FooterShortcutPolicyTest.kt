@@ -4,18 +4,23 @@ package helium314.keyboard.latin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 
 class FooterShortcutPolicyTest {
+    @Test fun longPressMenuExposesOnlyClipboardAndToolbar() {
+        assertArrayEquals(arrayOf(FooterShortcutPolicy.Action.CLIPBOARD,
+            FooterShortcutPolicy.Action.TOOLBAR), FooterShortcutPolicy.Action.values())
+    }
+
     @Test fun clipboardIsNeverImplicitPasteWhenHistoryDisabled() {
         assertFalse(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.CLIPBOARD, false))
         assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.CLIPBOARD, true))
         assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.TOOLBAR, false))
-        assertTrue(FooterShortcutPolicy.isAllowed(FooterShortcutPolicy.Action.SETTINGS, false))
     }
 
-    @Test fun threeLargeTargetsMirrorWithoutChangingHeight() {
-        for (index in 0..2) {
+    @Test fun twoLargeTargetsMirrorWithoutChangingHeight() {
+        for (index in 0..1) {
             val normal = FooterShortcutPolicy.targetOffset(index, false)
             val mirrored = FooterShortcutPolicy.targetOffset(index, true)
             assertEquals(208, normal.first + mirrored.first)
