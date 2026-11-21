@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Add privacy-safe input and first-suggestion latency diagnostics with P50/P95/P99 reporting, plus synthetic typing replay coverage. Preserve voice noise-mode choices across upgrades and correct offline voice documentation.",
+  "summary": "Make the Toolbar compact and horizontally scrollable, refine progressive panel glass, and reduce duplicate context work when opening Emoji.",
   "changes": [
     {
-      "title": "Measure first-suggestion responsiveness",
-      "detail": "BR Brain now reports local input-transaction time, suggestion-strip update time, and time from a letter key event to the next suggestion-strip pre-draw, separately from dictionary computation time, with P50/P95/P99 over a bounded recent sample window. It stores no typed text or editor identity, excludes incognito, password, secure-app and no-personal-learning fields, discards stale samples, and keeps measurements only in memory. These values are not touchscreen-to-photon latency; a pre-draw is not proof that the display presented the frame."
+      "title": "Scroll Toolbar actions horizontally",
+      "detail": "The Toolbar now presents its tools in one compact horizontal rail instead of a tall four-column grid. Large gray icon cards are removed, labels stay visible, and the existing tool actions, ordering, and drag-reorder behavior remain available."
     },
     {
-      "title": "Cover fast typing and field-switch replays",
-      "detail": "Add an offline synthetic replay corpus for English, Indian English and Romanized Hinglish. It checks that immediate previews stay prefix-safe and that late dictionary responses are rejected after rapid typing, pauses, space, Backspace or editor switches. No personal typing data is used; replay tests do not claim device latency or dictionary accuracy."
+      "title": "Refine progressive panel glass",
+      "detail": "Toolbar and Clipboard share a smoother translucent top fade that clears progressively over the scrolling content. No host-app screenshot or clipboard copy is created by the panel glass."
     },
     {
-      "title": "Keep voice processing choices during update",
-      "detail": "Preserve an existing explicit Android NoiseSuppressor or OFF choice when upgrading from the legacy setting. New installs still default to brrClean, and saved current modes remain authoritative. Update the voice guide to explain local brrClean processing, raw-audio fallback, bounded streaming, and microphone routing limits. No prediction model weights or network permission are added."
+      "title": "Reuse Emoji context work on panel open",
+      "detail": "Emoji opening reads one bounded context snapshot and shares one ranking pass between the Smart row and Recents ordering. The existing local privacy checks and explicit Emoji insertion behavior remain in place; no ContextLM or voice model weights are added."
     }
   ]
 }
