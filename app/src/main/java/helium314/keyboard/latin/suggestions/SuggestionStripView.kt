@@ -57,6 +57,7 @@ import helium314.keyboard.latin.R
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.SuggestedWords
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
+import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.common.ColorType
 import helium314.keyboard.latin.common.Colors
 import helium314.keyboard.latin.common.Constants
