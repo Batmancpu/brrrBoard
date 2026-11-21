@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Smaller settings icon font and guarded offline ContextLM preparation after signed v1.0.214. No new neural suggestions are enabled yet; Oppo acceptance remains pending.",
+  "summary": "Preserve voice noise-mode choices across upgrades and correct offline voice documentation. No neural ContextLM model or prediction change is included.",
   "changes": [
     {
-      "title": "Compact settings font and safe ContextLM groundwork",
-      "detail": "Reduce the bundled variable settings/search icon font to its exact existing fixed visual style; mapped glyph outlines and names are preserved. Add a read-only adapter that passes current native suggestions and inherited user-history/user-dictionary signals as future neural model inputs, plus a bounded INT8 reference and fail-closed model-validation tests. Experimental model quality failed: no weights, suggestion hook or changed predictions ship. Correct one test expectation after the first CI build; runtime logic stays unchanged. Preserve native learning, QuickType, swipe, voice, network policy, package and signer. Signed APK bytes and Oppo visuals require verification."
+      "title": "Keep voice processing choices during update",
+      "detail": "Preserve an existing explicit Android NoiseSuppressor or OFF choice when upgrading from the legacy setting. New installs still default to brrClean, and saved current modes remain authoritative. Update the voice guide to explain local brrClean processing, raw-audio fallback, bounded streaming, and microphone routing limits. No prediction model weights or network permission are added."
     }
   ]
 }

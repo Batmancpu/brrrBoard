@@ -1,5 +1,10 @@
 # brrBoard engineering handoff
 
+## 2026-11-21 — owner GO: preserve legacy voice noise choices, exact-SHA release pending
+
+Owner's **Go** authorizes the saved [next GO master plan](docs/NEXT_GO_MASTER_PLAN_2026_11_21.md). Fresh main baseline is `34d154560e0a49bc7b52c21ac421fc5bb71288b8`; latest signed release remains v1.0.216 (`f3d1c207`). The first source change fixes a confirmed migration defect: the pre-mode boolean was read with a default that sent saved Android NoiseSuppressor users to brrClean. An absent old key now selects the new-install brrClean default; a present `true` maps to Android and present `false` maps to OFF; current explicit mode wins. Added focused policy regression cases and corrected README voice claims to match current brrClean streaming source. ContextLM remains unshipped because untouched holdout quality failed. Local Gradle cannot download 8.14.4 through this runtime proxy; exact-SHA GitHub debug/full Android and original-signer CI are pending. This is not yet compiled, tested, signed, or Oppo-accepted. Preserve the model, no-network permission, package and certificate.
+
+
 ## 2026-11-21 — monitored ContextLM phase-one source and APK size experiment
 
 Owner authorized live monitoring and five-minute idle delay before ContextLM

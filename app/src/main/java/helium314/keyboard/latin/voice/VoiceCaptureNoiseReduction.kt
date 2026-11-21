@@ -16,8 +16,6 @@ import helium314.keyboard.latin.utils.prefs
  * NoiseSuppressor. The effect is optional and always releases with AudioRecord.
  */
 internal object VoiceCaptureNoiseReduction {
-    private const val PREF_ENABLED = "brr_voice_platform_noise_suppression"
-
     fun enabled(context: Context): Boolean =
         VoiceNoiseChoice.selected(context) == VoiceNoiseMode.ANDROID
 

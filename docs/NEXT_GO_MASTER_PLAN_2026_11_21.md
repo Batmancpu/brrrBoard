@@ -1,6 +1,6 @@
 # brrBoard next GO: product, intelligence, typing and signed APK plan
 
-Status: **PLAN ONLY. No application implementation or release is authorized by this request.** Owner's next “go” authorizes the complete finite scope below, including source changes, tests, ordinary main publication, CI repair and one original-signed APK in GitHub Releases. At that point continue autonomously without waiting for routine decisions or asking the owner to test before publication. Report any genuinely unavailable external dependency honestly; never bypass a failing quality, privacy or signing gate to make the promise appear complete.
+Status: **OWNER GO RECEIVED 2026-11-21. Implementation is in progress.** The owner authorized the complete finite scope below, including source changes, tests, ordinary main publication, CI repair and one original-signed APK in GitHub Releases. Continue autonomously through the gates. Report any unavailable external dependency honestly; never bypass a failing quality, privacy or signing gate.
 
 Repository: Batmancpu/brrrBoard. Planning snapshot: main f3d1c207bc1aa9f242c2f92349570311eb79b2ca, 21 November 2026, 08:50 UTC. Latest original-signed release at review: v1.0.216, same SHA, debug run 44886757861 success and Obtainium run 44886757857 success, APK 64,969,203 bytes, SHA-256 f57c64801ae293da52a0506dcebfc7085fbda8bf5c81ca7313174bc2bd099ea7. A separate v2.5.8 debug prerelease is not the in-place update artifact. Refresh main, releases and workflow state immediately after GO because these facts can change.
 
@@ -113,3 +113,13 @@ Definition of done for GO: finite P0–P4 scope implemented to its evidence gate
 - **Marketing drift:** README, docs and release notes must describe current source and actual signed assets. The present README voice FAQ is stale.
 - **Performance causality:** no claimed speedup from static font bytes or fewer CI jobs alone. Record before/after signed size, real frame timing and key path latency. Emulator measurements do not certify Oppo thermals, blur or microphone routing.
 - **Unbounded work risk:** the GO commits to this finite plan and a release. Additional speculative models, new themes and unrelated feature requests require a separate plan, after this delivery.
+
+
+## GO execution ledger — 2026-11-21
+
+- Fresh checkout reconciled at `34d154560e0a49bc7b52c21ac421fc5bb71288b8`; no concurrent source changes were present. Latest signed base remains v1.0.216 at `f3d1c207`.
+- Local Gradle verification is blocked before project configuration: wrapper 8.14.4 is not cached and `services.gradle.org` refuses this runtime's proxy connection. Exact-SHA GitHub Actions is the required Android compile, test and signing path.
+- P4 source audit found public documentation claiming GTCRN was paused and Android NoiseSuppressor was the live default. Current source instead defaults new installs to isolated brrClean, preserves an explicit modern mode, and streams bounded chunks with raw fallback. README now reflects current source and its limitations.
+- P0 migration audit found the legacy boolean mapping did not preserve an explicit prior Android NoiseSuppressor selection: a saved `true` was interpreted as the new brrClean default. The source now distinguishes an absent legacy key (new-install brrClean) from saved legacy `true` (Android) and `false` (OFF), and focused regression cases cover old and current preference values. This source candidate is not compiled, tested, signed, or device-accepted until the new exact-SHA workflows finish.
+- Current P1 QuickType code already includes immediate prefix-safe native previews, attached slots, bounded empty-result hold, latest-generation checks and glyph motion from `7d856d6`; no duplicate animation rewrite is planned without new device evidence. Current ContextLM has no weights and its independent holdout gate failed, so it remains disabled.
+- Remaining: run exact-SHA full Android/static CI, resolve any failures without weakening gates, original-signer Obtainium release, verify APK provenance/package/certificate/hash/size/latest download, update all handoffs and record device-only Oppo voice/visual checks as pending when not available.

@@ -9,17 +9,31 @@ internal enum class VoiceNoiseMode { OFF, ANDROID, GTCRN }
 
 internal object VoiceNoiseChoice {
     private const val PREF_MODE = "brr_voice_noise_mode_v1"
+    private const val PREF_LEGACY_PLATFORM_ENABLED = "brr_voice_platform_noise_suppression"
 
-    fun selected(context: Context): VoiceNoiseMode = when (context.prefs().getString(PREF_MODE, null)) {
+    fun selected(context: Context): VoiceNoiseMode {
+        val preferences = context.prefs()
+        val selectedMode = preferences.getString(PREF_MODE, null)
+        if (selectedMode != null) return modeForSelection(selectedMode)
+        // Older releases stored the Android effect as an explicit boolean. Keep
+        // that choice across the upgrade; only installs with no saved choice use
+        // the new brrClean default.
+        return modeForLegacyChoice(
+            preferences.contains(PREF_LEGACY_PLATFORM_ENABLED),
+            preferences.getBoolean(PREF_LEGACY_PLATFORM_ENABLED, false),
+        )
+    }
+
+    internal fun modeForSelection(selectedMode: String): VoiceNoiseMode = when (selectedMode) {
         VoiceNoiseMode.GTCRN.name -> VoiceNoiseMode.GTCRN
         VoiceNoiseMode.OFF.name -> VoiceNoiseMode.OFF
         VoiceNoiseMode.ANDROID.name -> VoiceNoiseMode.ANDROID
-        // New installs start with the owner's validated private cleaner. For
-        // legacy installs only an explicit OFF is carried forward; an explicit
-        // choice of Android/OFF/brrClean above is never overwritten.
-        else -> if (!context.prefs().getBoolean("brr_voice_platform_noise_suppression", true))
-            VoiceNoiseMode.OFF else VoiceNoiseMode.GTCRN
+        else -> VoiceNoiseMode.GTCRN
     }
+
+    internal fun modeForLegacyChoice(hasSavedChoice: Boolean, platformEnabled: Boolean): VoiceNoiseMode =
+        if (!hasSavedChoice) VoiceNoiseMode.GTCRN
+        else if (platformEnabled) VoiceNoiseMode.ANDROID else VoiceNoiseMode.OFF
 
     fun select(context: Context, mode: VoiceNoiseMode) {
         context.prefs().edit().putString(PREF_MODE, mode.name)

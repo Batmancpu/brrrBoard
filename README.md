@@ -35,15 +35,16 @@ The currently shipped intelligence uses offline dictionaries, native word/gestur
 
 ## 02 / A voice that doesn't need the cloud.
 
-![Private offline voice: microphone capture, optional Android noise suppression and on-device Parakeet recognition](art/brand/mangoloads/readme-offline-voice.svg)
+![Private offline voice: microphone capture, brrClean noise reduction and on-device Parakeet recognition](art/brand/mangoloads/readme-offline-voice.svg)
 
 Tap the blue microphone for **offline English dictation**, powered by an on-device **NVIDIA Parakeet TDT 110M INT8** recognition model (once provisioned). Audio is captured privately, decoded on your phone, and inserted into your text field—without sending speech to an online transcription service.
 
-- **Optional noise suppression.** brrBoard tries Android's built-in microphone `NoiseSuppressor` during a recording, if your device supports it. You can switch it on or off in **BR Brain** and see whether it actually activated. We don't promise an accuracy gain without testing your microphone and environment.
-- **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. No second microphone, background cloud service or extra processing on the typing path.
+- **Three local processing choices.** In **BR Brain → Voice & Noise Reduction**, choose brrClean, Android `NoiseSuppressor`, or raw microphone audio. New installs default to brrClean; an existing explicit choice is preserved. Android's effect is used only when supported and the app reports whether it activated.
+- **Long dictation stays bounded.** The phone captures 16-kHz audio into short in-memory chunks and sends them sequentially through the isolated brrClean process and Parakeet 110M while recording continues. If brrClean fails or a chunk is outside its processing limit, that audio falls back to raw Parakeet input. Text is inserted only after capture finishes and the original editor is still safe.
+- **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. The normal blue mic prefers the built-in phone input; Bluetooth routing is a separate Voice Lab test. Android may reroute or silence concurrent captures, so brrBoard does not promise combined phone-and-earbud microphones.
 - **Private diagnostics.** A one-session troubleshooting tool can record only sanitized stages and timings—not audio, transcripts, app names or typed words.
 
-**Honest status:** The separate bundled **GTCRN neural denoiser is currently paused** after a device-side initialization failure. The working voice path uses Parakeet 110M with *optional Android system* noise suppression, not active GTCRN filtering. A first-time installation may need the special model-inclusive bootstrap described [below](#before-using-voice-or-swipe).
+The recognition model is provisioned locally and runs on-device. A first-time installation may need the special model-inclusive bootstrap described [below](#before-using-voice-or-swipe). brrClean is bundled with the app; neither model is fetched at runtime. Noise reduction has not been shown to improve recognition accuracy on every device or in every environment.
 
 ## 03 / Zero internet. Zero keyboard uploads.
 
@@ -154,9 +155,9 @@ No. Its current word/next-word suggestions, native swipe candidates, local corre
 </details>
 
 <details>
-<summary>Does the noise reduction feature run the bundled GTCRN model?</summary>
+<summary>What does brrClean do, and can it combine phone and earbud microphones?</summary>
 
-Not currently. The live offline voice path uses Parakeet 110M with an optional Android microphone `NoiseSuppressor` effect. GTCRN neural filtering is isolated and paused after a device initialization failure. The BR Brain screen reports whether the Android effect activated; it does not claim measured recognition improvement.
+brrClean is an offline GTCRN denoiser that runs in an isolated process before Parakeet 110M transcription. Android `NoiseSuppressor` and raw microphone audio are also available in BR Brain. A denoising failure falls back to raw audio. The keyboard does not fuse separate phone and earbud microphone streams; Android or the device manufacturer controls microphone routing and may silence concurrent capture. Noise reduction is not a guarantee of better recognition accuracy.
 
 </details>
 
