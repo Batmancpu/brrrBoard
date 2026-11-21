@@ -1,8 +1,8 @@
 # brrBoard project context
 
-## Current local follow-up — four-column Toolbar (2026-11-21)
+## Current Toolbar state — v1.0.231 (2026-11-21)
 
-Source changes are in progress for the owner-requested four-column, three-visible-row vertically scrollable Toolbar and Settings in the footer microphone slot while Toolbar is open. Settings is kept first through drag reorder. The exact change, status, and remaining plan gates are in `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`. Do not call this patch released until exact-source Android CI and original-signer publication succeed. Reno10 Emoji-gap diagnosis still needs its geometry-only trace; ContextLM and Parakeet Ultra remain evidence-gated.
+The four-column/three-visible-row vertically scrolling Toolbar, fixed-first Settings item, and Toolbar-mode footer Settings action are released in original-signed v1.0.231 from `5e2f827a0decd6116e6d74a4541c2d8103d5a729`. Full debug Android and original-signer workflows passed. Remaining gates are Reno10 Emoji-gap trace/visual acceptance and target-device profiling; ContextLM remains disabled after a held-out quality regression, and Parakeet Ultra remains benchmark-only. See `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`.
 
 ## 2026-11-21 — v1.0.227 shipped; Reno10 acceptance open
 

@@ -2,7 +2,7 @@
 
 Date: 21 November 2026  
 Baseline: original-signed v1.0.230 (`78acc83e`)  
-Status: source changes for the four-column Toolbar and Toolbar-footer Settings are in progress; no new build or release is claimed yet.
+Status: **released as original-signed v1.0.231** from `5e2f827a0decd6116e6d74a4541c2d8103d5a729`. Exact-SHA debug/full Android run `44939542456` and original-signer run `44939542439` passed. APK is 64,985,587 bytes with SHA-256 `c7925b836a4d1bbc2e11da124428bc8f127ac2a24d3b2b274d0a86c4d0e5025a`: https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.231.
 
 ## Implemented in this source change
 
@@ -20,7 +20,7 @@ Status: source changes for the four-column Toolbar and Toolbar-footer Settings a
 4. **Parakeet Ultra.** Keep the current offline Parakeet TDT 110M. Benchmark the exact 0.6B/Ultra export against matched consented English/Hinglish audio on the Reno10, including WER/CER, load/stream latency, RSS, heat, battery and APK/storage impact. Parameter count is not model file size; current official quantized export is hundreds of MB. Do not replace or bundle it until it wins and licensing/provisioning gates pass.
 5. **Apple-inspired motion acceptance.** The current candidate implements visible suggestion replacements, retargeting, confidence-pill transitions, search-result reveal and reduced-motion behavior. Verify fast replacements, empty-result disappearance, chips, tap identity, RTL/Emoji shaping, TalkBack and frame cost on the Reno10; compare with a calibrated high-frame-rate reference if exact timing is requested. Apple does not publish its private keyboard ranking model or current animation timing.
 6. **Device performance and reliability.** Gather privacy-safe p50/p95/p99 key-to-first-visible-suggestion, Emoji open/rank, toolbar scroll and voice start/finalization measurements on the target phone, plus thermal/repeated-switch and crash checks. Emulator/CI results do not establish ColorOS blur or microphone behavior.
-7. **Release gate for this patch.** Run full Android compile/tests and static gates on the exact final SHA, then the original-signer release workflow. Verify package, signer, monotonically increasing version, APK checksum and GitHub release asset before calling it shipped.
+7. **Release gate — complete.** Full Android CI and the original-signer workflow passed on the same SHA; v1.0.231 is non-prerelease and the GitHub asset metadata reports the same SHA-256 above. The local environment could not bootstrap Gradle, so compilation/test evidence is from hosted exact-SHA CI.
 
 ## Current evidence boundary
 
