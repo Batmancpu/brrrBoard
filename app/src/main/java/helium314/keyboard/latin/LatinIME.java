@@ -2744,8 +2744,10 @@ public class LatinIME extends InputMethodService implements
             dnd = android.provider.Settings.Global.getInt(
                     context.getContentResolver(), "zen_mode") != 0;
         } catch (android.provider.Settings.SettingNotFoundException e) {
-            Log.w(TAG, "zen_mode setting not found, assuming disabled");
-            AudioAndHapticFeedbackManager.getInstance().onRingerModeChanged(false);
+            // Fail closed: if Android cannot tell us the current interruption
+            // filter, suppress ordinary key haptics until the next state update.
+            Log.w(TAG, "zen_mode setting not found, assuming DND is active");
+            AudioAndHapticFeedbackManager.getInstance().onRingerModeChanged(true);
             return;
         }
         Log.i(TAG, "zen_mode active: " + dnd);

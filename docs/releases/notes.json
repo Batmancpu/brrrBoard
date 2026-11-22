@@ -16,7 +16,7 @@
     },
     {
       "title": "Keep only important confirmations in Do Not Disturb",
-      "detail": "Key taps and gesture haptics remain quiet during DND. The optional important-only setting allows brief confirmations when changing privacy mode or confirming a clipboard/history clear. The preference is located only in Everyday tools → Sound & haptics."
+      "detail": "Key taps and gesture haptics remain quiet during DND. The optional important-only setting allows brief confirmations when changing privacy mode or confirming a clipboard/history clear. If Android cannot provide the current DND state, the keyboard safely suppresses ordinary haptics until it can. The preference is located only in Everyday tools → Sound & haptics."
     },
     {
       "title": "Keep the guided checkup as the single diagnostic report flow",
