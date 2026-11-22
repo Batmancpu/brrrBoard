@@ -43,10 +43,6 @@ internal object VoiceCaptureNoiseReduction {
         }
     }
 
-    /** Explicit Voice Lab A/B setting; never modifies the keyboard's saved preference or metrics. */
-    fun attachForLab(recorder: AudioRecord, enabledForTake: Boolean): NoiseSuppressor? =
-        if (enabledForTake) createEnabledEffect(recorder) else null
-
     private fun createEnabledEffect(recorder: AudioRecord): NoiseSuppressor? {
         var created: NoiseSuppressor? = null
         return runCatching {

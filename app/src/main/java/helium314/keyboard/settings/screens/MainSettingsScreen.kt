@@ -130,6 +130,7 @@ fun MainSettingsScreen(
     onClickToolbar: () -> Unit,
     onClickGestureTyping: () -> Unit,
     onClickBrainDashboard: () -> Unit,
+    onClickTextCorrection: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
@@ -238,6 +239,17 @@ fun MainSettingsScreen(
                 title = stringResource(R.string.language_and_layouts_title),
                 description = enabledSubtypeNames,
                 onClick = onClickLanguage,
+                isLast = true
+            )
+        }
+
+        Md3ePreferenceGroup("Typing") {
+            Md3ePreference(
+                icon = "spellcheck",
+                title = "Correction & suggestions",
+                description = "Autocorrect, predictions and smart spacing",
+                onClick = onClickTextCorrection,
+                isFirst = true,
                 isLast = true
             )
         }
@@ -743,7 +755,7 @@ private fun PreviewScreen() {
                 onClickLayouts = {}, onClickDictionaries = {}, onClickWelcomeWizard = {},
                 onClickKeys = {}, onClickSound = {}, onClickClipboard = {},
                 onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {},
-                onClickBack = {}
+                onClickTextCorrection = {}, onClickBack = {}
             )
         }
     }

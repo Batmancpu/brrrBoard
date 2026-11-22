@@ -13,7 +13,7 @@ brrBoard is a thoughtfully crafted Android keyboard by [MangoLoads](https://batm
 
 [**⬇ Download the latest signed APK**](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk) &nbsp;·&nbsp; [**Get updates with Obtainium**](docs/OBTAINIUM.md) &nbsp;·&nbsp; [Explore releases](https://github.com/Batmancpu/brrrBoard/releases)
 
-[![Android build and unit tests](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml/badge.svg?branch=main)](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml) &nbsp; [Privacy policy](PRIVACY_POLICY.md) &nbsp;·&nbsp; [Open-source licenses](#made-possible-by-open-source)
+[![Android build and unit tests](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml/badge.svg?branch=main)](https://github.com/Batmancpu/brrrBoard/actions/workflows/brrrboard-build-debug.yml) &nbsp; [Build recovery when the workspace proxy is unavailable](docs/LOCAL_BUILD_NETWORK_FALLBACK.md) &nbsp;·&nbsp; [Privacy policy](PRIVACY_POLICY.md) &nbsp;·&nbsp; [Open-source licenses](#made-possible-by-open-source)
 
 ---
 
@@ -41,7 +41,7 @@ Tap the blue microphone for **offline English dictation**, powered by an on-devi
 
 - **Three local processing choices.** In **BR Brain → Voice & Noise Reduction**, choose brrClean, Android `NoiseSuppressor`, or raw microphone audio. New installs default to brrClean; an existing explicit choice is preserved. Android's effect is used only when supported and the app reports whether it activated.
 - **Long dictation stays bounded.** The phone captures 16-kHz audio into short in-memory chunks and sends them sequentially through the isolated brrClean process and Parakeet 110M while recording continues. If brrClean fails or a chunk is outside its processing limit, that audio falls back to raw Parakeet input. Text is inserted only after capture finishes and the original editor is still safe.
-- **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. The normal blue mic prefers the built-in phone input; Bluetooth routing is a separate Voice Lab test. Android may reroute or silence concurrent captures, so brrBoard does not promise combined phone-and-earbud microphones.
+- **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. The normal blue mic prefers the built-in phone input; The keyboard uses one verified microphone input and does not combine phone and earbud microphones.
 - **Private diagnostics.** A one-session troubleshooting tool can record only sanitized stages and timings—not audio, transcripts, app names or typed words.
 
 The recognition model is provisioned locally and runs on-device. A first-time installation may need the special model-inclusive bootstrap described [below](#before-using-voice-or-swipe). brrClean is bundled with the app; neither model is fetched at runtime. Noise reduction has not been shown to improve recognition accuracy on every device or in every environment.

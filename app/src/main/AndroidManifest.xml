@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Needed only to select the connected Bluetooth communication mic in Voice Lab. -->
+    <!-- Allows Android audio-session controls for optional microphone noise suppression. -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application android:label="@string/english_ime_name"
@@ -68,12 +68,6 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
              permission is exercised inside this short-lived native worker. -->
         <service android:name="helium314.keyboard.latin.voice.BrrCleanVoiceService"
                  android:process=":brr_clean_denoise"
-                 android:exported="false" />
-
-        <!-- Experimental 0.6B ASR runs outside LatinIME so model-load OOM/native
-             failures cannot kill daily typing. Bound only by the settings lab. -->
-        <service android:name="helium314.keyboard.latin.voice.UltraVoiceTestService"
-                 android:process=":brr_voice_ultra_test"
                  android:exported="false" />
 
         <!-- Activities -->

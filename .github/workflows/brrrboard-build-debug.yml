@@ -9,6 +9,8 @@ on:
       - 'buildSrc/**'
       - 'gradle/**'
       - 'tools/**'
+      - 'docs/releases/notes.json'
+      - '.github/workflows/obtainium-release.yml'
       - '.github/workflows/brrrboard-build-debug.yml'
       - 'build.gradle.kts'
       - 'settings.gradle'
@@ -167,9 +169,9 @@ jobs:
 
       - name: Verify offline-only mic routing and optional-model packaging contract
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
-      - name: Verify opt-in BR Brain voice lab privacy and stable mic routing
-        run: python3 -m unittest discover -s tools -p 'test_voice_noise_lab_contract.py' -v
-      - name: Verify opt-in Parakeet Ultra A/B packaging and privacy contract
+      - name: Verify private offline voice processing and stable mic routing
+        run: python3 -m unittest discover -s tools -p 'test_offline_voice_contract.py' -v
+      - name: Verify optional voice models stay opt-in
         run: python3 -m unittest discover -s tools -p 'test_ultra_voice_packaging.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
@@ -222,133 +224,5 @@ jobs:
         with:
           name: brrrBoard-debug-apk-${{ github.sha }}
           path: ${{ env.APK }}
-          if-no-files-found: error
-          retention-days: 14
-
-  ultra_ab_test_artifact:
-    if: github.ref_name == 'feature/parakeet-ultra-brain-abtest'
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Checkout the exact tested commit
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: temurin
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Fetch pinned private ASR native runtime
-        run: bash tools/fetch-board-sherpa-onnx.sh
-      - name: Stage pinned GTCRN enhancement model inside APK
-        run: bash tools/fetch-board-gtcrn.sh
-      - name: Stage pinned brrClean native GTCRN weights inside APK
-        run: bash tools/fetch-board-brrclean.sh
-      - name: Stage the existing 110M model so A/B works on fresh installs too
-        run: bash tools/prepare-offline-voice-pack.sh
-      - name: Stage the Ultra weights for this owner-requested test artifact
-        run: bash tools/prepare-ultra-voice-pack.sh
-
-      - name: Match the currently installed product version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
-          if [[ ! "$tag" =~ ^v1\.0\.([0-9]+)$ ]]; then
-            echo "::error::Latest signed release tag is not a supported v1.0 version: $tag"
-            exit 1
-          fi
-          echo "Test artifact will use the current production versionCode ${BASH_REMATCH[1]}."
-          echo "TEST_VERSION_CODE=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/production-releases.json"
-          python3 tools/generate_version_history.py \
-            --releases-json "$RUNNER_TEMP/production-releases.json" \
-            --output app/src/main/assets/version_history.json
-
-      - name: Build update-compatible, unsigned A/B test APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          chmod +x gradlew
-          ./gradlew --no-daemon --stacktrace assembleObtainium -PobtainiumBuild="$TEST_VERSION_CODE"
-
-      - name: Sign and verify without publishing a release
-        shell: bash
-        env:
-          KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
-          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
-        run: |
-          set -euo pipefail
-          unsigned="$(find app/build/outputs/apk/obtainium -maxdepth 1 -type f -name '*.apk' | head -n 1)"
-          test -n "$unsigned"
-          test -s "$unsigned"
-          bash tools/sign-ultra-abtest-apk.sh "$unsigned" "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk" "$TEST_VERSION_CODE"
-
-      - name: Prepare full APK and bounded download pieces
-        shell: bash
-        run: |
-          set -euo pipefail
-          source_apk="$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk"
-          artifacts="$GITHUB_WORKSPACE/test-artifacts"
-          mkdir -p "$artifacts"
-          cp "$source_apk" "$artifacts/brrrBoard-ultra-ab-test.apk"
-          apk="$artifacts/brrrBoard-ultra-ab-test.apk"
-          split -b 300M -d -a 2 "$apk" "$artifacts/brrrBoard-ultra-ab-test.apk.part-"
-          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-00"
-          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-01"
-          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-02"
-          test ! -e "$artifacts/brrrBoard-ultra-ab-test.apk.part-03"
-          sha256sum "$apk" | awk '{print $1}' > "$artifacts/brrrBoard-ultra-ab-test.apk.sha256"
-
-      - name: Upload signed A/B test APK artifact only
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-ultra-ab-test-${{ github.sha }}
-          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload A/B APK part 1 of 3
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3
-          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-00
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 14
-
-      - name: Upload A/B APK part 2 of 3
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3
-          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-01
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 14
-
-      - name: Upload A/B APK part 3 of 3
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3
-          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-02
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 14
-
-      - name: Upload A/B APK checksum
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-ultra-apk-${{ github.sha }}-sha256
-          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.sha256
           if-no-files-found: error
           retention-days: 14

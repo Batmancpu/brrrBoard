@@ -11,8 +11,8 @@
       "detail": "Correct the prefix-length regression assertion and make the voice-package test verify that Ultra stays opt-in by default while remaining available for explicit future updates."
     },
     {
-      "title": "Crossfade suggestions as whole words",
-      "detail": "Replace character-matching animation with a short whole-label crossfade and settle. Outgoing labels are visual-only, bounded during fast typing, and never replace the current suggestion or tap target."
+      "title": "Keep related suggestion updates visually anchored",
+      "detail": "For simple Latin words that share a prefix, the outgoing suffix clips back toward the unchanged prefix while the next suggestion is already active and tappable. Unrelated words use a short whole-label settle. Outgoing labels remain visual-only and bounded during fast typing."
     },
     {
       "title": "Make Settings search contextual and add Type preview",
@@ -35,8 +35,8 @@
       "detail": "Emoji Search results and the no-results panel remain hidden whenever Search mode is off, including when an asynchronous refresh arrives after leaving Search. This prevents the fixed 56dp row from taking height above the category tabs and emoji grid. The temporary geometry-report action and logger are removed now that the supplied device trace identified the cause."
     },
     {
-      "title": "Compare Parakeet models on the same Voice Lab recording",
-      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The A/B lab can still compare both installed models on the same take. No model weights are bundled by default; the release workflow retains an explicit Ultra bundle option for a future update only when requested."
+      "title": "Use installed Parakeet Ultra for offline dictation",
+      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The side-by-side comparison screen and oversized test APK workflow are removed. No speech model weights are bundled in this update; verified installed model files remain in private app storage."
     },
     {
       "title": "Keep only important confirmations in Do Not Disturb",
@@ -44,7 +44,7 @@
     },
     {
       "title": "Focus BR Brain on suggestions and local learning",
-      "detail": "Voice model selection, cleaning, install availability, and A/B comparison now live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
+      "detail": "Voice model selection, cleaning, and install availability live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
     },
     {
       "title": "Make Settings calmer without removing controls",

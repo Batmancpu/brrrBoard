@@ -14,20 +14,12 @@ import com.k2fsa.sherpa.onnx.OfflineTransducerModelConfig
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 
 /**
  * Dedicated background-thread English speech decoder, directly inside brrBoard.
  * The native recognizer is lazily loaded and reused briefly across short requests; neither
  * audio nor transcript is written to disk or passed to the brrSpeak package.
  */
-internal data class OfflineVoiceRecognition(
-    val transcript: String,
-    val modelLoadMs: Long,
-    val decodeMs: Long,
-    val totalMs: Long,
-)
-
 internal class OfflineVoiceEngine(
     private val context: Context,
     private val modelPack: VoiceModelPack = VoiceModelManifest.pack,
@@ -65,15 +57,6 @@ internal class OfflineVoiceEngine(
         pcm16: ByteArray,
         formatTranscript: Boolean = true,
         callback: (Result<String>) -> Unit,
-    ): VoiceDecodeRequest = transcribeMeasured(pcm16, formatTranscript) { answer ->
-        callback(answer.map { it.transcript })
-    }
-
-    /** Same offline decoder with content-free load/decode/total timings for BR Brain A/B. */
-    fun transcribeMeasured(
-        pcm16: ByteArray,
-        formatTranscript: Boolean = false,
-        callback: (Result<OfflineVoiceRecognition>) -> Unit,
     ): VoiceDecodeRequest {
         val request = VoiceDecodeRequest(pcm16)
         worker.execute {
@@ -85,11 +68,7 @@ internal class OfflineVoiceEngine(
                     require(VoiceModelInstaller.isInstalled(context, modelPack)) {
                         "Install this offline voice model first"
                     }
-                    val totalStartedAt = SystemClock.elapsedRealtime()
-                    val loadStartedAt = totalStartedAt
                     val rec = requireRecognizer()
-                    val modelLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
-                    val decodeStartedAt = SystemClock.elapsedRealtime()
                     VoiceSessionCrashTrail.note(context, "ASR_DECODING")
                     val pieces = ArrayList<String>()
                     for (window in VoiceSegmenter.windows(pcm16)) {
@@ -118,10 +97,7 @@ internal class OfflineVoiceEngine(
                     VoiceSessionCrashTrail.note(context, "ASR_DECODED")
                     check(!request.isCancelled) { "Dictation was cancelled" }
                     val combined = VoiceTranscriptJoiner.merge(pieces)
-                    val text = if (formatTranscript) VoiceTranscriptFormatter.format(combined) else combined
-                    OfflineVoiceRecognition(text, modelLoadMs,
-                        SystemClock.elapsedRealtime() - decodeStartedAt,
-                        SystemClock.elapsedRealtime() - totalStartedAt)
+                    if (formatTranscript) VoiceTranscriptFormatter.format(combined) else combined
                 }
             } finally {
                 request.finish()
@@ -140,14 +116,6 @@ internal class OfflineVoiceEngine(
             recognizer?.release()
             recognizer = null
         }
-    }
-
-    /** Called only by the background voice comparison worker before loading the other model. */
-    fun releaseAndWait() {
-        worker.submit {
-            recognizer?.release()
-            recognizer = null
-        }.get(30, TimeUnit.SECONDS)
     }
 
     private fun scheduleIdleUnload() {
@@ -201,6 +169,5 @@ internal class OfflineVoiceEngine(
                 OfflineVoiceEngine(context.applicationContext, modelPack)
             }
 
-        fun ultraTest(context: Context): OfflineVoiceEngine = shared(context, UltraVoiceModelManifest.pack)
     }
 }

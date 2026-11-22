@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify the exactly pinned Ultra test pack and its attribution inside an APK.
+# Verify the exactly pinned optional Ultra pack and its attribution inside an APK.
 set -euo pipefail
 if [[ "$#" -ne 1 || ! -s "$1" ]]; then
   echo "Usage: bash tools/verify-bundled-ultra-voice-model.sh <apk>" >&2

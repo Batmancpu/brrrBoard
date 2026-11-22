@@ -1,30 +1,38 @@
-# Implementation status — 2026-11-22
+# Final update implementation status — 2026-11-22
 
-## Exact-source verification and test APK
+## Owner follow-up — BR Brain and Settings refresh
 
-Feature branch `feature/parakeet-ultra-brain-abtest` is at source commit `5997430406b91edf1e2a1682d6a8bacae67581b4`. GitHub Actions run [44999224034](https://github.com/Batmancpu/brrrBoard/actions/runs/44999224034) completed successfully: Android debug build, signing identity checks, full Android unit-test gate, Ultra A/B build, original-signer verification, and artifact uploads all passed.
+This newer local candidate supersedes the earlier Device Checkup and settings placement bullets below: the guided Device Checkup, one-report copy flow, and now-unused Emoji geometry report/logger have been removed. The 110M model selector is in Advanced controls; Reset is under Backup & restore; About is top-level. The protected-app picker now gives app names and package IDs separate lines. Correction & suggestions is reachable from BR Brain with one restrained champagne-gold entry shimmer. The architecture and privacy migration plan is [BR Brain unified architecture](BR_BRAIN_UNIFIED_ARCHITECTURE_PLAN_2026_11_22.md).
 
-The run produced the update-compatible versionCode 236 A/B test APK as an Actions artifact only. The full artifact is ID `14744893999` (606,508,631-byte ZIP). The downloader's 512 MiB limit is handled by three parts: IDs `14744784264` (314,572,984-byte ZIP), `14744938992` (314,572,984-byte ZIP), and `14744534978` (240,381,381-byte ZIP). Checksum artifact ID `14745637031` contains the APK SHA-256. All artifacts expire 2026-12-06. Download all three part artifacts and the checksum artifact from the same run, extract into one folder, and run:
+The exact published release and automated build evidence are tracked on the GitHub Releases page and in the repository release history. This workspace cannot perform physical-device acceptance. Ultra stays the preferred default; Advanced controls can explicitly switch to the compact model. Suggestion ranking behavior is unchanged by the Settings/layout cleanup.
 
-```sh
-bash tools/join-ultra-abtest-apk.sh <part-folder> <output.apk> <APK-SHA256>
-```
+## Owner follow-up — suggestion motion and Settings entry point
 
-The joiner refuses to leave a result unless all ordered parts match the expected SHA-256. This APK is for the owner's test; no GitHub/Obtainium release was created.
+- Replaced per-glyph matching with a bounded presentation-only transition. For simple Latin labels sharing a prefix, the outgoing suffix clips back toward the unchanged prefix while the new label and tap target are already current; unrelated words use a short whole-label settle. The outgoing `TextView` overlay is non-interactive and capped during rapid retargeting. Prediction and text shaping stay outside the animation path.
+- Settings search is labeled “Search” and constrained to a slimmer field. Search remains on-device and deterministic, with phrase intents and setting aliases for natural-language descriptions; no remote context service is used.
+- Added a sapphire-and-gold “Type” preview beneath Settings search. It opens an in-place keyboard field, has a live restrained glint, and marks only that field as no-learning/no-microphone.
+- Incognito footer controls use a normal smile icon with a small gold shield-lock badge; the mic badge shares the same transition frame and stays legible over voice activity lighting.
+- The 126 ms transition duration and easing are local design choices. Apple does not publish QuickType’s exact internal animation timings, and the supplied reference was a still image rather than a motion capture, so this is a restrained visual approximation and must not be described as a measured one-to-one recreation. It follows the general motion principles in [Apple’s Motion HIG](https://developer.apple.com/design/human-interface-guidelines/motion) and the system keyboard guidance in [Virtual Keyboards](https://developer.apple.com/design/human-interface-guidelines/virtual-keyboards).
 
-## Work completed in source
+The Android release workflow is the build and signing authority for each published commit. The current candidate is not yet signed or published; that happens after exact-SHA GitHub Actions succeeds. Physical-device acceptance remains the owner-side audit; this workspace cannot run it.
 
-- Fixed the supplied Emoji top-gap cause: a fixed 56dp Search-results sibling remained visible when Browse mode was active. Search result/empty rows are now visible only in Search mode and hidden during Browse measurement; source regression coverage and privacy-safe geometry report visibility fields are included.
-- Smart Emoji uses a bounded, editor-bound precomputed ranking snapshot rather than duplicate panel scoring and synchronous editor queries.
-- Toolbar layout, pinned Settings access, Emoji/Settings footer behavior, Emoji hold-shortcut removal, progressive glass invalidation, and cached panel rendering are implemented on the branch as recorded in the feature notes.
-- BR Brain compares the existing Parakeet 110M and optional Ultra on the same volatile PCM recording, sequentially and cold-loaded, with WER reference, timings, RTF and sampled PSS. Ultra runs in a private process and does not replace default dictation.
-- `tools/join-ultra-abtest-apk.sh` and packaging regression checks cover exact signer/staging filename agreement, all parts, and hash-before-output behavior.
-- Workspace network fallback is documented in `docs/LOCAL_BUILD_NETWORK_FALLBACK.md`: use exact-SHA Actions and the authenticated GitHub Git Database API if the workspace's dead proxy blocks push/download. A prior artifact failure was specifically a two-`r`/three-`r` filename mismatch; it is now covered by a regression assertion.
+## Owner device evidence
 
-## Gates that remain intentionally open
+The owner confirmed the visual checks and supplied a same-audio voice comparison. Ultra produced fewer recognition errors than 110M on that take, while using more memory and taking longer to load and decode. The owner chose Ultra as the preferred model. This one-device, one-take result is not a broad accuracy guarantee.
 
-- **Reno10 acceptance:** the code fix is CI-verified, but install/visual verification of the Emoji gap and toolbar/glass motion on the physical phone is not available from this workspace. Ultra WER, latency, memory, and thermal comparison on that device also remain unmeasured.
-- **ContextLM:** do not enable or bundle the current neural candidate. Corrected training/evaluation and the 250,000-pair fixed holdout still lost Recall@3 against the proxy. Keep it disabled until actual native-decoder candidate quality, false-autocorrection, latency, memory, and privacy gates pass.
-- **Ultra model quality:** the host FLEURS benchmark improves English WER but is about 3.5x slower in host CPU RTF; it does not establish Indian-accent or Reno10 quality. Keep Ultra available only in the owner-requested test APK until matched device results are reviewed. Do not publish that APK as the next product release.
+## Source changes in this update candidate
 
-Local Python suites passed (41 tools tests and 16 CI/branding tests); Bash syntax and `git diff --check` passed. CI supplies the Android build and full Android unit-suite evidence above.
+- Verified installed Ultra is the default active keyboard model when no explicit model preference exists; the 110M pack is selectable as a lower-memory/faster fallback. Keyboard dictation uses the selected installed pack. The owner selected Ultra after the recorded single-take comparison. The Voice Lab UI, comparison engine, isolated test service, and APK artifact job have been removed.
+- Everyday tools → Offline voice contains the model radio options and one brrClean on/off switch. brrClean defaults on for new installs; failed cleaning preserves original audio.
+- Sound & haptics contains the important-only DND option. Keypress and gesture haptics remain suppressed in DND; explicit privacy changes and confirmed clipboard/history clears can use a brief pulse. The keyboard seeds DND state at startup as well as responding to system changes.
+- BR Brain no longer duplicates voice selection/cleaning controls. The previous guided Device Checkup/report flow is removed in the newer candidate above.
+- Ultra and 110M weights are not included in the update. Verified private model files remain on the device across an app update. The release workflow retains `bundle_ultra_model` as an explicit future opt-in; changed lock files do not auto-bundle it, and this update does not add voice model weights.
+- Existing Emoji geometry fix, suggestion path, toolbar layout, and progressive blur implementation remain part of the cumulative source.
+
+The unified BR Brain coordinator, encrypted UserHistoryDictionary migration, and new reranker are not implemented yet. Current typing/Emoji/swipe code still calls its existing component engines directly; this candidate changes their Settings access and presentation only. Do not claim the whole Brain plan is complete.
+
+## Deliberately gated work and limits
+
+ContextLM remains disabled and unbundled: the corrected fixed-holdout candidate still failed to improve the native/n-gram baseline. Do not represent it as shipped until native-decoder quality, false-autocorrection, speed, memory, upgrade, and privacy gates pass. Detailed evidence remains in `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+
+The workspace cannot access the pinned Gradle distribution through its network proxy. Use exact-commit GitHub Actions debug/unit CI and the original-signer release workflow, as documented in `docs/LOCAL_BUILD_NETWORK_FALLBACK.md`. CI does not replace the owner's final physical-device audit.

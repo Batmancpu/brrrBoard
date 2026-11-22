@@ -1,3 +1,5 @@
+> Archived: the one-take Voice Lab and model comparison described below are retired as part of the lightweight Ultra update; the selected installed Ultra remains available for dictation.
+
 # Post-v1.0.19 Reno10 keyboard plan
 
 ## 2026-11-21 IST — latest owner GO, BR Brain private Voice Lab

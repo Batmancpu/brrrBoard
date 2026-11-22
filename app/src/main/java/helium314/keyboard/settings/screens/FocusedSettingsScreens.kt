@@ -183,7 +183,7 @@ fun BackupSettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
 )
 
 @Composable
-fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
+fun VoiceSettingsScreen(onClickBack: () -> Unit) {
     val ctx = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var refresh by remember { mutableIntStateOf(0) }
@@ -221,7 +221,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             Text("Keyboard transcription model", style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold)
             if (installed.isEmpty()) {
-                Text("Install a model from Voice Lab if the current app includes its verified assets. Lightweight updates do not bundle model weights.",
+                Text("Voice models stay in private app storage. Lightweight updates do not bundle model weights.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -280,12 +280,6 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
                 }
             }
 
-            Button(onClick = onOpenVoiceLab, modifier = Modifier.fillMaxWidth()) {
-                Text("Compare voice models")
-            }
-            Text("Voice Lab records one short take and compares both verified models offline. Microphone permission is requested only when you start recording.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall)
         }
     }
 }

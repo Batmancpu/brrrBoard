@@ -95,7 +95,7 @@ and https://github.com/Xiaobin-Rong/gtcrn .
 
 ## Verification and acceptance
 
-- Local static contracts `tools/test_voice_noise_lab_contract.py` and
+- Local static contracts `tools/test_offline_voice_contract.py` and
   `tools/test_bundled_voice_contract.py` remain mandatory, plus new
   `PrivateVoiceChunkerTest`: 125 seconds of deterministic input, short-speech
   case, exact reconstruction after discarding only deliberate overlaps,

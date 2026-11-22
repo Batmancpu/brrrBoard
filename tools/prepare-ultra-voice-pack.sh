@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# CI-only, explicit-dispatch fetch of the optional large BR Brain A/B model.
-# Never invoke on end-user devices. Every byte is pinned and checked.
+# CI-only fetch of the optional large offline voice model.
+# The release workflow calls this only after an explicit opt-in. Never invoke
+# on end-user devices. Every byte is pinned and checked.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,4 +25,4 @@ while IFS='|' read -r origin destination bytes checksum; do
   mv "$file.part" "$file"
 done < "$LOCK"
 
-echo 'Official pinned Ultra test weights staged; Android devices never fetch model files.'
+echo 'Official pinned optional Ultra weights staged; Android devices never fetch model files.'

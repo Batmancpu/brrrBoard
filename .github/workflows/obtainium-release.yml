@@ -75,12 +75,6 @@ jobs:
               echo "product_changed=false" >> "$GITHUB_OUTPUT"
               echo "No shipped application or build inputs changed; signing/publication will be skipped."
             fi
-            # First introduction of this exact lock is the one-time, owner-requested
-            # Ultra update. Later releases do not rebundle the 640 MiB model.
-            if grep -Fxq 'tools/offline-ultra-voice-model.lock' <<< "$changed_files"; then
-              bundle_ultra=true
-              bundle_voice=true
-            fi
           fi
           if [[ "$bundle_ultra" == true ]]; then
             model_mode=both
@@ -115,7 +109,7 @@ jobs:
       - name: Bundle pinned English ASR model only when explicitly requested
         if: steps.release_scope.outputs.bundle_voice == 'true'
         run: bash tools/prepare-offline-voice-pack.sh
-      - name: Bundle pinned Parakeet Ultra for the one-time update or explicit request
+      - name: Bundle pinned Parakeet Ultra only when explicitly requested
         if: steps.release_scope.outputs.bundle_ultra == 'true'
         run: bash tools/prepare-ultra-voice-pack.sh
       - name: Validate premium Settings navigation and resource contract
@@ -144,8 +138,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_prepare_brrpersonal.py' -v
       - name: Verify offline-only mic routing and optional-model packaging contract
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
-      - name: Verify opt-in BR Brain voice lab privacy and stable mic routing
-        run: python3 -m unittest discover -s tools -p 'test_voice_noise_lab_contract.py' -v
+      - name: Verify private offline voice processing and stable mic routing
+        run: python3 -m unittest discover -s tools -p 'test_offline_voice_contract.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
         run: python3 -m unittest discover -s tools -p 'test_evaluate_ngram_predictions.py' -v
@@ -252,7 +246,7 @@ jobs:
           fi
           model_note='No Parakeet model weights in this update; retains the previously installed verified private model.'
           if [[ "$BUNDLE_MODE" == 'both' ]]; then
-            model_note='Includes SHA-256-verified Parakeet 110M and Parakeet Ultra 0.6B INT8 packs for offline Voice Lab comparison. Ultra is optional in settings and does not replace default dictation; allow roughly 700 MiB of additional app storage.'
+            model_note='Includes SHA-256-verified Parakeet 110M and Parakeet Ultra 0.6B INT8 packs for offline dictation. Ultra is optional in settings; allow roughly 700 MiB of additional app storage.'
           elif [[ "$BUNDLE_MODE" == 'bundled' ]]; then
             model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
           fi

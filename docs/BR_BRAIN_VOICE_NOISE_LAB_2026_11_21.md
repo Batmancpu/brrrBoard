@@ -1,6 +1,8 @@
 # BR Brain: private voice and noise reduction comparison lab
 
-Status: **owner GO, implementation source candidate; Android CI / original-signed APK / Oppo and Nirvana Ion acceptance pending.** This ledger describes source, not a released feature until those gates pass.
+> Archived implementation note: the microphone lab and same-take ASR comparison described here were removed on 22 November 2026 after the owner selected installed Parakeet Ultra and cancelled A/B testing. Production offline dictation and its brrClean toggle remain.
+
+Historical status at authoring: **owner GO, implementation source candidate; Android CI / original-signed APK / Oppo and Nirvana Ion acceptance pending.** The comparison lab described in this ledger has since been removed; production offline dictation and brrClean remain.
 
 ## Evidence and decisions
 

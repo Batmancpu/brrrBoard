@@ -47,7 +47,7 @@ internal object VoiceModelInstaller {
     @Synchronized
     fun installBundledIfPresent(context: Context): Boolean = installBundledIfPresent(context, VoiceModelManifest.pack)
 
-    /** Explicit BR Brain action only for the very large experimental Ultra pack. */
+    /** Installs model assets only when this app update explicitly contains them. */
     @Synchronized
     fun installBundledIfPresent(context: Context, pack: VoiceModelPack): Boolean {
         if (isInstalled(context, pack)) {

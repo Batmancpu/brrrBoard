@@ -59,7 +59,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("clearMicDiscardFeedback()", footer)
         self.assertIn("view.performClick()", footer)
 
-    def test_normal_apks_exclude_models_but_ab_test_app_bundles_both(self):
+    def test_normal_apks_exclude_voice_models_and_release_requires_explicit_opt_in(self):
         prep = "bash tools/prepare-offline-voice-pack.sh"
         verify = "bash tools/verify-voice-model-packaging.sh"
         for path in (
@@ -72,21 +72,17 @@ class BundledOfflineMicContractTest(unittest.TestCase):
                 self.assertNotIn("offline_model_bootstrap", workflow)
         debug = self.read(".github/workflows/brrrboard-build-debug.yml")
         release = self.read(".github/workflows/obtainium-release.yml")
-        self.assertIn(prep, debug)
+        self.assertNotIn(prep, debug)
         self.assertIn(f'{verify} "$APK" unbundled', debug)
-        self.assertIn("ultra_ab_test_artifact:", debug)
-        self.assertIn("needs: build", debug)
-        self.assertIn("bash tools/prepare-ultra-voice-pack.sh", debug)
-        signer = self.read("tools/sign-ultra-abtest-apk.sh")
-        self.assertIn(f'{verify} "$output_apk" both', signer)
-        self.assertIn("actions/upload-artifact@v4", debug)
+        self.assertNotIn("ultra_ab_test_artifact:", debug)
+        self.assertNotIn("bash tools/prepare-ultra-voice-pack.sh", debug)
+        self.assertNotIn("split -b 300M", debug)
         self.assertNotIn("gh release create", debug)
         self.assertIn('bundle_voice_model:', release)
         self.assertIn('bundle_ultra_model:', release)
         self.assertIn('default: false', release)
         self.assertIn("inputs.bundle_voice_model", release)
         self.assertIn("inputs.bundle_ultra_model", release)
-        self.assertIn("tools/offline-ultra-voice-model.lock", release)
         self.assertIn(prep, release)
         self.assertIn("bash tools/prepare-ultra-voice-pack.sh", release)
         self.assertIn("BUNDLE_MODE", release)
@@ -251,7 +247,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         voice_settings = self.read("app/src/main/java/helium314/keyboard/settings/screens/FocusedSettingsScreens.kt")
         self.assertIn("Voice cleaning · brrClean", voice_settings)
         self.assertNotIn("Current blue-mic engine:", dashboard)
-        self.assertIn("brrClean", self.read("app/src/main/java/helium314/keyboard/settings/screens/VoiceNoiseLabScreen.kt"))
+        self.assertIn("brrClean", voice_settings)
         self.assertNotIn("PrivateGtcrnDenoiser", source)
         self.assertNotIn("PrivateGtcrnDenoiser", effect)
 

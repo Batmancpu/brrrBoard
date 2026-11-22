@@ -3,11 +3,16 @@ Total output lines: 524
 
 # brrBoard engineering handoff
 
-## 2026-11-22 — Parakeet Ultra BR Brain A/B test artifact (not released)
+## 2026-11-22 — Ultra selected; A/B test path cancelled
 
-The feature-branch build passed exact-source Android debug compilation, APK checks and full unit suite on `778d63c4cd4a0d2d0c27f72c2d5646bd6fc6cc62` / [run 44995213924](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924). The update-compatible package uses production versionCode 236 and original signer, contains both verified Parakeet packs, and passed offline-permission/native asset checks. APK size: 869,514,509 bytes; SHA-256 `d35a1c4252f055d8fc63238ec847e068b1f9dbbbbc133efaec061bd34947b352`. [Actions artifact download](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924/artifacts/14743318266), expires 2026-12-06. No GitHub or Obtainium release was created.
-
-The connected artifact download API has a hard 512 MiB cap, below this APK's 606,500,553-byte compressed artifact. A chunked path with three independent 300 MB parts, a checksum artifact, and `tools/join-ultra-abtest-apk.sh` is being verified on exact source `e9c6392fe642586e57f86532793eb908371f17c1`; the direct Actions download link above remains usable in a browser while that run completes. The APK has not been physically installed on the Reno10. User testing still needs same-take 110M/Ultra WER, latency, memory and thermal measurements. ContextLM stays disabled; its corrected 250,000-pair experiment still loses held-out Recall@3 to the proxy (details in `QUALITY_GATE_REEVALUATION_2026_11_22.md`).
+The owner selected the already-installed Parakeet Ultra model for keyboard
+dictation and cancelled the side-by-side comparison. The in-app model lab,
+isolated comparison service, split APK builder and its artifact workflow have
+been removed. Routine updates omit model weights, preserve the verified Ultra
+copy in private app storage, and do not auto-bundle the large pack when its lock
+file changes. A manual release input remains available only for a future
+explicit request. The single device comparison record is preserved in
+[the archived handoff](BR_BRAIN_PARAKEET_AB_TEST_2026_11_22.md).
 
 ### Owner supplied the Emoji geometry report — diagnosis and code fix
 

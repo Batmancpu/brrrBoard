@@ -20,7 +20,7 @@ case "$mode" in
   ultra)
     bash "$(dirname "$0")/verify-bundled-ultra-voice-model.sh" "$apk"
     if unzip -Z1 "$apk" | grep -Eq '^assets/voice-model/parakeet-tdt-110m-en/'; then
-      echo 'Ultra-only test package unexpectedly includes the legacy model weights.' >&2
+      echo 'Ultra-only package unexpectedly includes the legacy model weights.' >&2
       exit 1
     fi
     ;;
