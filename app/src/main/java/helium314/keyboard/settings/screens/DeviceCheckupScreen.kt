@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.EmojiGeometryReport
+import helium314.keyboard.latin.suggestions.ChatGptVoiceSuggestionStability
 import helium314.keyboard.settings.SearchSettingsScreen
 import kotlinx.coroutines.delay
 
@@ -49,6 +50,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
     var toolbar by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var clipboardGlass by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var voiceControls by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
+    var chatGptVoiceSuggestions by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var voice by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var dndHaptics by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var geometryCaptured by remember(startedAtMs) {
@@ -74,6 +76,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
         toolbar = toolbar,
         clipboardGlass = clipboardGlass,
         voiceControls = voiceControls,
+        chatGptVoiceSuggestions = chatGptVoiceSuggestions,
         voiceLab = voice,
         dndHaptics = dndHaptics,
     )
@@ -91,7 +94,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
         ) {
             Card(colors = CardDefaults.cardColors(containerColor = colors.primaryContainer)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("Seven checks · one report", style = MaterialTheme.typography.titleLarge,
+                    Text("Eight checks · one report", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold)
                     Text("Follow these steps on this screen. Mark each result once; the final button copies one plain-text report.",
                         style = MaterialTheme.typography.bodyMedium)
@@ -148,6 +151,23 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
 
             CheckCard(
                 number = 3,
+                title = "ChatGPT voice suggestion stability",
+                instruction = "Open ChatGPT and use its in-app microphone to speak a short sentence while the transcript is updating. Return here and check the suggestion row stays steady during speech and settles afterward. The report records only counts, never the words or transcript.",
+                selected = chatGptVoiceSuggestions,
+                options = listOf(
+                    DeviceCheckOutcome.GOOD to "Stable",
+                    DeviceCheckOutcome.ISSUE to "Still flickers",
+                    DeviceCheckOutcome.SKIPPED to "Couldn't reproduce",
+                ),
+                onSelect = { chatGptVoiceSuggestions = it; copied = false; copyFailed = false },
+            ) {
+                val trace = ChatGptVoiceSuggestionStability.snapshot()
+                Text("Voice editor updates: ${trace.hostEditCount} · suggestion batches held: ${trace.deferredSuggestionCount}",
+                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+
+            CheckCard(
+                number = 4,
                 title = "Toolbar layout and actions",
                 instruction = "Open Toolbar. Check four columns with three rows visible, vertical scrolling, Settings first, and the footer action/icons switch correctly.",
                 selected = toolbar,
@@ -160,7 +180,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             )
 
             CheckCard(
-                number = 4,
+                number = 5,
                 title = "Clipboard and panel glass",
                 instruction = "Copy only the harmless sample phrase from the test field, open Clipboard, and scroll. Check its top blur changes progressively; also watch Emoji/Toolbar panels for seams or flicker.",
                 selected = clipboardGlass,
@@ -173,7 +193,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             )
 
             CheckCard(
-                number = 5,
+                number = 6,
                 title = "Offline voice controls",
                 instruction = "Open Everyday tools → Offline voice. Confirm Parakeet Ultra 0.6B is selected when installed and voice cleaning is on. Return here to continue.",
                 selected = voiceControls,
@@ -186,7 +206,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             )
 
             CheckCard(
-                number = 6,
+                number = 7,
                 title = "One-take Parakeet comparison",
                 instruction = "Open Voice Lab, record one short phrase, set the reference to match, and compare both installed models on the same take. Only numeric accuracy/speed/memory results return here.",
                 selected = voice,
@@ -206,7 +226,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             }
 
             CheckCard(
-                number = 7,
+                number = 8,
                 title = "Important haptics in Do Not Disturb",
                 instruction = "Turn on Do Not Disturb. Ordinary key taps should stay silent; toggle Incognito or confirm clearing one harmless test clip and check for a brief confirmation pulse. Restore your previous DND state after testing.",
                 selected = dndHaptics,

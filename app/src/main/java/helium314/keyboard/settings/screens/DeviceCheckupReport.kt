@@ -9,6 +9,7 @@ import helium314.keyboard.latin.voice.VoiceModelChoice
 import helium314.keyboard.latin.voice.VoiceModelManifest
 import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
+import helium314.keyboard.latin.suggestions.ChatGptVoiceSuggestionStability
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.prefs
@@ -48,6 +49,7 @@ internal object DeviceCheckupSession {
             active = true
             startedAt = nowMs
             voiceMetrics = null
+            ChatGptVoiceSuggestionStability.reset()
         }
     }
 
@@ -75,6 +77,7 @@ internal object DeviceCheckupSession {
         active = false
         startedAt = 0L
         voiceMetrics = null
+        ChatGptVoiceSuggestionStability.reset()
     }
 
     private const val MAX_SESSION_AGE_MS = 30 * 60 * 1000L
@@ -98,11 +101,12 @@ internal object DeviceCheckupReport {
         val toolbar: DeviceCheckOutcome,
         val clipboardGlass: DeviceCheckOutcome,
         val voiceControls: DeviceCheckOutcome,
+        val chatGptVoiceSuggestions: DeviceCheckOutcome,
         val voiceLab: DeviceCheckOutcome,
         val dndHaptics: DeviceCheckOutcome,
     ) {
         fun complete() = listOf(emojiGap, smartEmojiAndMotion, toolbar, clipboardGlass,
-            voiceControls, voiceLab, dndHaptics)
+            voiceControls, chatGptVoiceSuggestions, voiceLab, dndHaptics)
             .none { it == DeviceCheckOutcome.PENDING }
     }
 
@@ -130,7 +134,7 @@ internal object DeviceCheckupReport {
             timeZone = TimeZone.getTimeZone("UTC")
         }.format(Date())
         return buildString(16_384) {
-            appendLine("brrBoard device checkup v2")
+            appendLine("brrBoard device checkup v3")
             appendLine("timestamp_utc=$timestamp")
             appendLine("device=${manufacturer}_$model")
             appendLine("android_release=$release")
@@ -145,10 +149,15 @@ internal object DeviceCheckupReport {
             appendLine("check_toolbar=${results.toolbar.token}")
             appendLine("check_clipboard_glass=${results.clipboardGlass.token}")
             appendLine("check_voice_controls=${results.voiceControls.token}")
+            appendLine("check_chatgpt_voice_suggestions=${results.chatGptVoiceSuggestions.token}")
             appendLine("check_voice_ab=${results.voiceLab.token}")
             appendLine("check_dnd_important_haptics=${results.dndHaptics.token}")
             appendLine("keyboard_voice_model=${VoiceModelChoice.active(context)?.let(::modelToken) ?: "not_installed"}")
             appendLine("voice_cleaning=${if (VoiceNoiseChoice.isCleaningEnabled(context)) "on" else "off"}")
+            val voiceTrace = ChatGptVoiceSuggestionStability.snapshot()
+            appendLine("chatgpt_voice_trace=${if (voiceTrace.hostEditCount > 0) "captured" else "not_observed"}")
+            appendLine("chatgpt_voice_host_selection_updates=${voiceTrace.hostEditCount}")
+            appendLine("chatgpt_voice_suggestion_updates_held=${voiceTrace.deferredSuggestionCount}")
             appendLine("dnd_important_haptics=${if (context.prefs().getBoolean(Settings.PREF_IMPORTANT_HAPTICS_IN_DND, Defaults.PREF_IMPORTANT_HAPTICS_IN_DND)) "on" else "off"}")
             appendLine("voice_ab_metrics=${if (voice == null) "not_captured" else "captured"}")
             voice?.let { metrics ->

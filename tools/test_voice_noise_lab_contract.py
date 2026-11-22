@@ -45,8 +45,9 @@ class VoiceNoiseLabContractTest(unittest.TestCase):
         self.assertIn("VoiceLabScore.wordErrorPercent", self.lab)
 
     def test_one_take_two_engines_and_fail_closed_silent_bluetooth(self):
-        self.assertIn("VoiceNoiseChoice.select(context, mode)", self.ui)
         self.assertIn("VoiceNoiseChoice.selected(context)", self.ui)
+        self.assertNotIn("VoiceNoiseChoice.select(context, mode)", self.ui)
+        self.assertIn("Noise mode selection applies to this lab trial only", self.ui)
         self.assertIn("Original and brrClean use identical captured audio", self.ui)
         self.assertIn("enhancedClips[key]", self.lab)
         self.assertIn("Handler(Looper.getMainLooper()).postDelayed", self.lab)

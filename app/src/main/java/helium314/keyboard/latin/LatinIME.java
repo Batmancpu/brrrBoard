@@ -83,6 +83,7 @@ import helium314.keyboard.latin.settings.SecureAppTemporaryOptOut;
 import helium314.keyboard.latin.suggestions.SuggestionStripView;
 import helium314.keyboard.latin.suggestions.AccessoryPriorityPolicy;
 import helium314.keyboard.latin.suggestions.SuggestionStripViewAccessor;
+import helium314.keyboard.latin.suggestions.ChatGptVoiceSuggestionStability;
 import helium314.keyboard.latin.touchinputconsumer.GestureConsumer;
 import helium314.keyboard.latin.utils.ColorUtilKt;
 import helium314.keyboard.latin.utils.FoldableUtils;
@@ -205,6 +206,20 @@ public class LatinIME extends InputMethodService implements
     private boolean mStartupSuggestionSeedVisible;
     // A transient visual hold, not a candidate cache or a valid tap target.
     private Runnable mPendingEmptyPredictionClear;
+    private SuggestedWords mPendingChatGptVoiceSuggestions;
+    private final Runnable mFlushChatGptVoiceSuggestions = new Runnable() {
+        @Override public void run() {
+            final long remaining = ChatGptVoiceSuggestionStability.remainingHoldMs(
+                    android.os.SystemClock.uptimeMillis());
+            if (remaining > 0L) {
+                mHandler.postDelayed(this, remaining);
+                return;
+            }
+            final SuggestedWords pending = mPendingChatGptVoiceSuggestions;
+            mPendingChatGptVoiceSuggestions = null;
+            if (pending != null) setSuggestions(pending);
+        }
+    };
     private long mEditorFocusEpoch;
     private long mInlineRequestEpoch = -1;
 
@@ -1363,6 +1378,8 @@ public class LatinIME extends InputMethodService implements
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
         mHandler.cancelUpdateSuggestionStrip();
+        mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+        mPendingChatGptVoiceSuggestions = null;
         mHandler.cancelResumeSuggestions();
         super.onStartInput(editorInfo, restarting);
 
@@ -1698,6 +1715,19 @@ public class LatinIME extends InputMethodService implements
             final int composingSpanStart, final int composingSpanEnd) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 composingSpanStart, composingSpanEnd);
+        final SettingsValues selectionSettings = mSettings.getCurrent();
+        final EditorInfo selectionEditor = getCurrentInputEditorInfo();
+        if (!selectionSettings.mIncognitoModeEnabled
+                && selectionSettings.mInputAttributes.mIsGeneralTextInput
+                && selectionSettings.mInputAttributes.mIsPasswordField == false
+                && !ClipboardPrivacyPolicy.isPrivateEditor(selectionEditor,
+                        selectionSettings.mIncognitoModeEnabled)
+                && ChatGptVoiceSuggestionStability.noteSelectionUpdate(selectionEditor,
+                        oldSelEnd, newSelStart, newSelEnd, android.os.SystemClock.uptimeMillis())) {
+            mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+            mHandler.postDelayed(mFlushChatGptVoiceSuggestions,
+                    ChatGptVoiceSuggestionStability.SETTLE_MS);
+        }
         if (DebugFlags.DEBUG_ENABLED) {
             Log.i(TAG, "onUpdateSelection: oss=" + oldSelStart + ", ose=" + oldSelEnd
                     + ", nss=" + newSelStart + ", nse=" + newSelEnd
@@ -2112,6 +2142,7 @@ public class LatinIME extends InputMethodService implements
     // should
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
+        ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // Keep only the time value: never retain the entered character, editor,
         // package, or language. Private/protected fields are excluded.
         final boolean measureKeyLatency = !event.isFunctionalKeyEvent()
@@ -2164,6 +2195,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void onTextInput(final String rawText) {
+        ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // TODO: have the keyboard pass the correct key code when we need it.
         final Event event = Event.createSoftwareTextEvent(rawText, KeyCode.MULTIPLE_CODE_POINTS, null);
         final InputTransaction completeInputTransaction = mInputLogic.onTextInput(mSettings.getCurrent(), event,
@@ -2412,6 +2444,23 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void setSuggestions(final SuggestedWords suggestedWords) {
         if (mIsDestroyed) {
+            return;
+        }
+        if (ChatGptVoiceSuggestionStability.shouldHold(getCurrentInputEditorInfo(),
+                android.os.SystemClock.uptimeMillis())) {
+            // ChatGPT's voice dictation streams host edits through the text connection. Keep
+            // the visible strip steady during the stream while retaining the newest real
+            // candidate internally and revoking stale tap targets until the stream settles.
+            mPendingChatGptVoiceSuggestions = suggestedWords;
+            mInputLogic.setSuggestedWords(suggestedWords);
+            ChatGptVoiceSuggestionStability.recordDeferredSuggestion();
+            if (!mInlineProviderViewActive && mSuggestionStripView != null)
+                mSuggestionStripView.holdUnselectablePredictions();
+            mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+            mHandler.postDelayed(mFlushChatGptVoiceSuggestions,
+                    ChatGptVoiceSuggestionStability.remainingHoldMs(
+                            android.os.SystemClock.uptimeMillis()));
+            AccessibilityUtils.Companion.getInstance().setAutoCorrection(suggestedWords);
             return;
         }
         // A dictionary warming up may emit an empty prediction callback. Keep

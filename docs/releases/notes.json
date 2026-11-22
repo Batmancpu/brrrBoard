@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Make settings easier to scan, keep reset reversible, use installed Parakeet Ultra by default, and retain one unified device checkup.",
+  "summary": "Make Settings easier to scan, stabilize voice-driven suggestions, keep reset reversible and use installed Parakeet Ultra by default.",
   "changes": [
     {
       "title": "Reuse unchanged panel glass recordings",
@@ -37,6 +37,10 @@
     {
       "title": "Bound offline update history",
       "detail": "Settings displays at most the ten newest valid signed updates, and the release history generator also writes only those ten entries so bundled history data cannot grow without bound."
+    },
+    {
+      "title": "Keep suggestions steady during ChatGPT voice input",
+      "detail": "When ChatGPT streams speech into its text field without keyboard typing, brrBoard briefly holds changing prediction rows and shows the latest results after the transcript settles. A privacy-safe checkup step records only selection-update and held-suggestion counts; it never records words, transcripts, audio or screenshots."
     }
   ]
 }

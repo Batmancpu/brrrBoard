@@ -174,6 +174,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         child_code = self.read("app/src/main/java/helium314/keyboard/latin/voice/GtcrnProbeService.kt")
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
         checkup = self.read("app/src/main/java/helium314/keyboard/settings/screens/DeviceCheckupScreen.kt")
+        checkup_report = self.read("app/src/main/java/helium314/keyboard/settings/screens/DeviceCheckupReport.kt")
         self.assertIn("noBackupFilesDir", report)
         self.assertIn("getHistoricalProcessExitReasons", report)
         self.assertIn("AtomicFile", report)
@@ -183,7 +184,8 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("MAX_PROBE_DURATION_MS", child_code)
         self.assertIn("MODE_IN_COMMUNICATION", report)
         self.assertIn("FloatArray(16_000)", child_code)
-        self.assertIn("Seven checks · one report", checkup)
+        self.assertIn("Eight checks · one report", checkup)
+        self.assertIn("chatgpt_voice_host_selection_updates", checkup_report)
         self.assertNotIn("Run one private check", dashboard)
         self.assertNotIn("Copy safe result", dashboard)
         # Never ingest a microphone or dump/tombstone/stack raw payload.
