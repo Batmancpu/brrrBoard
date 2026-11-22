@@ -223,11 +223,13 @@ def minibatch(items, unigram, candidate_count, seed, native_proxy=None):
         ranks = [0] * candidate_count
         for rank, index in enumerate(native_order):
             ranks[index] = rank
-        row = []
-        for i in range(candidate_count):
-            history = float(rng.random() < (.29 if i == pos else .04))
-            personal = float(rng.random() < (.13 if i == pos else .02))
-            row.append([pseudo_native[i], 1. / (ranks[i] + 1), history, personal])
+        # Public corpora contain no consented per-user history. Training with
+        # fabricated history/personal signals creates a train/inference mismatch
+        # because production must pass zeros for these features. Keep those slots
+        # zero; the separate encrypted personalization adapter may use them only
+        # after it has genuine, opt-in signals and its own holdout evaluation.
+        row = [[pseudo_native[i], 1. / (ranks[i] + 1), 0., 0.]
+               for i in range(candidate_count)]
         token_ids.append(context)
         candidate_rows.append(offered)
         features.append(row)

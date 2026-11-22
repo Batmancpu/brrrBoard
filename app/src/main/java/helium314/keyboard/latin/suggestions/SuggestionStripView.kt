@@ -686,6 +686,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
     }
 
+    /** Contextual Emoji order from the exact current native suggestion/editor snapshot. */
+    fun contextualEmojiCandidates(editorInfo: android.view.inputmethod.EditorInfo): List<String> {
+        val snapshot = suggestedWords
+        return if (snapshot.mEmojiSuggestionEditor === editorInfo)
+            snapshot.mRankedEmojiCandidates else emptyList()
+    }
+
     /**
      * A context lookup can briefly have no next-word result at a word boundary.
      * Keep the previous visual frame for one transition budget, but revoke ALL

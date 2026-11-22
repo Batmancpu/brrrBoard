@@ -2137,16 +2137,12 @@ public final class EmojiPalettesView extends LinearLayout
                 Settings.getValues().mIncognitoModeEnabled)) return List.of();
         final LatinIME ime = findHostingIme(getContext());
         if (ime == null || ime.getCurrentInputEditorInfo() != editorInfo) return List.of();
-        final InputConnection connection = ime.getCurrentInputConnection();
-        if (connection == null) return List.of();
-        final CharSequence beforeCursor;
-        try {
-            beforeCursor = connection.getTextBeforeCursor(160, 0);
-        } catch (RuntimeException unavailableEditor) {
-            return List.of();
-        }
-        return BrrSmartEmojiEngine.suggest(
-                getContext(), editorInfo, beforeCursor, maxPicks, false);
+        // Suggest already ranked from its bounded in-memory n-gram context for
+        // this exact editor while processing the last input event. Reusing that
+        // immutable snapshot avoids synchronous getTextBeforeCursor Binder work
+        // and a second full scorer pass during Emoji panel construction.
+        return BrrSmartEmojiEngine.picksFromSnapshot(
+                ime.currentContextualEmojiCandidates(editorInfo), maxPicks);
     }
 
     private void updateContextSmartPicks(final EditorInfo editorInfo,

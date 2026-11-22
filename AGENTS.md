@@ -1,5 +1,9 @@
 # brrBoard agent instructions
 
+## 2026-11-22 — continuation candidate, CI/release pending
+
+Owner explicitly directed continued work after earlier ContextLM and Ultra gates failed. Current workspace candidate: `tools/contextlm/train_dfsmn.py` no longer fabricates history/personal signals absent from production; a pinned corpus fetcher and same-audio Parakeet benchmark are added. Emoji Browse now reuses its last eligible editor-bound ranked context instead of synchronously asking the host editor for text during panel construction. BR Brain has a one-tap, content-free Emoji geometry report copy/erase card. Do not call this candidate built, tested, released or device accepted until exact-SHA Android CI and original-signer release finish. Reno10 gap localization still requires the user to paste the copied report. Full evidence: `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+
 ## 2026-11-21 — four-column Toolbar / footer Settings released
 
 The owner asked for four Toolbar columns by three visible rows, vertical overflow, larger icons, Settings in the footer microphone slot while Toolbar is open, and Settings fixed at the first grid position. Source `5e2f827a0decd6116e6d74a4541c2d8103d5a729` is released as original-signed v1.0.231. Debug/full Android run `44939542456` and original signer run `44939542439` succeeded. APK: [v1.0.231 release](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.231), 64,985,587 bytes, SHA-256 `c7925b836a4d1bbc2e11da124428bc8f127ac2a24d3b2b274d0a86c4d0e5025a`. Details and remaining work: `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`. Existing QuickType motion animates visible candidate changes and retargets; initial suggestions remain immediate and reduced-motion/complex-script fallbacks stay active. Reno10 Emoji-gap geometry and target-device acceptance are still open; ContextLM remains disabled after held-out regression; Parakeet 110M stays unchanged pending matched Ultra quality/device gates.

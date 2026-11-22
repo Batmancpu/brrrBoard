@@ -3,6 +3,7 @@
 Start with the [main README](../README.md) for the app, install link and privacy overview. The documents below go deeper without turning the project's first GitHub screen into an engineering log.
 
 - [Current Emoji, Toolbar, performance and model work plan](EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md)
+- [22 Nov ContextLM / Parakeet Ultra quality-gate re-evaluation and one-tap Emoji geometry report](QUALITY_GATE_REEVALUATION_2026_11_22.md)
 
 ## Install and update
 

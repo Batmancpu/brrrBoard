@@ -197,8 +197,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             && currentSettings.mInputAttributes.mShouldShowSuggestions
             && EmojiContextEligibility.isEligible(
                 LatinIME.getInstance()?.currentInputEditorInfo, currentSettings.mIncognitoModeEnabled)
-        val emojiContext = if (mayUseEmojiContext && (resultsArePredictions
-                    || suggestionsList.count { it.isEmoji } > 1)) {
+        val emojiContext = if (mayUseEmojiContext) {
             val previous = ngramContext.extractPrevWordsContext()
             if (resultsArePredictions) previous.takeLast(160)
             else (previous + " " + capitalizedTypedWord).takeLast(160)
@@ -207,20 +206,20 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // list instead of re-running the scorer on the UI thread.
         val emojiService = LatinIME.getInstance()
         val emojiSuggestionEditor = emojiService?.currentInputEditorInfo
-        val needsEmojiRanking = resultsArePredictions || suggestionsList.any { it.isEmoji }
-        val rankedEmojiCandidates = if (mayUseEmojiContext && emojiContext.isNotBlank()
-            && needsEmojiRanking && emojiService != null
+        val rankedEmojiPicks = if (mayUseEmojiContext && emojiContext.isNotBlank()
+            && emojiService != null
             && emojiService.currentInputEditorInfo === emojiSuggestionEditor) {
             BrrSmartEmojiEngine.suggest(
-                emojiService, emojiSuggestionEditor, emojiContext, 48, true
-            ).map { it.emoji }
+                emojiService, emojiSuggestionEditor, emojiContext, 48, false
+            )
         } else emptyList()
+        val rankedEmojiCandidates = rankedEmojiPicks.map { it.emoji }
         if (resultsArePredictions && mayUseEmojiContext
             && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
             && suggestionsList.none { it.isEmoji }) {
             // Learned suggestions are manual actions only and never take either
             // text-prediction slot.
-            val emoji = rankedEmojiCandidates.firstOrNull()
+            val emoji = rankedEmojiPicks.firstOrNull { it.confidence >= 520 }?.emoji
             if (emoji != null) {
                 // Preserve the two strongest text predictions in visible slots;
                 // an Emoji is a distinct insertion action, never a word candidate.

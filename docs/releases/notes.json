@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Rework Toolbar navigation into a four-column vertical grid.",
+  "summary": "Improve contextual Emoji suggestions and add a private, one-tap layout report for diagnosing the Emoji panel spacing.",
   "changes": [
     {
-      "title": "Browse a four-column Toolbar grid",
-      "detail": "The full Toolbar shows four actions across and three rows at a time, with vertical scrolling for additional actions. Larger icons use the full tile without gray icon cards. Drag reordering follows the vertical scroll, and Settings stays in the first position."
+      "title": "Faster contextual Emoji suggestions",
+      "detail": "Smart Emoji suggestions reuse the current editor's bounded context snapshot when the Emoji panel opens, avoiding an extra text query and repeated ranking pass."
     },
     {
-      "title": "Open Settings from the Toolbar footer",
-      "detail": "While Toolbar is open, the footer microphone slot becomes a Settings shortcut with a matching accessible action. The normal typing footer still provides voice input, and Settings remains the first item in the Toolbar grid."
+      "title": "Copy an Emoji layout report",
+      "detail": "BR Brain can copy a content-free layout report with one tap. It contains panel geometry and insets only, so the unresolved top spacing can be diagnosed without ADB or a screenshot."
     }
   ]
 }

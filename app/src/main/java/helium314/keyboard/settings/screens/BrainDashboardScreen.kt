@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
+import helium314.keyboard.latin.EmojiGeometryReport
 import helium314.keyboard.latin.voice.VoiceNativeCrashProbe
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
@@ -56,6 +57,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
     var trialText by remember { mutableStateOf("") }
     var probeCopied by remember { mutableStateOf(false) }
     var voiceTrailCopied by remember { mutableStateOf(false) }
+    var emojiGeometryCopied by remember { mutableStateOf(false) }
     // Settings can stay open alongside the IME. Refresh RAM-only diagnostic counters while visible.
     LaunchedEffect(Unit) {
         while (true) {
@@ -84,6 +86,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
     val voiceTrail = remember(refresh) { VoiceSessionCrashTrail.snapshot(context) }
     val voiceNoise = remember(refresh) { VoiceDenoiseMetrics.snapshot() }
     val priorVoiceCrash = remember(context) { VoiceNativeCrashProbe.recentKeyboardExit(context) }
+    val hasEmojiGeometryReport = remember(refresh) { EmojiGeometryReport.hasReport(context) }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
     ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
@@ -109,6 +112,34 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                 Text("Incognito, protected and no-personalized-learning fields are excluded.",
                     color = palette.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall)
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
+                Column(modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Emoji layout report", style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(if (hasEmojiGeometryReport)
+                        "A content-free screen and panel measurement is ready. Copy it and paste it into your support conversation. It contains no typed text, host-app or field identity, Emoji values, clipboard, or screenshot."
+                    else
+                        "Open the keyboard, switch to Emoji Browse once, then return here. The keyboard saves only panel bounds, sizes, insets, and layout flags. No typed text or screenshots are recorded.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = {
+                            emojiGeometryCopied = EmojiGeometryReport.copyLatest(context)
+                        }, enabled = hasEmojiGeometryReport) {
+                            Text(if (emojiGeometryCopied) "Copied" else "Copy geometry report")
+                        }
+                        if (hasEmojiGeometryReport) {
+                            OutlinedButton(onClick = {
+                                EmojiGeometryReport.erase(context)
+                                emojiGeometryCopied = false
+                                refresh++
+                            }) { Text("Erase") }
+                        }
+                    }
+                }
             }
 
             Text("Real-time processing speed",

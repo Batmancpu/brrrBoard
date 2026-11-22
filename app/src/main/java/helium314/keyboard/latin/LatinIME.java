@@ -2358,6 +2358,13 @@ public class LatinIME extends InputMethodService implements
         return null != mSuggestionStripView;
     }
 
+    /** Returns only the bounded ranked Emoji snapshot from this editor session. */
+    public java.util.List<String> currentContextualEmojiCandidates(
+            final EditorInfo editorInfo) {
+        if (editorInfo == null || mSuggestionStripView == null) return java.util.Collections.emptyList();
+        return mSuggestionStripView.contextualEmojiCandidates(editorInfo);
+    }
+
     private void setSuggestedWords(final SuggestedWords suggestedWords) {
         if (mIsDestroyed) {
             return;

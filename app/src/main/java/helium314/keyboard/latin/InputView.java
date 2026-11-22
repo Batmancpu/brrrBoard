@@ -176,7 +176,14 @@ public final class InputView extends FrameLayout {
                 dimensions.append(" orientation=")
                         .append(getResources().getConfiguration().orientation)
                         .append(" density=")
-                        .append(getResources().getDisplayMetrics().density);
+                        .append(getResources().getDisplayMetrics().density)
+                        .append(" panelSearch=")
+                        .append(((helium314.keyboard.keyboard.emoji.EmojiPalettesView) emoji)
+                                .isSearchMode())
+                        .append(" keyboardState=")
+                        .append(KeyboardSwitcher.getInstance().getKeyboardSwitchState().name())
+                        .append(" toolbarMode=")
+                        .append(Settings.getValues().mToolbarMode.name());
                 final View frame = findViewById(R.id.main_keyboard_frame);
                 if (frame != null) {
                     dimensions.append(" framePadding=")
@@ -185,6 +192,7 @@ public final class InputView extends FrameLayout {
                             .append(frame.getPaddingRight()).append(',')
                             .append(frame.getPaddingBottom());
                 }
+                EmojiGeometryReport.record(getContext(), dimensions.toString());
                 android.util.Log.i("BrrImeBounds", dimensions.toString());
                 return true;
             }
@@ -282,9 +290,9 @@ public final class InputView extends FrameLayout {
 
     private static void appendWindowInsets(final StringBuilder report, final View root) {
         final WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
-        report.append(" windowInsets=");
+        report.append(" windowInsets");
         if (insets == null) {
-            report.append("absent");
+            report.append("=absent");
             return;
         }
         final androidx.core.graphics.Insets bars = insets.getInsets(
@@ -292,9 +300,9 @@ public final class InputView extends FrameLayout {
         final androidx.core.graphics.Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
         final androidx.core.graphics.Insets gestures = insets.getInsets(
                 WindowInsetsCompat.Type.systemGestures());
-        report.append("bars:").append(bars.top).append(',').append(bars.bottom)
-                .append(" ime:").append(ime.top).append(',').append(ime.bottom)
-                .append(" gestures:").append(gestures.top).append(',').append(gestures.bottom);
+        report.append("=bars:").append(bars.top).append(',').append(bars.bottom)
+                .append(" ime=").append(ime.top).append(',').append(ime.bottom)
+                .append(" gestures=").append(gestures.top).append(',').append(gestures.bottom);
     }
 
     @Override protected void onDetachedFromWindow() {

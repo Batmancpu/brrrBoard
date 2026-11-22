@@ -61,6 +61,18 @@ public final class BrrSmartEmojiEngine {
 
     private BrrSmartEmojiEngine() { }
 
+    /** Rebuilds display-only labels from the immutable candidate snapshot, without reranking. */
+    public static List<Pick> picksFromSnapshot(final List<String> ranked, final int max) {
+        if (ranked == null || max <= 0 || ranked.isEmpty()) return List.of();
+        final ArrayList<Pick> picks = new ArrayList<>(Math.min(max, ranked.size()));
+        for (final String emoji : ranked) {
+            if (emoji == null || emoji.isEmpty()) continue;
+            picks.add(new Pick(emoji, "smart suggestion", Math.max(1, 1000 - picks.size())));
+            if (picks.size() >= max) break;
+        }
+        return List.copyOf(picks);
+    }
+
     public static void warm(@NonNull final Context context) {
         if (!WARMED.compareAndSet(false, true)) return;
         final Context app = context.getApplicationContext();

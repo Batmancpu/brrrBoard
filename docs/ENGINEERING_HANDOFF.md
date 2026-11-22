@@ -1,5 +1,9 @@
 # brrBoard engineering handoff
 
+## 2026-11-22 — continuing implementation, exact-SHA CI pending
+
+Owner asked that earlier failed model gates be actively debugged and that Emoji geometry collection not require ADB. Current candidate removes fabricated ContextLM history inputs, removes Emoji-panel-open `getTextBeforeCursor` and repeated ranking by reusing the bounded editor-bound `SuggestedWords` snapshot, and adds a content-free BR Brain geometry report copy/erase action. Paired Parakeet Ultra/110M benchmark tooling and an initial public-English run are recorded in `QUALITY_GATE_REEVALUATION_2026_11_22.md`. No release or Oppo acceptance is claimed yet. Run exact-SHA full Android CI and original signer before publication; use the phone report to localize the first gap boundary. Keep ContextLM disabled and Parakeet 110M active until the actual quality/device gates pass.
+
 ## 2026-11-21 — v1.0.227 released; Reno10 diagnosis open
 
 Latest user request: investigate the persistent Emoji top band, improve Smart Emoji/context intelligence, compact the Toolbar into a horizontal rail without gray cards, refine progressive top glass, audit speed/reliability, and plan ContextLM plus the larger Parakeet Ultra migration. Durable work plan: [EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md](EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md).

@@ -1,5 +1,9 @@
 # brrBoard project context
 
+## 2026-11-22 — model and geometry re-evaluation in progress
+
+The owner directed us to keep working after ContextLM failed its quality gate and add an in-app path to share the Emoji geometry trace. The local candidate removes fake per-user history features from ContextLM training, reuses an editor-bound Smart Emoji snapshot rather than making a panel-open text query, and adds a private one-tap BR Brain geometry report. A matched same-audio Ultra/110M benchmark is underway. No new APK is yet verified; the ContextLM gate remains red until retraining beats untouched holdout native candidates, Ultra remains subject to North Indian accent and Reno10 runtime/memory results, and the Emoji gap remains unlocalized until the report is pasted. See `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+
 ## Current Toolbar state — v1.0.231 (2026-11-21)
 
 The four-column/three-visible-row vertically scrolling Toolbar, fixed-first Settings item, and Toolbar-mode footer Settings action are released in original-signed v1.0.231 from `5e2f827a0decd6116e6d74a4541c2d8103d5a729`. Full debug Android and original-signer workflows passed. Remaining gates are Reno10 Emoji-gap trace/visual acceptance and target-device profiling; ContextLM remains disabled after a held-out quality regression, and Parakeet Ultra remains benchmark-only. See `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`.
