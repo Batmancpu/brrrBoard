@@ -1,18 +1,78 @@
 {
   "schema": 1,
-  "summary": "Fix the Emoji Browse top gap, reduce redundant panel drawing, and add an opt-in Parakeet A/B lab for comparing the existing model with Ultra on the same offline recording.",
+  "summary": "Apply cohesive light/dark in-app icons, restore the original smiley key, refine Settings and voice controls, and remove Device Checkup.",
   "changes": [
+    {
+      "title": "Refresh in-app symbols in light and dark appearances",
+      "detail": "Apply the reviewed 219-resource icon set across keyboard and Settings surfaces, preserving the existing light/dark state wrappers and leaving launcher and MangoLoads identity art untouched. Restore the prior smiley-key artwork. Attribution and the full mapping are included with the source. Artwork is independently authored iOS-inspired artwork, not Apple SF Symbols."
+    },
+    {
+      "title": "Crossfade suggestions as whole words",
+      "detail": "Replace character-matching animation with a short whole-label crossfade and settle. Outgoing labels are visual-only, bounded during fast typing, and never replace the current suggestion or tap target."
+    },
+    {
+      "title": "Make Settings search contextual and add Type preview",
+      "detail": "Use a shorter Search field with on-device natural-language aliases, and add a sapphire-and-gold Type card that opens a private keyboard preview without learning the entered sample."
+    },
+    {
+      "title": "Simplify incognito footer indicators",
+      "detail": "Use a familiar smile and mic with matching compact gold shield-lock indicators, keeping the mic visible and the privacy state synchronized."
+    },
+    {
+      "title": "Remove the recurring Device Checkup",
+      "detail": "Remove the guided checkup and its geometry report now that the Emoji layout issue has been traced and fixed."
+    },
     {
       "title": "Reuse unchanged panel glass recordings",
       "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
     },
     {
-      "title": "Remove the stale Search row above Emoji Browse",
-      "detail": "Emoji Search results and the no-results panel now remain hidden whenever Search mode is off, including when an asynchronous Search refresh arrives after leaving Search. This prevents the fixed 56dp row from stealing height above the category tabs and emoji grid. The content-free geometry report now includes visibility states for these Search-only rows."
+      "title": "Keep Emoji Browse free of the stale Search row",
+      "detail": "Emoji Search results and the no-results panel remain hidden whenever Search mode is off, including when an asynchronous refresh arrives after leaving Search. This prevents the fixed 56dp row from taking height above the category tabs and emoji grid. The temporary geometry-report action and logger are removed now that the supplied device trace identified the cause."
     },
     {
       "title": "Compare Parakeet models on the same Voice Lab recording",
-      "detail": "BR Brain's Voice Lab can optionally compare the installed 110M recognizer with Parakeet Ultra 0.6B on one identical RAM-only offline recording. Results include both transcripts, reference-based WER, cold-load/decode/elapsed timing, real-time factor, and sampled process memory. Ultra is an explicit test-only model pack and never replaces the default dictation model; its approximately 640 MiB assets are bundled only when separately requested in a manual build. This candidate has not passed Android CI or Reno10 device acceptance and must not be represented as released until those gates pass."
+      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The A/B lab can still compare both installed models on the same take. No model weights are bundled by default; the release workflow retains an explicit Ultra bundle option for a future update only when requested."
+    },
+    {
+      "title": "Keep only important confirmations in Do Not Disturb",
+      "detail": "Key taps and gesture haptics remain quiet during DND. The optional important-only setting allows brief confirmations when changing privacy mode or confirming a clipboard/history clear. If Android cannot provide the current DND state, the keyboard safely suppresses ordinary haptics until it can. The preference is located only in Everyday tools → Sound & haptics."
+    },
+    {
+      "title": "Focus BR Brain on suggestions and local learning",
+      "detail": "Voice model selection, cleaning, install availability, and A/B comparison now live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
+    },
+    {
+      "title": "Make Settings calmer without removing controls",
+      "detail": "Everyday actions now sit in a shorter, grouped Settings home. Less-used controls remain available under an expandable Advanced controls section, with clearer descriptions and lighter icon treatment."
+    },
+    {
+      "title": "Add a reversible settings reset",
+      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour. The slider gives continuous restrained haptics while held when haptics are enabled, including the important-actions-only Do Not Disturb mode, without needing the keyboard service to be running."
+    },
+    {
+      "title": "Bound offline update history",
+      "detail": "Settings displays at most the ten newest valid signed updates, and the release history generator also writes only those ten entries so bundled history data cannot grow without bound."
+    },
+    {
+      "title": "Keep suggestions steady during ChatGPT voice input",
+      "detail": "When ChatGPT streams speech into its text field without keyboard typing, brrBoard briefly holds changing prediction rows and shows the latest results after the transcript settles. BR Brain's in-memory performance counters record timing and update counts only; they never retain words, transcripts, audio or screenshots."
+    },
+    {
+      "title": "Put the compact voice model in Advanced controls",
+      "detail": "Parakeet 110M selection is now tucked under Advanced controls as the lower-memory fallback. Ultra remains the everyday model choice when installed; reset does not change the model files, and no speech model weights are added by this change."
+    },
+    {
+      "title": "Move reset into Backup & restore",
+      "detail": "The slide-to-reset control and its one-hour Undo now live beside backup and restore. About brrBoard stays directly on the Settings home, outside Advanced controls."
+    },
+    {
+      "title": "Make protected-app choices easier to read",
+      "detail": "Installed app names and package IDs appear on separate lines with truncation, so long IDs no longer compete with app labels and selection controls."
+    },
+    {
+      "title": "Bring Correction & suggestions into BR Brain",
+      "detail": "BR Brain now links directly to the existing correction and prediction controls. A single restrained champagne-gold shimmer accents the Brain header once; it does not run continuously or recolor the rest of Settings."
     }
   ]
 }

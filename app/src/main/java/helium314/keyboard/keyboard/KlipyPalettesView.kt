@@ -1711,6 +1711,7 @@ class KlipyPalettesView @JvmOverloads constructor(
     private fun clearCurrentHistory() {
         dismissHistoryActionPopup()
         historyDao.clearHistory(currentTab)
+        AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
         scheduleKlipyMediaPrune()
         isSearchActive = false
         setSearchText("", 0)

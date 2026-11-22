@@ -58,7 +58,7 @@ public class SettingsValues {
     // From preferences
     public final boolean mAutoCap;
     public final boolean mVibrateOn;
-    public final boolean mVibrateInDndMode;
+    public final boolean mImportantHapticsInDndMode;
     public final boolean mSoundOn;
     public final boolean mSuggestEmojis;
     public final boolean mInlineEmojiSearch;
@@ -190,7 +190,8 @@ public class SettingsValues {
         mToolbarHidingGlobal = isLocked || prefs.getBoolean(Settings.PREF_TOOLBAR_HIDING_GLOBAL, Defaults.PREF_TOOLBAR_HIDING_GLOBAL);
         mAutoCap = prefs.getBoolean(Settings.PREF_AUTO_CAP, Defaults.PREF_AUTO_CAP) && ScriptUtils.scriptSupportsUppercase(mLocale);
         mVibrateOn = Settings.readVibrationEnabled(prefs);
-        mVibrateInDndMode = prefs.getBoolean(Settings.PREF_VIBRATE_IN_DND_MODE, Defaults.PREF_VIBRATE_IN_DND_MODE);
+        mImportantHapticsInDndMode = prefs.getBoolean(Settings.PREF_IMPORTANT_HAPTICS_IN_DND,
+                Defaults.PREF_IMPORTANT_HAPTICS_IN_DND);
         mSoundOn = prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON);
         mSuggestEmojis = prefs.getBoolean(Settings.PREF_SUGGEST_EMOJIS, Defaults.PREF_SUGGEST_EMOJIS);
         mInlineEmojiSearch = prefs.getBoolean(Settings.PREF_INLINE_EMOJI_SEARCH, Defaults.PREF_INLINE_EMOJI_SEARCH);

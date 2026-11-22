@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard / Mangoloads symbol. SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.9" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M12,2.5 A9.5,9.5 0,1 1,12,21.5 A9.5,9.5 0,1 1,12,2.5"/>
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="2.2" android:strokeLineCap="round"
-        android:pathData="M9.55,9.2 C9.65,6.6 14.35,6.5 14.5,9.15 C14.54,10.6 12.1,11.25 12.1,13.25"/>
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M12.1,16.4 a1.2,1.2 0,1 1,-2.4 0 a1.2,1.2 0,1 1,2.4 0"/>
+<!-- Icon geometry: Ionicons (MIT); warning-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M85.57,446.25H426.43a32,32,0,0,0,28.17-47.17L284.18,82.58c-12.09-22.44-44.27-22.44-56.36,0L57.4,399.08A32,32,0,0,0,85.57,446.25Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M250.26,195.39l5.74,122,5.73-121.95a5.74,5.74,0,0,0-5.79-6h0A5.74,5.74,0,0,0,250.26,195.39Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M256,397.25a20,20,0,1,1,20-20A20,20,0,0,1,256,397.25Z" android:fillColor="#FF252B36"/>
 </vector>

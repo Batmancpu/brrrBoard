@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original B07V icon: rounded Apple-inspired geometry, not Apple artwork.
-     SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="32dp" android:height="32dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="@color/foreground"
-        android:strokeWidth="1.65" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M12,3.1 L13.1,5.6 L15.4,6.4 L17.9,5.3 L19.2,6.6 L18.1,9.2 L19,11.5 L21.5,12.3 V14 L19,15 L18.1,17.2 L19.1,19.8 L17.7,21.1 L15.3,20 L12.9,20.8 L12,23 L10.2,22.1 L9.4,19.9 L7.1,19 L4.5,20.1 L3.3,18.8 L4.4,16.3 L3.5,14 L1.4,13.1 L1.4,11.3 L3.8,10.4 L4.6,8.1 L3.6,5.6 L5,4.3 L7.4,5.3 L9.5,4.6 L10.3,2.5 Z M12,9 A3.3,3.3 0,1 0,12 15.6 A3.3,3.3 0,1 0,12 9" />
+<!-- Icon geometry: Ionicons (MIT); options-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M368 128 L448 128" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M64 128 L304 128" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M368 384 L448 384" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M64 384 L304 384" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M208 256 L448 256" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M64 256 L144 256" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M304 128 a32 32 0 1 0 64 0 a32 32 0 1 0 -64 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M144 256 a32 32 0 1 0 64 0 a32 32 0 1 0 -64 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M304 384 a32 32 0 1 0 64 0 a32 32 0 1 0 -64 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

@@ -1,21 +1,7 @@
-<!--
-    icon available in Android Studio
-    modified
-    SPDX-License-Identifier: Apache-2.0
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp"
-    android:width="24dp"
-    android:viewportHeight="24"
-    android:viewportWidth="24">
-    <group
-        android:scaleX="0.85"
-        android:scaleY="0.85"
-        android:translateX="1.8"
-        android:translateY="1.8">
-        <group android:rotation="90" android:pivotX="12" android:pivotY="12" >
-            <path android:fillColor="#FFF"
-                android:pathData="M13,6.99l3,0l-4,-3.99l-4,3.99l3,0l0,10.02l-3,0l4,3.99l4,-3.99l-3,0z"/>
-        </group>
-    </group>
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3.2 12 H20.8 M9.2 6.1 L3.2 12 L9.2 17.9 M14.8 6.1 L20.8 12 L14.8 17.9" />
 </vector>

@@ -6,21 +6,30 @@ import android.net.Uri
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -36,6 +45,10 @@ import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.VoiceModelChoice
+import helium314.keyboard.latin.voice.UltraVoiceModelManifest
+import helium314.keyboard.latin.voice.VoiceModelPack
+import helium314.keyboard.latin.voice.VoiceNoiseChoice
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.SettingsWithoutKey
@@ -103,7 +116,7 @@ fun SoundFeedbackScreen(onClickBack: () -> Unit) {
         R.string.settings_category_input,
         if (AudioAndHapticFeedbackManager.getInstance().hasVibrator()) Settings.PREF_VIBRATE_ON else null,
         if (vibrationEnabled) Settings.PREF_VIBRATION_DURATION_SETTINGS else null,
-        if (vibrationEnabled) Settings.PREF_VIBRATE_IN_DND_MODE else null,
+        if (vibrationEnabled) Settings.PREF_IMPORTANT_HAPTICS_IN_DND else null,
         Settings.PREF_SOUND_ON,
         if (soundEnabled) Settings.PREF_KEYPRESS_SOUND_VOLUME else null,
     ))
@@ -165,47 +178,141 @@ fun PrivacySettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
 
 @Composable
 fun BackupSettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
-    onClickBack, "Backup & restore", listOf(SettingsWithoutKey.BACKUP_RESTORE)
+    onClickBack, "Backup & restore", listOf(SettingsWithoutKey.BACKUP_RESTORE),
+    footer = { ResetSettingsControl() },
 )
 
 @Composable
-fun VoiceSettingsScreen(onClickBack: () -> Unit) {
+fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
     val ctx = LocalContext.current
-    var ready by remember { mutableStateOf(VoiceModelInstaller.isInstalled(ctx)) }
-    var status by remember { mutableStateOf(VoiceModelInstaller.installState) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refresh by remember { mutableIntStateOf(0) }
+    val installed = remember(refresh) { VoiceModelChoice.installed(ctx) }
+    val selected = remember(refresh) { VoiceModelChoice.active(ctx) }
+    var cleaningEnabled by remember(refresh) { mutableStateOf(VoiceNoiseChoice.isCleaningEnabled(ctx)) }
+    val ultraBundled = remember(refresh) { VoiceModelInstaller.hasBundled(ctx, UltraVoiceModelManifest.pack) }
     val scope = rememberCoroutineScope()
+    var installingModel by remember { mutableStateOf<String?>(null) }
+    var installMessage by remember { mutableStateOf<String?>(null) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     SearchSettingsScreen(onClickBack, "Offline voice", emptyList()) {
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(Modifier.padding(20.dp)) {
-                Text(if (ready) "English model ready" else "English model not installed",
-                    style = MaterialTheme.typography.titleMedium)
-                Text(if (ready) "Speech is processed on-device. No network connection is required."
-                    else "The lightweight APK does not download or include a speech model. A verified model from a previous installation is retained.",
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("On-device dictation", style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold)
+                    Text(selected?.let { "Keyboard model: ${modelTitle(it)}" }
+                        ?: "No verified offline model is installed",
+                        style = MaterialTheme.typography.titleMedium)
+                    Text("Audio is decoded on this device. The keyboard uses the selected installed model and never downloads model files.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Text("Keyboard transcription model", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold)
+            if (installed.isEmpty()) {
+                Text("Install a model from Voice Lab if the current app includes its verified assets. Lightweight updates do not bundle model weights.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp))
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                installed.filter { it.id == UltraVoiceModelManifest.ID }.forEach { pack ->
+                    VoiceModelOption(
+                        title = modelTitle(pack),
+                        summary = if (pack.id == UltraVoiceModelManifest.ID)
+                            "Highest-capacity · recommended · more memory and slower first load"
+                        else "Compact · lower memory and quicker first load",
+                        selected = selected?.id == pack.id,
+                        onClick = {
+                            VoiceModelChoice.select(ctx, pack)
+                            refresh++
+                        },
+                    )
+                }
             }
-        }
-        if (status == VoiceModelInstaller.InstallState.FAILED) {
-            Md3ePreferenceGroup("Model recovery") {
-                Md3ePreference("refresh", "Retry bundled model verification", "Only checks assets already in this APK; nothing is downloaded.", onClick = {
-                    scope.launch(Dispatchers.IO) {
-                        val installed = VoiceModelInstaller.installBundledIfPresent(ctx)
-                        withContext(Dispatchers.Main) { ready = installed }
-                        withContext(Dispatchers.Main) { status = VoiceModelInstaller.installState }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Voice cleaning · brrClean", style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text("Reduces background noise before transcription. On by default; failed cleaning safely falls back to the original audio.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                }, isFirst = true, isLast = true)
+                    Switch(checked = cleaningEnabled, onCheckedChange = {
+                        cleaningEnabled = it
+                        VoiceNoiseChoice.setCleaningEnabled(ctx, it)
+                    })
+                }
             }
+
+            installMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            if (ultraBundled && UltraVoiceModelManifest.pack !in installed) {
+                Button(onClick = {
+                    val pack = UltraVoiceModelManifest.pack
+                    if (installingModel != null) return@Button
+                    installingModel = pack.id
+                    installMessage = "Verifying and installing ${modelTitle(pack)}… keep brrBoard open."
+                    scope.launch(Dispatchers.IO) {
+                        val success = VoiceModelInstaller.installBundledIfPresent(ctx, pack)
+                        withContext(Dispatchers.Main) {
+                            installingModel = null
+                            installMessage = if (success) "${modelTitle(pack)} is ready."
+                                else "Model install failed or its assets are not in this update."
+                            refresh++
+                        }
+                    }
+                }, enabled = installingModel == null) {
+                    Text(if (installingModel == null) "Install available model" else "Installing model…")
+                }
+            }
+
+            Button(onClick = onOpenVoiceLab, modifier = Modifier.fillMaxWidth()) {
+                Text("Compare voice models")
+            }
+            Text("Voice Lab records one short take and compares both verified models offline. Microphone permission is requested only when you start recording.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall)
         }
-        Text(
-            "Microphone permission is requested when you start dictation, not while browsing settings.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 32.dp, vertical = 12.dp)
-        )
     }
 }
+
+@Composable
+private fun VoiceModelOption(
+    title: String,
+    summary: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = if (selected)
+            MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            RadioButton(selected = selected, onClick = null)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(summary, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+private fun modelTitle(pack: VoiceModelPack): String =
+    if (pack.id == UltraVoiceModelManifest.ID) "Parakeet Ultra 0.6B" else "Parakeet 110M"

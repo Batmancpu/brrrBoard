@@ -1,17 +1,6 @@
-<!--
-    icon available in Android Studio
-    SPDX-License-Identifier: Apache-2.0
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp"
-    android:width="24dp"
-    android:viewportHeight="24"
-    android:viewportWidth="24">
-    <group android:scaleX="1.2"
-        android:scaleY="1.2"
-        android:translateX="-2.4"
-        android:translateY="-2.4">
-        <path android:fillColor="#FFF"
-            android:pathData="M15.41,16.59L10.83,12l4.58,-4.59L14,6l-6,6 6,6 1.41,-1.41z"/>
-    </group>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); arrow-back-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M 244 400 L 100 256 L 244 112" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="48" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M120 256 L412 256" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="48" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

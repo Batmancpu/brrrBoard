@@ -17,22 +17,16 @@ import androidx.core.graphics.ColorUtils
 import android.view.animation.LinearInterpolator
 import kotlin.math.roundToInt
 
-/**
- * Compact filled smile with a premium champagne-gold reveal from the lenses.
- * Hat, nod, glasses, highlight and face tint share one interruptible timeline.
- * No bitmaps, blur layers, additional hitboxes or per-frame layout passes.
- */
+/** Normal smile icon with a small, matching gold privacy shield in incognito mode. */
 internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
-    // Optical size, not only intrinsic bounds: the tall 31dp mic reads larger
-    // than the 31dp filled smile. A 34dp emoji balances their visible weight.
     private val iconPx = (34f * context.resources.displayMetrics.density).roundToInt()
     private val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
     }
-    private val glass = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val incognitoGold = FooterPrivacyPalette.GOLD
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val gold = FooterPrivacyPalette.GOLD
     private var themeInk = Color.WHITE
     private var alphaValue = 255
     private var suppliedFilter: ColorFilter? = null
@@ -50,7 +44,7 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
         if (themeInk != color) { themeInk = color; invalidateSelf() }
     }
 
-    /** The mic shield consumes this exact rendered pose; it never owns a timer. */
+    /** The microphone badge is driven by this same frame and clock. */
     fun setFrameListener(listener: ((FooterIncognitoMotion.Frame) -> Unit)?) {
         frameListener = listener
         listener?.invoke(pose)
@@ -68,9 +62,8 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
 
     fun setIncognito(enabled: Boolean, animated: Boolean) {
         if (enabled == wantedIncognito && animator?.isRunning == true) return
-        if (enabled == wantedIncognito &&
-            pose == FooterIncognitoMotion.settled(enabled)) return
-        val from = pose // Preserve the EXACT rendered pose on rapid double-tap reversal.
+        if (enabled == wantedIncognito && pose == FooterIncognitoMotion.settled(enabled)) return
+        val from = pose
         val oldAnimator = animator
         animator = null
         oldAnimator?.cancel()
@@ -81,8 +74,7 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
             return
         }
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = if (enabled) FooterIncognitoMotion.ENTER_MS
-                else FooterIncognitoMotion.EXIT_MS
+            duration = if (enabled) FooterIncognitoMotion.ENTER_MS else FooterIncognitoMotion.EXIT_MS
             interpolator = LinearInterpolator()
             addUpdateListener {
                 pose = FooterIncognitoMotion.at(from, enabled, it.animatedValue as Float)
@@ -112,172 +104,77 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
 
     override fun draw(canvas: Canvas) {
         if (bounds.isEmpty) return
-        val checkpoint = canvas.save()
+        val saved = canvas.save()
         canvas.translate(bounds.left.toFloat(), bounds.top.toFloat())
         canvas.scale(bounds.width() / 24f, bounds.height() / 24f)
-        val p = pose
-        if (p.hat > .001f && p.hatBehind > .001f)
-            drawHat(canvas, p, p.hat * p.hatBehind)
-        drawFace(canvas, p)
-        if (p.hat > .001f && p.hatBehind < .999f) {
-            drawHat(canvas, p, p.hat * (1f - p.hatBehind))
-        }
-        canvas.restoreToCount(checkpoint)
+        drawSmile(canvas, pose)
+        if (pose.shield > .001f) drawPrivacyBadge(canvas, pose)
+        canvas.restoreToCount(saved)
     }
 
-    private fun ink(color: Int = themeInk, opacity: Float = 1f, stroke: Float = 2.35f) {
-        ink.style = Paint.Style.STROKE
-        ink.strokeWidth = stroke
-        ink.color = Color.argb(
-            (Color.alpha(color) * opacity * alphaValue / 255f).roundToInt().coerceIn(0, 255),
-            Color.red(color), Color.green(color), Color.blue(color))
-        ink.colorFilter = suppliedFilter
-    }
-
-    private fun drawFace(c: Canvas, p: FooterIncognitoMotion.Frame) {
-        val spread = p.colorSpread.coerceIn(0f, 1f)
-        // A faint glow stays INSIDE/at the surface of the circular face. The
-        // gold originates at the glasses and expands as one smooth color field.
-        if (spread > .001f) {
-            glass.style = Paint.Style.FILL
-            glass.colorFilter = null
-            glass.color = ColorUtils.setAlphaComponent(incognitoGold,
-                (26f * spread * alphaValue / 255f).roundToInt())
-            c.drawCircle(12f, 12.45f, 9.5f + spread * 1.6f, glass)
-        }
-        if (denialFraction > .001f && p.glasses > .5f) {
-            // A restrained red attention flash; it never recolors the privacy shield.
-            glass.style = Paint.Style.FILL
-            glass.colorFilter = null
-            glass.color = Color.argb((34f * denialFraction * alphaValue / 255f).roundToInt(),
-                255, 73, 84)
-            c.drawCircle(12f, 12.45f, 10.7f, glass)
-        }
-        glass.style = Paint.Style.FILL
-        glass.color = ColorUtils.setAlphaComponent(themeInk, (244f * alphaValue / 255f).roundToInt())
-        glass.colorFilter = suppliedFilter
-        c.drawCircle(12f, 12.45f, 8.85f, glass)
-        if (spread > .001f) {
-            val clipped = c.save()
-            val faceClip = Path().apply { addCircle(12f, 12.45f, 8.85f, Path.Direction.CW) }
-            c.clipPath(faceClip)
-            glass.color = ColorUtils.setAlphaComponent(incognitoGold,
-                (251f * alphaValue / 255f).roundToInt())
-            glass.colorFilter = null
-            // At zero the colored point glows inside the two lenses; by one it
-            // has covered the face. No hard recolor or two-tone gradient seam.
-            c.drawCircle(12f, 11.4f, 1.6f + 13.2f * spread, glass)
-            c.restoreToCount(clipped)
-        }
-        val nod = p.nod.coerceIn(0f, 1f)
-        val eyes = (1f - p.glasses).coerceIn(0f, 1f)
-        val darkFeature = Color.rgb(23, 33, 41)
-        val neutralFeature = if (Color.red(themeInk) + Color.green(themeInk) + Color.blue(themeInk) > 382)
-            darkFeature else Color.rgb(250, 251, 252)
-        val featureColor = ColorUtils.blendARGB(neutralFeature, darkFeature, spread)
-        if (eyes > .005f) {
-            ink(color = featureColor, opacity = eyes, stroke = 1f)
-            ink.style = Paint.Style.FILL
-            val eyeY = 10.5f + nod * 1.25f
-            val eyeR = 1.08f - nod * .14f
-            c.drawCircle(8.8f, eyeY, eyeR, ink)
-            c.drawCircle(15.2f, eyeY, eyeR, ink)
-        }
-        ink(color = featureColor, stroke = 1.75f - nod * .2f)
-        val mouth = Path().apply {
-            moveTo(8.15f, 15.45f + nod * .25f)
-            quadTo(12f, 19.0f - nod * .6f, 15.85f, 15.45f + nod * .25f)
-        }
-        c.drawPath(mouth, ink)
-        if (p.glasses > .005f) drawSunglasses(c, p)
-    }
-
-    private fun drawSunglasses(c: Canvas, p: FooterIncognitoMotion.Frame) {
-        val opacity = p.glasses.coerceIn(0f, 1f)
-        // On a denied protected hold, the sunglasses glance down briefly.
-        val y = 10f + p.nod * .75f + denialFraction * .72f
-        val lenses = arrayOf(
-            RectF(5.8f, y, 11f, y + 3.65f),
-            RectF(13f, y, 18.2f, y + 3.65f),
-        )
-        // The dark lenses are real filled glass, with theme-ink rims; the original
-        // line-art smile stays intact beneath them on both light and dark themes.
-        glass.style = Paint.Style.FILL
-        glass.color = Color.argb((235f * opacity * alphaValue / 255f).roundToInt(), 17, 30, 39)
-        glass.colorFilter = null
-        ink(opacity = opacity, stroke = 1.25f)
-        for (lens in lenses) {
-            c.drawRoundRect(lens, 1.2f, 1.2f, glass)
-            c.drawRoundRect(lens, 1.2f, 1.2f, ink)
-        }
-        ink(opacity = opacity, stroke = 1.3f)
-        c.drawLine(11f, y + 1.3f, 13f, y + 1.3f, ink)
-        c.drawLine(5.8f, y + 1.1f, 5.2f, y + .95f, ink)
-        c.drawLine(18.2f, y + 1.1f, 18.8f, y + .95f, ink)
-
-        // Warm lens glint sweeps into the gold wave. At rest a small highlight
-        // remains, deliberately away from the hat and mouth.
-        val shine = p.glint.coerceIn(0f, 1f)
-        if (shine > .005f) {
-            glass.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
-                (225f * opacity * alphaValue / 255f).roundToInt())
-            val sweep = (shine * 2f - 1f).coerceIn(-1f, 1f)
-            for (lens in lenses) {
-                val save = c.save()
-                val clip = Path().apply { addRoundRect(lens, 1.2f, 1.2f, Path.Direction.CW) }
-                c.clipPath(clip)
-                val base = lens.left + lens.width() * (if (shine >= .99f) .32f else .36f + .36f * sweep)
-                val glimmer = Path().apply {
-                    moveTo(base + .25f, lens.top - .4f)
-                    lineTo(base + 1.15f, lens.top - .4f)
-                    lineTo(base - .35f, lens.bottom + .4f)
-                    lineTo(base - 1.25f, lens.bottom + .4f)
-                    close()
-                }
-                c.drawPath(glimmer, glass)
-                c.restoreToCount(save)
-            }
-        }
-        if (denialFraction > .001f) {
-            glass.style = Paint.Style.FILL
-            glass.colorFilter = null
-            glass.color = Color.argb((190f * denialFraction * opacity * alphaValue / 255f).roundToInt(),
-                255, 92, 98)
-            c.drawRoundRect(RectF(13.3f, y + .3f, 17.9f, y + 3.35f), 1.1f, 1.1f, glass)
+    private fun drawSmile(canvas: Canvas, frame: FooterIncognitoMotion.Frame) {
+        val tint = if (denialFraction > .01f) ColorUtils.blendARGB(
+            themeInk, 0xFFFF7378.toInt(), .25f * denialFraction
+        ) else themeInk
+        val alpha = (255f * alphaValue / 255f).roundToInt()
+        fill.style = Paint.Style.STROKE
+        fill.strokeWidth = 2.0f
+        fill.strokeCap = Paint.Cap.ROUND
+        fill.strokeJoin = Paint.Join.ROUND
+        fill.color = ColorUtils.setAlphaComponent(tint, alpha)
+        fill.colorFilter = suppliedFilter
+        canvas.drawCircle(11.55f, 12.45f, 8.3f, fill)
+        fill.style = Paint.Style.FILL
+        canvas.drawCircle(8.7f, 10.1f, .95f, fill)
+        canvas.drawCircle(14.4f, 10.1f, .95f, fill)
+        fill.style = Paint.Style.STROKE
+        fill.strokeWidth = 1.7f
+        canvas.drawPath(Path().apply {
+            moveTo(8.25f, 14.35f)
+            quadTo(11.55f, 17.65f, 14.85f, 14.35f)
+        }, fill)
+        if (frame.glow > .001f) {
+            fill.style = Paint.Style.STROKE
+            fill.strokeWidth = .75f
+            fill.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
+                (70f * frame.glow * alphaValue / 255f).roundToInt())
+            canvas.drawCircle(11.55f, 12.45f, 9.35f, fill)
         }
     }
 
-    private fun drawHat(c: Canvas, p: FooterIncognitoMotion.Frame, opacity: Float) {
-        if (opacity <= .001f) return
-        val save = c.save()
-        // Enter from just above the smile; exit falls in one uninterrupted path.
-        val vertical = (1f - p.hat) * -4.2f + p.hatDrop
-        c.translate(0f, vertical + p.nod * .22f)
-        c.rotate(-3.8f * (1f - p.hat), 12f, 6.3f)
-        val crown = Path().apply {
-            moveTo(7.05f, 6.65f)
-            cubicTo(7.9f, 4.55f, 7.9f, 1.3f, 8.65f, .35f)
-            quadTo(12f, .05f, 15.35f, .35f)
-            cubicTo(16.1f, 1.3f, 16.1f, 4.55f, 16.95f, 6.65f)
+    private fun drawPrivacyBadge(canvas: Canvas, frame: FooterIncognitoMotion.Frame) {
+        val opacity = frame.shield.coerceIn(0f, 1f)
+        val checkpoint = canvas.save()
+        canvas.translate(18.6f, 5.0f)
+        canvas.scale(.72f + .28f * opacity, .72f + .28f * opacity, 2.6f, 2.9f)
+        val shield = Path().apply {
+            moveTo(2.65f, .15f)
+            cubicTo(1.9f, .62f, .95f, .83f, .3f, .96f)
+            lineTo(.36f, 2.63f)
+            cubicTo(.46f, 3.66f, 1.63f, 4.72f, 2.65f, 5.35f)
+            cubicTo(3.67f, 4.72f, 4.84f, 3.66f, 4.94f, 2.63f)
+            lineTo(5f, .96f)
+            cubicTo(4.35f, .83f, 3.4f, .62f, 2.65f, .15f)
             close()
         }
-        glass.style = Paint.Style.FILL
-        glass.color = Color.argb((218f * opacity * alphaValue / 255f).roundToInt(),
-            Color.red(themeInk), Color.green(themeInk), Color.blue(themeInk))
-        glass.colorFilter = suppliedFilter
-        c.drawPath(crown, glass)
-        ink(opacity = opacity, stroke = 1.2f)
-        c.drawPath(crown, ink)
-        // Clearly separated dark hat band keeps the crown legible at 31dp.
-        ink(color = Color.rgb(23, 33, 41), opacity = opacity, stroke = 1.3f)
-        c.drawLine(7.55f, 5.7f, 16.45f, 5.7f, ink)
-        ink(opacity = opacity, stroke = 1.7f)
-        val brim = Path().apply {
-            moveTo(3.4f, 7.55f)
-            quadTo(12f, 9.05f, 20.6f, 7.55f)
-        }
-        c.drawPath(brim, ink)
-        c.restoreToCount(save)
+        fill.style = Paint.Style.FILL
+        fill.color = ColorUtils.setAlphaComponent(Color.rgb(20, 35, 53),
+            (232f * opacity * alphaValue / 255f).roundToInt())
+        fill.colorFilter = null
+        canvas.drawPath(shield, fill)
+        ink.style = Paint.Style.STROKE
+        ink.strokeWidth = .64f
+        ink.color = ColorUtils.setAlphaComponent(
+            if (denialFraction > .01f) 0xFFFF8E8E.toInt() else gold,
+            (255f * opacity * alphaValue / 255f).roundToInt())
+        ink.colorFilter = null
+        canvas.drawPath(shield, ink)
+        ink.strokeWidth = .48f
+        canvas.drawArc(RectF(1.8f, 2.05f, 3.5f, 3.75f), 180f, 180f, false, ink)
+        fill.style = Paint.Style.FILL
+        fill.color = ink.color
+        canvas.drawRoundRect(RectF(1.55f, 2.8f, 3.75f, 4.15f), .35f, .35f, fill)
+        canvas.restoreToCount(checkpoint)
     }
 
     override fun setAlpha(alpha: Int) {

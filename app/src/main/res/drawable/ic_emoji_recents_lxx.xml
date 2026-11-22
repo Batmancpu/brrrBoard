@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--clipart available in Android Studio, Apache License 2.0-->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="24dp"
-    android:width="24dp"
-    android:viewportHeight="24"
-    android:viewportWidth="24">
-    <path
-        android:fillColor="#FFF"
-        android:pathData="M11.99,2C6.47,2 2,6.48 2,12s4.47,10 9.99,10C17.52,22 22,17.52 22,12S17.52,2 11.99,2zM15.29,16.71L11,12.41V7h2v4.59l3.71,3.71L15.29,16.71z"/>
+<!-- Icon geometry: Ionicons (MIT); time-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M256,64C150,64,64,150,64,256s86,192,192,192,192-86,192-192S362,64,256,64Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M 256 128 L 256 272 L 352 272" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

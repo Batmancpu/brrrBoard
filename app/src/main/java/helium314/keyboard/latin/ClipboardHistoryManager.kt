@@ -601,6 +601,7 @@ class ClipboardHistoryManager(
         }
         ownedPrimaryClip = null
         removeClipboardSuggestion()
+        AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
     }
 
     /** Only called after brrBoard itself successfully sets the system clipboard. */

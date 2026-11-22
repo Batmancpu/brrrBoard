@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard rounded Reorder grip; SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M9,5.3 A1.35,1.35 0,1 0,9,8 A1.35,1.35 0,1 0,9,5.3 M15,5.3 A1.35,1.35 0,1 0,15,8 A1.35,1.35 0,1 0,15,5.3 M9,10.65 A1.35,1.35 0,1 0,9,13.35 A1.35,1.35 0,1 0,9,10.65 M15,10.65 A1.35,1.35 0,1 0,15,13.35 A1.35,1.35 0,1 0,15,10.65 M9,16 A1.35,1.35 0,1 0,9,18.7 A1.35,1.35 0,1 0,9,16 M15,16 A1.35,1.35 0,1 0,15,18.7 A1.35,1.35 0,1 0,15,16" />
+<!-- Icon geometry: Ionicons (MIT); reorder-three-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M96 256 L416 256" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M96 176 L416 176" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M96 336 L416 336" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

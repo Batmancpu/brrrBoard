@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original B07V icon: rounded Apple-inspired geometry, not Apple artwork.
-     SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="40dp" android:height="40dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="@color/foreground"
-        android:strokeWidth="1.65" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M3.4,5.5 H20.6 M3.4,11.9 H20.6 M3.4,18.3 H20.6 M8.5,3.4 V7.6 M15.6,9.8 V14 M11.6,16.2 V20.4" />
+<!-- Icon geometry: Ionicons (MIT); grid-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="40dp" android:height="40dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M68 48 H204 A20 20 0 0 1 224 68 V204 A20 20 0 0 1 204 224 H68 A20 20 0 0 1 48 204 V68 A20 20 0 0 1 68 48 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M308 48 H444 A20 20 0 0 1 464 68 V204 A20 20 0 0 1 444 224 H308 A20 20 0 0 1 288 204 V68 A20 20 0 0 1 308 48 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M68 288 H204 A20 20 0 0 1 224 308 V444 A20 20 0 0 1 204 464 H68 A20 20 0 0 1 48 444 V308 A20 20 0 0 1 68 288 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M308 288 H444 A20 20 0 0 1 464 308 V444 A20 20 0 0 1 444 464 H308 A20 20 0 0 1 288 444 V308 A20 20 0 0 1 308 288 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

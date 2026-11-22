@@ -21,6 +21,7 @@ import java.util.Objects;
 
 import static helium314.keyboard.latin.common.Constants.ImeOption.NO_FLOATING_GESTURE_PREVIEW;
 import static helium314.keyboard.latin.common.Constants.ImeOption.NO_MICROPHONE;
+import static helium314.keyboard.latin.common.Constants.ImeOption.NO_PERSONALIZED_LEARNING;
 
 import androidx.annotation.NonNull;
 
@@ -74,8 +75,10 @@ public final class InputAttributes {
         mOriginalPrivateImeOptions = editorInfo == null ? null : editorInfo.privateImeOptions;
         mTargetApplicationPackageName = null != editorInfo ? editorInfo.packageName : null;
         mInputType = AppWorkarounds.INSTANCE.adjustInputType(null != editorInfo ? editorInfo.inputType : 0, mTargetApplicationPackageName);
-        mNoLearning = editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                && (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
+        mNoLearning = (editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                && (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0)
+                || inPrivateImeOptions(mPackageNameForPrivateImeOptions,
+                        NO_PERSONALIZED_LEARNING, editorInfo);
         final int inputClass = mInputType & InputType.TYPE_MASK_CLASS;
         mIsPasswordField = InputTypeUtils.isPasswordInputType(mInputType)
                 || InputTypeUtils.isVisiblePasswordInputType(mInputType);
@@ -121,8 +124,7 @@ public final class InputAttributes {
         final boolean noMicrophone = mIsPasswordField
                 || InputTypeUtils.isEmailVariation(variation)
                 || hasNoMicrophoneKeyOption()
-                || !RichInputMethodManager.isInitialized() // avoid crash when only using spell checker
-                || (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0;
+                || !RichInputMethodManager.isInitialized(); // avoid crash when only using spell checker
         mShouldShowVoiceInputKey = !noMicrophone;
 
         mDisableGestureFloatingPreviewText = InputAttributes.inPrivateImeOptions(

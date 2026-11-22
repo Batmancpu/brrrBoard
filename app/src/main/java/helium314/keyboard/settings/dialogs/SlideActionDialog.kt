@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -64,8 +65,13 @@ fun SlideActionDialog(title: String, explanation: String, instruction: String,
 
 /** The same iOS-inspired arrow rail as the IME, with a spring back on abort. */
 @Composable
-private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
+fun SlideActionRail(
+    label: String,
+    onConfirmed: () -> Unit,
+    onDragStateChanged: (Boolean) -> Unit = {},
+) {
     val latestConfirmed by rememberUpdatedState(onConfirmed)
+    val latestDragState by rememberUpdatedState(onDragStateChanged)
     val density = LocalDensity.current
     val palette = MaterialTheme.colorScheme
     val railHeight = 55.dp
@@ -73,6 +79,9 @@ private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
     var offset by remember { mutableFloatStateOf(0f) }
     var armed by remember { mutableStateOf(false) }
     var dragging by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) {
+        onDispose { latestDragState(false) }
+    }
     val animated by animateFloatAsState(offset,
         animationSpec = spring(dampingRatio = .76f, stiffness = 440f), label = "slide-position")
     BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 18.dp, bottom = 3.dp)) {
@@ -92,6 +101,7 @@ private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
                         onDragStart = { point: Offset ->
                             armed = point.x <= thumbPx + 12.dp.toPx()
                             dragging = armed
+                            latestDragState(armed)
                             offset = 0f
                         },
                         onDrag = { change, drag ->
@@ -103,11 +113,13 @@ private fun SlideActionRail(label: String, onConfirmed: () -> Unit) {
                                 false, if (travel > 0f) offset / travel else 0f)
                             armed = false
                             dragging = false
+                            latestDragState(false)
                             if (confirm) latestConfirmed() else offset = 0f
                         },
                         onDragCancel = {
                             armed = false
                             dragging = false
+                            latestDragState(false)
                             offset = 0f
                         },
                     )

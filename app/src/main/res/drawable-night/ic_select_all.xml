@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); checkbox-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M 352 176 L 217.6 336 L 160 272" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M112 64 H400 A48 48 0 0 1 448 112 V400 A48 48 0 0 1 400 448 H112 A48 48 0 0 1 64 400 V112 A48 48 0 0 1 112 64 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

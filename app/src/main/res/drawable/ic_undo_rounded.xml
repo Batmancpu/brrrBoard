@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard rounded Undo glyph; SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M8.7,5.9 L3.8,10.35 L8.7,14.8 M4.4,10.35 H13.9 Q19.9,10.35 19.9,16.1 Q19.9,18.9 17.65,20" />
+<!-- Icon geometry: Ionicons (MIT); arrow-undo-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M240,424V328c116.4,0,159.39,33.76,208,96,0-119.23-39.57-240-208-240V88L64,256Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

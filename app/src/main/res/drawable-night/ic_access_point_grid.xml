@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); grid-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M68 48 H204 A20 20 0 0 1 224 68 V204 A20 20 0 0 1 204 224 H68 A20 20 0 0 1 48 204 V68 A20 20 0 0 1 68 48 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M308 48 H444 A20 20 0 0 1 464 68 V204 A20 20 0 0 1 444 224 H308 A20 20 0 0 1 288 204 V68 A20 20 0 0 1 308 48 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M68 288 H204 A20 20 0 0 1 224 308 V444 A20 20 0 0 1 204 464 H68 A20 20 0 0 1 48 444 V308 A20 20 0 0 1 68 288 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M308 288 H444 A20 20 0 0 1 464 308 V444 A20 20 0 0 1 444 464 H308 A20 20 0 0 1 288 444 V308 A20 20 0 0 1 308 288 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

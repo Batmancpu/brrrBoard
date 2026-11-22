@@ -1,13 +1,8 @@
-<!--
-    icon from pictogrammers.com
-    SPDX-License-Identifier: Apache-2.0
--->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="32dp"
-    android:width="32dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFF"
-        android:pathData="M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M15.5,8A1.5,1.5 0 0,1 17,9.5A1.5,1.5 0 0,1 15.5,11A1.5,1.5 0 0,1 14,9.5A1.5,1.5 0 0,1 15.5,8M8.5,8A1.5,1.5 0 0,1 10,9.5A1.5,1.5 0 0,1 8.5,11A1.5,1.5 0 0,1 7,9.5A1.5,1.5 0 0,1 8.5,8M12,17.5C9.67,17.5 7.69,16.04 6.89,14H17.11C16.3,16.04 14.33,17.5 12,17.5Z"/>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); happy-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M160 232 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M256.05,384c-45.42,0-83.62-29.53-95.71-69.83A8,8,0,0,1,168.16,304H343.85a8,8,0,0,1,7.82,10.17C339.68,354.47,301.47,384,256.05,384Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M304 232 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M48 256 a208 208 0 1 0 416 0 a208 208 0 1 0 -416 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

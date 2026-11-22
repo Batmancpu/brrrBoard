@@ -82,13 +82,15 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("actions/upload-artifact@v4", debug)
         self.assertNotIn("gh release create", debug)
         self.assertIn('bundle_voice_model:', release)
+        self.assertIn('bundle_ultra_model:', release)
         self.assertIn('default: false', release)
-        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model", release)
+        self.assertIn("inputs.bundle_voice_model", release)
+        self.assertIn("inputs.bundle_ultra_model", release)
+        self.assertIn("tools/offline-ultra-voice-model.lock", release)
         self.assertIn(prep, release)
-        self.assertNotIn('bundle_ultra_test_model:', release)
-        self.assertNotIn("prepare-ultra-voice-pack.sh", release)
-        self.assertNotIn("BUNDLE_ULTRA", release)
-        self.assertIn(f'{verify} "$apk" "$BUNDLE_VOICE"', release)
+        self.assertIn("bash tools/prepare-ultra-voice-pack.sh", release)
+        self.assertIn("BUNDLE_MODE", release)
+        self.assertIn(f'{verify} "$apk" "$BUNDLE_MODE"', release)
 
         installer = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceModelInstaller.kt")
         # No-build-weight updates must retain the pinned, already verified copy.
@@ -128,6 +130,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         recognizer = self.read("app/src/main/java/helium314/keyboard/latin/voice/OfflineVoiceEngine.kt")
         gate = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceNoiseProfile.kt")
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        voice_settings = self.read("app/src/main/java/helium314/keyboard/settings/screens/FocusedSettingsScreens.kt")
         mic = self.read("app/src/main/java/helium314/keyboard/latin/KeyboardPcmAudioSource.kt")
         self.assertIn("assetManager = context.assets", enhancer)
         # Native denoiser must still never initialize in LatinIME's shared
@@ -135,12 +138,15 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertNotIn("PrivateGtcrnDenoiser(", recognizer)
         self.assertNotIn("enhanceIfNoisy(", recognizer)
         self.assertIn("shouldDenoise(samples: FloatArray)", gate)
-        self.assertIn("brrClean native GTCRN (isolated process)", dashboard)
+        self.assertIn("Voice cleaning · brrClean", voice_settings)
+        self.assertIn("VoiceNoiseChoice.isCleaningEnabled", voice_settings)
+        self.assertIn("VoiceNoiseChoice.setCleaningEnabled", voice_settings)
+        self.assertNotIn("brrClean native GTCRN (isolated process)", dashboard)
         self.assertNotIn("microphone.routedDevice", mic)
         # Both platform effect state and actual native success/fallback counters
         # are observable; only the service callback may count native successes.
-        self.assertIn("voiceNoise.platformNoiseSuppression", dashboard)
-        self.assertIn("voiceNoise.enhancedWindows", dashboard)
+        self.assertNotIn("voiceNoise.platformNoiseSuppression", dashboard)
+        self.assertNotIn("voiceNoise.enhancedWindows", dashboard)
         self.assertIn("VoiceDenoiseMetrics.enhanced", self.read(
             "app/src/main/java/helium314/keyboard/latin/voice/BrrCleanVoiceBridge.kt"))
         # Only the phone's built-in mic may be preferred on the live keyboard.
@@ -167,6 +173,10 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         report = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceNativeCrashProbe.kt")
         child_code = self.read("app/src/main/java/helium314/keyboard/latin/voice/GtcrnProbeService.kt")
         dashboard = self.read("app/src/main/java/helium314/keyboard/settings/screens/BrainDashboardScreen.kt")
+        checkup = ROOT / "app/src/main/java/helium314/keyboard/settings/screens/DeviceCheckupScreen.kt"
+        checkup_report = ROOT / "app/src/main/java/helium314/keyboard/settings/screens/DeviceCheckupReport.kt"
+        settings_routes = self.read("app/src/main/java/helium314/keyboard/settings/SettingsNavHost.kt")
+        settings_home = self.read("app/src/main/java/helium314/keyboard/settings/screens/MainSettingsScreen.kt")
         self.assertIn("noBackupFilesDir", report)
         self.assertIn("getHistoricalProcessExitReasons", report)
         self.assertIn("AtomicFile", report)
@@ -176,8 +186,12 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("MAX_PROBE_DURATION_MS", child_code)
         self.assertIn("MODE_IN_COMMUNICATION", report)
         self.assertIn("FloatArray(16_000)", child_code)
-        self.assertIn("Run one private check", dashboard)
-        self.assertIn("Copy safe result", dashboard)
+        self.assertFalse(checkup.exists())
+        self.assertFalse(checkup_report.exists())
+        self.assertNotIn("DeviceCheckup", settings_routes)
+        self.assertNotIn("Device Checkup", settings_home)
+        self.assertNotIn("Run one private check", dashboard)
+        self.assertNotIn("Copy safe result", dashboard)
         # Never ingest a microphone or dump/tombstone/stack raw payload.
         for bad in ("getTraceInputStream(", "getDescription(", "readAudio(", "MediaRecorder",
                     "AudioRecord(", "recording.wav", "HttpURLConnection", "Socket("):
@@ -209,7 +223,7 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("noBackupFilesDir", report)
         self.assertIn("getHistoricalProcessExitReasons", report)
         self.assertIn("AtomicFile", report)
-        self.assertIn("VoiceSessionCrashTrail.arm(context)", dashboard)
+        self.assertNotIn("VoiceSessionCrashTrail.arm(context)", dashboard)
         self.assertIn("VoiceSessionCrashTrail.begin(ime)", controller)
         self.assertIn('"ASR_LOADING"', model)
         self.assertIn('"ASR_READY"', model)
@@ -234,7 +248,9 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("NoiseSuppressor.isAvailable()", effect)
         self.assertIn("NoiseSuppressor.create(recorder.audioSessionId)", effect)
         self.assertIn("MODE_IN_COMMUNICATION", effect)
-        self.assertIn("Current blue-mic engine:", dashboard)
+        voice_settings = self.read("app/src/main/java/helium314/keyboard/settings/screens/FocusedSettingsScreens.kt")
+        self.assertIn("Voice cleaning · brrClean", voice_settings)
+        self.assertNotIn("Current blue-mic engine:", dashboard)
         self.assertIn("brrClean", self.read("app/src/main/java/helium314/keyboard/settings/screens/VoiceNoiseLabScreen.kt"))
         self.assertNotIn("PrivateGtcrnDenoiser", source)
         self.assertNotIn("PrivateGtcrnDenoiser", effect)

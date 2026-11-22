@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M7,3.5 H17 V5.1 H21 V9.3 Q21,13.2 17.05,13.5 C16.4,15.1 15.15,16.3 13,16.65 V19.2 H16.4 V21.45 H7.6 V19.2 H11 V16.65 C8.85,16.3 7.6,15.1 6.95,13.5 Q3,13.2 3,9.3 V5.1 H7 Z M5.2,7.1 V9.3 Q5.2,10.7 6.75,11.15 V7.1 Z M17.25,7.1 V11.15 Q18.8,10.7 18.8,9.3 V7.1 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M12 2.8 A9.2 9.2 0 1 0 12 21.2 A9.2 9.2 0 1 0 12 2.8" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M12 5.9 L7.2 9.3 L9 14.8 H15 L16.8 9.3 Z M7.2 9.3 L3.5 8 M16.8 9.3 L20.5 8 M9 14.8 L7.3 19.8 M15 14.8 L16.7 19.8" />
 </vector>

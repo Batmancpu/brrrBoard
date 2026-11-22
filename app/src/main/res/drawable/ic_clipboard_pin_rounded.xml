@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original B07V Apple-inspired rounded glyph, not Apple artwork.
-     SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.65" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M8,3.8 H16 M9,3.8 V8.8 C9,10.2 8.4,11.3 7.4,12.3 L6,13.5 H18 L16.6,12.3 C15.6,11.3 15,10.2 15,8.8 V3.8 M12,13.6 V21.3" />
+<!-- Icon geometry: Ionicons (MIT); pin-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M192 96 a64 64 0 1 0 128 0 a64 64 0 1 0 -128 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M272,164a9,9,0,0,0-9-9H249a9,9,0,0,0-9,9V457.56a32.09,32.09,0,0,0,2.49,12.38l10.07,24a3.92,3.92,0,0,0,6.88,0l10.07-24A32.09,32.09,0,0,0,272,457.56Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M256 72 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z" android:fillColor="#FF252B36"/>
 </vector>

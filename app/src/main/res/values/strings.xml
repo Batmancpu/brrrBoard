@@ -22,6 +22,8 @@
     <string name="vibrate_on_keypress">Vibrate on keypress</string>
     <!-- Option to provide vibrate/haptic feedback on keypress even in do not disturb mode -->
     <string name="vibrate_in_dnd_mode">Vibrate in do not disturb mode</string>
+    <string name="important_haptics_in_dnd">Important haptics only in Do Not Disturb</string>
+    <string name="important_haptics_in_dnd_summary">Suppress key taps and gesture ticks; keep quiet confirmations for privacy mode changes and confirmed history clears.</string>
     <!-- Option to play back sound on keypress in soft keyboard -->
     <string name="sound_on_keypress">Sound on keypress</string>
     <!-- Option to suggest emojis -->

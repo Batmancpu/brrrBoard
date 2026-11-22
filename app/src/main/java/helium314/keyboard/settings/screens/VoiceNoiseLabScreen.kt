@@ -2,8 +2,6 @@
 package helium314.keyboard.settings.screens
 
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.compose.material3.AlertDialog
@@ -38,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.VoiceModelChoice
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
 import helium314.keyboard.latin.voice.VoiceNoiseLab
 import helium314.keyboard.latin.voice.VoiceNoiseMode
@@ -64,7 +63,6 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
     }
     var showUltraInstallConfirm by remember { mutableStateOf(false) }
     var ultraInstallMessage by remember { mutableStateOf<String?>(null) }
-    var resultCopyMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var permissionPending by remember { mutableStateOf<VoiceNoiseLab.Key?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -78,6 +76,9 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
     val key = VoiceNoiseLab.Key(input, mode)
     val take = state.takes.firstOrNull()
     val oldModelInstalled = remember(refresh / 3) { VoiceModelInstaller.isInstalled(context) }
+    val ultraBundled = remember(context) {
+        VoiceModelInstaller.hasBundled(context, UltraVoiceModelManifest.pack)
+    }
     val busy = state.recording || state.playing || state.decoding || state.enhancing
     val palette = MaterialTheme.colorScheme
 
@@ -97,24 +98,21 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Text("Suppression for blue-mic dictation and this lab",
+            Text("Noise-reduction comparison mode",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("OFF is raw microphone, Android is device capture-time filtering, and brrClean is our APK-bundled native GTCRN. Blue mic captures once; Parakeet 110M transcribes offline.",
+            Text("OFF is raw microphone, Android is device capture-time filtering, and brrClean is native GTCRN. Mode buttons affect only this lab. Keyboard dictation uses the model selected under Everyday tools → Offline voice.",
                 style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
                     mode = VoiceNoiseMode.OFF
-                    VoiceNoiseChoice.select(context, mode)
                     lab.clear()
                 }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.OFF) "✓ OFF" else "OFF") }
                 OutlinedButton(onClick = {
                     mode = VoiceNoiseMode.ANDROID
-                    VoiceNoiseChoice.select(context, mode)
                     lab.clear()
                 }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.ANDROID) "✓ Android" else "Android") }
                 OutlinedButton(onClick = {
                     mode = VoiceNoiseMode.GTCRN
-                    VoiceNoiseChoice.select(context, mode)
                     lab.clear()
                 }, enabled = !busy) { Text(if (mode == VoiceNoiseMode.GTCRN) "✓ brrClean" else "brrClean") }
             }
@@ -132,8 +130,9 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         VoiceNoiseMode.GTCRN -> "Android's optional effect is OFF. Native C++ GTCRN processes a copy in a separate crash-contained process. If it fails, Parakeet receives untouched speech. Maximum 12 seconds; longer dictation safely bypasses it."
                     },
                         style = MaterialTheme.typography.bodySmall)
-                    Text(if (VoiceModelInstaller.isInstalled(context)) "Offline ASR model: installed"
-                        else "Offline ASR model: install needed for scoring",
+                    Text(VoiceModelChoice.active(context)?.let { pack ->
+                        "Keyboard model: ${if (pack.id == UltraVoiceModelManifest.ID) "Ultra 0.6B" else "110M"} · installed"
+                    } ?: "Offline ASR model: install needed for scoring",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -147,6 +146,9 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                 OutlinedButton(onClick = { input = VoiceNoiseLab.Input.EARBUDS; lab.clear() },
                     enabled = !busy) { Text(if (input == VoiceNoiseLab.Input.EARBUDS) "✓ Earbuds mic" else "Earbuds mic") }
             }
+            Text("Noise mode selection applies to this lab trial only; the keyboard's brrClean preference stays unchanged.",
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.onSurfaceVariant)
             if (input == VoiceNoiseLab.Input.EARBUDS) Text(
                 "Connect your Nirvana Ion. Android must activate its communication mic route. Rejected, silenced, unverified or mismatched audio will be discarded, never called an earbuds recording.",
                 style = MaterialTheme.typography.bodySmall)
@@ -208,9 +210,6 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                     if (take.transcript != null || take.enhancedTranscript != null)
                         Text("WER assumes you spoke the displayed phrase exactly.",
                             style = MaterialTheme.typography.bodySmall)
-                    val ultraBundled = remember(context) {
-                        VoiceModelInstaller.hasBundled(context, UltraVoiceModelManifest.pack)
-                    }
                     val ultraInstalled = remember(refresh / 3) {
                         VoiceModelInstaller.isInstalled(context, UltraVoiceModelManifest.pack)
                     }
@@ -220,7 +219,7 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                     Text("Parakeet Ultra 0.6B · optional side-by-side test" +
                         if (ultraInstalled) " · installed" else if (ultraBundled) " · available in this update" else " · not bundled",
                         fontWeight = FontWeight.SemiBold)
-                    Text("Ultra stays test-only; blue-mic dictation continues using the existing 110M model. Comparison runs offline, cold and one model at a time, on this exact recording.",
+                    Text("Keyboard dictation uses ${VoiceModelChoice.active(context)?.let { if (it.id == UltraVoiceModelManifest.ID) "Ultra 0.6B" else "110M" } ?: "no installed model"}. Comparison runs both models offline, cold and one at a time on this exact recording.",
                         style = MaterialTheme.typography.bodySmall)
                     if (installProgress.state == VoiceModelInstaller.InstallState.INSTALLING) {
                         LinearProgressIndicator(progress = { installProgress.percent / 100f }, modifier = Modifier.fillMaxWidth())
@@ -252,34 +251,20 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         comparison.failure?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                         Text("WER is measured against the editable reference; lower is better. Load, decode and total times are milliseconds. RTF is total time ÷ audio duration; lower is faster. Peak memory is sampled process PSS.",
                             style = MaterialTheme.typography.bodySmall)
-                        OutlinedButton(onClick = {
-                            val old = comparison.current110m
-                            val ultra = comparison.ultra
-                            val report = buildString {
-                                appendLine("brrBoard offline Parakeet A/B")
-                                appendLine("Reference: ${comparison.reference}")
-                                appendLine("Audio: ${take.durationMs} ms; first decoded: ${comparison.firstDecoded}")
-                                if (old != null) appendLine("110M: ${old.transcript} | WER ${old.wordErrorPercent ?: "—"}% | load ${old.modelLoadMs} ms | decode ${old.decodeMs} ms | engine total ${old.totalMs} ms | wall ${old.wallMs} ms | peak PSS ${old.peakPssKb / 1024} MiB")
-                                if (ultra != null) appendLine("Ultra 0.6B: ${ultra.transcript} | WER ${ultra.wordErrorPercent ?: "—"}% | load ${ultra.modelLoadMs} ms | decode ${ultra.decodeMs} ms | engine total ${ultra.totalMs} ms | wall ${ultra.wallMs} ms | peak PSS ${ultra.peakPssKb / 1024} MiB")
-                                comparison.failure?.let { appendLine("Result: $it") }
-                            }
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Parakeet A/B result", report))
-                            resultCopyMessage = "Transcripts and metrics copied. Audio was not copied."
-                        }) { Text("Copy comparison results") }
-                        resultCopyMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
             }
             OutlinedButton(onClick = lab::clear, enabled = !busy) { Text("Erase this trial") }
-            Text("Privacy: recordings and transcripts stay in volatile memory and are wiped when leaving. No audio files, cloud, audio logs or second microphones. Copy comparison results is the only action that places transcript text on the system clipboard; it never copies audio. GTCRN runs in an isolated child with a hard timeout; on failure, original audio remains available. Calls block capture. Playback follows Android's selected output.",
+            Text("Privacy: recordings and transcripts stay in volatile memory and are wiped when leaving. No audio files, cloud, audio logs or second microphones. Results are displayed on screen and are never copied automatically. GTCRN runs in an isolated child with a hard timeout; on failure, original audio remains available. Calls block capture. Playback follows Android's selected output.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
     if (showUltraInstallConfirm) AlertDialog(
         onDismissRequest = { showUltraInstallConfirm = false },
         title = { Text("Install Parakeet Ultra test model?") },
-        text = { Text("This optional model uses about 640 MiB of private storage after installation. The model is already inside this app update; no download or audio upload occurs. It will not replace or remove the existing 110M model. Installation verifies every file hash and leaves the old model intact if there is not enough space.") },
+        text = { Text(if (ultraBundled)
+            "This optional model uses about 640 MiB of private storage after installation. Its verified assets are inside this update; no download or audio upload occurs. It will not replace or remove the 110M model."
+            else "This lightweight update does not include Ultra model files and will not download them. If Ultra is already verified in private app storage, it remains available after updates.") },
         confirmButton = { TextButton(onClick = {
             showUltraInstallConfirm = false
             scope.launch {

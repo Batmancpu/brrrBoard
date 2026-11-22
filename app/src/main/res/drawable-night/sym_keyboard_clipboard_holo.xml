@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); clipboard-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M336,64h32a48,48,0,0,1,48,48V432a48,48,0,0,1-48,48H144a48,48,0,0,1-48-48V112a48,48,0,0,1,48-48h32" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M202.13 32 H309.87 A26.13 26.13 0 0 1 336 58.13 V69.87 A26.13 26.13 0 0 1 309.87 96 H202.13 A26.13 26.13 0 0 1 176 69.87 V58.13 A26.13 26.13 0 0 1 202.13 32 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

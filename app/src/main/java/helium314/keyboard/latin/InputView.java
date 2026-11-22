@@ -14,20 +14,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
-import android.view.ViewTreeObserver;
 import android.view.VelocityTracker;
 import android.widget.FrameLayout;
 
 import androidx.core.view.ViewKt;
 import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import helium314.keyboard.accessibility.AccessibilityUtils;
-import helium314.keyboard.keyboard.Key;
-import helium314.keyboard.keyboard.Keyboard;
 import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.MainKeyboardView;
-import helium314.keyboard.keyboard.emoji.EmojiPageKeyboardView;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.suggestions.MoreSuggestionsView;
@@ -55,7 +50,6 @@ public final class InputView extends FrameLayout {
     private float mToolbarDownX;
     private float mToolbarDownY;
     private VelocityTracker mToolbarVelocity;
-    private ViewTreeObserver.OnPreDrawListener mEmojiGeometryProbe;
 
     public InputView(final Context context, final AttributeSet attrs) {
         super(context, attrs, 0);
@@ -138,203 +132,6 @@ public final class InputView extends FrameLayout {
 
     public void refreshBoardPrivacy() {
         if (mFooter != null) mFooter.refreshPrivacyState();
-    }
-
-    /** One-shot, content-free device geometry for the unresolved ColorOS top band.
-     * No editor identity, typed text, clipboard, audio, or Emoji usage is recorded.
-     * A pre-draw sample observes the actual post-transition layout, not a stale
-     * pre-measure height captured when the alphabet was still visible.
-     */
-    public void reportNextEmojiGeometry() {
-        final ViewTreeObserver observer = getViewTreeObserver();
-        if (!observer.isAlive()) return;
-        if (mEmojiGeometryProbe != null) observer.removeOnPreDrawListener(mEmojiGeometryProbe);
-        mEmojiGeometryProbe = new ViewTreeObserver.OnPreDrawListener() {
-            @Override public boolean onPreDraw() {
-                final ViewTreeObserver live = getViewTreeObserver();
-                if (live.isAlive()) live.removeOnPreDrawListener(this);
-                mEmojiGeometryProbe = null;
-                final View emoji = findViewById(R.id.emoji_palettes_view);
-                if (emoji == null || emoji.getVisibility() != VISIBLE) return true;
-                final StringBuilder dimensions = new StringBuilder("geometry-only");
-                appendGeometry(dimensions, "decor", getRootView());
-                appendGeometry(dimensions, "inputArea", getRootView().findViewById(android.R.id.inputArea));
-                appendGeometry(dimensions, "input", InputView.this);
-                appendGeometry(dimensions, "frame", findViewById(R.id.main_keyboard_frame));
-                appendGeometry(dimensions, "strip", findViewById(R.id.strip_container));
-                appendGeometry(dimensions, "wrapper", findViewById(R.id.keyboard_view_wrapper));
-                appendGeometry(dimensions, "emoji", emoji);
-                appendGeometry(dimensions, "shell", findViewById(R.id.emoji_grid_shell));
-                appendVisibility(dimensions, "searchBarVisibility",
-                        findViewById(R.id.emoji_search_bar_container));
-                appendVisibility(dimensions, "searchResultsVisibility",
-                        findViewById(R.id.emoji_search_results_scroll));
-                appendVisibility(dimensions, "searchEmptyVisibility",
-                        findViewById(R.id.emoji_search_empty));
-                appendVisibility(dimensions, "smartSectionVisibility",
-                        findViewById(R.id.emoji_context_smart_section));
-                final View pager = findViewById(R.id.emoji_pager);
-                appendGeometry(dimensions, "pager", pager);
-                appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
-                final View firstRow = findFirstEmojiRow(pager);
-                appendGeometry(dimensions, "firstEmojiRow", firstRow);
-                appendFirstEmojiKeyBand(dimensions, firstRow);
-                appendGeometry(dimensions, "footer", findViewById(R.id.board_footer));
-                appendWindowInsets(dimensions, getRootView());
-                dimensions.append(" orientation=")
-                        .append(getResources().getConfiguration().orientation)
-                        .append(" density=")
-                        .append(getResources().getDisplayMetrics().density)
-                        .append(" panelSearch=")
-                        .append(((helium314.keyboard.keyboard.emoji.EmojiPalettesView) emoji)
-                                .isSearchMode())
-                        .append(" keyboardState=")
-                        .append(KeyboardSwitcher.getInstance().getKeyboardSwitchState().name())
-                        .append(" toolbarMode=")
-                        .append(Settings.getValues().mToolbarMode.name());
-                final View frame = findViewById(R.id.main_keyboard_frame);
-                if (frame != null) {
-                    dimensions.append(" framePadding=")
-                            .append(frame.getPaddingLeft()).append(',')
-                            .append(frame.getPaddingTop()).append(',')
-                            .append(frame.getPaddingRight()).append(',')
-                            .append(frame.getPaddingBottom());
-                }
-                EmojiGeometryReport.record(getContext(), dimensions.toString());
-                android.util.Log.i("BrrImeBounds", dimensions.toString());
-                return true;
-            }
-        };
-        observer.addOnPreDrawListener(mEmojiGeometryProbe);
-    }
-
-    /** Returns only the bounds of the visible row view; never reads Emoji text or keys. */
-    private static View findFirstEmojiRow(final View pager) {
-        if (pager == null) return null;
-        final View row = pager.findViewById(R.id.emoji_keyboard_page);
-        return row != null && row.getVisibility() == VISIBLE ? row : null;
-    }
-
-    /** Reports the drawn first-key band only; key labels and Emoji values are never inspected. */
-    private static void appendFirstEmojiKeyBand(final StringBuilder report, final View row) {
-        report.append(" firstKeyBand=");
-        if (!(row instanceof EmojiPageKeyboardView)) {
-            report.append("unavailable");
-            return;
-        }
-        final Keyboard keyboard = ((EmojiPageKeyboardView) row).getKeyboard();
-        if (keyboard == null || keyboard.getSortedKeys().isEmpty()) {
-            report.append("unavailable");
-            return;
-        }
-        int top = Integer.MAX_VALUE;
-        int bottom = Integer.MIN_VALUE;
-        int left = Integer.MAX_VALUE;
-        int right = Integer.MIN_VALUE;
-        for (final Key key : keyboard.getSortedKeys()) {
-            if (key.getWidth() <= 0 || key.getHeight() <= 0) continue;
-            final int keyTop = key.getY();
-            if (keyTop < top) {
-                top = keyTop;
-                bottom = keyTop + key.getHeight();
-                left = key.getX();
-                right = key.getX() + key.getWidth();
-            } else if (keyTop == top) {
-                bottom = Math.max(bottom, keyTop + key.getHeight());
-                left = Math.min(left, key.getX());
-                right = Math.max(right, key.getX() + key.getWidth());
-            }
-        }
-        if (top == Integer.MAX_VALUE) {
-            report.append("empty");
-            return;
-        }
-        final int[] location = new int[2];
-        row.getLocationOnScreen(location);
-        final int screenTop = location[1] + row.getPaddingTop() + top;
-        report.append(location[0] + row.getPaddingLeft() + left).append(',')
-                .append(screenTop).append(':').append(right - left).append('x')
-                .append(bottom - top).append(" localTop=").append(top)
-                .append(" viewPaddingTop=").append(row.getPaddingTop())
-                .append(" keyboardTopPadding=").append(keyboard.mTopPadding)
-                .append(" verticalGap=").append(keyboard.mVerticalGap);
-    }
-
-    private static void appendGeometry(final StringBuilder report, final String label,
-            final View view) {
-        report.append(' ').append(label).append('=');
-        if (view == null) { report.append("absent"); return; }
-        if (view.getVisibility() != VISIBLE) { report.append("hidden"); return; }
-        final int[] location = new int[2];
-        view.getLocationOnScreen(location);
-        report.append(location[0]).append(',').append(location[1])
-                .append(':').append(view.getWidth()).append('x').append(view.getHeight())
-                .append(" measured=").append(view.getMeasuredWidth()).append('x')
-                .append(view.getMeasuredHeight()).append(" localY=").append(view.getY())
-                .append(" translationY=").append(view.getTranslationY())
-                .append(" scrollY=").append(view.getScrollY())
-                .append(" padding=").append(view.getPaddingLeft()).append(',')
-                .append(view.getPaddingTop()).append(',').append(view.getPaddingRight())
-                .append(',').append(view.getPaddingBottom());
-        final View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
-        if (parent != null) {
-            report.append(" parent=").append(parent.getWidth()).append('x')
-                    .append(parent.getHeight()).append(" parentPadding=")
-                    .append(parent.getPaddingLeft()).append(',').append(parent.getPaddingTop())
-                    .append(',').append(parent.getPaddingRight()).append(',')
-                    .append(parent.getPaddingBottom());
-        }
-        final ViewGroup.LayoutParams params = view.getLayoutParams();
-        if (params != null) {
-            report.append(" layout=").append(params.width).append('x').append(params.height);
-            if (params instanceof ViewGroup.MarginLayoutParams) {
-                final ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) params;
-                report.append(" margins=").append(margins.leftMargin).append(',')
-                        .append(margins.topMargin).append(',').append(margins.rightMargin)
-                        .append(',').append(margins.bottomMargin);
-            }
-        }
-    }
-
-    /** Fixed geometry-probe states only; this never reads view text or content. */
-    private static void appendVisibility(final StringBuilder report, final String label,
-            final View view) {
-        report.append(' ').append(label).append('=');
-        if (view == null) {
-            report.append("unavailable");
-            return;
-        }
-        switch (view.getVisibility()) {
-            case View.VISIBLE: report.append("visible"); break;
-            case View.INVISIBLE: report.append("invisible"); break;
-            default: report.append("gone"); break;
-        }
-    }
-
-    private static void appendWindowInsets(final StringBuilder report, final View root) {
-        final WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(root);
-        report.append(" windowInsets");
-        if (insets == null) {
-            report.append("=absent");
-            return;
-        }
-        final androidx.core.graphics.Insets bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars());
-        final androidx.core.graphics.Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
-        final androidx.core.graphics.Insets gestures = insets.getInsets(
-                WindowInsetsCompat.Type.systemGestures());
-        report.append("=bars:").append(bars.top).append(',').append(bars.bottom)
-                .append(" ime=").append(ime.top).append(',').append(ime.bottom)
-                .append(" gestures=").append(gestures.top).append(',').append(gestures.bottom);
-    }
-
-    @Override protected void onDetachedFromWindow() {
-        if (mEmojiGeometryProbe != null) {
-            final ViewTreeObserver observer = getViewTreeObserver();
-            if (observer.isAlive()) observer.removeOnPreDrawListener(mEmojiGeometryProbe);
-            mEmojiGeometryProbe = null;
-        }
-        super.onDetachedFromWindow();
     }
 
     @Override

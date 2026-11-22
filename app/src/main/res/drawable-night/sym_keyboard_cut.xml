@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); cut-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M48 152 a56 56 0 1 0 112 0 a56 56 0 1 0 -112 0 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M48 360 a56 56 0 1 0 112 0 a56 56 0 1 0 -112 0 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M157,175,146,190,183,205s3.46-6.42,7-10Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="square" android:strokeLineJoin="round"/>
+    <path android:pathData="M154.17,334.43,460,162c-2.5-6.7-28-12-64-4-29.12,6.47-121.16,29.05-159.16,56.05C205.85,236.06,227,272,192,298c-25.61,19-44.43,22.82-44.43,22.82Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M344.47,278.24,295,306.67c14.23,6.74,65.54,33.27,117,36.33,14.92.89,30,.39,39-6Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M224 240 a32 32 0 1 0 64 0 a32 32 0 1 0 -64 0 Z" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

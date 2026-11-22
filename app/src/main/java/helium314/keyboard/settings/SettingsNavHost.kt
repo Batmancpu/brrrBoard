@@ -78,7 +78,6 @@ fun SettingsNavHost(
         composable(SettingsDestination.Settings) {
             MainSettingsScreen(
                 onClickAbout = { navController.navigate(SettingsDestination.About) },
-                onClickTextCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
                 onClickPreferences = { navController.navigate(SettingsDestination.Preferences) },
                 onClickToolbar = { navController.navigate(SettingsDestination.Toolbar) },
                 onClickGestureTyping = { navController.navigate(SettingsDestination.GestureTyping) },
@@ -115,7 +114,12 @@ fun SettingsNavHost(
         composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
-        composable(SettingsDestination.Voice) { VoiceSettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Voice) {
+            VoiceSettingsScreen(
+                onClickBack = ::goBack,
+                onOpenVoiceLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) },
+            )
+        }
         composable(SettingsDestination.Toolbar) {
             ToolbarScreen(onClickBack = ::goBack)
         }
@@ -123,8 +127,10 @@ fun SettingsNavHost(
             GestureTypingScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.BrainDashboard) {
-            BrainDashboardScreen(onClickBack = ::goBack,
-                onOpenVoiceNoiseLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) })
+            BrainDashboardScreen(
+                onClickBack = ::goBack,
+                onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
+            )
         }
         composable(SettingsDestination.VoiceNoiseLab) {
             VoiceNoiseLabScreen(onClickBack = ::goBack)

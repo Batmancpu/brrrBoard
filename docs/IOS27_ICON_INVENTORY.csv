@@ -1,0 +1,222 @@
+current_resource,purpose,ios27_sf_symbol_concept,new_design_family,source_tag,status,reference_count,referenced_in,pass1_source_resource,pass2_code_ref,pass3_keyboard_map
+app/src/main/res/drawable/ic_access_point_grid.xml,access point grid,square.grid.2x2,toolbar,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_ai_tools.xml,ai tools,ai,ai,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_arrow_back.xml,arrow back,left,left,vector,new_vector,4,app/src/main/res/layout/ai_writing_tools_view.xml | app/src/main/res/layout/clipboard_history_view.xml | app/src/main/res/layout/emoji_palettes_view.xml | app/src/main/res/layout/klipy_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/ic_arrow_back_rounded.xml,arrow back rounded,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/latin/utils/Icons.kt,yes,yes,no
+app/src/main/res/drawable/ic_arrow_horizontal.xml,arrow horizontal,horizontal.arrow,horizontal_arrow,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_arrow_horizontal_rounded.xml,arrow horizontal rounded,horizontal.arrow,horizontal_arrow,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_arrow_left.xml,arrow left,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_arrow_left_rounded.xml,arrow left rounded,left,left,vector,new_vector,4,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/utils/Icons.kt | app/src/main/java/helium314/keyboard/settings/WelcomeWizard.kt | app/src/main/java/helium314/keyboard/settings/preferences/Preference.kt,yes,yes,yes
+app/src/main/res/drawable/ic_arrow_right.xml,arrow right,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_arrow_right_rounded.xml,arrow right rounded,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_autocorrect.xml,autocorrect,textformat.abc.dottedunderline,autocorrect,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_autocorrect_rounded.xml,autocorrect rounded,textformat.abc.dottedunderline,autocorrect,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_back_circle.xml,back circle,left,left,ripple,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_bin.xml,bin,trash,trash,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_bin_rounded.xml,bin rounded,trash,trash,vector,new_vector,4,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/utils/Icons.kt | app/src/main/java/helium314/keyboard/settings/screens/SubtypeScreen.kt | app/src/main/java/helium314/keyboard/settings/screens/gesturedata/GestureDataScreen.kt,yes,yes,yes
+app/src/main/res/drawable/ic_board_abc.xml,board abc,textformat.abc,abc,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/latin/BoardFooterView.kt,yes,yes,no
+app/src/main/res/drawable/ic_board_emoji.xml,board emoji,face.smiling,smile,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/res/layout/main_keyboard_frame.xml,yes,yes,no
+app/src/main/res/drawable/ic_board_mic.xml,board mic,mic,mic,vector,retained_existing_semantics,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/res/layout/main_keyboard_frame.xml,yes,yes,no
+app/src/main/res/drawable/ic_board_password_key.xml,board password key,key,key,vector,new_vector,1,app/src/main/res/layout/main_keyboard_frame.xml,yes,yes,no
+app/src/main/res/drawable/ic_board_toolbar.xml,board toolbar,square.grid.2x2,toolbar,vector,new_vector,4,app/src/main/java/helium314/keyboard/latin/BoardFooterView.kt | app/src/main/java/helium314/keyboard/latin/suggestions/SuggestionStripView.kt | app/src/main/java/helium314/keyboard/settings/screens/MainSettingsScreen.kt | app/src/main/res/layout/suggestions_strip.xml,yes,yes,no
+app/src/main/res/drawable/ic_brr_clipboard.xml,brr clipboard,clipboard,clipboard,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/BoardFooterView.kt,yes,yes,no
+app/src/main/res/drawable/ic_brr_delete.xml,brr delete,delete.left,delete,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_brr_globe.xml,brr globe,globe,globe,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_brr_issue.xml,brr issue,exclamationmark.triangle,warning,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_brr_return.xml,brr return,return.left,return,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/ic_brr_search.xml,brr search,magnifyingglass,search,vector,new_vector,3,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/utils/Icons.kt | app/src/main/res/layout/emoji_palettes_view.xml,yes,yes,yes
+app/src/main/res/drawable/ic_brr_star.xml,brr star,star.fill,star,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_check_bold.xml,check bold,checkmark,check,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/WelcomeWizard.kt,yes,yes,no
+app/src/main/res/drawable/ic_check_small.xml,check small,checkmark,check,vector,new_vector,1,app/src/main/res/layout/item_ai_output.xml,yes,yes,no
+app/src/main/res/drawable/ic_chevron_down.xml,chevron down,chevron.down,chevron_down,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_chevron_down_rounded.xml,chevron down rounded,chevron.down,chevron_down,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/WelcomeWizard.kt,yes,yes,no
+app/src/main/res/drawable/ic_clipboard_pin_holo_dark.xml,clipboard pin holo dark,pin,pin,vector,new_vector,1,app/src/main/res/values/themes-holo_base.xml,yes,yes,no
+app/src/main/res/drawable/ic_clipboard_pin_lxx.xml,clipboard pin lxx,pin,pin,vector,new_vector,1,app/src/main/res/values/themes-lxx-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_clipboard_pin_rounded.xml,clipboard pin rounded,pin,pin,vector,new_vector,2,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_close.xml,close,close,close,vector,new_vector,4,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/res/layout/clipboard_history_view.xml | app/src/main/res/layout/emoji_palettes_view.xml | app/src/main/res/layout/klipy_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/ic_close_rounded.xml,close rounded,close,close,vector,new_vector,3,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/utils/Icons.kt | app/src/main/java/helium314/keyboard/settings/preferences/SettingsSwitch.kt,yes,yes,no
+app/src/main/res/drawable/ic_cloud.xml,cloud,icloud,cloud,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_diagonal_arrow.xml,diagonal arrow,arrow.up.left.and.arrow.down.right,resize,vector,new_vector,1,app/src/main/res/layout/klipy_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/ic_dictionary.xml,dictionary,book,dictionary,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_dpad_down.xml,dpad down,down,down,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_down_rounded.xml,dpad down rounded,down,down,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_left.xml,dpad left,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_left_rounded.xml,dpad left rounded,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_right.xml,dpad right,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_right_rounded.xml,dpad right rounded,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_up.xml,dpad up,up,up,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_dpad_up_rounded.xml,dpad up rounded,up,up,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_drag_indicator.xml,drag indicator,drag,drag,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_drag_indicator_rounded.xml,drag indicator rounded,drag,drag,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/dialogs/ReorderDialog.kt,yes,yes,no
+app/src/main/res/drawable/ic_edit.xml,edit,edit,edit,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_edit_rounded.xml,edit rounded,edit,edit,vector,new_vector,3,app/src/main/java/helium314/keyboard/latin/utils/Icons.kt | app/src/main/java/helium314/keyboard/settings/screens/PersonalDictionaryScreen.kt | app/src/main/java/helium314/keyboard/settings/screens/SubtypeScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_emoji_activities.xml,emoji activities,soccerball,ball,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_activities_lxx.xml,emoji activities lxx,soccerball,ball,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_activities_rounded.xml,emoji activities rounded,soccerball,ball,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_animals_nature.xml,emoji animals nature,pawprint,paw,vector,retained_existing_semantics,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_animals_nature_lxx.xml,emoji animals nature lxx,pawprint,paw,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_animals_nature_rounded.xml,emoji animals nature rounded,pawprint,paw,vector,retained_existing_semantics,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_collapse.xml,emoji collapse,chevron.down,chevron_down,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/emoji/EmojiPalettesView.java,yes,yes,no
+app/src/main/res/drawable/ic_emoji_emoticons.xml,emoji emoticons,emoticon,emoticon,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_emoticons_lxx.xml,emoji emoticons lxx,emoticon,emoticon,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_emoticons_rounded.xml,emoji emoticons rounded,emoticon,emoticon,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_expand.xml,emoji expand,chevron.up,chevron_up,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/emoji/EmojiPalettesView.java | app/src/main/res/layout/emoji_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_flags.xml,emoji flags,flag,flag,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_flags_lxx.xml,emoji flags lxx,flag,flag,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_flags_rounded.xml,emoji flags rounded,flag,flag,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_food_drink.xml,emoji food drink,cup.and.saucer,cup,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_food_drink_lxx.xml,emoji food drink lxx,cup.and.saucer,cup,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_food_drink_rounded.xml,emoji food drink rounded,cup.and.saucer,cup,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_objects.xml,emoji objects,lightbulb,bulb,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_objects_lxx.xml,emoji objects lxx,lightbulb,bulb,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_objects_rounded.xml,emoji objects rounded,lightbulb,bulb,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_people_body.xml,emoji people body,person.2,people,vector,retained_existing_semantics,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_people_body_lxx.xml,emoji people body lxx,person.2,people,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_people_body_rounded.xml,emoji people body rounded,person.2,people,vector,retained_existing_semantics,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_recents.xml,emoji recents,clock.arrow.circlepath,clock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_recents_lxx.xml,emoji recents lxx,clock.arrow.circlepath,clock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_recents_rounded.xml,emoji recents rounded,clock.arrow.circlepath,clock,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_smart.xml,emoji smart,sparkles,sparkle,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/emoji/EmojiCategory.java,yes,yes,no
+app/src/main/res/drawable/ic_emoji_smileys_emotion.xml,emoji smileys emotion,face.smiling,smile,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_smileys_emotion_lxx.xml,emoji smileys emotion lxx,face.smiling,smile,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_smileys_emotion_rounded.xml,emoji smileys emotion rounded,face.smiling,smile,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_symbols.xml,emoji symbols,number,symbols,vector,retained_existing_semantics,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_symbols_lxx.xml,emoji symbols lxx,number,symbols,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_symbols_rounded.xml,emoji symbols rounded,number,symbols,vector,retained_existing_semantics,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_emoji_travel_places.xml,emoji travel places,airplane,plane,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_travel_places_lxx.xml,emoji travel places lxx,airplane,plane,layer-list,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_emoji_travel_places_rounded.xml,emoji travel places rounded,airplane,plane,vector,new_vector,4,app/src/main/res/values/themes-default-base.xml | app/src/main/res/values/themes-holo_base.xml | app/src/main/res/values/themes-lxx-base.xml | app/src/main/res/values/themes-rounded-base.xml,yes,yes,no
+app/src/main/res/drawable/ic_frostkeys_icon.xml,frostkeys icon,info.circle,info,vector,PROTECTED_APP_IDENTITY,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_ime_switcher.xml,ime switcher,split,split,vector,new_vector,5,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/RichInputMethodSubtype.kt | app/src/main/java/helium314/keyboard/latin/utils/SubtypeUtilsAdditional.kt | app/src/main/res/xml/method.xml | app/src/main/res/xml/method_dummy.xml,yes,yes,no
+app/src/main/res/drawable/ic_ime_switcher_rounded.xml,ime switcher rounded,split,split,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/settings/screens/gesturedata/GestureDataScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_klipy_gifs.xml,klipy gifs,photo.on.rectangle,gif,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_klipy_stickers.xml,klipy stickers,sticker,sticker,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_launcher_monochrome.xml,launcher monochrome,info.circle,info,bitmap,PROTECTED_APP_IDENTITY,2,app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml | app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml,yes,yes,no
+app/src/main/res/drawable/ic_link.xml,link,link,link,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_link_rounded.xml,link rounded,link,link,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/gesturedata/GestureDataScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_down.xml,page down,down,down,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_down_rounded.xml,page down rounded,down,down,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_end.xml,page end,page,page,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_end_rounded.xml,page end rounded,page,page,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_start.xml,page start,page,page,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_start_rounded.xml,page start rounded,page,page,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_up.xml,page up,up,up,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_page_up_rounded.xml,page up rounded,up,up,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_plus.xml,plus,plus,plus,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_plus_rounded.xml,plus rounded,plus,plus,vector,new_vector,4,app/src/main/java/helium314/keyboard/settings/dialogs/LayoutPickerDialog.kt | app/src/main/java/helium314/keyboard/settings/screens/DictionaryScreen.kt | app/src/main/java/helium314/keyboard/settings/screens/GestureTypingScreen.kt | app/src/main/java/helium314/keyboard/settings/screens/SubtypeScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_recent_clock_rounded.xml,recent clock rounded,clock.arrow.circlepath,clock,vector,new_vector,1,app/src/main/res/layout/klipy_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/ic_redo.xml,redo,arrow.uturn.forward,redo,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_redo_rounded.xml,redo rounded,arrow.uturn.forward,redo,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_resize_vertical_rounded.xml,resize vertical rounded,resize.vertical,resize_vertical,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_select.xml,select,select,select,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_select_all.xml,select all,select.all,select_all,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_select_all_rounded.xml,select all rounded,select.all,select_all,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_select_rounded.xml,select rounded,select,select,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about.xml,settings about,info.circle,info,vector,new_vector,2,app/src/main/java/helium314/keyboard/settings/preferences/Preference.kt | app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about_github.xml,settings about github,chevron.left.forwardslash.chevron.right,github,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about_hidden_features.xml,settings about hidden features,eye,eye,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about_license.xml,settings about license,list.bullet,list,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about_log.xml,settings about log,list.bullet,list,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/AboutScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_about_wiki.xml,settings about wiki,book,dictionary,vector,new_vector,2,app/src/main/java/helium314/keyboard/settings/screens/DictionaryScreen.kt | app/src/main/java/helium314/keyboard/settings/screens/GestureTypingScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_advanced.xml,settings advanced,slider.horizontal.3,sliders,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_settings_appearance.xml,settings appearance,paintpalette,palette,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_settings_correction.xml,settings correction,textformat.abc.dottedunderline,autocorrect,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_settings_default.xml,settings default,keyboard,keyboard,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/AccessPointMenuView.kt | app/src/main/java/helium314/keyboard/latin/utils/Icons.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_gesture.xml,settings gesture,hand.draw,gesture,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/settings/screens/GestureTypingScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_settings_languages.xml,settings languages,globe,globe,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_settings_preferences.xml,settings preferences,slider.horizontal.3,sliders,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_settings_toolbar.xml,settings toolbar,square.grid.2x2,toolbar,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_setup_check.xml,setup check,checkmark.circle,check_circle,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_setup_key.xml,setup key,key,key,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_setup_select.xml,setup select,select,select,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_share.xml,share,share,share,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_share_rounded.xml,share rounded,share,share,vector,new_vector,1,app/src/main/java/helium314/keyboard/settings/screens/gesturedata/GestureDataScreen.kt,yes,yes,no
+app/src/main/res/drawable/ic_sort_alphabetically.xml,sort alphabetically,sort.az,sort_az,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_sort_chronologically.xml,sort chronologically,clock.arrow.circlepath,clock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/ic_tab_gif.xml,tab gif,photo.on.rectangle,gif,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/KlipyPalettesView.kt,yes,yes,no
+app/src/main/res/drawable/ic_tab_stickers.xml,tab stickers,sticker,sticker,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/KlipyPalettesView.kt,yes,yes,no
+app/src/main/res/drawable/ic_to_end.xml,to end,right,right,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_to_end_rounded.xml,to end rounded,right,right,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_to_start.xml,to start,left,left,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_to_start_rounded.xml,to start rounded,left,left,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_undo.xml,undo,arrow.uturn.backward,undo,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_undo_rounded.xml,undo rounded,arrow.uturn.backward,undo,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/keyboard/resize/KeyboardResizeOverlayView.kt,yes,yes,no
+app/src/main/res/drawable/ic_word_left.xml,word left,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_word_left_rounded.xml,word left rounded,left,left,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_word_right.xml,word right,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/ic_word_right_rounded.xml,word right rounded,right,right,rotate,wrapper_retained,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_clear_clipboard_holo.xml,clear clipboard holo,trash,trash,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_clear_clipboard_lxx.xml,clear clipboard lxx,trash,trash,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_clear_clipboard_rounded.xml,clear clipboard rounded,trash,trash,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_clipboard_holo.xml,clipboard holo,clipboard,clipboard,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_clipboard_lxx.xml,clipboard lxx,clipboard,clipboard,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_clipboard_rounded.xml,clipboard rounded,clipboard,clipboard,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_copy.xml,copy,doc.on.doc,copy,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_copy_rounded.xml,copy rounded,doc.on.doc,copy,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_cut.xml,cut,cut,cut,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_cut_rounded.xml,cut rounded,cut,cut,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_delete_holo.xml,delete holo,delete.left,delete,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_delete_lxx.xml,delete lxx,delete.left,delete,vector,new_vector,1,app/src/main/res/layout/ai_writing_tools_view.xml,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_delete_rounded.xml,delete rounded,delete.left,delete,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_done_lxx.xml,done lxx,checkmark,check,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_done_rounded.xml,done rounded,checkmark,check,vector,new_vector,3,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/keyboard/resize/KeyboardResizeOverlayView.kt | app/src/main/java/helium314/keyboard/settings/preferences/SettingsSwitch.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_go_lxx.xml,go lxx,arrow.right,go,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_go_rounded.xml,go rounded,arrow.right,go,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_incognito_holo.xml,incognito holo,eye.slash,incognito,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_incognito_lxx.xml,incognito lxx,eye.slash,incognito,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_incognito_rounded.xml,incognito rounded,eye.slash,incognito,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_language_switch.xml,language switch,globe,globe,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_language_switch_lxx.xml,language switch lxx,globe,globe,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_numpad_key_holo.xml,numpad key holo,number,numpad,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_numpad_key_lxx.xml,numpad key lxx,number,numpad,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_numpad_key_rounded.xml,numpad key rounded,number,numpad,vector,retained_existing_semantics,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_paste.xml,paste,document.on.clipboard,paste,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_paste_rounded.xml,paste rounded,document.on.clipboard,paste,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_return_holo.xml,return holo,return.left,return,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_return_lxx.xml,return lxx,return.left,return,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_return_rounded.xml,return rounded,return.left,return,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_search_holo.xml,search holo,magnifyingglass,search,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_search_lxx.xml,search lxx,magnifyingglass,search,vector,new_vector,1,app/src/main/res/layout/klipy_palettes_view.xml,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_search_rounded.xml,search rounded,magnifyingglass,search,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_send_lxx.xml,send lxx,paperplane,send,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_send_rounded.xml,send rounded,paperplane,send,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_settings_holo.xml,settings holo,gearshape,settings,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_settings_lxx.xml,settings lxx,gearshape,settings,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_settings_rounded.xml,settings rounded,gearshape,settings,vector,new_vector,2,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt | app/src/main/java/helium314/keyboard/latin/BoardFooterView.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_shift_caps.xml,shift caps,capslock.fill,shift_lock,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_shift_filled.xml,shift filled,shift.fill,shift_on,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_shift_holo.xml,shift holo,shift,shift,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shift_lock_holo.xml,shift lock holo,capslock.fill,shift_lock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shift_lock_lxx.xml,shift lock lxx,capslock.fill,shift_lock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shift_lock_rounded.xml,shift lock rounded,capslock.fill,shift_lock,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shift_lxx.xml,shift lxx,shift,shift,rotate,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shift_outline.xml,shift outline,shift,shift,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_shift_rounded.xml,shift rounded,shift,shift,rotate,wrapper_retained,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_shifted_holo.xml,shifted holo,shift.fill,shift_on,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_smiley_holo.xml,smiley holo,face.smiling,smile,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_smiley_lxx.xml,smiley lxx,face.smiling,smile,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_smiley_rounded.xml,smiley rounded,face.smiling,smile,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_space_holo.xml,space holo,space,space,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_space_lxx.xml,space lxx,space,space,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_space_rounded.xml,space rounded,space,space,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_start_onehanded_holo.xml,start onehanded holo,hand.point.up,onehand,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_start_onehanded_lxx.xml,start onehanded lxx,hand.point.up,onehand,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_start_onehanded_rounded.xml,start onehanded rounded,hand.point.up,onehand,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,no
+app/src/main/res/drawable/sym_keyboard_stop_onehanded_holo.xml,stop onehanded holo,onehand.stop,onehand_stop,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_stop_onehanded_lxx.xml,stop onehanded lxx,onehand.stop,onehand_stop,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_stop_onehanded_rounded.xml,stop onehanded rounded,onehand.stop,onehand_stop,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_tab_holo.xml,tab holo,tab,tab,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_tab_lxx.xml,tab lxx,tab,tab,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_tab_rounded.xml,tab rounded,tab,tab,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_voice_holo.xml,voice holo,mic,mic,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_voice_lxx.xml,voice lxx,mic,mic,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_voice_off_holo.xml,voice off holo,mic.slash,mic_off,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_voice_off_lxx.xml,voice off lxx,mic.slash,mic_off,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_voice_off_rounded.xml,voice off rounded,mic.slash,mic_off,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_voice_rounded.xml,voice rounded,mic,mic,vector,new_vector,0,,yes,not statically found,no
+app/src/main/res/drawable/sym_keyboard_zwj_holo.xml,zwj holo,zwj,zwj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_zwj_lxx.xml,zwj lxx,zwj,zwj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_zwj_rounded.xml,zwj rounded,zwj,zwj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_zwnj_holo.xml,zwnj holo,zwnj,zwnj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_zwnj_lxx.xml,zwnj lxx,zwnj,zwnj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes
+app/src/main/res/drawable/sym_keyboard_zwnj_rounded.xml,zwnj rounded,zwnj,zwnj,vector,new_vector,1,app/src/main/java/helium314/keyboard/keyboard/internal/KeyboardIconsSet.kt,yes,yes,yes

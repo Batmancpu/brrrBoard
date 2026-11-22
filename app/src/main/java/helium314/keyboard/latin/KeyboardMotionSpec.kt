@@ -16,12 +16,13 @@ import helium314.keyboard.latin.utils.prefs
 object KeyboardMotionSpec {
     const val PROFILE_IOS27 = "ios27"
     const val PROFILE_PREVIOUS_DEFAULT = "previous_default"
-    const val WORD_CROSSFADE_MS = 150L
-    // A short quiet beat precedes the iOS-profile suggestion's fast ink reveal.
-    // The decoder and touch targets update immediately; only the glyph ink waits.
-    const val IOS_SUGGESTION_SETTLE_MS = 164L
-    const val IOS_SUGGESTION_REVEAL_DELAY_MS = 24L
-    const val IOS_SUGGESTION_REVEAL_MS = 92L
+    // Suggestion text and tap targets update synchronously. This short visual
+    // settle is presentation-only and never holds decoder results or typing.
+    const val WORD_CROSSFADE_MS = 126L
+    const val SUGGESTION_SIDE_STAGGER_MS = 8L
+    const val SUGGESTION_START_ALPHA = .28f
+    const val SUGGESTION_START_OFFSET_DP = 2.5f
+    const val SUGGESTION_START_SCALE = .985f
     const val SEARCH_RESULT_MS = 170L
     const val SEARCH_PENDING_MS = 90L
     const val FOOTER_ACTION_MS = 150L

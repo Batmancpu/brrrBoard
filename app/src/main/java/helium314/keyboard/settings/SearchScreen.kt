@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -122,7 +123,8 @@ fun SearchSettingsScreen(
     hideTopSearchBar: Boolean = false,
     showBackButton: Boolean = true,
     filteredItems: ((String) -> List<Setting>)? = null,
-    content: @Composable (ColumnScope.() -> Unit)? = null // overrides settings if not null
+    content: @Composable (ColumnScope.() -> Unit)? = null, // overrides settings if not null
+    footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -131,17 +133,20 @@ fun SearchSettingsScreen(
         hideTopSearchBar = hideTopSearchBar,
         showBackButton = showBackButton,
         title = { Text(title, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
-        content = content ?: {
-            settings.forEach {
-                if (it is Int) {
-                    PreferenceCategory(stringResource(it))
-                } else {
-                    AnimatedVisibility(visible = it != null) {
-                        if (it != null)
-                            SettingsActivity.settingsContainer[it]?.Preference()
+        content = {
+            if (content == null) {
+                settings.forEach {
+                    if (it is Int) {
+                        PreferenceCategory(stringResource(it))
+                    } else {
+                        AnimatedVisibility(visible = it != null) {
+                            if (it != null)
+                                SettingsActivity.settingsContainer[it]?.Preference()
+                        }
                     }
                 }
-            }
+            } else content.invoke(this)
+            footer()
         },
         filteredItems = filteredItems ?: { SettingsActivity.settingsContainer.filter(it) },
         itemContent = { setting ->
@@ -205,7 +210,8 @@ fun <T: Any?> SearchScreen(
                 onClearClick = { setShowSearch(false) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .heightIn(min = 48.dp, max = 50.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -469,7 +475,7 @@ fun StaticSearchField(
                 }
             }
         },
-        placeholder = { Text("Search settings and features") },
+        placeholder = { Text("Search") },
         singleLine = true,
         colors = colors,
         textStyle = contentTextDirectionStyle,

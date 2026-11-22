@@ -184,9 +184,16 @@ internal class OfflineVoiceEngine(
         private const val IDLE_UNLOAD_MS = 90_000L
         private val instances = HashMap<String, OfflineVoiceEngine>()
 
-        /** One worker per exact model pack; blue dictation continues using the 110M default. */
+        /** Keyboard dictation prefers installed Ultra and unloads stale model workers. */
+        fun shared(context: Context): OfflineVoiceEngine = forKeyboard(
+            context, VoiceModelChoice.active(context) ?: VoiceModelManifest.pack)
+
         @Synchronized
-        fun shared(context: Context): OfflineVoiceEngine = shared(context, VoiceModelManifest.pack)
+        fun forKeyboard(context: Context, modelPack: VoiceModelPack): OfflineVoiceEngine {
+            val selected = shared(context, modelPack)
+            instances.forEach { (id, engine) -> if (id != modelPack.id) engine.release() }
+            return selected
+        }
 
         @Synchronized
         fun shared(context: Context, modelPack: VoiceModelPack): OfflineVoiceEngine =

@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard rounded Copy glyph; SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.85" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M8.7,6 H17.8 Q19.35,6 19.35,7.55 V19 Q19.35,20.55 17.8,20.55 H8.7 Q7.15,20.55 7.15,19 V7.55 Q7.15,6 8.7,6 Z M15.9,3.45 H6.2 Q4.65,3.45 4.65,5 V16.45" />
+<!-- Icon geometry: Ionicons (MIT); copy-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M185 128 H407 A57 57 0 0 1 464 185 V407 A57 57 0 0 1 407 464 H185 A57 57 0 0 1 128 407 V185 A57 57 0 0 1 185 128 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M383.5,128l.5-24a56.16,56.16,0,0,0-56-56H112a64.19,64.19,0,0,0-64,64V328a56.16,56.16,0,0,0,56,56h24" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

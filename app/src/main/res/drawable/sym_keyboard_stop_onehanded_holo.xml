@@ -1,12 +1,8 @@
-<!--
-    icon available in Android Studio
-    SPDX-License-Identifier: Apache-2.0
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="32dp"
-    android:width="32dp"
-    android:viewportHeight="24"
-    android:viewportWidth="24"  >
-    <path android:fillColor="#FFF"
-        android:pathData="M15,3l2.3,2.3l-2.89,2.87l1.42,1.42L18.7,6.7L21,9V3H15zM3,9l2.3,-2.3l2.87,2.89l1.42,-1.42L6.7,5.3L9,3H3V9zM9,21l-2.3,-2.3l2.89,-2.87l-1.42,-1.42L5.3,17.3L3,15v6H9zM21,15l-2.3,2.3l-2.87,-2.89l-1.42,1.42l2.89,2.87L15,21h6V15z"/>
+    android:width="32dp" android:height="32dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4.7 3.8 H19.3 Q20.8 3.8 20.8 5.3 V18.7 Q20.8 20.2 19.3 20.2 H4.7 Q3.2 20.2 3.2 18.7 V5.3 Q3.2 3.8 4.7 3.8 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M5.6 12 H10.3 M8.2 9.7 L10.5 12 L8.2 14.3 M18.4 12 H13.7 M15.8 9.7 L13.5 12 L15.8 14.3" />
 </vector>

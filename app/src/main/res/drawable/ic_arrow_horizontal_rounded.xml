@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard rounded horizontal resize glyph; SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round"
-        android:pathData="M3.2,12 H20.8 M8,7.25 L3.2,12 L8,16.75 M16,7.25 L20.8,12 L16,16.75" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3.2 12 H20.8 M9.2 6.1 L3.2 12 L9.2 17.9 M14.8 6.1 L20.8 12 L14.8 17.9" />
 </vector>

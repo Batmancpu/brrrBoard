@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M3,6 H17 V13.5 Q17,18 12.5,18 H7.5 Q3,18 3,13.5 Z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M17,7 H19 Q22,7 22,10 Q22,13 19,13 H16.7 V11.1 H19 Q20,11.1 20,10 Q20,9 19,9 H17 Z" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M3,20 H20 V22 H3 Z" />
+<!-- Icon geometry: Ionicons (MIT); cafe-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M368,80h64a16,16,0,0,1,16,16v34a46,46,0,0,1-46,46H368" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M96,80H368a0,0,0,0,1,0,0V272a80,80,0,0,1-80,80H176a80,80,0,0,1-80-80V80A0,0,0,0,1,96,80Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M64 416 L400 416" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

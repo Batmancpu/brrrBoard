@@ -45,6 +45,19 @@ class VersionHistoryTest(unittest.TestCase):
         ]
         self.assertEqual([], generate(NOTES, {"releases": []}, fake)["releases"])
 
+    def test_history_is_bounded_to_latest_ten_signed_releases(self):
+        entries = []
+        for version in range(180, 195):
+            notes = release_notes(generate(NOTES, {"releases": []}, [],
+                f"1.0.{version}", f"2026-11-{(version % 20) + 1:02d}T10:20:30Z", COMMIT)["releases"][0])
+            entries.append({"tag_name": f"v1.0.{version}",
+                "published_at": f"2026-11-{(version % 20) + 1:02d}T10:20:30Z",
+                "target_commitish": COMMIT, "body": notes})
+        result = generate(NOTES, {"releases": []}, entries)
+        self.assertEqual(10, len(result["releases"]))
+        self.assertEqual([f"1.0.{v}" for v in range(194, 184, -1)],
+                         [entry["version"] for entry in result["releases"]])
+
     def test_invalid_notes_and_timestamps_fail_closed(self):
         with self.assertRaises(ValueError):
             validate_notes({"schema": 1, "summary": "new", "changes": []})

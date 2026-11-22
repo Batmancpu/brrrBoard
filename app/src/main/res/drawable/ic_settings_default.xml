@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original B07V icon: rounded Apple-inspired geometry, not Apple artwork.
-     SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="@color/foreground"
-        android:strokeWidth="1.65" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M3,5.5 Q3,3.5 5,3.5 H19 Q21,3.5 21,5.5 V18.5 Q21,20.5 19,20.5 H5 Q3,20.5 3,18.5 Z M6,8 H8 M10,8 H12 M14,8 H16 M6,11.5 H8 M10,11.5 H12 M14,11.5 H16 M8,16 H16" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4.3 5 H19.7 Q21 5 21 6.3 V17.7 Q21 19 19.7 19 H4.3 Q3 19 3 17.7 V6.3 Q3 5 4.3 5 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="2.35" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M6.1 8.9 H7 M10 8.9 H11 M14 8.9 H15 M18 8.9 H18.2 M6 12 H7.3 M9.4 12 H10.7 M12.8 12 H14.1 M16.2 12 H18 M7.7 15.4 H16.3" />
 </vector>

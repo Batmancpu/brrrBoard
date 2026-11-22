@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Copyright (C) 2013 The Android Open Source Project
-    SPDX-License-Identifier: Apache-2.0
--->
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="28dp"
-    android:width="28dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFF"
-        android:pathData="M15,18V12H17.17L12,6.83L6.83,12H9V18H15M12,4L22,14H17V20H7V14H2L12,4Z"/>
+    android:width="28dp" android:height="28dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M12 3.1 L3.8 11.5 H8.05 V20.2 H15.95 V11.5 H20.2 Z" />
 </vector>

@@ -1,10 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="256"
-    android:viewportHeight="256"
-    android:tint="?android:attr/colorControlNormal">
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M144,72V184a8,8,0,0,1-16,0V72a8,8,0,0,1,16,0Zm84-8H180a8.00039,8.00039,0,0,0-8,8V184a8,8,0,0,0,16,0V136h28a8,8,0,0,0,0-16H188V80h40a8,8,0,0,0,0-16ZM96,120H72a8,8,0,0,0,0,16H88v16a24,24,0,0,1-48,0V104a24.00492,24.00492,0,0,1,47.24512-6.00586,7.99961,7.99961,0,1,0,15.49414-3.98828A40.00446,40.00446,0,0,0,24,104v48a40,40,0,0,0,80,0V128A8.00039,8.00039,0,0,0,96,120Z" />
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M4.5 5.2 H19.5 Q20.7 5.2 20.7 6.4 V17.6 Q20.7 18.8 19.5 18.8 H4.5 Q3.3 18.8 3.3 17.6 V6.4 Q3.3 5.2 4.5 5.2 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M9.5 10.3 Q8.6 9.6 7.2 10.3 Q5.8 11.8 7.2 13.6 H9.5 V12.3 H8.1 M12 9.8 V14.1 M14.5 14.1 V9.8 H17.7 M14.5 12 H17" />
 </vector>

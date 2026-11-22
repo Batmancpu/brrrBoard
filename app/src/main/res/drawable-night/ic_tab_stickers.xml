@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M6.2 3.4 H17.8 Q20.6 3.4 20.6 6.2 V14.3 L14.3 20.6 H6.2 Q3.4 20.6 3.4 17.8 V6.2 Q3.4 3.4 6.2 3.4 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M14.3 20.2 V15.6 Q14.3 14.3 15.6 14.3 H20.2" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeAlpha="1" android:strokeWidth="2.8" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M8.3 9.1 V9.2 M15.7 9.1 V9.2" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M8.4 12.7 Q12 15.8 15.6 12.7" />
+</vector>

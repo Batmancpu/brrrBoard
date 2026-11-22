@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original B07V icon: rounded Apple-inspired geometry, not Apple artwork.
-     SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="32dp" android:height="32dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="@color/foreground"
-        android:strokeWidth="1.65" android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M12,5.3 C9.4,3.7 6.4,3.4 3.5,4.5 V19 C6.5,17.9 9.6,18.5 12,20 C14.4,18.5 17.5,17.9 20.5,19 V4.5 C17.6,3.4 14.6,3.7 12,5.3 Z M12,5.3 V20 M5.8,8.3 C7.2,8 8.6,8.2 9.7,8.9 M14.4,8.9 C15.5,8.2 16.9,8 18.2,8.3" />
+<!-- Icon geometry: Ionicons (MIT); book-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="32dp" android:height="32dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M256,160c16-63.16,76.43-95.41,208-96a15.94,15.94,0,0,1,16,16V368a16,16,0,0,1-16,16c-128,0-177.45,25.81-208,64-30.37-38-80-64-208-64-9.88,0-16-8.05-16-17.93V80A15.94,15.94,0,0,1,48,64C179.57,64.59,240,96.84,256,160Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M256 160 L256 448" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

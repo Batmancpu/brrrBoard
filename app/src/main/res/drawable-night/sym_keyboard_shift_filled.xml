@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp" android:height="28dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFF4F6FB" android:fillAlpha="1" android:pathData="M12 3.1 L3.8 11.5 H8.05 V20.2 H15.95 V11.5 H20.2 Z" />
+</vector>

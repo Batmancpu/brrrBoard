@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.4" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M12,2.55 A9.45,9.45 0,1 1,12,21.45 A9.45,9.45 0,1 1,12,2.55" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M8.55,8.4 A1.3,1.3 0,1 0,8.55,11 A1.3,1.3 0,1 0,8.55,8.4" />
-    <path android:fillColor="#FFFFFFFF" android:pathData="M15.45,8.4 A1.3,1.3 0,1 0,15.45,11 A1.3,1.3 0,1 0,15.45,8.4" />
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.4" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M7.35,13.8 Q12,19.1 16.65,13.8" />
+<!-- Icon geometry: Ionicons (MIT); happy-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M160 232 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M256.05,384c-45.42,0-83.62-29.53-95.71-69.83A8,8,0,0,1,168.16,304H343.85a8,8,0,0,1,7.82,10.17C339.68,354.47,301.47,384,256.05,384Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M304 232 a24 24 0 1 0 48 0 a24 24 0 1 0 -48 0 Z" android:fillColor="#FF252B36"/>
+    <path android:pathData="M48 256 a208 208 0 1 0 416 0 a208 208 0 1 0 -416 0 Z" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

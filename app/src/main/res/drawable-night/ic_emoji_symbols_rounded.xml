@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard geometric icon; SPDX-License-Identifier: GPL-3.0-only -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFF4F6FB" android:pathData="M15.2,4.2 V15.1 A3.5,3.5 0,1 1,13,12 V5.5 L20.5,3 V6.35 Z" />
+    <path android:fillColor="#FFF4F6FB" android:pathData="M5.65,7.1 H7.25 V11.2 H11.3 V12.8 H7.25 V16.9 H5.65 V12.8 H1.6 V11.2 H5.65 Z" />
+</vector>

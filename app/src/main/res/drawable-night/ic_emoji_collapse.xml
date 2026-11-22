@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon geometry: Ionicons (MIT); chevron-down-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
+    <path android:pathData="M 112 184 L 256 328 L 400 184" android:fillColor="#00000000" android:strokeColor="#FFF4F6FB" android:strokeWidth="48" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+</vector>

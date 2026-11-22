@@ -18,6 +18,7 @@ import helium314.keyboard.event.HapticEvent;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.settings.SettingsValues;
+import helium314.keyboard.latin.settings.Settings;
 
 /**
  * This class gathers audio feedback and haptic feedback functions.
@@ -29,6 +30,7 @@ public final class AudioAndHapticFeedbackManager {
     public static final long PRIVACY_MIC_DENIAL_MILLIS = 112L;
     private AudioManager mAudioManager;
     private Vibrator mVibrator;
+    private Context mContext;
 
     private SettingsValues mSettingsValues;
     private boolean mSoundOn;
@@ -53,8 +55,24 @@ public final class AudioAndHapticFeedbackManager {
     }
 
     private void initInternal(final Context context) {
+        mContext = context.getApplicationContext();
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mVibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+    }
+
+    /** Loads current feedback and DND policy when Settings is opened without starting the IME. */
+    public void refreshForSettings(final Context context) {
+        if (mAudioManager == null || mVibrator == null) initInternal(context);
+        else mContext = context.getApplicationContext();
+        onSettingsChanged(Settings.getValues());
+        try {
+            mDoNotDisturb = android.provider.Settings.Global.getInt(
+                mContext.getContentResolver(), "zen_mode") != 0;
+        } catch (Exception exception) {
+            // Unknown DND state must never cause ordinary key haptics to leak.
+            mDoNotDisturb = true;
+        }
+        mSoundOn = reevaluateIfSoundIsOn();
     }
 
     public void performHapticAndAudioFeedback(
@@ -71,7 +89,10 @@ public final class AudioAndHapticFeedbackManager {
     }
 
     public void vibrate(final long milliseconds) {
-        if (mVibrator == null || milliseconds <= 0) {
+        // Direct single-pulse previews are ordinary haptics too; DND reserves
+        // vibration for the explicit important-action patterns below.
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn || mDoNotDisturb ||
+            mVibrator == null || milliseconds <= 0) {
             return;
         }
         mVibrator.vibrate(milliseconds);
@@ -99,10 +120,33 @@ public final class AudioAndHapticFeedbackManager {
             new int[] { 0, 112 });
     }
 
+    /** A short double pulse for a confirmed destructive action, never for a key tap. */
+    public void performImportantActionConfirmation() {
+        vibratePrivacyPattern(new long[] { 0, 14, 34, 22 },
+            new int[] { 0, 82, 0, 102 });
+    }
+
+    /** Repeating warning pulse used only while a destructive reset slider is held. */
+    public void startImportantActionHapticLoop() {
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn ||
+                (mDoNotDisturb && !mSettingsValues.mImportantHapticsInDndMode) ||
+                mVibrator == null || !mVibrator.hasVibrator()) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mVibrator.vibrate(VibrationEffect.createWaveform(
+                new long[] { 0, 18, 70 }, new int[] { 0, 64, 0 }, 0));
+        } else {
+            mVibrator.vibrate(new long[] { 0, 18, 70 }, 0);
+        }
+    }
+
+    public void stopImportantActionHapticLoop() {
+        if (mVibrator != null) mVibrator.cancel();
+    }
+
     private void vibratePrivacyPattern(final long[] durations, final int[] amplitudes) {
         // Do not bypass the keyboard's privacy/haptic preferences or DND policy.
         if (mSettingsValues == null || !mSettingsValues.mVibrateOn ||
-            (mDoNotDisturb && !mSettingsValues.mVibrateInDndMode) ||
+            (mDoNotDisturb && !mSettingsValues.mImportantHapticsInDndMode) ||
             mVibrator == null || !mVibrator.hasVibrator()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mVibrator.vibrate(VibrationEffect.createWaveform(durations, amplitudes, -1));
@@ -139,7 +183,10 @@ public final class AudioAndHapticFeedbackManager {
     }
 
     public void performHapticFeedback(final View viewToPerformHapticFeedbackOn, final HapticEvent hapticEvent) {
-        if (!mSettingsValues.mVibrateOn || (mDoNotDisturb && !mSettingsValues.mVibrateInDndMode)) {
+        // DND permits only the explicit privacy/destructive confirmations
+        // routed through vibratePrivacyPattern. Key presses, repeats and
+        // gesture ticks stay silent even when that option is enabled.
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn || mDoNotDisturb) {
             return;
         }
         if (hapticEvent == HapticEvent.NO_HAPTICS) {

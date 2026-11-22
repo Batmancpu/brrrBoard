@@ -98,6 +98,8 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_AUTO_CAP = "auto_cap";
     public static final String PREF_VIBRATE_ON = "vibrate_on";
     public static final String PREF_VIBRATE_IN_DND_MODE = "vibrate_in_dnd_mode";
+    /** Reuses the saved setting for backwards-compatible important-only DND semantics. */
+    public static final String PREF_IMPORTANT_HAPTICS_IN_DND = PREF_VIBRATE_IN_DND_MODE;
     public static final String PREF_SOUND_ON = "sound_on";
     public static final String PREF_SUGGEST_EMOJIS = "suggest_emojis";
     // Extra learned gesture associations are opt-in. Existing native history is unchanged.

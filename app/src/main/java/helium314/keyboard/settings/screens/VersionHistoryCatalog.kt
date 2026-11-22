@@ -56,6 +56,7 @@ object VersionHistoryCatalog {
                 release.optString("timeSource") == "github_published"))
         }
         return results.sortedByDescending { it.version.substringAfterLast('.').toIntOrNull() ?: -1 }
+            .take(MAX_VISIBLE_RELEASES)
     }
 
     fun localTime(entry: VersionHistoryEntry, locale: Locale = Locale.getDefault(),
@@ -73,4 +74,6 @@ object VersionHistoryCatalog {
         timeZone = TimeZone.getTimeZone("UTC")
         isLenient = false
     }
+
+    private const val MAX_VISIBLE_RELEASES = 10
 }

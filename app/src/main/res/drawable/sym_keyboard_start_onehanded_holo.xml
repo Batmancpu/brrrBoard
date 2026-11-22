@@ -1,12 +1,8 @@
-<!--
-    icon available in Android Studio
-    SPDX-License-Identifier: Apache-2.0
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original brrBoard-compatible glyph. No Apple-provided artwork. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:height="28dp"
-    android:width="28dp"
-    android:viewportHeight="24"
-    android:viewportWidth="24"  >
-    <path android:fillColor="#FFF"
-        android:pathData="M13,24c-3.26,0 -6.19,-1.99 -7.4,-5.02l-3.03,-7.61C2.26,10.58 3,9.79 3.81,10.05l0.79,0.26c0.56,0.18 1.02,0.61 1.24,1.16L7.25,15H8V3.25C8,2.56 8.56,2 9.25,2s1.25,0.56 1.25,1.25V12h1V1.25C11.5,0.56 12.06,0 12.75,0S14,0.56 14,1.25V12h1V2.75c0,-0.69 0.56,-1.25 1.25,-1.25c0.69,0 1.25,0.56 1.25,1.25V12h1V5.75c0,-0.69 0.56,-1.25 1.25,-1.25S21,5.06 21,5.75V16C21,20.42 17.42,24 13,24z"/>
+    android:width="28dp" android:height="28dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M5.1 3.8 H16.2 Q17.7 3.8 17.7 5.3 V18.7 Q17.7 20.2 16.2 20.2 H5.1 Q3.6 20.2 3.6 18.7 V5.3 Q3.6 3.8 5.1 3.8 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeAlpha="1" android:strokeWidth="1.95" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M7.6 8.6 H13.6 M7.6 12 H13.6 M7.6 15.4 H11.3 M18.2 12 H21.3 M19.5 9.5 L21.8 12 L19.5 14.5" />
 </vector>
