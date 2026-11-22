@@ -9,6 +9,10 @@
     {
       "title": "Copy an Emoji layout report",
       "detail": "BR Brain can copy a content-free layout report with one tap. It contains panel geometry and insets only, so the unresolved top spacing can be diagnosed without ADB or a screenshot."
+    },
+    {
+      "title": "Erase local layout diagnostics",
+      "detail": "The Emoji layout report can be erased from BR Brain; file cleanup runs off the keyboard interface so the diagnostic does not slow typing."
     }
   ]
 }
