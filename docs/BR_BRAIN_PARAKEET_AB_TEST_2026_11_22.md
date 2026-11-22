@@ -1,74 +1,72 @@
-# BR Brain Parakeet A/B comparison — v1.0.237
+# Offline voice model selection and Parakeet A/B comparison
 
-## What the test does
+## Keyboard model selection
 
-The Voice Lab records one maximum-12-second mono 16 kHz PCM take in volatile
-memory. **Compare both on same audio** makes a copy of that exact take and runs
-the currently installed Parakeet 110M and optional Parakeet Ultra 0.6B INT8
-sequentially, cold-loading and releasing one recognizer before loading the
-other. The first model alternates between comparison trials to reduce order
-bias. Ultra runs in a private child process so a native crash or model-load OOM
-does not take down the keyboard process.
+Open **Settings → Everyday tools → Offline voice** to choose the verified model
+used by keyboard dictation. Parakeet Ultra 0.6B is selected by default when
+installed; Parakeet 110M remains selectable as the smaller, lower-memory option.
+If a selected pack is unavailable, the keyboard safely falls back to the other
+verified installed model. Selecting a model applies to the next dictation.
 
-The result card reports each transcript, word error rate (WER) against an
-editable reference phrase, model-load/decode/engine-total timings, end-to-end
-wall time, real-time factor, and sampled peak process PSS. A user-initiated
-**Copy comparison results** action copies transcripts and measurements only;
-it never copies audio. Audio and in-app result state are not written to files
-or sent over the network. The existing 110M remains the default dictation
-model and is never removed or replaced by the test.
+The same screen has one **Voice cleaning · brrClean** switch. It is on by default;
+turning it off selects raw audio. A failure in brrClean falls back to the original
+audio. The Voice Lab's per-trial noise buttons are independent and do not change
+the keyboard preference.
 
-## Model/package controls
+## Same-audio comparison
 
-- The Ultra export is pinned to sherpa-onnx maintainer revision
-  `402e1190ce85b9793118ee223db21fb0d12f52db`. Four assets total 670,576,835
-  bytes (about 640 MiB) and are size/hash checked at fetch, APK verification,
-  and private installation.
-- Original-signed v1.0.237 is the one-time production update that contains
-  both pinned Parakeet packs in one APK. The app continues to use 110M for
-  default dictation; Ultra is an explicit Voice Lab install/comparison option.
-  Later releases omit these large weights unless the owner asks to bundle them
-  again. The older Actions test artifact remains available as a separate
-  historical validation path.
-- On device, the BR Brain lab offers a user-confirmed install only when the
-  Ultra pack is present in that APK, checks available storage, verifies the
-  copied assets, and keeps the 110M untouched if installation fails.
-- The build pins sherpa-onnx 2.0.2, the documented runtime candidate for this
-  export. Exact-source Android debug/full unit CI passed on the feature branch;
-  the device's runtime, latency, memory and WER acceptance still require the
-  Reno10 comparison.
+Tap **Compare voice models** on the Offline voice page. The Voice Lab records one
+maximum-12-second mono 16 kHz PCM take in volatile memory and runs installed
+110M and Ultra sequentially on that same take. The first model alternates between
+trials to reduce order bias. Ultra runs in a private child process so a native
+crash or model-load OOM does not take down the keyboard process.
 
-## How to exercise it after a test APK is explicitly issued
+The lab displays each transcript, reference-based word error rate (WER),
+model-load/decode/engine-total timings, end-to-end wall time, real-time factor,
+and sampled peak process PSS. Transcripts stay on screen only. There is no
+Voice Lab result-copy action and no audio file, transcript log, or network path.
 
-1. Open BR Brain → Voice & Noise Reduction (Voice Lab).
-2. Pick English or Hinglish and edit the reference so it exactly matches the
-   words you will say.
-3. Record one clean take, then tap **Install Ultra test model** and confirm.
-4. Tap **Compare both on same audio**. Wait for both cold runs to finish.
-5. Review both transcripts and WER/speed/memory results. Repeat with new takes;
-   model order alternates. Copy results only if you want to share the text.
+## Model files and release packaging
 
-The speech model is English-trained. Hinglish scores are useful as a device
-comparison but are not a language-quality guarantee. Results from other
-devices or public corpora do not predict accuracy, speed, or memory on the
-owner's Reno10. In particular, the host FLEURS benchmark must not be presented
-as a Reno10 result.
+- Ultra is the pinned sherpa-onnx maintainer INT8 export. Four model assets total
+  670,576,835 bytes (about 640 MiB), with size and SHA-256 checks at fetch,
+  packaging, and private installation.
+- Model files remain in GitHub. Normal updates omit them after the one-time
+  model update; verified copies in the app's private no-backup storage survive
+  APK updates. The release workflow keeps an explicit `bundle_ultra_model`
+  option for a future update only when explicitly requested.
+- A model can be installed only when the current APK contains its pinned files.
+  Installation checks free storage, verifies each file, and preserves existing
+  installed models if it cannot complete.
 
-## Published production update
+## How to exercise the models
 
-The combined original-signed APK is published as [v1.0.237](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.237), from merge commit `ed336594e4dea63d8e1a0494d14acb74fda6e09b`. Exact-source Android debug/full-suite run [45001350457](https://github.com/Batmancpu/brrrBoard/actions/runs/45001350457) and original-signer release run [45001350481](https://github.com/Batmancpu/brrrBoard/actions/runs/45001350481) both succeeded. The single `com.mangoloads.board` APK (versionCode 237) is [brrBoard.apk](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.237/brrBoard.apk), 869,526,797 bytes, SHA-256 `7b347ff9b8b065eae43552635565503103fcd1c2025fdfd1f2f2673981c11a8b`. GitHub's asset metadata reports the same SHA-256. No multi-update installation sequence is needed.
+1. Open **Settings → Everyday tools → Offline voice**. Confirm Ultra is selected
+   and brrClean is on.
+2. Tap **Compare voice models**.
+3. Set the reference to exactly match a short phrase, record it once, and tap
+   **Compare both on same audio**.
+4. Review both transcripts and their accuracy, latency, and memory results.
+   Use the same phrase and conditions for later comparisons.
+5. For the complete device audit, return to **Settings → Device checkup** and
+   follow all seven checks. One final button copies the whole privacy-safe text
+   report. It includes only numeric A/B results, not the transcripts, reference,
+   typed test text, audio, or clipboard contents.
 
-The release includes the SHA-256-pinned 110M and Ultra packs. Ultra stays optional in BR Brain Voice Lab and does not replace default dictation. Future releases omit the large speech packs unless explicitly requested. This update's download is about 830 MiB and Ultra needs about 700 MiB of app storage. ContextLM remains disabled because its corrected fixed-seed holdout failed the Recall@3 gate. Reno10 visual, voice accuracy, latency, memory, and thermal acceptance remain device-only and are not claimed as CI results.
+## Device evidence and remaining limits
 
-## Emoji layout artifact
+The owner-supplied Reno10 A/B run showed Ultra WER of 12% versus 25% for 110M on
+that one phrase. Ultra used more memory and took longer to cold-load/decode; this
+is one device/take, not a general accuracy guarantee. The v1.0.238 Reno10 report
+marked Emoji spacing, suggestions, panel glass, and A/B as good, and recorded a
+toolbar issue. The owner then said the reported items are fixed. The next
+checkup revision adds explicit checks for model selection, voice cleaning, and
+important DND haptics. ContextLM remains disabled because its corrected
+held-out quality gate did not improve the native baseline.
 
-No emoji file is needed. After downloading the four checksum/part artifacts,
-extract the three part ZIPs into the same folder and run
-`bash tools/join-ultra-abtest-apk.sh <part-folder> <output.apk> <APK-SHA256>`.
-Use the SHA-256 file from the run (or the exact APK hash recorded above); the
-script refuses to leave an output APK if the bytes do not match. On the
-installed app, open Emoji Browse once, then go
-to **Settings → BR Brain → Emoji layout report → Copy geometry report** and
-paste that text into the conversation. The report is content-free view geometry
-intended to locate the top blank band; it does not include typed text or
-clipboard contents.
+The initial A/B artifact came from source
+`5997430406b91edf1e2a1682d6a8bacae67581b4`, verified by exact-SHA Android CI and
+the production signing workflow in run
+[44999224034](https://github.com/Batmancpu/brrrBoard/actions/runs/44999224034).
+That test artifact is historical; production model packaging is governed by the
+current release workflow and remains lightweight by default.

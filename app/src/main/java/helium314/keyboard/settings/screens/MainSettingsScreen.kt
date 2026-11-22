@@ -96,6 +96,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.VoiceModelChoice
 import kotlinx.coroutines.delay
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
@@ -148,7 +149,7 @@ fun MainSettingsScreen(
     ) {
         val ctx = LocalContext.current
         val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
-        var offlineVoiceReady by remember { mutableStateOf(VoiceModelInstaller.isInstalled(ctx)) }
+        var offlineVoiceReady by remember { mutableStateOf(VoiceModelChoice.active(ctx) != null) }
         var offlineInstallState by remember { mutableStateOf(VoiceModelInstaller.installState) }
         var offlineInstallPercent by remember { mutableStateOf(VoiceModelInstaller.installPercent) }
         val voiceInstallScope = rememberCoroutineScope()
@@ -158,7 +159,7 @@ fun MainSettingsScreen(
             repeat(40) {
                 if (offlineVoiceReady) return@LaunchedEffect
                 delay(1_500)
-                offlineVoiceReady = VoiceModelInstaller.isInstalled(ctx)
+                offlineVoiceReady = VoiceModelChoice.active(ctx) != null
                 offlineInstallState = VoiceModelInstaller.installState
                 offlineInstallPercent = VoiceModelInstaller.installPercent
             }

@@ -53,7 +53,10 @@ object Defaults {
     const val PREF_TOOLBAR_CUSTOM_KEY_CODES = ""
     const val PREF_AUTO_CAP = true
     const val PREF_VIBRATE_ON = true
-    const val PREF_VIBRATE_IN_DND_MODE = false
+    // DND suppresses ordinary key/gesture feedback; privacy and confirmed
+    // destructive actions may still use a quiet confirmation pulse.
+    const val PREF_VIBRATE_IN_DND_MODE = true
+    const val PREF_IMPORTANT_HAPTICS_IN_DND = PREF_VIBRATE_IN_DND_MODE
     const val PREF_SOUND_ON = false
     const val PREF_SUGGEST_EMOJIS = true
     const val PREF_LEARN_SWIPE_CORRECTIONS = true

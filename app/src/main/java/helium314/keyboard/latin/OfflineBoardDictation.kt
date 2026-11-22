@@ -11,7 +11,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.InputTypeUtils
 import helium314.keyboard.latin.voice.OfflineVoiceEngine
 import helium314.keyboard.latin.voice.PrivateVoiceStreamingPipeline
-import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.VoiceModelChoice
 import helium314.keyboard.latin.voice.VoiceTranscriptDeliveryPolicy
 import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
@@ -29,7 +29,6 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     // LatinIME constructs this member before Service.attachBaseContext(). Initializing the
     // singleton here dereferences a null applicationContext in Robolectric and cold startup.
     // Resolve it on first offline action, after the IME has an attached Android Context.
-    private val engine by lazy(LazyThreadSafetyMode.NONE) { OfflineVoiceEngine.shared(ime) }
     private var phase = Phase.IDLE
     private var source: KeyboardPcmAudioSource? = null
     private var streaming: PrivateVoiceStreamingPipeline? = null
@@ -80,16 +79,14 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             currentFooter.showDictationError(R.string.board_voice_offline_failed)
             return
         }
-        if (!VoiceModelInstaller.isInstalled(ime)) {
-            val message = when (VoiceModelInstaller.installState) {
-                VoiceModelInstaller.InstallState.INSTALLING -> R.string.board_voice_offline_model_installing
-                VoiceModelInstaller.InstallState.FAILED -> R.string.board_voice_offline_model_install_failed
-                else -> R.string.board_voice_offline_model_missing
-            }
+        val modelPack = VoiceModelChoice.active(ime)
+        if (modelPack == null) {
+            val message = R.string.board_voice_offline_model_missing
             currentFooter.showDictationError(message)
             Toast.makeText(ime, message, Toast.LENGTH_LONG).show()
             return
         }
+        val selectedEngine = OfflineVoiceEngine.forKeyboard(ime, modelPack)
         generation++
         val id = generation
         originalConnection = connection
@@ -98,7 +95,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         originalSelectionStart = start
         originalSelectionEnd = end
         footer = currentFooter
-        val pipeline = PrivateVoiceStreamingPipeline(ime, engine,
+        val pipeline = PrivateVoiceStreamingPipeline(ime, selectedEngine,
             VoiceNoiseChoice.selected(ime)) { result ->
             if (generation == id && (phase == Phase.DECODING || phase == Phase.RECOVERING)) {
                 onTranscriptionCompleted(result, id, connection)
@@ -134,7 +131,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             toBrrSpeak = false,
         )
         source = capture
-        engine.warm() // Model loading overlaps with the held recording, never with UI touch.
+        selectedEngine.warm() // Model loading overlaps with the held recording, never with UI touch.
         capture.start()
     }
 

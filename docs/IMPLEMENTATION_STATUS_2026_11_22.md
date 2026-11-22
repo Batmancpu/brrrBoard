@@ -1,24 +1,20 @@
-# Implementation status — 2026-11-22
+# Final update implementation status — 2026-11-22
 
-## Published production update
+## Owner device evidence
 
-Feature branch `feature/parakeet-ultra-brain-abtest` is at source commit `5997430406b91edf1e2a1682d6a8bacae67581b4`. GitHub Actions run [44999224034](https://github.com/Batmancpu/brrrBoard/actions/runs/44999224034) completed successfully: Android debug build, signing identity checks, full Android unit-test gate, Ultra A/B build, original-signer verification, and artifact uploads all passed.
+The supplied Reno10 checkup report is from brrBoard v1.0.238 on Android 15. Emoji spacing, smart Emoji/suggestion motion, clipboard glass, and voice A/B were marked good; the owner confirmed the toolbar item and the rest of the reported visual checks are fixed. The same 4.736-second recording scored Ultra 0.6B at 12% WER and 110M at 25%. Ultra took 4,974 ms wall time, with 4,152 ms model load, 683 ms decode, and 775,982 KB peak PSS. 110M took 1,630 ms wall time, with 1,366 ms load, 223 ms decode, and 450,352 KB peak PSS. These are one device/take results, not a broad accuracy guarantee.
 
-The split-APK Actions artifacts were a temporary test route. The owner requested a single production APK, so the models and implementation are now included in original-signed [v1.0.237](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.237). Download the single APK: [brrBoard.apk](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.237/brrBoard.apk). It is 869,526,797 bytes with SHA-256 `7b347ff9b8b065eae43552635565503103fcd1c2025fdfd1f2f2673981c11a8b`. Exact-SHA debug/unit run `45001350457` and original-signer release run `45001350481` succeeded. The APK contains both pinned Parakeet packs. Ultra remains user-installed from the Voice Lab and does not replace default dictation. Subsequent updates omit the large models unless explicitly requested.
+## Shipped source changes in this update candidate
 
-## Work completed in source
+- Verified installed Ultra is the default active keyboard model; the 110M pack is selectable as a lower-memory/faster fallback. Keyboard dictation and ordinary Voice Lab transcription use the selected pack; the paired A/B test still explicitly runs 110M and Ultra sequentially on the same recording.
+- Everyday tools → Offline voice contains the model radio options and one brrClean on/off switch. brrClean defaults on for new installs; failed cleaning preserves original audio.
+- Sound & haptics contains the important-only DND option. Keypress and gesture haptics remain suppressed in DND; explicit privacy changes and confirmed clipboard/history clears can use a brief pulse. The keyboard seeds DND state at startup as well as responding to system changes.
+- BR Brain no longer duplicates model/voice diagnostic controls. Settings exposes one Device checkup with seven steps and exactly one final plain-text copy action. The report includes fresh content-free geometry and numeric voice metrics, but excludes test text, reference, transcript, audio, and clipboard content.
+- Ultra and 110M weights are not included in the update. Verified private model files remain on the device across an app update. The release workflow retains `bundle_ultra_model` as an explicit future opt-in; this update's path does not change that option.
+- Existing Emoji geometry fix, suggestion path, toolbar layout, and progressive blur implementation remain part of the cumulative source.
 
-- Fixed the supplied Emoji top-gap cause: a fixed 56dp Search-results sibling remained visible when Browse mode was active. Search result/empty rows are now visible only in Search mode and hidden during Browse measurement; source regression coverage and privacy-safe geometry report visibility fields are included.
-- Smart Emoji uses a bounded, editor-bound precomputed ranking snapshot rather than duplicate panel scoring and synchronous editor queries.
-- Toolbar layout, pinned Settings access, Emoji/Settings footer behavior, Emoji hold-shortcut removal, progressive glass invalidation, and cached panel rendering are implemented on the branch as recorded in the feature notes.
-- BR Brain compares the existing Parakeet 110M and optional Ultra on the same volatile PCM recording, sequentially and cold-loaded, with WER reference, timings, RTF and sampled PSS. Ultra runs in a private process and does not replace default dictation.
-- `tools/join-ultra-abtest-apk.sh` and packaging regression checks cover exact signer/staging filename agreement, all parts, and hash-before-output behavior.
-- Workspace network fallback is documented in `docs/LOCAL_BUILD_NETWORK_FALLBACK.md`: use exact-SHA Actions and the authenticated GitHub Git Database API if the workspace's dead proxy blocks push/download. A prior artifact failure was specifically a two-`r`/three-`r` filename mismatch; it is now covered by a regression assertion.
+## Deliberately gated work and limits
 
-## Gates that remain intentionally open
+ContextLM remains disabled and unbundled: the corrected fixed-holdout candidate still failed to improve the native/n-gram baseline. Do not represent it as shipped until native-decoder quality, false-autocorrection, speed, memory, upgrade, and privacy gates pass. Detailed evidence remains in `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
 
-- **Reno10 acceptance:** the code fix is CI-verified, but install/visual verification of the Emoji gap and toolbar/glass motion on the physical phone is not available from this workspace. Ultra WER, latency, memory, and thermal comparison on that device also remain unmeasured.
-- **ContextLM:** do not enable or bundle the current neural candidate. Corrected training/evaluation and the 250,000-pair fixed holdout still lost Recall@3 against the proxy. Keep it disabled until actual native-decoder candidate quality, false-autocorrection, latency, memory, and privacy gates pass.
-- **Ultra model quality:** the host FLEURS benchmark improves English WER but is about 3.5x slower in host CPU RTF; it does not establish Indian-accent or Reno10 quality. Keep Ultra available only in the owner-requested test APK until matched device results are reviewed. Do not publish that APK as the next product release.
-
-Local Python suites passed (41 tools tests and 16 CI/branding tests); Bash syntax and `git diff --check` passed. CI supplies the Android build and full Android unit-suite evidence above.
+The workspace cannot access the pinned Gradle distribution through its network proxy. Use exact-commit GitHub Actions debug/unit CI and the original-signer release workflow, as documented in `docs/LOCAL_BUILD_NETWORK_FALLBACK.md`. CI does not replace the owner's final physical-device audit.

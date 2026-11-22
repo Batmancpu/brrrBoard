@@ -40,6 +40,12 @@ internal object VoiceNoiseChoice {
             .putBoolean("brr_voice_platform_noise_suppression", mode == VoiceNoiseMode.ANDROID).apply()
     }
 
+    /** Everyday Tools exposes one clear brrClean on/off control; GTCRN is on by default. */
+    fun isCleaningEnabled(context: Context): Boolean = selected(context) == VoiceNoiseMode.GTCRN
+
+    fun setCleaningEnabled(context: Context, enabled: Boolean) =
+        select(context, if (enabled) VoiceNoiseMode.GTCRN else VoiceNoiseMode.OFF)
+
     // Binder's 1 MiB transaction limit requires a conservative smaller bound.
     // Long dictation bypasses optional GTCRN and still transcribes the entire original.
     const val MAX_GTCRN_BYTES = 16_000 * 2 * 12

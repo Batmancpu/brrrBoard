@@ -71,7 +71,7 @@ class SettingsContainer(context: Context) {
         helium314.keyboard.latin.settings.Settings.PREF_USE_APPS -> SettingsDestination.Privacy
         helium314.keyboard.latin.settings.Settings.PREF_VIBRATE_ON,
         helium314.keyboard.latin.settings.Settings.PREF_VIBRATION_DURATION_SETTINGS,
-        helium314.keyboard.latin.settings.Settings.PREF_VIBRATE_IN_DND_MODE,
+        helium314.keyboard.latin.settings.Settings.PREF_IMPORTANT_HAPTICS_IN_DND,
         helium314.keyboard.latin.settings.Settings.PREF_SOUND_ON,
         helium314.keyboard.latin.settings.Settings.PREF_KEYPRESS_SOUND_VOLUME -> SettingsDestination.Sound
         helium314.keyboard.latin.settings.Settings.PREF_ENABLE_CLIPBOARD_HISTORY,
@@ -120,8 +120,13 @@ class SettingsContainer(context: Context) {
             "frosted" to SettingsDestination.Appearance,
             "haptic" to SettingsDestination.Sound,
             "vibrate" to SettingsDestination.Sound,
+            "dnd" to SettingsDestination.Sound,
+            "important haptic" to SettingsDestination.Sound,
             "mic" to SettingsDestination.Voice,
             "dictation" to SettingsDestination.Voice,
+            "voice model" to SettingsDestination.Voice,
+            "ultra" to SettingsDestination.Voice,
+            "brrclean" to SettingsDestination.Voice,
             "private" to SettingsDestination.Privacy,
             "incognito" to SettingsDestination.Privacy,
             "swipe" to SettingsDestination.GestureTyping,

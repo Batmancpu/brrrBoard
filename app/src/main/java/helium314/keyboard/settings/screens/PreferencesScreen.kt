@@ -94,15 +94,6 @@ fun PreferencesScreen(
         Settings.PREF_SHOW_POPUP_HINTS,
         Settings.PREF_SHOW_TLD_POPUP_KEYS,
         Settings.PREF_POPUP_ON,
-        if (AudioAndHapticFeedbackManager.getInstance().hasVibrator())
-            Settings.PREF_VIBRATE_ON else null,
-        if (prefs.getBoolean(Settings.PREF_VIBRATE_ON, Defaults.PREF_VIBRATE_ON))
-            Settings.PREF_VIBRATION_DURATION_SETTINGS else null,
-        if (prefs.getBoolean(Settings.PREF_VIBRATE_ON, Defaults.PREF_VIBRATE_ON))
-            Settings.PREF_VIBRATE_IN_DND_MODE else null,
-        Settings.PREF_SOUND_ON,
-        if (prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON))
-            Settings.PREF_KEYPRESS_SOUND_VOLUME else null,
         Settings.PREF_SAVE_SUBTYPE_PER_APP,
         Settings.PREF_SHOW_EMOJI_DESCRIPTIONS,
         R.string.settings_category_additional_keys,
@@ -160,8 +151,9 @@ fun createPreferencesSettings(context: Context) = listOf(
     Setting(context, Settings.PREF_VIBRATE_ON, R.string.vibrate_on_keypress) {
         SwitchPreference(it, Defaults.PREF_VIBRATE_ON)
     },
-    Setting(context, Settings.PREF_VIBRATE_IN_DND_MODE, R.string.vibrate_in_dnd_mode) {
-        SwitchPreference(it, Defaults.PREF_VIBRATE_IN_DND_MODE)
+    Setting(context, Settings.PREF_IMPORTANT_HAPTICS_IN_DND,
+        R.string.important_haptics_in_dnd, R.string.important_haptics_in_dnd_summary) {
+        SwitchPreference(it, Defaults.PREF_IMPORTANT_HAPTICS_IN_DND)
     },
     Setting(context, Settings.PREF_SOUND_ON, R.string.sound_on_keypress) {
         SwitchPreference(it, Defaults.PREF_SOUND_ON)

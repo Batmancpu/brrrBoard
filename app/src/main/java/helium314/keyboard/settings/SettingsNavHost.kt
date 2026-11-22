@@ -117,7 +117,12 @@ fun SettingsNavHost(
         composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
-        composable(SettingsDestination.Voice) { VoiceSettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Voice) {
+            VoiceSettingsScreen(
+                onClickBack = ::goBack,
+                onOpenVoiceLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) },
+            )
+        }
         composable(SettingsDestination.Toolbar) {
             ToolbarScreen(onClickBack = ::goBack)
         }
@@ -125,19 +130,15 @@ fun SettingsNavHost(
             GestureTypingScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.BrainDashboard) {
-            BrainDashboardScreen(onClickBack = ::goBack,
-                onOpenVoiceNoiseLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) })
+            BrainDashboardScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.VoiceNoiseLab) {
             VoiceNoiseLabScreen(onClickBack = ::goBack)
         }
-        composable(SettingsDestination.DeviceCheckupVoiceLab) {
-            VoiceNoiseLabScreen(onClickBack = ::goBack, hideResultCopy = true)
-        }
         composable(SettingsDestination.DeviceCheckup) {
             DeviceCheckupScreen(
                 onClickBack = ::goBack,
-                onOpenVoiceLab = { navController.navigate(SettingsDestination.DeviceCheckupVoiceLab) },
+                onOpenVoiceLab = { navController.navigate(SettingsDestination.VoiceNoiseLab) },
             )
         }
 /*      will be added as part of passive data gathering
@@ -217,7 +218,6 @@ object SettingsDestination {
     const val GestureTyping = "gesture_typing"
     const val BrainDashboard = "brain_dashboard"
     const val VoiceNoiseLab = "voice_noise_lab"
-    const val DeviceCheckupVoiceLab = "device_checkup_voice_lab"
     const val DeviceCheckup = "device_checkup"
     const val DataGathering = "data_gathering" // remove when data gathering phase is done (end of 2026 latest)
     const val DataReview = "data_review" // remove when data gathering phase is done (end of 2026 latest)

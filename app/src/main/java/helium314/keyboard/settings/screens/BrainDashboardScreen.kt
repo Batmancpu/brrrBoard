@@ -31,12 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
-import helium314.keyboard.latin.EmojiGeometryReport
-import helium314.keyboard.latin.voice.VoiceNativeCrashProbe
-import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
-import helium314.keyboard.latin.voice.VoiceNoiseChoice
-import helium314.keyboard.latin.voice.VoiceNoiseMode
-import helium314.keyboard.latin.voice.VoiceDenoiseMetrics
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -48,16 +42,12 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 @Composable
-fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Unit = {}) {
+fun BrainDashboardScreen(onClickBack: () -> Unit) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
     var confirmErase by remember { mutableStateOf(false) }
     var confirmEraseEmoji by remember { mutableStateOf(false) }
     var erasingEmoji by remember { mutableStateOf(false) }
-    var trialText by remember { mutableStateOf("") }
-    var probeCopied by remember { mutableStateOf(false) }
-    var voiceTrailCopied by remember { mutableStateOf(false) }
-    var emojiGeometryCopied by remember { mutableStateOf(false) }
     // Settings can stay open alongside the IME. Refresh RAM-only diagnostic counters while visible.
     LaunchedEffect(Unit) {
         while (true) {
@@ -82,11 +72,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
     val firstSuggestionFrame = remember(refresh) {
         BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW)
     }
-    val voiceProbe = remember(refresh) { VoiceNativeCrashProbe.snapshot(context) }
-    val voiceTrail = remember(refresh) { VoiceSessionCrashTrail.snapshot(context) }
-    val voiceNoise = remember(refresh) { VoiceDenoiseMetrics.snapshot() }
-    val priorVoiceCrash = remember(context) { VoiceNativeCrashProbe.recentKeyboardExit(context) }
-    val hasEmojiGeometryReport = remember(refresh) { EmojiGeometryReport.hasReport(context) }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
     ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
@@ -114,34 +99,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
                     style = MaterialTheme.typography.bodySmall)
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Emoji layout report", style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold)
-                    Text(if (hasEmojiGeometryReport)
-                        "A content-free screen and panel measurement is ready. Copy it and paste it into your support conversation. It contains no typed text, host-app or field identity, Emoji values, clipboard, or screenshot."
-                    else
-                        "Open the keyboard, switch to Emoji Browse once, then return here. The keyboard saves only panel bounds, sizes, insets, and layout flags. No typed text or screenshots are recorded.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            emojiGeometryCopied = EmojiGeometryReport.copyLatest(context)
-                        }, enabled = hasEmojiGeometryReport) {
-                            Text(if (emojiGeometryCopied) "Copied" else "Copy geometry report")
-                        }
-                        if (hasEmojiGeometryReport) {
-                            OutlinedButton(onClick = {
-                                EmojiGeometryReport.erase(context)
-                                emojiGeometryCopied = false
-                                refresh++
-                            }) { Text("Erase") }
-                        }
-                    }
-                }
-            }
-
             Text("Real-time processing speed",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text("Measured locally. Typing, next-word, swipe and emoji values are computation times per request. Input transaction is the time spent in local input handling until its editor transaction returns. Strip update is synchronous time spent updating suggestion views. First suggestion is the time from a letter key event until actual suggestion content reaches the strip's next pre-draw; Android does not expose proof that the frame reached the display. These are not touchscreen-to-photon latency, accuracy or cloud latency. Values update every 1.8 seconds while this page is open.",
@@ -165,117 +122,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
             Text("Percentiles use up to the most recent 128 eligible requests. P50/P95 appear after 20 samples; P99 appears after 100. A dash means this process hasn't measured that activity yet. Password, secure-app, no-personal-learning and incognito fields are not counted.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
-            Text("Voice intelligence & noise reduction",
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Current blue-mic engine: " +
-                        when (VoiceNoiseChoice.selected(context)) {
-                            VoiceNoiseMode.OFF -> "OFF (raw microphone)"
-                            VoiceNoiseMode.ANDROID -> "Android NoiseSuppressor"
-                            VoiceNoiseMode.GTCRN -> "brrClean native GTCRN (isolated process)"
-                        },
-                        fontWeight = FontWeight.SemiBold)
-                    Text("Choose OFF, Android, or brrClean in Voice & Noise Reduction. Native GTCRN runs after recording for up to 12 seconds, never while typing; failure falls back to original speech.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Native GTCRN successes: ${voiceNoise.enhancedWindows} · raw fallbacks: ${voiceNoise.fallbacks} · last latency: " +
-                        (if (voiceNoise.lastEnhancementMs < 0) "not measured" else "${voiceNoise.lastEnhancementMs} ms"),
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Streaming voice chunks decoded: ${voiceNoise.streamingChunks} · queued: ${voiceNoise.queuedChunks} · last chunk end-to-end latency: " +
-                        (if (voiceNoise.lastChunkLatencyMs < 0) "not measured" else "${voiceNoise.lastChunkLatencyMs} ms"),
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Blue-mic hardware source: ${voiceNoise.lastInputRoute}",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Phone mic preferred. Short overlapping segments are processed in the background while you speak; final text is delivered once after stopping. No partial text leaves volatile memory.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(if (voiceNoise.blueMicCapturing) "Blue microphone LIVE: recording now"
-                         else "Blue microphone idle · no background recording",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text((if (voiceNoise.blueMicCapturing) "Live blue-mic effect: "
-                          else "Last blue-mic effect: ") + voiceNoise.platformNoiseSuppression +
-                        ". ACTIVE means Android accepted the effect, not that recognition became more accurate.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Completed blue recordings this process: ${voiceNoise.completedBlueCaptures}",
-                        style = MaterialTheme.typography.bodySmall)
-                    Button(onClick = onOpenVoiceNoiseLab, modifier = Modifier.fillMaxWidth()) {
-                        Text("Open Voice & Noise Reduction Lab")
-                    }
-                    Text("Record once from phone or Bluetooth mic; in GTCRN mode play the same take untreated and GTCRN-processed, then score both offline. No automatic recording.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text("Earlier Oppo GTCRN initialization failed. It now runs only in a killable child process with a timeout. Results and real-device reliability still need verification; voice typing remains blocked during calls.",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("One-session private voice crash trail",
-                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("Arm once, then return to a normal text field and try the blue offline mic. This records only stages such as mic initialized, noise effect status, ASR loaded and decoded, with relative timings. It never stores what you said, the audio, the app or the text field.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(voiceTrail.message, style = MaterialTheme.typography.bodySmall)
-                    if (!voiceTrail.armed) {
-                        Button(onClick = {
-                            VoiceSessionCrashTrail.arm(context)
-                            voiceTrailCopied = false
-                            refresh++
-                        }) { Text("Arm next blue-mic test") }
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                voiceTrailCopied = VoiceSessionCrashTrail.copy(context)
-                            }) { Text(if (voiceTrailCopied) "Copied" else "Copy safe stages") }
-                            if (voiceTrail.canErase) {
-                                OutlinedButton(onClick = {
-                                    VoiceSessionCrashTrail.erase(context)
-                                    voiceTrailCopied = false
-                                    refresh++
-                                }) { Text("Erase test") }
-                            }
-                        }
-                    }
-                    Text("All data stays in this app's private no-backup storage until erased. Android may reveal a sanitized process-exit category after a crash; no raw crash memory or exception messages are inspected.",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
-                Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("One-shot private voice crash check",
-                        style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("This optional check runs the bundled GTCRN engine once on generated audio in a separate short-lived process. It never uses your microphone, typed text or transcripts. A native crash cannot terminate the keyboard process.",
-                        style = MaterialTheme.typography.bodySmall)
-                    Text(priorVoiceCrash, style = MaterialTheme.typography.bodySmall)
-                    Text(voiceProbe.message, style = MaterialTheme.typography.bodySmall)
-                    if (!voiceProbe.started) {
-                        Button(onClick = {
-                            VoiceNativeCrashProbe.start(context)
-                            probeCopied = false
-                            refresh++
-                        }) { Text("Run one private check") }
-                    } else if (voiceProbe.finished) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                probeCopied = VoiceNativeCrashProbe.copyReport(context)
-                            }) { Text(if (probeCopied) "Copied" else "Copy safe result") }
-                            OutlinedButton(onClick = {
-                                VoiceNativeCrashProbe.erase(context)
-                                probeCopied = false
-                                refresh++
-                            }) { Text("Erase result") }
-                        }
-                    }
-                    Text("Nothing is uploaded. Android reports only a process-exit category and numeric status, when available. Raw crash traces, microphone recordings and app/field identities are not read or saved. Run once when not on a call; the live voice filter stays disabled.",
-                        style = MaterialTheme.typography.bodySmall)
-                }
-            }
-
             Text("Suggestions · actual activity",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -293,23 +139,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
             Text("A tap means you chose a suggestion; it does not prove the suggestion was correct. Accuracy remains unmeasured until we have verified ground-truth test data.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Try it yourself", style = MaterialTheme.typography.titleMedium)
-                    Text("Tap the field and type “kal office jaana hai” or “happy birthday”. Watch the keyboard's next-word suggestions and Emoji chip, then return here to see measured requests and time. The dashboard keeps this trial text only in screen memory.",
-                        style = MaterialTheme.typography.bodySmall)
-                    OutlinedTextField(
-                        value = trialText,
-                        onValueChange = { trialText = it.take(240) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Practice typing · English / Hinglish") },
-                        minLines = 2,
-                        maxLines = 3
-                    )
-                }
-            }
+
 
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = palette.tertiaryContainer)) {
@@ -405,7 +235,6 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenVoiceNoiseLab: () -> Uni
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { refresh++ }) { Text("Refresh actual data") }
                 OutlinedButton(onClick = {
                     BrainPerformanceMetrics.clearSession()
                     refresh++

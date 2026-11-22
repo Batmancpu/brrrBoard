@@ -5,6 +5,13 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.os.Build
 import helium314.keyboard.latin.voice.VoiceNoiseLab
+import helium314.keyboard.latin.voice.VoiceModelChoice
+import helium314.keyboard.latin.voice.VoiceModelManifest
+import helium314.keyboard.latin.voice.UltraVoiceModelManifest
+import helium314.keyboard.latin.voice.VoiceNoiseChoice
+import helium314.keyboard.latin.settings.Defaults
+import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.utils.prefs
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -58,7 +65,7 @@ internal object DeviceCheckupSession {
         }
         voiceMetrics = VoiceMetrics(
             audioDurationMs = audioDurationMs.coerceIn(0, MAX_AUDIO_MS),
-            firstDecoded = if (comparison.firstDecoded == "Ultra 0.6B") "ultra" else "110m",
+            firstDecoded = if (comparison.firstDecoded.startsWith("Ultra", ignoreCase = true)) "ultra" else "110m",
             current110m = safe(comparison.current110m),
             ultra = safe(comparison.ultra),
         )
@@ -90,9 +97,12 @@ internal object DeviceCheckupReport {
         val smartEmojiAndMotion: DeviceCheckOutcome,
         val toolbar: DeviceCheckOutcome,
         val clipboardGlass: DeviceCheckOutcome,
+        val voiceControls: DeviceCheckOutcome,
         val voiceLab: DeviceCheckOutcome,
+        val dndHaptics: DeviceCheckOutcome,
     ) {
-        fun complete() = listOf(emojiGap, smartEmojiAndMotion, toolbar, clipboardGlass, voiceLab)
+        fun complete() = listOf(emojiGap, smartEmojiAndMotion, toolbar, clipboardGlass,
+            voiceControls, voiceLab, dndHaptics)
             .none { it == DeviceCheckOutcome.PENDING }
     }
 
@@ -120,7 +130,7 @@ internal object DeviceCheckupReport {
             timeZone = TimeZone.getTimeZone("UTC")
         }.format(Date())
         return buildString(16_384) {
-            appendLine("brrBoard device checkup v1")
+            appendLine("brrBoard device checkup v2")
             appendLine("timestamp_utc=$timestamp")
             appendLine("device=${manufacturer}_$model")
             appendLine("android_release=$release")
@@ -134,7 +144,12 @@ internal object DeviceCheckupReport {
             appendLine("check_smart_emoji_suggestion_motion=${results.smartEmojiAndMotion.token}")
             appendLine("check_toolbar=${results.toolbar.token}")
             appendLine("check_clipboard_glass=${results.clipboardGlass.token}")
+            appendLine("check_voice_controls=${results.voiceControls.token}")
             appendLine("check_voice_ab=${results.voiceLab.token}")
+            appendLine("check_dnd_important_haptics=${results.dndHaptics.token}")
+            appendLine("keyboard_voice_model=${VoiceModelChoice.active(context)?.let(::modelToken) ?: "not_installed"}")
+            appendLine("voice_cleaning=${if (VoiceNoiseChoice.isCleaningEnabled(context)) "on" else "off"}")
+            appendLine("dnd_important_haptics=${if (context.prefs().getBoolean(Settings.PREF_IMPORTANT_HAPTICS_IN_DND, Defaults.PREF_IMPORTANT_HAPTICS_IN_DND)) "on" else "off"}")
             appendLine("voice_ab_metrics=${if (voice == null) "not_captured" else "captured"}")
             voice?.let { metrics ->
                 appendLine("voice_audio_duration_ms=${metrics.audioDurationMs}")
@@ -161,6 +176,12 @@ internal object DeviceCheckupReport {
         appendLine("${prefix}_total_ms=${metrics.totalMs}")
         appendLine("${prefix}_wall_ms=${metrics.wallMs}")
         appendLine("${prefix}_peak_pss_kb=${metrics.peakPssKb}")
+    }
+
+    private fun modelToken(pack: helium314.keyboard.latin.voice.VoiceModelPack): String = when (pack.id) {
+        UltraVoiceModelManifest.ID -> "ultra_0_6b"
+        VoiceModelManifest.ID -> "110m"
+        else -> "other_installed"
     }
 
     private fun safe(value: String, max: Int): String = value

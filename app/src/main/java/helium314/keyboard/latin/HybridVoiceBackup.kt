@@ -3,8 +3,9 @@ package helium314.keyboard.latin
 
 import android.view.inputmethod.InputConnection
 import helium314.keyboard.latin.voice.OfflineVoiceEngine
+import helium314.keyboard.latin.voice.VoiceModelChoice
+import helium314.keyboard.latin.voice.VoiceModelManifest
 import helium314.keyboard.latin.voice.PrivatePcmBuffer
-import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceResultArbiter
 import helium314.keyboard.latin.voice.VoiceDecodeRequest
 
@@ -19,7 +20,8 @@ internal class HybridVoiceBackup(
     private val connection: InputConnection,
     private val onLocalPaste: (String) -> Unit,
 ) {
-    private val engine = OfflineVoiceEngine.shared(ime)
+    private val modelPack = VoiceModelChoice.active(ime)
+    private val engine = OfflineVoiceEngine.forKeyboard(ime, modelPack ?: VoiceModelManifest.pack)
     private val buffer = PrivatePcmBuffer()
     private val arbiter = VoiceResultArbiter()
     private var decodeRequest: VoiceDecodeRequest? = null
@@ -31,7 +33,7 @@ internal class HybridVoiceBackup(
     private var localText: String? = null
 
     init {
-        if (VoiceModelInstaller.isInstalled(ime)) engine.warm()
+        if (modelPack != null) engine.warm()
     }
 
     /** Called synchronously on the mic thread; this is a bounded RAM copy, never a decode. */
@@ -42,7 +44,7 @@ internal class HybridVoiceBackup(
         if (captureFinished || cancelled) return
         captureFinished = true
         val bytes = runCatching { buffer.drain() }.getOrNull() ?: return
-        if (bytes.isEmpty()) {
+        if (bytes.isEmpty() || modelPack == null) {
             bytes.fill(0)
             return
         }

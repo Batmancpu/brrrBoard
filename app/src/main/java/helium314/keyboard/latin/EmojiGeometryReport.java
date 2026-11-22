@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.util.AtomicFile;
 
@@ -129,11 +127,6 @@ public final class EmojiGeometryReport {
         }
     }
 
-    public static boolean hasReport(final Context context) {
-        final File file = file(context);
-        return file.isFile() && file.length() > 0 && file.length() <= MAX_REPORT_BYTES;
-    }
-
     /** True only when Emoji layout produced a sample after the supplied session began. */
     public static boolean hasReportAfter(final Context context, final long timestampMs) {
         final File file = file(context);
@@ -144,21 +137,6 @@ public final class EmojiGeometryReport {
     /** Returns the already allow-listed geometry trace for the single final checkup report. */
     public static String readLatest(final Context context) {
         return read(context);
-    }
-
-    /** Copies only after the user presses the visible Copy report button. */
-    public static boolean copyLatest(final Context context) {
-        final String report = read(context);
-        if (report == null) return false;
-        try {
-            final ClipboardManager clipboard = (ClipboardManager)
-                    context.getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard == null) return false;
-            clipboard.setPrimaryClip(ClipData.newPlainText("brrBoard Emoji geometry", report));
-            return true;
-        } catch (final RuntimeException ignored) {
-            return false;
-        }
     }
 
     public static void erase(final Context context) {

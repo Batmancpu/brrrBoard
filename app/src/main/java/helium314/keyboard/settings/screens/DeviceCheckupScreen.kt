@@ -48,7 +48,9 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
     var suggestions by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var toolbar by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var clipboardGlass by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
+    var voiceControls by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var voice by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
+    var dndHaptics by rememberSaveable { mutableStateOf(DeviceCheckOutcome.PENDING) }
     var geometryCaptured by remember(startedAtMs) {
         mutableStateOf(EmojiGeometryReport.hasReportAfter(context, startedAtMs))
     }
@@ -71,7 +73,9 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
         smartEmojiAndMotion = suggestions,
         toolbar = toolbar,
         clipboardGlass = clipboardGlass,
+        voiceControls = voiceControls,
         voiceLab = voice,
+        dndHaptics = dndHaptics,
     )
     val complete = results.complete()
     val reportReady = complete && (voice != DeviceCheckOutcome.GOOD || voiceMetrics != null)
@@ -87,7 +91,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
         ) {
             Card(colors = CardDefaults.cardColors(containerColor = colors.primaryContainer)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Text("Five checks · one report", style = MaterialTheme.typography.titleLarge,
+                    Text("Seven checks · one report", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold)
                     Text("Follow these steps on this screen. Mark each result once; the final button copies one plain-text report.",
                         style = MaterialTheme.typography.bodyMedium)
@@ -170,8 +174,21 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
 
             CheckCard(
                 number = 5,
+                title = "Offline voice controls",
+                instruction = "Open Everyday tools → Offline voice. Confirm Parakeet Ultra 0.6B is selected when installed and voice cleaning is on. Return here to continue.",
+                selected = voiceControls,
+                options = listOf(
+                    DeviceCheckOutcome.GOOD to "Ultra + cleaning on",
+                    DeviceCheckOutcome.ISSUE to "Wrong or unavailable",
+                    DeviceCheckOutcome.SKIPPED to "Couldn't test",
+                ),
+                onSelect = { voiceControls = it; copied = false; copyFailed = false },
+            )
+
+            CheckCard(
+                number = 6,
                 title = "One-take Parakeet comparison",
-                instruction = "Open Voice Lab, record one short phrase, set the reference to match, install Ultra if needed, then compare both models on the same take. Only numeric accuracy/speed/memory results return here.",
+                instruction = "Open Voice Lab, record one short phrase, set the reference to match, and compare both installed models on the same take. Only numeric accuracy/speed/memory results return here.",
                 selected = voice,
                 options = listOf(
                     DeviceCheckOutcome.GOOD to "Both completed",
@@ -184,15 +201,29 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
                     Text("Open Voice Lab")
                 }
                 Text(voiceMetrics?.let { metricsSummary(it) }
-                    ?: "Voice metrics have not returned. The lab's separate transcript copy is not needed for this checkup.",
+                    ?: "Voice metrics have not returned. Results stay on this screen; only numeric metrics enter the final report.",
                     style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
+
+            CheckCard(
+                number = 7,
+                title = "Important haptics in Do Not Disturb",
+                instruction = "Turn on Do Not Disturb. Ordinary key taps should stay silent; toggle Incognito or confirm clearing one harmless test clip and check for a brief confirmation pulse. Restore your previous DND state after testing.",
+                selected = dndHaptics,
+                options = listOf(
+                    DeviceCheckOutcome.GOOD to "Only important pulse",
+                    DeviceCheckOutcome.ISSUE to "Wrong or no pulse",
+                    DeviceCheckOutcome.SKIPPED to "Couldn't test",
+                ),
+                onSelect = { dndHaptics = it; copied = false; copyFailed = false },
+            )
 
             Button(
                 onClick = {
                     val geometry = if (geometryCaptured) EmojiGeometryReport.readLatest(context) else null
                     val report = DeviceCheckupReport.format(context, results, voiceMetrics, geometry)
                     copied = copyReport(context, report)
+                    if (copied) EmojiGeometryReport.erase(context)
                     copyFailed = !copied
                 },
                 enabled = reportReady && !copied,
@@ -203,7 +234,7 @@ fun DeviceCheckupScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
                     reportReady -> "Copy final report"
                     complete && voice == DeviceCheckOutcome.GOOD -> "Wait for voice metrics"
                     complete -> "Copy final report"
-                    else -> "Complete the five checks"
+                    else -> "Complete the checks"
                 })
             }
             if (copyFailed) Text("Could not access the clipboard. Tap the same button to retry.",

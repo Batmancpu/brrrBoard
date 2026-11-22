@@ -87,3 +87,8 @@ Retry the standard wrapper command, which will download the pinned Gradle
 distribution and dependencies through the configured proxy. Never commit the
 Gradle distribution, Maven cache, signing files, model weights, or temporary
 build artifacts to work around a transient network failure.
+
+
+### 2026-11-22 — artifact transfer regression fixed
+
+The first split-package attempt failed because the signing step wrote `brrBoard-ultra-ab-test.apk` (two `r` characters after `b`) while staging expected `brrrBoard-ultra-ab-test.apk` (three). The failure was a concrete filename mismatch, not workspace cleanup. The signer output and staging source now use one exact name, and `tools/test_ultra_voice_packaging.py` asserts that relationship. Exact-source CI run `44999224034` passed both jobs and uploaded the full artifact, all three parts, and checksum. When adding packaging steps, assert source and destination names in a test before uploading.

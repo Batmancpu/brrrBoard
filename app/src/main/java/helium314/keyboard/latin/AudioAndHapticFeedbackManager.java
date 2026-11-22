@@ -71,7 +71,10 @@ public final class AudioAndHapticFeedbackManager {
     }
 
     public void vibrate(final long milliseconds) {
-        if (mVibrator == null || milliseconds <= 0) {
+        // Direct single-pulse previews are ordinary haptics too; DND reserves
+        // vibration for the explicit important-action patterns below.
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn || mDoNotDisturb ||
+            mVibrator == null || milliseconds <= 0) {
             return;
         }
         mVibrator.vibrate(milliseconds);
@@ -99,10 +102,16 @@ public final class AudioAndHapticFeedbackManager {
             new int[] { 0, 112 });
     }
 
+    /** A short double pulse for a confirmed destructive action, never for a key tap. */
+    public void performImportantActionConfirmation() {
+        vibratePrivacyPattern(new long[] { 0, 14, 34, 22 },
+            new int[] { 0, 82, 0, 102 });
+    }
+
     private void vibratePrivacyPattern(final long[] durations, final int[] amplitudes) {
         // Do not bypass the keyboard's privacy/haptic preferences or DND policy.
         if (mSettingsValues == null || !mSettingsValues.mVibrateOn ||
-            (mDoNotDisturb && !mSettingsValues.mVibrateInDndMode) ||
+            (mDoNotDisturb && !mSettingsValues.mImportantHapticsInDndMode) ||
             mVibrator == null || !mVibrator.hasVibrator()) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             mVibrator.vibrate(VibrationEffect.createWaveform(durations, amplitudes, -1));
@@ -139,7 +148,10 @@ public final class AudioAndHapticFeedbackManager {
     }
 
     public void performHapticFeedback(final View viewToPerformHapticFeedbackOn, final HapticEvent hapticEvent) {
-        if (!mSettingsValues.mVibrateOn || (mDoNotDisturb && !mSettingsValues.mVibrateInDndMode)) {
+        // DND permits only the explicit privacy/destructive confirmations
+        // routed through vibratePrivacyPattern. Key presses, repeats and
+        // gesture ticks stay silent even when that option is enabled.
+        if (mSettingsValues == null || !mSettingsValues.mVibrateOn || mDoNotDisturb) {
             return;
         }
         if (hapticEvent == HapticEvent.NO_HAPTICS) {

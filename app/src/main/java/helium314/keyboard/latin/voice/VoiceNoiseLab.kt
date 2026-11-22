@@ -364,8 +364,8 @@ internal class VoiceNoiseLab(context: Context) {
             if (closed || busy.get() || playBusy.get() || enhanceBusy.get() ||
                 !decodeBusy.compareAndSet(false, true))
                 return false
-            if (!VoiceModelInstaller.isInstalled(appContext)) {
-                status = "The existing offline model must be installed to score transcription."
+            if (VoiceModelChoice.active(appContext) == null) {
+                status = "Install a verified offline model to score transcription."
                 decodeBusy.set(false)
                 return false
             }
@@ -373,7 +373,7 @@ internal class VoiceNoiseLab(context: Context) {
                 ?: run { decodeBusy.set(false); return false }
         }
         val started = SystemClock.elapsedRealtime()
-        synchronized(gate) { status = "Transcribing this take offline with the existing model…" }
+        synchronized(gate) { status = "Transcribing this take with the selected keyboard model…" }
         // VoiceDecodeRequest owns and wipes its copy on success, failure or cancellation.
         val request = OfflineVoiceEngine.shared(appContext).transcribe(pcm) { answer ->
             synchronized(gate) {
@@ -451,12 +451,12 @@ internal class VoiceNoiseLab(context: Context) {
                             }
                         }
                         status = error.message?.take(180)
-                            ?: "Model comparison failed. The existing 110M model remains selected."
+                            ?: "Model comparison failed. Your selected keyboard model is unchanged."
                     }
                 }
             } finally {
                 pcm.fill(0)
-                runCatching { OfflineVoiceEngine.shared(appContext).releaseAndWait() }
+                runCatching { OfflineVoiceEngine.shared(appContext, VoiceModelManifest.pack).releaseAndWait() }
                 synchronized(gate) {
                     decodeRequest = null
                     ultraTestClient = null
@@ -469,7 +469,7 @@ internal class VoiceNoiseLab(context: Context) {
     }
 
     private fun decodeCurrentModel(pcm: ByteArray, reference: String): ModelScore {
-        val engine = OfflineVoiceEngine.shared(appContext)
+        val engine = OfflineVoiceEngine.shared(appContext, VoiceModelManifest.pack)
         val wallStarted = SystemClock.elapsedRealtime()
         engine.releaseAndWait()
         val peakPss = AtomicLong(Debug.getPss().toLong())
