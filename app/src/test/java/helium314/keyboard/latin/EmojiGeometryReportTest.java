@@ -51,6 +51,7 @@ public class EmojiGeometryReportTest {
         awaitReport();
         Assert.assertTrue(EmojiGeometryReport.hasReport(context));
         EmojiGeometryReport.erase(context);
+        awaitReportAbsent();
         Assert.assertFalse(EmojiGeometryReport.hasReport(context));
     }
 
@@ -58,6 +59,18 @@ public class EmojiGeometryReportTest {
         final long deadline = android.os.SystemClock.uptimeMillis() + 2000;
         while (android.os.SystemClock.uptimeMillis() < deadline) {
             if (EmojiGeometryReport.hasReport(ApplicationProvider.getApplicationContext())) return;
+            try { Thread.sleep(10); }
+            catch (final InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
+    private void awaitReportAbsent() {
+        final long deadline = android.os.SystemClock.uptimeMillis() + 2000;
+        while (EmojiGeometryReport.hasReport(context)
+                && android.os.SystemClock.uptimeMillis() < deadline) {
             try { Thread.sleep(10); }
             catch (final InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
