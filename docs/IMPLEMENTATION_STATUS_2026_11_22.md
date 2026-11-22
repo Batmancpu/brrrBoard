@@ -1,16 +1,10 @@
 # Implementation status — 2026-11-22
 
-## Exact-source verification and test APK
+## Published production update
 
 Feature branch `feature/parakeet-ultra-brain-abtest` is at source commit `5997430406b91edf1e2a1682d6a8bacae67581b4`. GitHub Actions run [44999224034](https://github.com/Batmancpu/brrrBoard/actions/runs/44999224034) completed successfully: Android debug build, signing identity checks, full Android unit-test gate, Ultra A/B build, original-signer verification, and artifact uploads all passed.
 
-The run produced the update-compatible versionCode 236 A/B test APK as an Actions artifact only. The full artifact is ID `14744893999` (606,508,631-byte ZIP). The downloader's 512 MiB limit is handled by three parts: IDs `14744784264` (314,572,984-byte ZIP), `14744938992` (314,572,984-byte ZIP), and `14744534978` (240,381,381-byte ZIP). Checksum artifact ID `14745637031` contains the APK SHA-256. All artifacts expire 2026-12-06. Download all three part artifacts and the checksum artifact from the same run, extract into one folder, and run:
-
-```sh
-bash tools/join-ultra-abtest-apk.sh <part-folder> <output.apk> <APK-SHA256>
-```
-
-The joiner refuses to leave a result unless all ordered parts match the expected SHA-256. This APK is for the owner's test; no GitHub/Obtainium release was created.
+The split-APK Actions artifacts were a temporary test route. The owner requested a single production APK, so the models and implementation are now included in original-signed [v1.0.237](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.237). Download the single APK: [brrBoard.apk](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.237/brrBoard.apk). It is 869,526,797 bytes with SHA-256 `7b347ff9b8b065eae43552635565503103fcd1c2025fdfd1f2f2673981c11a8b`. Exact-SHA debug/unit run `45001350457` and original-signer release run `45001350481` succeeded. The APK contains both pinned Parakeet packs. Ultra remains user-installed from the Voice Lab and does not replace default dictation. Subsequent updates omit the large models unless explicitly requested.
 
 ## Work completed in source
 

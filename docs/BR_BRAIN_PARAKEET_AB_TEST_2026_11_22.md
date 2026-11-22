@@ -1,4 +1,4 @@
-# BR Brain Parakeet A/B test (next update; not released)
+# BR Brain Parakeet A/B comparison — v1.0.237
 
 ## What the test does
 
@@ -24,11 +24,12 @@ model and is never removed or replaced by the test.
   `402e1190ce85b9793118ee223db21fb0d12f52db`. Four assets total 670,576,835
   bytes (about 640 MiB) and are size/hash checked at fetch, APK verification,
   and private installation.
-- The ordinary update and Obtainium release workflow never contain Ultra. A
-  dedicated, original-signed A/B test APK is produced as a GitHub Actions
-  artifact for this feature branch only. It contains both pinned model packs
-  so fresh and upgraded installs can compare them. The workflow verifies and
-  signs the APK but has no release-publishing step.
+- Original-signed v1.0.237 is the one-time production update that contains
+  both pinned Parakeet packs in one APK. The app continues to use 110M for
+  default dictation; Ultra is an explicit Voice Lab install/comparison option.
+  Later releases omit these large weights unless the owner asks to bundle them
+  again. The older Actions test artifact remains available as a separate
+  historical validation path.
 - On device, the BR Brain lab offers a user-confirmed install only when the
   Ultra pack is present in that APK, checks available storage, verifies the
   copied assets, and keeps the 110M untouched if installation fails.
@@ -53,34 +54,11 @@ devices or public corpora do not predict accuracy, speed, or memory on the
 owner's Reno10. In particular, the host FLEURS benchmark must not be presented
 as a Reno10 result.
 
-## Current state and release gate
+## Published production update
 
-Implementation is on feature branch `feature/parakeet-ultra-brain-abtest`, not
-main. The exact-source debug/full Android suite passed for source
-`778d63c4cd4a0d2d0c27f72c2d5646bd6fc6cc62` in run
-[44995213924](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924).
-The A/B artifact was built as package `com.mangoloads.board`, production
-versionCode 236, and verified against the production signing certificate. Its
-APK is 869,514,509 bytes with SHA-256
-`d35a1c4252f055d8fc63238ec847e068b1f9dbbbbc133efaec061bd34947b352`.
-[Download the 14-day Actions artifact](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924/artifacts/14743318266)
-(artifact ZIP 606,500,553 bytes; ZIP SHA-256
-`f1f6e6af32b31f640d64759bf71edcd41ac32405e751e3fe5ee96bcae3acb94e`). This
-is not a GitHub/Obtainium release. A later source-only workflow fix adds
-smaller checksum-verified chunks because the connected artifact downloader
-caps a single download at 512 MiB; that exact-source build is running on
-`e9c6392fe642586e57f86532793eb908371f17c1`.
-Physical Reno10 install, memory, thermal, English/Indian-accent WER, latency
-and A/B comparison remain unmeasured. ContextLM stays disabled: after fixing a
-training-candidate mismatch and expanding to 250,000 pairs, its new fixed-seed
-holdout still tied top-1 and lost Recall@3 against the proxy in every language
-family. Detailed evidence is in `QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+The combined original-signed APK is published as [v1.0.237](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.237), from merge commit `ed336594e4dea63d8e1a0494d14acb74fda6e09b`. Exact-source Android debug/full-suite run [45001350457](https://github.com/Batmancpu/brrrBoard/actions/runs/45001350457) and original-signer release run [45001350481](https://github.com/Batmancpu/brrrBoard/actions/runs/45001350481) both succeeded. The single `com.mangoloads.board` APK (versionCode 237) is [brrBoard.apk](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.237/brrBoard.apk), 869,526,797 bytes, SHA-256 `7b347ff9b8b065eae43552635565503103fcd1c2025fdfd1f2f2673981c11a8b`. GitHub's asset metadata reports the same SHA-256. No multi-update installation sequence is needed.
 
-The test APK is intentionally large. Installing Ultra needs roughly 640 MiB
-plus 64 MiB safety headroom in app storage, in addition to APK space. A fresh
-install also needs about 130 MiB plus safety headroom to install the 110M
-model. An existing install reuses the already verified 110M copy. Any
-low-storage refusal leaves existing model files and settings untouched.
+The release includes the SHA-256-pinned 110M and Ultra packs. Ultra stays optional in BR Brain Voice Lab and does not replace default dictation. Future releases omit the large speech packs unless explicitly requested. This update's download is about 830 MiB and Ultra needs about 700 MiB of app storage. ContextLM remains disabled because its corrected fixed-seed holdout failed the Recall@3 gate. Reno10 visual, voice accuracy, latency, memory, and thermal acceptance remain device-only and are not claimed as CI results.
 
 ## Emoji layout artifact
 
