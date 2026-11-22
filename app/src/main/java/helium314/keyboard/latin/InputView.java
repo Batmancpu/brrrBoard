@@ -165,6 +165,14 @@ public final class InputView extends FrameLayout {
                 appendGeometry(dimensions, "wrapper", findViewById(R.id.keyboard_view_wrapper));
                 appendGeometry(dimensions, "emoji", emoji);
                 appendGeometry(dimensions, "shell", findViewById(R.id.emoji_grid_shell));
+                appendVisibility(dimensions, "searchBarVisibility",
+                        findViewById(R.id.emoji_search_bar_container));
+                appendVisibility(dimensions, "searchResultsVisibility",
+                        findViewById(R.id.emoji_search_results_scroll));
+                appendVisibility(dimensions, "searchEmptyVisibility",
+                        findViewById(R.id.emoji_search_empty));
+                appendVisibility(dimensions, "smartSectionVisibility",
+                        findViewById(R.id.emoji_context_smart_section));
                 final View pager = findViewById(R.id.emoji_pager);
                 appendGeometry(dimensions, "pager", pager);
                 appendGeometry(dimensions, "categories", findViewById(R.id.emoji_tab_strip_container));
@@ -285,6 +293,21 @@ public final class InputView extends FrameLayout {
                         .append(margins.topMargin).append(',').append(margins.rightMargin)
                         .append(',').append(margins.bottomMargin);
             }
+        }
+    }
+
+    /** Fixed geometry-probe states only; this never reads view text or content. */
+    private static void appendVisibility(final StringBuilder report, final String label,
+            final View view) {
+        report.append(' ').append(label).append('=');
+        if (view == null) {
+            report.append("unavailable");
+            return;
+        }
+        switch (view.getVisibility()) {
+            case View.VISIBLE: report.append("visible"); break;
+            case View.INVISIBLE: report.append("invisible"); break;
+            default: report.append("gone"); break;
         }
     }
 

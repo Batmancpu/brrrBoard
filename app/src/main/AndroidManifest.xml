@@ -70,6 +70,12 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                  android:process=":brr_clean_denoise"
                  android:exported="false" />
 
+        <!-- Experimental 0.6B ASR runs outside LatinIME so model-load OOM/native
+             failures cannot kill daily typing. Bound only by the settings lab. -->
+        <service android:name="helium314.keyboard.latin.voice.UltraVoiceTestService"
+                 android:process=":brr_voice_ultra_test"
+                 android:exported="false" />
+
         <!-- Activities -->
         <activity android:name="helium314.keyboard.settings.SettingsActivity"
                 android:theme="@style/platformActivityTheme"

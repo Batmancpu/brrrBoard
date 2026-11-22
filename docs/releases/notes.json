@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "summary": "Reduce redundant drawing work in the frosted Emoji, Clipboard, and Toolbar panels.",
+  "summary": "Fix the Emoji Browse top gap, reduce panel redraw work, and include a one-time combined offline Parakeet 110M and Ultra test pack for same-audio comparison.",
   "changes": [
     {
       "title": "Reuse unchanged panel glass recordings",
       "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
+    },
+    {
+      "title": "Remove the stale Search row above Emoji Browse",
+      "detail": "Emoji Search results and the no-results panel now remain hidden whenever Search mode is off, including when an asynchronous Search refresh arrives after leaving Search. This prevents the fixed 56dp row from stealing height above the category tabs and emoji grid. The content-free geometry report now includes visibility states for these Search-only rows."
+    },
+    {
+      "title": "Compare Parakeet models on the same Voice Lab recording",
+      "detail": "BR Brain can compare the existing 110M recognizer with Parakeet Ultra 0.6B INT8 on one identical RAM-only offline recording. This update includes both SHA-256-pinned model packs for Voice Lab comparison. Results include transcripts, reference-based WER, cold-load/decode/elapsed timing, real-time factor, and sampled process memory. Ultra remains an explicit, user-installed test model and never replaces default dictation. The combined update is intentionally large (about 870 MB); subsequent updates omit model weights unless explicitly requested."
     }
   ]
 }

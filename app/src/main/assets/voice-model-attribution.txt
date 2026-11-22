@@ -17,3 +17,17 @@ sherpa-onnx software license: Apache License 2.0
 No audio is transferred to the model's original publisher or to sherpa-onnx.
 When weights are embedded, all four assets are pinned by SHA-256 and checked
 during the release build. See NOTICE and tools/offline-voice-model.lock.
+
+Optional BR Brain A/B test model (only in a manually requested test APK)
+
+Model: Moondream Parakeet Ultra, English, 0.6B INT8 sherpa-onnx export
+Original model: https://huggingface.co/moondream/parakeet-ultra
+Export: https://huggingface.co/csukuangfj/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8
+Original model license: Creative Commons Attribution 4.0 International
+Export runtime/software license: Apache License 2.0
+Pinned export revision: 402e1190ce85b9793118ee223db21fb0d12f52db
+The test pack is never present in routine APKs. When expressly included in a
+test/update build, installation is user initiated and copies verified assets
+to this app's private storage. The existing 110M model remains installed and
+continues to power dictation. A/B testing uses the same RAM-only take and runs
+both offline models one at a time. See tools/offline-ultra-voice-model.lock.

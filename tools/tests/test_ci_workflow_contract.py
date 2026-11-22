@@ -19,13 +19,17 @@ class CiWorkflowContractTest(unittest.TestCase):
         )
         self.assertNotIn("brrrboard-audit-*", DEBUG.read_text())
 
-    def test_full_android_unit_suite_runs_in_debug_once(self):
+    def test_full_android_unit_suite_runs_in_non_publishing_debug_once(self):
         debug = DEBUG.read_text()
         release = RELEASE.read_text()
         invocation = "./gradlew --no-daemon --stacktrace testRunTests"
         self.assertEqual(debug.count(invocation), 1)
         self.assertNotIn(invocation, release)
-        self.assertLess(debug.index("name: Run unit tests"), debug.index("name: Publish GitHub release"))
+        self.assertIn("name: Run unit tests", debug)
+        self.assertIn("actions/upload-artifact@v4", debug)
+        self.assertLess(debug.index("name: Fail workflow when tests fail"),
+                        debug.index("name: Upload verified debug APK artifact"))
+        self.assertNotIn("gh release create", debug)
         self.assertIn("if: steps.unit_tests.outcome == 'failure'", debug)
 
     def test_release_notes_repair_triggers_both_workflows(self):

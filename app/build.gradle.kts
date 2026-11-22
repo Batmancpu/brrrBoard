@@ -46,6 +46,12 @@ plugins {
 android {
     compileSdk = 36
 
+    // The Ultra pack is optional, but if manually bundled its ONNX weights
+    // should be read directly from APK assets rather than inflated at runtime.
+    androidResources {
+        noCompress += "onnx"
+    }
+
     val obtainiumBuild = providers.gradleProperty("obtainiumBuild").map(String::toInt)
     val persistentDebugKeystore = rootProject.file(".github/debug.keystore")
 
@@ -238,7 +244,7 @@ android {
 dependencies {
     // One native on-device English ASR engine; native/Java binaries are checksum-pinned by
     // tools/fetch-board-sherpa-onnx.sh. The ~137 MB model weights are NOT in regular APKs.
-    implementation(files("libs/sherpa-onnx-1.13.3.jar"))
+    implementation(files("libs/sherpa-onnx-2.0.2.jar"))
     // androidx
     implementation("androidx.core:core-ktx:1.17.0") // 1.18.0 requires minSdk 23
     implementation("androidx.appcompat:appcompat:1.7.0")

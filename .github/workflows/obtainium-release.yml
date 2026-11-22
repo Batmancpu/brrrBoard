@@ -22,6 +22,11 @@ on:
         type: boolean
         required: true
         default: false
+      bundle_ultra_model:
+        description: 'Include the pinned Parakeet Ultra 0.6B model for this update (about 640 MiB)'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: write
@@ -50,17 +55,43 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
+          bundle_ultra=false
+          bundle_voice=false
           if [[ "$GITHUB_EVENT_NAME" != "push" || -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
             echo "product_changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" | grep -Ev '^app/src/test/' || true)"
-          if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify-(voice-model|gtcrn|brrclean)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
-            echo "product_changed=true" >> "$GITHUB_OUTPUT"
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+              if [[ "${{ inputs.bundle_ultra_model }}" == "true" ]]; then
+                bundle_ultra=true
+                bundle_voice=true
+              elif [[ "${{ inputs.bundle_voice_model }}" == "true" ]]; then
+                bundle_voice=true
+              fi
+            fi
           else
-            echo "product_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No shipped application or build inputs changed; signing/publication will be skipped."
+            changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" | grep -Ev '^app/src/test/' || true)"
+            if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify-(voice-model|gtcrn|brrclean)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
+              echo "product_changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "product_changed=false" >> "$GITHUB_OUTPUT"
+              echo "No shipped application or build inputs changed; signing/publication will be skipped."
+            fi
+            # First introduction of this exact lock is the one-time, owner-requested
+            # Ultra update. Later releases do not rebundle the 640 MiB model.
+            if grep -Fxq 'tools/offline-ultra-voice-model.lock' <<< "$changed_files"; then
+              bundle_ultra=true
+              bundle_voice=true
+            fi
           fi
+          if [[ "$bundle_ultra" == true ]]; then
+            model_mode=both
+          elif [[ "$bundle_voice" == true ]]; then
+            model_mode=bundled
+          else
+            model_mode=unbundled
+          fi
+          echo "bundle_ultra=$bundle_ultra" >> "$GITHUB_OUTPUT"
+          echo "bundle_voice=$bundle_voice" >> "$GITHUB_OUTPUT"
+          echo "model_mode=$model_mode" >> "$GITHUB_OUTPUT"
       - name: Check signing enrollment
         if: github.event_name != 'push' || steps.release_scope.outputs.product_changed == 'true'
         env:
@@ -82,8 +113,11 @@ jobs:
       - name: Stage pinned brrClean native GTCRN weights inside every APK
         run: bash tools/fetch-board-brrclean.sh
       - name: Bundle pinned English ASR model only when explicitly requested
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model }}
+        if: steps.release_scope.outputs.bundle_voice == 'true'
         run: bash tools/prepare-offline-voice-pack.sh
+      - name: Bundle pinned Parakeet Ultra for the one-time update or explicit request
+        if: steps.release_scope.outputs.bundle_ultra == 'true'
+        run: bash tools/prepare-ultra-voice-pack.sh
       - name: Validate premium Settings navigation and resource contract
         run: python3 tools/check_premium_settings_contract.py
       - name: Assemble offline Version History from signed GitHub releases
@@ -149,7 +183,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
           EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
-          BUNDLE_VOICE: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model && 'bundled' || 'unbundled' }}
+          BUNDLE_MODE: ${{ steps.release_scope.outputs.model_mode }}
         run: |
           set -euo pipefail
           : "${KEYSTORE_BASE64:?Missing OBTAINIUM_KEYSTORE_BASE64}"
@@ -189,9 +223,7 @@ jobs:
             echo "::error::The APK contains a full settings backup."
             exit 1
           fi
-          # Regular updates MUST exclude weights; an explicitly dispatched
-          # bootstrap MUST include all four SHA-256-pinned weights.
-          bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_VOICE"
+          bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_MODE"
           bash tools/verify-gtcrn-packaging.sh "$apk"
           bash tools/verify-brrclean-packaging.sh "$apk"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
@@ -207,7 +239,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          BUNDLE_VOICE: ${{ github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model && 'bundled' || 'unbundled' }}
+          BUNDLE_MODE: ${{ steps.release_scope.outputs.model_mode }}
         run: |
           set -euo pipefail
           version="1.0.$GITHUB_RUN_NUMBER"
@@ -218,8 +250,10 @@ jobs:
             echo "An equal or newer Obtainium release is already published."
             exit 0
           fi
-          model_note='No model weights in this update; retains the previously installed verified private model.'
-          if [[ "$BUNDLE_VOICE" == 'bundled' ]]; then
+          model_note='No Parakeet model weights in this update; retains the previously installed verified private model.'
+          if [[ "$BUNDLE_MODE" == 'both' ]]; then
+            model_note='Includes SHA-256-verified Parakeet 110M and Parakeet Ultra 0.6B INT8 packs for offline Voice Lab comparison. Ultra is optional in settings and does not replace default dictation; allow roughly 700 MiB of additional app storage.'
+          elif [[ "$BUNDLE_MODE" == 'bundled' ]]; then
             model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
           fi
           printf '\n%s\nThe 535 KB GTCRN denoising model is bundled permanently in this APK; no audio is uploaded or model fetched at runtime.\nAPK SHA-256: %s.\n' "$model_note" "$SHA256" >> "$RUNNER_TEMP/brrBoard-release-notes.md"
