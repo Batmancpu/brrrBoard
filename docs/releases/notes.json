@@ -32,7 +32,7 @@
     },
     {
       "title": "Add a reversible settings reset",
-      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour; the slider gives continuous restrained haptics while held."
+      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour. The slider gives continuous restrained haptics while held when haptics are enabled, including the important-actions-only Do Not Disturb mode, without needing the keyboard service to be running."
     },
     {
       "title": "Bound offline update history",

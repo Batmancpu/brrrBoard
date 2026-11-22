@@ -68,7 +68,7 @@ public final class AudioAndHapticFeedbackManager {
         try {
             mDoNotDisturb = android.provider.Settings.Global.getInt(
                 mContext.getContentResolver(), "zen_mode") != 0;
-        } catch (RuntimeException exception) {
+        } catch (Exception exception) {
             // Unknown DND state must never cause ordinary key haptics to leak.
             mDoNotDisturb = true;
         }
