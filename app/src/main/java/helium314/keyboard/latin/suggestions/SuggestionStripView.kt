@@ -190,7 +190,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val colors = Settings.getValues().mColors
         colors.setBackground(this, ColorType.STRIP_BACKGROUND)
         repeat(SuggestedWords.MAX_SUGGESTIONS) {
-            val word = MorphingSuggestionTextView(context, null, R.attr.suggestionWordStyle)
+            val word = TextView(context, null, R.attr.suggestionWordStyle)
             word.contentDescription = resources.getString(R.string.spoken_empty_suggestion)
             word.setOnClickListener(this)
             word.setOnLongClickListener(this)

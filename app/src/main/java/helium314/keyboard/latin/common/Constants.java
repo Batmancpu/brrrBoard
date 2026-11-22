@@ -34,6 +34,9 @@ public final class Constants {
          */
         public static final String NO_FLOATING_GESTURE_PREVIEW = "noGestureFloatingPreview";
 
+        /** Private field marker used by the Settings keyboard preview to prevent learning. */
+        public static final String NO_PERSONALIZED_LEARNING = "noPersonalizedLearning";
+
         private ImeOption() {
             // This utility class is not publicly instantiable.
         }

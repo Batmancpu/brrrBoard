@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.utils.JniUtils
+import java.text.Normalizer
 import helium314.keyboard.settings.screens.createAboutSettings
 import helium314.keyboard.settings.screens.createAdvancedSettings
 import helium314.keyboard.settings.screens.createAppearanceSettings
@@ -112,9 +113,54 @@ class SettingsContainer(context: Context) {
 
     // Offline, deterministic ranking. Matching aliases are scoped to known settings only.
     fun filter(searchTerm: String): List<Setting> {
-        val term = searchTerm.trim().lowercase()
+        val term = normalize(searchTerm)
         if (term.isBlank()) return emptyList()
-        val aliasRoutes = mapOf(
+        val queryTokens = tokens(term).filterNot { it in STOP_WORDS }
+        val matchedIntents = CONTEXT_INTENTS.filter { intent ->
+            intent.terms.all { wanted -> queryTokens.any { tokenMatches(it, wanted) } }
+        }
+        return list.mapNotNull { setting ->
+            val title = normalize(setting.title)
+            val description = normalize(setting.description.orEmpty())
+            val category = normalize(breadcrumbFor(setting.key))
+            val settingRoute = routeFor(setting.key)
+            val contextualMatch = matchedIntents.any { intent ->
+                settingRoute == intent.route && (intent.settingKey == null || setting.key == intent.settingKey)
+            }
+            val aliasMatches = SEARCH_ALIASES.any { (alias, route) ->
+                term.contains(alias) && settingRoute == route
+            }
+            val aliases = SETTING_SYNONYMS[setting.key].orEmpty()
+            val searchable = "$title $description $category"
+            val candidateTokens = tokens(searchable)
+            val matched = queryTokens.count { query ->
+                candidateTokens.any { tokenMatches(it, query) } || aliases.any { tokenMatches(it, query) }
+            }
+            val coverage = if (queryTokens.isEmpty()) 0f else matched.toFloat() / queryTokens.size
+            val rank = when {
+                title == term -> 0
+                title.startsWith(term) -> 1
+                title.split(' ', '-', '&').any { it.startsWith(term) } -> 2
+                description.contains(term) -> 3
+                category.contains(term) -> 4
+                aliasMatches || contextualMatch -> 5
+                coverage >= .66f -> 6
+                coverage >= .5f && queryTokens.size >= 2 -> 7
+                else -> return@mapNotNull null
+            }
+            rank to setting
+        }.sortedWith(compareBy<Pair<Int, Setting>> { it.first }.thenBy { it.second.title })
+            .take(40).map { it.second }
+    }
+
+    private data class ContextIntent(val terms: Set<String>, val route: String, val settingKey: String? = null)
+
+    companion object {
+        private val STOP_WORDS = setOf(
+            "a", "an", "and", "can", "do", "does", "for", "how", "i", "in", "is", "it",
+            "me", "my", "of", "on", "or", "please", "the", "this", "to", "want", "what", "with",
+        )
+        private val SEARCH_ALIASES = mapOf(
             "glass" to SettingsDestination.Appearance,
             "blur" to SettingsDestination.Appearance,
             "frosted" to SettingsDestination.Appearance,
@@ -132,26 +178,45 @@ class SettingsContainer(context: Context) {
             "swipe" to SettingsDestination.GestureTyping,
             "height" to SettingsDestination.Appearance,
             "clipboard" to SettingsDestination.Clipboard,
+            "reset settings" to SettingsDestination.Backup,
+            "backup" to SettingsDestination.Backup,
         )
-        return list.mapNotNull { setting ->
-            val title = setting.title.lowercase()
-            val description = setting.description?.lowercase().orEmpty()
-            val category = breadcrumbFor(setting.key).lowercase()
-            val aliasMatches = aliasRoutes.any { (alias, route) ->
-                alias.contains(term) && routeFor(setting.key) == route
-            }
-            val rank = when {
-                title == term -> 0
-                title.startsWith(term) -> 1
-                title.split(' ', '-', '&').any { it.startsWith(term) } -> 2
-                description.contains(term) -> 3
-                category.contains(term) -> 4
-                aliasMatches -> 5
-                else -> return@mapNotNull null
-            }
-            rank to setting
-        }.sortedWith(compareBy<Pair<Int, Setting>> { it.first }.thenBy { it.second.title })
-            .take(40).map { it.second }
+        private val CONTEXT_INTENTS = listOf(
+            ContextIntent(setOf("suggestion", "animation"), SettingsDestination.Appearance,
+                helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
+            ContextIntent(setOf("keyboard", "animation"), SettingsDestination.Appearance,
+                helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
+            ContextIntent(setOf("suggestion", "ios"), SettingsDestination.Appearance,
+                helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
+            ContextIntent(setOf("smart", "emoji"), SettingsDestination.BrainDashboard),
+            ContextIntent(setOf("emoji", "suggestion"), SettingsDestination.BrainDashboard),
+            ContextIntent(setOf("next", "word"), SettingsDestination.BrainDashboard),
+            ContextIntent(setOf("learn", "word"), SettingsDestination.BrainDashboard),
+            ContextIntent(setOf("voice", "clean"), SettingsDestination.Voice),
+            ContextIntent(setOf("voice", "noise"), SettingsDestination.Voice),
+            ContextIntent(setOf("typing", "private"), SettingsDestination.Privacy),
+            ContextIntent(setOf("settings", "reset"), SettingsDestination.Backup),
+        )
+        private val SETTING_SYNONYMS = mapOf(
+            helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE to
+                setOf("animation", "suggestion", "suggestions", "typing", "transition", "smooth", "ios"),
+            SettingsWithoutKey.BRAIN_PAGE to
+                setOf("prediction", "predictive", "emoji", "learning", "correction", "suggestion",
+                    "suggestions", "nextword", "smart", "contextual"),
+            SettingsWithoutKey.VOICE_PAGE to
+                setOf("microphone", "speech", "transcription", "noise", "cleaning", "parakeet"),
+            SettingsWithoutKey.BACKUP_RESTORE to setOf("reset", "defaults", "restore", "backup"),
+        )
+
+        private fun normalize(value: String): String = Normalizer.normalize(
+            value.lowercase(), Normalizer.Form.NFD,
+        ).replace(Regex("\\p{M}+"), "").trim()
+
+        private fun tokens(value: String): List<String> =
+            Regex("[\\p{L}\\p{N}]+").findAll(value).map { it.value }.toList()
+
+        private fun tokenMatches(candidate: String, query: String): Boolean =
+            candidate == query || candidate.startsWith(query) || query.startsWith(candidate)
     }
 }
 

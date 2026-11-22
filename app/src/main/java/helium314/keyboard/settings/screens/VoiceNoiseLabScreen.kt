@@ -76,7 +76,6 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
     val key = VoiceNoiseLab.Key(input, mode)
     val take = state.takes.firstOrNull()
     LaunchedEffect(take?.modelComparison) {
-        take?.modelComparison?.let { DeviceCheckupSession.record(it, take.durationMs) }
     }
     val oldModelInstalled = remember(refresh / 3) { VoiceModelInstaller.isInstalled(context) }
     val ultraBundled = remember(context) {

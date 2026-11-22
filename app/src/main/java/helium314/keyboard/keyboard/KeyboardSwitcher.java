@@ -1247,8 +1247,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 updatePersistentEmojiRow();
                 if (mCurrentInputView != null)
                     mCurrentInputView.requestLayout();
-                if (mCurrentInputView != null)
-                    mCurrentInputView.reportNextEmojiGeometry();
             }
         });
     }

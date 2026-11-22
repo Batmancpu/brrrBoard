@@ -97,6 +97,8 @@ import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceModelChoice
+import helium314.keyboard.latin.voice.VoiceModelManifest
+import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import kotlinx.coroutines.delay
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
@@ -111,8 +113,6 @@ import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.Preference
-import helium314.keyboard.settings.SettingsResetManager
-import helium314.keyboard.settings.dialogs.SlideActionRail
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.keyboard.KeyboardSwitcher
@@ -126,11 +126,11 @@ val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded))
 @Composable
 fun MainSettingsScreen(
     onClickAbout: () -> Unit,
-    onClickTextCorrection: () -> Unit,
     onClickPreferences: () -> Unit,
     onClickToolbar: () -> Unit,
     onClickGestureTyping: () -> Unit,
     onClickBrainDashboard: () -> Unit,
+    onClickTextCorrection: () -> Unit,
     onClickAdvanced: () -> Unit,
     onClickAppearance: () -> Unit,
     onClickLanguage: () -> Unit,
@@ -143,7 +143,6 @@ fun MainSettingsScreen(
     onClickPrivacy: () -> Unit,
     onClickBackup: () -> Unit,
     onClickVoice: () -> Unit,
-    onClickDeviceCheckup: () -> Unit,
     onClickBack: () -> Unit,
 ) {
     SearchSettingsScreen(
@@ -156,18 +155,21 @@ fun MainSettingsScreen(
         LaunchedEffect(ctx) {
             AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
         }
+        KeyboardTryoutCard()
         var showAdvancedControls by rememberSaveable { mutableStateOf(false) }
-        var resetUndoMs by remember { mutableStateOf(SettingsResetManager.remainingMs(ctx)) }
-        LaunchedEffect(ctx, resetUndoMs > 0L) {
-            while (resetUndoMs > 0L) {
-                delay(60_000L)
-                resetUndoMs = SettingsResetManager.remainingMs(ctx)
-            }
-        }
         val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
         var offlineVoiceReady by remember { mutableStateOf(VoiceModelChoice.active(ctx) != null) }
         var offlineInstallState by remember { mutableStateOf(VoiceModelInstaller.installState) }
         var offlineInstallPercent by remember { mutableStateOf(VoiceModelInstaller.installPercent) }
+        var voiceChoiceRevision by remember { mutableStateOf(0) }
+        val installedVoiceModels = remember(b?.value, voiceChoiceRevision) {
+            VoiceModelChoice.installed(ctx)
+        }
+        val activeVoiceModel = remember(b?.value, voiceChoiceRevision) {
+            VoiceModelChoice.active(ctx)
+        }
+        val compactVoiceModel = installedVoiceModels.firstOrNull { it.id == VoiceModelManifest.ID }
+        val ultraVoiceModel = installedVoiceModels.firstOrNull { it.id == UltraVoiceModelManifest.ID }
         val voiceInstallScope = rememberCoroutineScope()
         LaunchedEffect(ctx) {
             // The one-time installer verifies and extracts the model on an I/O worker. Refresh
@@ -198,16 +200,6 @@ fun MainSettingsScreen(
             }
             owner.lifecycle.addObserver(observer)
             onDispose { owner.lifecycle.removeObserver(observer) }
-        }
-        Md3ePreferenceGroup("Device check") {
-            Md3ePreference(
-                icon = "fact_check",
-                title = "Device checkup",
-                description = "Run the guided keyboard checks and copy one report",
-                onClick = onClickDeviceCheckup,
-                isFirst = true,
-                isLast = true,
-            )
         }
         if (!isImeReady) {
             Md3ePreferenceGroup("Finish setup") {
@@ -347,6 +339,23 @@ fun MainSettingsScreen(
                     onClick = onClickDictionaries,
                 )
                 Md3ePreference(
+                    icon = "graphic_eq",
+                    title = "Parakeet 110M · compact model",
+                    description = when {
+                        compactVoiceModel == null -> "Not installed · use Offline voice if this update includes its verified files"
+                        activeVoiceModel?.id == VoiceModelManifest.ID -> "Currently active · tap to use Ultra when it is installed"
+                        else -> "Lower-memory alternative · tap to make it the keyboard model"
+                    },
+                    onClick = {
+                        val target = if (activeVoiceModel?.id == VoiceModelManifest.ID)
+                            ultraVoiceModel else compactVoiceModel
+                        if (target != null && VoiceModelChoice.select(ctx, target)) {
+                            voiceChoiceRevision++
+                            runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
+                        }
+                    },
+                )
+                Md3ePreference(
                     icon = "tune",
                     title = "Detailed preferences",
                     description = "Fine-tune key behavior and less common options",
@@ -361,9 +370,14 @@ fun MainSettingsScreen(
                 Md3ePreference(
                     icon = "backup",
                     title = "Backup & restore",
-                    description = "Safeguard your settings and dictionaries",
+                    description = "Import, export or reset keyboard settings",
                     onClick = onClickBackup,
+                    isLast = true,
                 )
+            }
+        }
+
+        Md3ePreferenceGroup("About") {
                 Md3ePreference(
                     icon = R.drawable.mangoloads_brand_small,
                     title = "About brrBoard",
@@ -372,53 +386,6 @@ fun MainSettingsScreen(
                     brandIcon = true,
                     isLast = true,
                 )
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        ) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Reset settings", style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold)
-                Text("Restore keyboard preferences to their defaults. Your dictionaries, clipboard history, recordings and installed voice models stay on this device.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                SlideActionRail(
-                    label = "Slide to reset settings",
-                    onConfirmed = {
-                        if (SettingsResetManager.reset(ctx)) {
-                            resetUndoMs = SettingsResetManager.remainingMs(ctx)
-                            AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
-                            runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
-                            AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
-                        }
-                    },
-                    onDragStateChanged = { dragging ->
-                        val feedback = AudioAndHapticFeedbackManager.getInstance()
-                        if (dragging) feedback.startImportantActionHapticLoop()
-                        else feedback.stopImportantActionHapticLoop()
-                    },
-                )
-                if (resetUndoMs > 0L) {
-                    val minutes = (resetUndoMs / 60_000L).coerceAtLeast(1L)
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Settings reset · undo available for ${minutes}m",
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodySmall)
-                        Button(onClick = {
-                            if (SettingsResetManager.undo(ctx)) {
-                                resetUndoMs = 0L
-                                AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
-                                runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
-                            }
-                        }) { Text("Undo changes") }
-                    }
-                }
-            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -782,13 +749,13 @@ private fun PreviewScreen() {
     Theme(previewDark) {
         Surface {
             MainSettingsScreen(
-                onClickAbout = {}, onClickTextCorrection = {}, onClickPreferences = {},
+                onClickAbout = {}, onClickPreferences = {},
                 onClickToolbar = {}, onClickGestureTyping = {}, onClickBrainDashboard = {},
                 onClickAdvanced = {}, onClickAppearance = {}, onClickLanguage = {},
                 onClickLayouts = {}, onClickDictionaries = {}, onClickWelcomeWizard = {},
                 onClickKeys = {}, onClickSound = {}, onClickClipboard = {},
                 onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {},
-                onClickDeviceCheckup = {}, onClickBack = {}
+                onClickBack = {}
             )
         }
     }

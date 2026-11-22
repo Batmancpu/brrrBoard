@@ -3,13 +3,21 @@ package helium314.keyboard.settings.screens
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -34,6 +42,7 @@ import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.latin.settings.getTransitionAnimationScale
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.settings.dialogs.SlideActionDialog
 import helium314.keyboard.settings.SearchSettingsScreen
@@ -42,7 +51,7 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 @Composable
-fun BrainDashboardScreen(onClickBack: () -> Unit) {
+fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenCorrection: () -> Unit) {
     val context = LocalContext.current
     var refresh by remember { mutableIntStateOf(0) }
     var confirmErase by remember { mutableStateOf(false) }
@@ -88,6 +97,7 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                BrainGoldShimmer()
                 Text("Local intelligence", style = MaterialTheme.typography.titleLarge,
                     color = palette.onSurface, fontWeight = FontWeight.SemiBold)
                 Text(if (enabled) "Learning ON in eligible text fields"
@@ -97,6 +107,25 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
                 Text("Incognito, protected and no-personalized-learning fields are excluded.",
                     color = palette.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall)
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCorrection),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+            ) {
+                Row(Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("Correction & suggestions", fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer)
+                        Text("Autocorrect, predictions and suggestion behavior",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer)
+                    }
+                    Text("chevron_right", fontFamily = helium314.keyboard.settings.screens.materialSymbols,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer)
+                }
             }
 
             Text("Real-time processing speed",
@@ -268,6 +297,29 @@ fun BrainDashboardScreen(onClickBack: () -> Unit) {
             instruction = "slide to erase learning",
             onDismiss = { confirmErase = false },
             onConfirmed = { learner.clear(); refresh++; confirmErase = false },
+        )
+    }
+}
+
+/** A single entry shimmer gives BR Brain a restrained champagne accent without a looping redraw. */
+@Composable
+private fun BrainGoldShimmer() {
+    val context = LocalContext.current
+    val scale = getTransitionAnimationScale(context)
+    val sweep = remember { Animatable(-0.35f) }
+    LaunchedEffect(scale) {
+        if (scale > 0f) sweep.animateTo(1.2f,
+            animationSpec = tween((1_100 * scale).toInt().coerceAtLeast(1)))
+    }
+    Canvas(Modifier.fillMaxWidth().height(3.dp)) {
+        drawRect(Color(0xFF9B7740).copy(alpha = 0.36f))
+        val start = sweep.value * size.width
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(Color.Transparent, Color(0xFFFFE6AD), Color.Transparent),
+                start = Offset(start, 0f),
+                end = Offset(start + size.width * 0.22f, size.height),
+            )
         )
     }
 }

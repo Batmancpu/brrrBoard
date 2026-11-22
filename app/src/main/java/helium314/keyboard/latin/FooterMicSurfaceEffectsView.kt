@@ -8,7 +8,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.PathMeasure
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.ColorUtils
@@ -78,33 +77,18 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
-    // A shield silhouette, not a circular badge. Its halves grow together from
-    // above the mic and meet beneath it, leaving the original mic unobstructed.
-    private val shieldLeft = Path().apply {
-        moveTo(24f, 1.7f)
-        cubicTo(20.4f, 2.2f, 12.2f, 7.7f, 6.4f, 8.5f)
-        cubicTo(5.9f, 18.2f, 6.2f, 28.5f, 12.4f, 34.6f)
-        cubicTo(16f, 38.7f, 20.6f, 41f, 24f, 42.2f)
-    }
-    private val shieldRight = Path().apply {
-        moveTo(24f, 1.7f)
-        cubicTo(27.6f, 2.2f, 35.8f, 7.7f, 41.6f, 8.5f)
-        cubicTo(42.1f, 18.2f, 41.8f, 28.5f, 35.6f, 34.6f)
-        cubicTo(32f, 38.7f, 27.4f, 41f, 24f, 42.2f)
-    }
-    private val shieldFill = Path().apply {
-        moveTo(24f, 1.7f)
-        cubicTo(20.4f, 2.2f, 12.2f, 7.7f, 6.4f, 8.5f)
-        cubicTo(5.9f, 18.2f, 6.2f, 28.5f, 12.4f, 34.6f)
-        cubicTo(16f, 38.7f, 20.6f, 41f, 24f, 42.2f)
-        cubicTo(27.4f, 41f, 32f, 38.7f, 35.6f, 34.6f)
-        cubicTo(41.8f, 28.5f, 42.1f, 18.2f, 41.6f, 8.5f)
-        cubicTo(35.8f, 7.7f, 27.6f, 2.2f, 24f, 1.7f)
+    // A compact privacy shield/lock sits outside the mic's silhouette so the
+    // actual microphone remains easy to recognize and tap.
+    private val privacyBadge = Path().apply {
+        moveTo(39f, 2.1f)
+        cubicTo(37.2f, 3.1f, 35.1f, 3.6f, 33.8f, 3.8f)
+        lineTo(34.1f, 8.2f)
+        cubicTo(34.4f, 11.4f, 37.1f, 14.1f, 39f, 15.1f)
+        cubicTo(40.9f, 14.1f, 43.6f, 11.4f, 43.9f, 8.2f)
+        lineTo(44.2f, 3.8f)
+        cubicTo(42.9f, 3.6f, 40.8f, 3.1f, 39f, 2.1f)
         close()
     }
-    private val shieldSegment = Path()
-    private val leftMeasure = PathMeasure(shieldLeft, false)
-    private val rightMeasure = PathMeasure(shieldRight, false)
 
     fun setPrivacyShield(progress: Float) {
         val next = progress.coerceIn(0f, 1f)
@@ -148,20 +132,24 @@ class FooterMicUnderlightView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (width <= 0 || height <= 0) return
+        if (phase != Phase.IDLE) {
+            val tint = if (phase == Phase.RECORDING)
+                FooterIndicatorPolicy.voiceTint(dark) else FooterIndicatorPolicy.processingTint(dark)
+            ensureMask(tint)
+            val glow = bitmap
+            if (glow != null) {
+                val saved = canvas.save()
+                // Keep the underlight attached to the taller glyph as it breathes.
+                val scale = FooterMicPulsePolicy.scale(intensity)
+                canvas.scale(scale, scale, width / 2f, (height - 10f * density) / 2f)
+                bitmapPaint.alpha = (if (phase == Phase.RECORDING) 35f + 16f * intensity
+                    else 29f + 10f * intensity).roundToInt()
+                canvas.drawBitmap(glow, 0f, 0f, bitmapPaint)
+                canvas.restoreToCount(saved)
+            }
+        }
+        // Keep the small privacy mark crisp over the live voice underlight.
         drawPrivacyShield(canvas)
-        if (phase == Phase.IDLE || width <= 0 || height <= 0) return
-        val tint = if (phase == Phase.RECORDING)
-            FooterIndicatorPolicy.voiceTint(dark) else FooterIndicatorPolicy.processingTint(dark)
-        ensureMask(tint)
-        val glow = bitmap ?: return
-        val saved = canvas.save()
-        // Keep the underlight attached to the taller glyph as it breathes.
-        val scale = FooterMicPulsePolicy.scale(intensity)
-        canvas.scale(scale, scale, width / 2f, (height - 10f * density) / 2f)
-        bitmapPaint.alpha = (if (phase == Phase.RECORDING) 35f + 16f * intensity
-            else 29f + 10f * intensity).roundToInt()
-        canvas.drawBitmap(glow, 0f, 0f, bitmapPaint)
-        canvas.restoreToCount(saved)
     }
 
     private fun drawPrivacyShield(canvas: Canvas) {
@@ -169,24 +157,26 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         val saved = canvas.save()
         canvas.scale(width / 48f, height / 48f)
         val color = FooterPrivacyPalette.GOLD
-        val fillAlpha = ((shieldProgress - .44f) / .56f).coerceIn(0f, 1f)
-        if (fillAlpha > 0f) {
-            shieldPaint.style = Paint.Style.FILL
-            shieldPaint.color = ColorUtils.setAlphaComponent(color, (15f * fillAlpha).roundToInt())
-            canvas.drawPath(shieldFill, shieldPaint)
-        }
-        shieldSegment.reset()
-        leftMeasure.getSegment(0f, leftMeasure.length * shieldProgress, shieldSegment, true)
-        rightMeasure.getSegment(0f, rightMeasure.length * shieldProgress, shieldSegment, true)
+        val badgeSave = canvas.save()
+        val scale = .72f + .28f * shieldProgress
+        canvas.scale(scale, scale, 39f, 8.5f)
         shieldPaint.style = Paint.Style.STROKE
-        shieldPaint.strokeWidth = 4.2f
-        shieldPaint.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.DEPTH,
-            (32f * shieldProgress).roundToInt())
-        canvas.drawPath(shieldSegment, shieldPaint)
-        shieldPaint.strokeWidth = 1.45f
+        shieldPaint.strokeWidth = 1f
         shieldPaint.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
-            (172f * shieldProgress).roundToInt())
-        canvas.drawPath(shieldSegment, shieldPaint)
+            (255f * shieldProgress).roundToInt())
+        shieldPaint.style = Paint.Style.FILL
+        shieldPaint.color = ColorUtils.setAlphaComponent(Color.rgb(20, 35, 53),
+            (224f * shieldProgress).roundToInt())
+        canvas.drawPath(privacyBadge, shieldPaint)
+        shieldPaint.style = Paint.Style.STROKE
+        shieldPaint.strokeWidth = 1f
+        shieldPaint.color = ColorUtils.setAlphaComponent(color, (255f * shieldProgress).roundToInt())
+        canvas.drawPath(privacyBadge, shieldPaint)
+        shieldPaint.strokeWidth = .8f
+        canvas.drawArc(37.8f, 6.2f, 40.2f, 8.8f, 180f, 180f, false, shieldPaint)
+        shieldPaint.style = Paint.Style.FILL
+        canvas.drawRoundRect(37.5f, 7.3f, 40.5f, 9.6f, .4f, .4f, shieldPaint)
+        canvas.restoreToCount(badgeSave)
         canvas.restoreToCount(saved)
     }
 

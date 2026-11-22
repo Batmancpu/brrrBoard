@@ -48,7 +48,10 @@ fun SecureAppsPreference(setting: Setting) {
             items = options,
             initialSelection = selected.toList(),
             title = { Text(stringResource(R.string.board_secure_apps_title)) },
-            getItemName = { pkg -> installed[pkg]?.let { "$it ($pkg)" } ?: pkg },
+            getItemName = { pkg -> installed[pkg] ?: pkg },
+            // Keep long package IDs on a dedicated, one-line secondary row instead of
+            // squeezing them beside the app name and the selection switch.
+            getItemSubtitle = { pkg -> pkg.takeIf { installed.containsKey(it) } },
             onConfirmed = { chosen ->
                 selected = chosen.toSet()
                 // Existing learned history is untouched. Only future input from

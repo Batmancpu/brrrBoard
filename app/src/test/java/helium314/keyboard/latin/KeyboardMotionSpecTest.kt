@@ -16,9 +16,9 @@ class KeyboardMotionSpecTest {
     }
 
     @Test fun durationsAreShortAndVoicePulseIsSlower() {
-        assertTrue(KeyboardMotionSpec.WORD_CROSSFADE_MS in 100L..200L)
-        assertTrue(KeyboardMotionSpec.IOS_SUGGESTION_REVEAL_DELAY_MS in 10L..50L)
-        assertTrue(KeyboardMotionSpec.IOS_SUGGESTION_SETTLE_MS in 130L..200L)
+        assertTrue(KeyboardMotionSpec.WORD_CROSSFADE_MS in 100L..150L)
+        assertTrue(KeyboardMotionSpec.SUGGESTION_SIDE_STAGGER_MS in 4L..12L)
+        assertTrue(KeyboardMotionSpec.SUGGESTION_START_ALPHA in 0.2f..0.4f)
         assertTrue(KeyboardMotionSpec.SEARCH_RESULT_MS in 100L..220L)
         assertTrue(KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS > 1_300L)
     }

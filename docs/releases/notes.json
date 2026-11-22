@@ -1,46 +1,22 @@
 {
   "schema": 1,
-  "summary": "Make Settings easier to scan, stabilize voice-driven suggestions, keep reset reversible and use installed Parakeet Ultra by default.",
+  "summary": "Refine suggestion motion and Settings search, simplify incognito indicators, and remove the obsolete Device Checkup.",
   "changes": [
     {
-      "title": "Reuse unchanged panel glass recordings",
-      "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
+      "title": "Animate suggestions as whole words",
+      "detail": "Replace per-glyph matching with a short, bounded crossfade between outgoing and incoming suggestion labels. The current candidate and tap target update immediately; outgoing labels are visual only. Motion is 126 ms and is documented as a local approximation, not a measured one-to-one copy of Apple timing."
     },
     {
-      "title": "Remove the stale Search row above Emoji Browse",
-      "detail": "Emoji Search results and the no-results panel now remain hidden whenever Search mode is off, including when an asynchronous Search refresh arrives after leaving Search. This prevents the fixed 56dp row from stealing height above the category tabs and emoji grid. The content-free geometry report now includes visibility states for these Search-only rows."
+      "title": "Make Settings search contextual and add Type preview",
+      "detail": "Use a slimmer Search field with deterministic on-device setting aliases and phrase intents. A sapphire-and-gold Type card opens a private keyboard preview that does not train from its sample or start the microphone."
     },
     {
-      "title": "Compare Parakeet models on the same Voice Lab recording",
-      "detail": "The Offline voice settings select between verified installed Parakeet packs. Ultra 0.6B is preferred by default when installed; 110M remains available as the lower-memory fallback. The selected model is used for keyboard offline dictation, while the A/B lab continues to compare both on the same take. brrClean has one on/off control and defaults to on. No model weights are bundled in this update; already installed models remain in private app storage. The release workflow keeps an explicit bundle_ultra_model option for a future update only when requested."
+      "title": "Refine incognito footer indicators",
+      "detail": "Keep familiar smile and microphone controls legible while adding synchronized compact shield-lock privacy badges."
     },
     {
-      "title": "Keep only important confirmations in Do Not Disturb",
-      "detail": "Key taps and gesture haptics remain quiet during DND. The optional important-only setting allows brief confirmations when changing privacy mode or confirming a clipboard/history clear. If Android cannot provide the current DND state, the keyboard safely suppresses ordinary haptics until it can. The preference is located only in Everyday tools → Sound & haptics."
-    },
-    {
-      "title": "Keep the guided checkup as the single diagnostic report flow",
-      "detail": "The eight-step Settings checkup covers Emoji spacing, typing suggestions, ChatGPT voice stability, toolbar, panel blur, active voice controls, same-audio A/B, and important DND haptics. One final text report contains fresh geometry, voice-stream counters and numeric-only model metrics; typed text, transcripts, audio and clipboard contents stay out of it. Redundant standalone geometry and Voice Lab copy actions were removed."
-    },
-    {
-      "title": "Focus BR Brain on suggestions and local learning",
-      "detail": "Voice model selection, cleaning, install availability, and A/B comparison now live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
-    },
-    {
-      "title": "Make Settings calmer without removing controls",
-      "detail": "Everyday actions now sit in a shorter, grouped Settings home. Less-used controls remain available under an expandable Advanced controls section, with clearer descriptions and lighter icon treatment."
-    },
-    {
-      "title": "Add a reversible settings reset",
-      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour. The slider gives continuous restrained haptics while held when haptics are enabled, including the important-actions-only Do Not Disturb mode, without needing the keyboard service to be running."
-    },
-    {
-      "title": "Bound offline update history",
-      "detail": "The Settings release list and bundled history generator retain only the ten newest valid signed updates, including the current release when available. Older release entries are left out of the APK so history remains useful without accumulating data."
-    },
-    {
-      "title": "Keep suggestions steady during ChatGPT voice input",
-      "detail": "When ChatGPT streams speech into its text field without keyboard typing, brrBoard briefly holds changing prediction rows and shows the latest results after the transcript settles. A privacy-safe checkup step records only selection-update and held-suggestion counts; it never records words, transcripts, audio or screenshots."
+      "title": "Remove the obsolete Device Checkup",
+      "detail": "Remove the guided diagnostic screen and temporary Emoji geometry reporting path after the supplied device trace identified the stale Search row. Keep relevant voice model comparison in Offline voice."
     }
   ]
 }

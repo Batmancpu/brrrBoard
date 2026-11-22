@@ -46,7 +46,6 @@ import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceModelChoice
-import helium314.keyboard.latin.voice.VoiceModelManifest
 import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import helium314.keyboard.latin.voice.VoiceModelPack
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
@@ -179,7 +178,8 @@ fun PrivacySettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
 
 @Composable
 fun BackupSettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
-    onClickBack, "Backup & restore", listOf(SettingsWithoutKey.BACKUP_RESTORE)
+    onClickBack, "Backup & restore", listOf(SettingsWithoutKey.BACKUP_RESTORE),
+    footer = { ResetSettingsControl() },
 )
 
 @Composable
@@ -191,7 +191,6 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
     val selected = remember(refresh) { VoiceModelChoice.active(ctx) }
     var cleaningEnabled by remember(refresh) { mutableStateOf(VoiceNoiseChoice.isCleaningEnabled(ctx)) }
     val ultraBundled = remember(refresh) { VoiceModelInstaller.hasBundled(ctx, UltraVoiceModelManifest.pack) }
-    val oldBundled = remember(refresh) { VoiceModelInstaller.hasBundled(ctx, VoiceModelManifest.pack) }
     val scope = rememberCoroutineScope()
     var installingModel by remember { mutableStateOf<String?>(null) }
     var installMessage by remember { mutableStateOf<String?>(null) }
@@ -226,7 +225,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                installed.forEach { pack ->
+                installed.filter { it.id == UltraVoiceModelManifest.ID }.forEach { pack ->
                     VoiceModelOption(
                         title = modelTitle(pack),
                         summary = if (pack.id == UltraVoiceModelManifest.ID)
@@ -261,11 +260,9 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit, onOpenVoiceLab: () -> Unit) {
             }
 
             installMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            if ((ultraBundled && UltraVoiceModelManifest.pack !in installed) ||
-                (oldBundled && VoiceModelManifest.pack !in installed)) {
+            if (ultraBundled && UltraVoiceModelManifest.pack !in installed) {
                 Button(onClick = {
-                    val pack = if (ultraBundled && UltraVoiceModelManifest.pack !in installed)
-                        UltraVoiceModelManifest.pack else VoiceModelManifest.pack
+                    val pack = UltraVoiceModelManifest.pack
                     if (installingModel != null) return@Button
                     installingModel = pack.id
                     installMessage = "Verifying and installing ${modelTitle(pack)}… keep brrBoard open."
