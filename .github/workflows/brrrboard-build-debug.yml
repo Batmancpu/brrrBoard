@@ -292,7 +292,7 @@ jobs:
           unsigned="$(find app/build/outputs/apk/obtainium -maxdepth 1 -type f -name '*.apk' | head -n 1)"
           test -n "$unsigned"
           test -s "$unsigned"
-          bash tools/sign-ultra-abtest-apk.sh "$unsigned" "$RUNNER_TEMP/brrBoard-ultra-ab-test.apk" "$TEST_VERSION_CODE"
+          bash tools/sign-ultra-abtest-apk.sh "$unsigned" "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk" "$TEST_VERSION_CODE"
 
       - name: Prepare full APK and bounded download pieces
         shell: bash
