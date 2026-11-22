@@ -294,30 +294,35 @@ jobs:
           test -s "$unsigned"
           bash tools/sign-ultra-abtest-apk.sh "$unsigned" "$RUNNER_TEMP/brrBoard-ultra-ab-test.apk" "$TEST_VERSION_CODE"
 
-      - name: Upload signed A/B test APK artifact only
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrBoard-ultra-ab-test-${{ github.sha }}
-          path: ${{ runner.temp }}/brrBoard-ultra-ab-test.apk
-          if-no-files-found: error
-          retention-days: 14
-      - name: Split APK for bounded artifact download
+      - name: Prepare full APK and bounded download pieces
         shell: bash
         run: |
           set -euo pipefail
-          apk="$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk"
-          split -b 300M -d -a 2 "$apk" "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-"
-          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-00"
-          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-01"
-          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-02"
-          test ! -e "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-03"
-          sha256sum "$apk" | awk '{print $1}' > "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.sha256"
+          source_apk="$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk"
+          artifacts="$GITHUB_WORKSPACE/test-artifacts"
+          mkdir -p "$artifacts"
+          cp "$source_apk" "$artifacts/brrrBoard-ultra-ab-test.apk"
+          apk="$artifacts/brrrBoard-ultra-ab-test.apk"
+          split -b 300M -d -a 2 "$apk" "$artifacts/brrrBoard-ultra-ab-test.apk.part-"
+          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-00"
+          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-01"
+          test -s "$artifacts/brrrBoard-ultra-ab-test.apk.part-02"
+          test ! -e "$artifacts/brrrBoard-ultra-ab-test.apk.part-03"
+          sha256sum "$apk" | awk '{print $1}' > "$artifacts/brrrBoard-ultra-ab-test.apk.sha256"
+
+      - name: Upload signed A/B test APK artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-ultra-ab-test-${{ github.sha }}
+          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload A/B APK part 1 of 3
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3
-          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-00
+          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-00
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -326,7 +331,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3
-          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-01
+          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-01
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -335,7 +340,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3
-          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-02
+          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.part-02
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
@@ -344,6 +349,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: brrrBoard-ultra-apk-${{ github.sha }}-sha256
-          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.sha256
+          path: ${{ github.workspace }}/test-artifacts/brrrBoard-ultra-ab-test.apk.sha256
           if-no-files-found: error
           retention-days: 14

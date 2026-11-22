@@ -39,6 +39,9 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
                       self.read("tools/sign-ultra-abtest-apk.sh"))
         self.assertIn("actions/upload-artifact@v4", debug)
         self.assertIn("split -b 300M", debug)
+        self.assertIn('cp \"$source_apk\" \"$artifacts/brrrBoard-ultra-ab-test.apk\"', debug)
+        self.assertLess(debug.index("name: Prepare full APK and bounded download pieces"),
+                        debug.index("name: Upload signed A/B test APK artifact only"))
         self.assertIn("part-3-of-3", debug)
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3", debug)
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3", debug)
