@@ -45,6 +45,21 @@ jobs:
       - name: Validate premium Settings navigation and resource contract
         run: python3 tools/check_premium_settings_contract.py
 
+      - name: Require per-release change notes for application updates
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then exit 0; fi
+          changes="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
+          if grep -Eq '^(app/|buildSrc/|gradle/|tools/|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changes" &&
+             ! grep -Fxq 'docs/releases/notes.json' <<< "$changes"; then
+            echo '::error::Update docs/releases/notes.json with exact user-visible changes for this application update.'
+            exit 1
+          fi
+
       - name: Validate bundled Version History catalog
         run: |
           python3 -m unittest discover -s tools -p 'test_generate_version_history.py' -v
