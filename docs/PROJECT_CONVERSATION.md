@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 57549)
+Total output lines: 1156
+
 # 2026-11-22 — v1.0.234 released; paste one-tap geometry report
 
 The full source update was released from `4d42fa598a6fd1686f6682dce8dee6e121958418` after exact-SHA debug/full suite `44982800637` and original-signer `44982800542` passed. [v1.0.234 APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.234/brrrBoard.apk): 64,985,587 bytes, SHA-256 `1d42db4fd79845f936ad20bb8bd59e2aba7225b06b716b74075300fcae9d5db6`. Smart Emoji now reuses its bounded editor-bound ranked snapshot instead of querying the host editor and rescoring on Emoji panel open. Copy the device trace by opening Emoji Browse once, then **Settings → BR Brain → Emoji layout report → Copy geometry report**; paste it here. The root cause needs this Reno10 geometry trace to identify the first bad boundary. ContextLM remains off because corrected one-epoch and three-epoch holdouts lost, and calibrated fusion selects 0. Ultra remains unbundled pending Indian-accent and Reno10 latency/memory checks. Detailed results: `QUALITY_GATE_REEVALUATION_2026_11_22.md`.
@@ -516,192 +519,7 @@ Repository supplied: https://github.com/DevEmperor/DictateKeyboard
 
 **Existing-install edge case.** Reviewing `CustomizeIconsDialog.kt` showed it saves the entire default icon map when one icon is customized. An existing preference can therefore retain the old Shift asset after a default change. Added a one-time migration in [`AppUpgrade.kt`](https://github.com/Batmancpu/brrrBoard/blob/4d13a045d5fd17bcb427e2f22e5a70cef00e9049/app/src/main/java/helium314/keyboard/latin/AppUpgrade.kt): it replaces only exact old shipped asset names for idle Shift, one-shot Shift, and Caps Lock, preserving other user-selected glyphs and custom icons. Source commit [`4d13a045d5fd17bcb427e2f22e5a70cef00e9049`](https://github.com/Batmancpu/brrrBoard/commit/4d13a045d5fd17bcb427e2f22e5a70cef00e9049). Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374) is pending. v1.0.24 is interim for installs with a saved old icon map; wait for the migration release to accept the Shift correction.
 
-**Automatic debug workflow.** Run [43754830187](https://github.com/Batmancpu/brrrBoard/actions/runs/43754830187) compiled and signer-verified a debug APK, then failed the unit-test gate: 13 of 180 tests failed (ParserTest, InputLogicTest, and Emoji detection). No tests were manually run. Obtainium release CI independently passed.
-
-**Dictate constraint.** The owner reports that the selected Dictate service receives speech but returns Hindi, and requires English only. Dictate's current RecognitionService ignores brrBoard's language extra and uses its saved Active language. brrBoard cannot alter that private preference. Set Dictate Active language to English and disable keyboard-following, then verify on Reno10; no success is claimed yet.
-
-**Next action.** Record run #25's signed result, then continue source-backed keyboard icon/layout and dictionary review. Do not call the overall goal complete until the explicit post-v1.0.19 retrospective and device-only acceptance list are addressed.
-
-
-
-## 2026-11-15 — v1.0.25 saved-icon migration release
-
-**Build result.** Obtainium run [43756893374](https://github.com/Batmancpu/brrrBoard/actions/runs/43756893374) passed and published [v1.0.25](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.25), source `4d13a045d5fd17bcb427e2f22e5a70cef00e9049`. APK SHA-256: `8f7e895eb402892b6dd6f8b3fba61ad04b7f7efe0979d4e507e386d174555c95`. The build and pinned signer checks passed; package/update identity was preserved.
-
-**Effective Shift update.** v1.0.24 changed the default Shift assets, but the customization dialog can persist the old default map. v1.0.25's migration updates only those exact saved Shift defaults, preserves unrelated user-selected icons, and makes the screenshot-backed Shift correction effective for existing installs. Source changes and build are complete; the owner has not yet visually accepted the result on Reno10.
-
-**Current Dictate constraint.** The owner still requires English-only, no Hindi. brrBoard asks the selected RecognitionService for English; Dictate's current RecognitionService ignores caller language extras and uses Dictate's saved Active language. The app cannot modify that private value. This remains a device setup/acceptance blocker, not a claimed code fix.
-
-**Next action.** Continue the remaining screenshot-visible icon/accessory audit and source-backed geometry work, followed by the finite brrPersonal and emoji/swipe evaluation. Complete the explicit retrospective before suggesting follow-up work.
-
-
-
-## 2026-11-15 — English-only dictation safeguard and corrected provider copy
-
-**Source audit finding.** The selected RecognitionService route was already active, but the visible inline-dictation error and permission text still described an offline/on-device recognizer. That copy no longer matched the owner-selected Dictate service, which may use the owner's network provider. Replaced those messages with selected-service wording.
-
-**Source change.** On final results, InlineDictation now checks for Devanagari characters. If present, it does not insert them and shows a local message directing the owner to set Dictate's Active language to English. The check is intentionally a script safeguard, not a language detector: it cannot identify Hindi written in Latin letters and cannot change Dictate's private Active language. The system service is still requested with the English locale, and no brrBoard INTERNET permission or provider credentials are added.
-
-**Verification.** Source and the two user-facing strings are committed in `cc6c1ae5048204740c0186f72e233671a410571a`. Obtainium run [43758269031](https://github.com/Batmancpu/brrrBoard/actions/runs/43758269031) passed and published [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26), APK SHA-256 `cb95cac9b41c50ddc57f934f5d3040152a45a4ec7cecb3e1ff6beae3f2d41eba`. The separate debug run [43758268969](https://github.com/Batmancpu/brrrBoard/actions/runs/43758268969) built, verified and uploaded its APK, then failed the automatic test gate with 13/180 unit-test failures. No tests were manually run. Reno10 behavior remains unverified.
-
-
-## 2026-11-15 UTC / Nov 16 IST — v1.0.26 release and continued whole-project review
-
-**Owner**
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work.
-
-**Owner**
-> Also, I want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
-
-**Source and provider review.** Read the owner's DictateKeyboard issue [#359](https://github.com/DevEmperor/DictateKeyboard/issues/359) and the maintainer's explanation. The system `SpeechRecognizer` → selected Dictate `RecognitionService` route leaves brrBoard visible and delivers results through callbacks. The voice-input IME route replaces brrBoard; `ACTION_RECOGNIZE_SPEECH` opens another activity. Dictate's implementation uses its saved Active language and ignores the caller's requested language extras.
-
-**v1.0.26 result.** Main commit `cc6c1ae5048204740c0186f72e233671a410571a` adds a Devanagari script guard: final output containing Devanagari is not inserted; a local message directs the owner to Dictate's English Active language. It also removes obsolete “offline/on-device” claims from dictation copy. Obtainium run [43758269031](https://github.com/Batmancpu/brrrBoard/actions/runs/43758269031) passed and published [v1.0.26](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.26). APK SHA-256: `cb95cac9b41c50ddc57f934f5d3040152a45a4ec7cecb3e1ff6beae3f2d41eba`.
-
-**Limit.** The guard catches Devanagari characters in `U+0900..U+097F` and `U+A8E0..U+A8FF`; it is not a language detector and cannot detect Romanized Hindi or change Dictate's private preference. Set Dictate Active language to English and disable keyboard-following. English-only Reno10 acceptance is still pending. brrBoard remains without INTERNET permission; the selected provider may use its own network service.
-
-**CI.** Automatic debug run [43758268969](https://github.com/Batmancpu/brrrBoard/actions/runs/43758268969) built, signer-verified and uploaded the debug APK (artifact [14178932977](https://api.github.com/repos/Batmancpu/brrrBoard/actions/artifacts/14178932977), 59.2 MB, expires Nov 29). Its test report found 13/180 failures: five KeyboardParserTest currency/popup cases, seven InputLogicTest URL/autospace cases, and StringUtilsTest.isEmojiDetectsAllAvailableEmojis. Obtainium build passed independently. This batch did not change tests or run them manually.
-
-**Next.** Inspect DictionaryFacilitatorImpl/Suggest and the existing native proximity decoder to design a finite, license-safe `brrPersonal` source. Keep valid-only profanity/slang separate from completions and autocorrection. Do not add a separate hand-weighted ranker. After that, resume confirmed geometry/accessory/icon items and finish with the owner-requested retrospective.
-
-
-## 2026-11-15 UTC / Nov 16 IST — v1.0.29 Dictate result handling and whole-project continuation
-
-**Owner**
-> Also, I want to tell you the APK that you released. I believe it is finally being routed through Dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left.
-
-**Owner**
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chat is reached, please take a look back at the whole chat and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work.
-
-**Source audit.** Read DictateKeyboard's current `DictateRecognitionService`, `RecognitionSession`, and language settings screen, and reread the owner's issue [#359](https://github.com/DevEmperor/DictateKeyboard/issues/359). The service ignores brrBoard's recognizer Intent and starts a session from Dictate's saved Active language. The settings screen exposes **Active language** and **Follow keyboard language**; brrBoard has no public API to change those app-private preferences. Dictate's current system-service bridge returns one final transcript, even when a caller requests multiple results.
-
-**v1.0.29 source change.** `InlineDictation.kt` now asks for up to three alternatives and chooses the first result without Devanagari if the service provides alternatives; when all returned results are Hindi-script, it inserts nothing. The Hindi-result toast now gives the exact Dictate navigation: **Languages → Active language = English; Follow keyboard language = off**, and stays visible longer. This is a Hindi-script safeguard and alternative-result fallback; it cannot detect Romanized Hindi or make Dictate transcribe English.
-
-**Verification.** Obtainium run [43760989572](https://github.com/Batmancpu/brrrBoard/actions/runs/43760989572) passed and published [v1.0.29](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.29), APK SHA-256 `c4c02913a3cced3758914b34356687026e6c185523b22eac52f86f5532f1c914`. Debug run [43760989575](https://github.com/Batmancpu/brrrBoard/actions/runs/43760989575) compiled, signer-verified and uploaded its APK, then failed the automatic `:app:testRunTestsUnitTest` gate with 13/180 known failures. No tests were manually run. Reno10 English transcription remains owner-unverified.
-
-**Dictionary research checkpoint.** The existing `main_hi-Latn.dict` is a 204 KB packaged binary; the old local 252-word draft is not recoverable. PHINC offers 13,738 manually annotated Romanized Hindi-English social-media sentence pairs under CC-BY-4.0, but its dataset is from 2020 and is not evidence of current Instagram slang. A third-party pinned tokenizer script confirms the corpus can produce a reproducible frequency list, but no corpus-derived list has been added to brrBoard. Any use must add attribution and retain the existing native proximity decoder; no fixed handwritten ranking formula is approved. References: [PHINC dataset](https://huggingface.co/datasets/LingoIITGN/PHINC) and [Clink's pinned PHINC preparation script](https://github.com/anti-ltd/clink-language-packs/blob/2cc15342f1824622ba3d2b9f9379c89ff3bbdb59/tools/prepare-hinglish.py).
-
-**Next checkpoint.** Continue the dictionary/proximity-decoder audit, then implement only a corpus and validity/suggestion split that can preserve swipe decoding while keeping profanity/slang out of proactive suggestions and autocorrection. Finish the request-by-request retrospective, then list only the remaining Reno10 checks that require the owner's device.
-
-## 2026-11-15 continuation — English-only Dictate and final audit
-
-### Owner request (verbatim)
-
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
-
-### Verified response and next work
-
-- Repository head before this continuation was 6fe4917875fe861d9761d0b330d84cf6ddd65617; latest signed APK was v1.0.29.
-- brrBoard binds to Android's selected SpeechRecognizer/RecognitionService and sends an English hint. The DictateRecognitionService source used by the project ignores that caller intent and reads Dictate's private saved Active language. brrBoard cannot silently change that setting. v1.0.29 rejects Devanagari-only results and asks for Dictate → Languages → Active language = English, Follow keyboard language = off. Latin-script Hindi remains indistinguishable from English using a reliable source signal.
-- Began the next code batch: add an offline brrPersonal dictionary by reusing the native spatial decoder; use a pinned, attributed PHINC baseline plus a small manually curated valid-only slang/profanity list and emoji shortcuts. Keep manual no-suggest terms out of ordinary completions/autocorrect, while retaining them as deliberate swipe results. Do not introduce a separate ranking formula.
-- The owner expects continued small source/release/context checkpoints and a final audit of every post-v1.0.19 request and both screenshots. The current batch is not the end of the project; device checks remain owner-only.
-
-
-### Dictionary CI correction and Emoji implementation audit
-
-**Build result.** The first brrPersonal commit, `db36ad5ed77d2c681cfaa9986ad7e0f3a76f3e25`, triggered Obtainium run [43766256522](https://github.com/Batmancpu/brrrBoard/actions/runs/43766256522). The automatic build failed before Java/Kotlin compilation because the pinned PHINC CSV header is `Sentence,English_Translation` and the generator only recognized headers containing “hinglish” or “code mixed.” No signed APK or release was produced.
-
-**Correction.** The generator now recognizes the pinned source column `Sentence`. The release workflow path filter also includes `tools/**` so a future change confined to the generator triggers the signed build.
-
-**Emoji audit finding.** `EmojiPalettesView.AdaptiveEmojiEngine` already records local emoji use counts and recency and can cache a top-10 fast row, while the emoji use/recency cache has no presentation call site in the audited source. `addRecentEmoji()` records use and then calls `addRecentKey()`, which records the same emoji again. This is an existing partial implementation, not a finished Smart Emoji panel; remove the double count and integrate the ranker into a compact Reno10-compatible row in a follow-up batch.
-
-
-## 2026-11-15 continuation — English-only Dictate and Smart Emoji
-
-**User**
-
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
-
-**Assistant outcome.** Confirmed the v1.0.31 signed release and debug CI result. The user requires English-only Dictate transcription. Dictate's RecognitionService ignores caller language extras and follows its own Active language; brrBoard blocks Devanagari final results but cannot change Dictate's private preference or reliably identify Romanized Hindi. Keep that behavior open until the owner sets Dictate → Languages → Active language = English, turns off Follow keyboard language, and verifies on Reno10.
-
-The Smart Emoji source batch reuses the existing Recents category and local use/recency ranker, prioritizes up to three rows based on current grid width, refreshes its cache after a use, fixes duplicate counting, and records selected Emoji candidates once. The signed CI result for this source batch is pending; Reno10 appearance/quality checks remain open. The final full-transcript audit is still required.
-
-
-### Smart Emoji compile correction
-
-**CI result.** Obtainium [43769250859](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250859) and debug [43769250853](https://github.com/Batmancpu/brrrBoard/actions/runs/43769250853) both stopped during Java compilation. `EmojiCategory.java:287` referenced `TextUtils` without an import. No release APK was produced.
-
-**Correction.** Replace that call with `outputText == null || outputText.isEmpty()`. The source correction is committed separately with updated checkpoint notes; v1.0.31 remains the latest signed release pending the corrected CI run.
-
-## 2026-11-15 — English-only Dictate feedback and continuation
-
-**User**
-
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left.
-
-**Assistant outcome.** Confirmed signed v1.0.35, including the learned-history reset, and rechecked Dictate's RecognitionService route and issue #359. Dictate starts its own configured recognition session and does not use caller language extras; brrBoard requests English and rejects Devanagari output, but cannot change Dictate's saved Active language or reliably classify Romanized Hindi. The owner must set Dictate → Languages → Active language = English, disable Follow keyboard language, and verify on Reno10 before English-only is accepted. The complete transcript/source audit remains required.
-
-## 2026-11-15 — learned-history reset build correction
-
-**Assistant outcome.** The first builds for the confirmation-protected reset action failed before APK creation. Obtainium run [43771462834](https://github.com/Batmancpu/brrrBoard/actions/runs/43771462834) reported AAPT's `Invalid unicode escape sequence in string` for the new confirmation resource; debug run [43771462845](https://github.com/Batmancpu/brrrBoard/actions/runs/43771462845) failed the same resource merge. The wording contained unescaped possessive apostrophes. The string is now apostrophe-free, the feature remains unshipped, and corrected signed CI is pending.
-
-## 2026-11-15 — active plan and historical documents
-
-**Assistant outcome.** Clarified that the current post-v1.0.19 Reno10 plan is authoritative. The older v1.0.8 roadmap and v1.0.19 plan/behavior audit now point to current status and are labeled historical, especially where their old on-device dictation route conflicts with the owner's selected Dictate RecognitionService.
-
-## 2026-11-15 — learned-history reset shipped
-
-**Assistant outcome.** The corrected confirmation text passed the signed Obtainium workflow. Release [v1.0.35](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.35) is from commit `acacf329aaf058446d5deb4b463a11f8941cc0ce`; the APK is 51,024,650 bytes with SHA-256 `dc4beadfa10a1d13476b5c978bcdebe96231fed2dba9d55da52a3d1c08a40b15`. The debug APK built and passed signer verification, while its automatic unit-test gate was still running. No tests were manually run. The first resource builds failed and the failure plus apostrophe-free correction are recorded above.
-
-
-
-## 2026-11-15 — final-pass microphone privacy correction
-
-**Assistant outcome.** The request-by-request source review found a privacy gap: `SettingsValues.mIncognitoModeEnabled` included the global Always Incognito preference, but `mShowsVoiceInputKey` only mirrored the field-level gate. As a result, the footer could still show the mic and `LatinIME` could dispatch voice input in global incognito. The current source batch now makes mic visibility depend on `!mIncognitoModeEnabled` and gates the voice key event with that same computed flag. The branch is pushed to GitHub; signed CI and final device acceptance remain pending. The existing password and `IME_FLAG_NO_PERSONALIZED_LEARNING` guards remain intact.
-
-
-## 2026-11-15 — English-only Dictate feedback and final audit continuation
-
-**User**
-
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
-
-**Assistant outcome.** Rechecked the user's issue [#359](https://github.com/DevEmperor/DictateKeyboard/issues/359), its maintainer's current response, and Dictate's current RecognitionService source. The service uses the saved Dictate Active language; it does not read the caller's recognition Intent and returns no language-detection metadata. brrBoard source commit [283b179](https://github.com/Batmancpu/brrrBoard/commit/283b17987d025fa2ca869df817755be37723eb4b) continues to request English, requests Android language detection on API 34+ for providers that implement it, refuses confidently tagged non-English or Devanagari final results, and updates the message with the exact Dictate setting. This is a guard, not an override of Dictate's private setting. The owner must set Dictate → Languages → Active language = English and disable Follow keyboard language; Reno10 acceptance remains open. Obtainium run [43776497322](https://github.com/Batmancpu/brrrBoard/actions/runs/43776497322) and debug run [43776497364](https://github.com/Batmancpu/brrrBoard/actions/runs/43776497364) were in progress. The request-by-request source audit continues; no tests were manually run.
-
-
-## 2026-11-16 — Hindi Dictate report, Return/Delete icon batch, and retrospective
-
-**User**
-
-> Keep doing what you are doing. I just want to say when you are done and everything, the goal of this chart is reached, please take a look back at the whole chart and each thing and check if nothing is missed or nothing is ill-implemented. If anything is left, please implement that, okay? Keep continuing your work. All right, and also want to tell you the APK that you released. I believe it is finally being rooted through dictate. But it is only showing me Hindi transcriptions. Either it should show English or English only, but no Hindi, okay? And please continue the work that you were doing. Look at all the chat, look at the whole context and everything and please continue the work from here, right where you left
-
-**Assistant outcome.** Continued the request-by-request source audit. Commit [6f308ac](https://github.com/Batmancpu/brrrBoard/commit/6f308ac72b3b14364d0ef0a98542ff8242e3c0d0) changes only `app/src/main/res/drawable/sym_keyboard_return_lxx.xml` and `sym_keyboard_delete_lxx.xml`. The existing default icon map in `Defaults.PREF_CUSTOM_ICON_NAMES` selects these resources. Signed release [v1.0.39](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.39) succeeded in Obtainium run [43778036994](https://github.com/Batmancpu/brrrBoard/actions/runs/43778036994), size 51,024,650 bytes, SHA-256 `4451b5cdaa653c95e27cca92f596f13d57fad971097337a049eba40495965865`. Debug run [43778036946](https://github.com/Batmancpu/brrrBoard/actions/runs/43778036946) built and signer-verified the debug APK, then failed its automatic test gate: 13/180 tests (5 ParserTest, 7 InputLogicTest, 1 StringUtilsTest). The failed cases cover currency/parser expectations, URL/autospace, and Emoji recognition. No tests were run manually.
-
-The latest source retains the Dictate inline RecognitionService route and the English-result guard shipped in v1.0.38: English locale request, API 34+ language detection request, confident non-English tag rejection, Devanagari rejection, and a Dictate language-settings message. The maintainer response to [Dictate issue #359](https://github.com/DevEmperor/DictateKeyboard/issues/359) confirms this route keeps the keyboard visible and that Dictate's RecognitionService ignores the caller's language Intent. The owner must set Dictate → Languages → Active language = English and disable Follow keyboard language; Latin-script Hindi cannot be reliably classified without service metadata. The owner's Hindi report remains unresolved until Reno10 confirmation.
-
-The full source audit found that the repository's Gemini-backed `AiWritingToolsView` contains a Proofread UI but is unreachable through the current AI_TOOLS input route; Android's current SpellCheckerService is word-level. The cloud proofreader was not activated under the offline typing requirements. GlideLib's archived upstream identifies its native library as proprietary Google code, has no LICENSE file, and labels the ARM64 build untested; it remains excluded from public APKs. The complete audit and source/device acceptance split are in [the active plan](POST_V1_0_19_RENO10_PLAN.md). All context, known issues, roadmap marker, README, and AGENTS instructions have been updated. Physical Reno10 acceptance remains the owner's.
-
-
-## 2026-11-16 — owner supplied previous-chat context and authorized implementation
-
-**Owner request**
-
-> The typing library that I told you, I have tested on my phone. It works. It gives bad suggestions but that is my dictionary probably. That is not the typing library.
->
-> Now look at this chart, look at all the other things and please fix this shit, this mess that we have created one by one.
->
-> I still see layout buttons are not how they are in my iPad. And I still see the ugly color intent. And please add all this to the GitHub's carry forwarded context.
->
-> And then start doing it.
-
-**New requirements and corrections.** Use the two attached iOS keyboard screenshots as references without publishing them. Limit keyboard layouts to English US/UK and Romanized Hinglish; remove Key Style/Icon Style selectors while preserving unrelated preferences; use two automatic OG Frosted Glass appearances plus optional action-key tint. Fix proportional layout, bottom/toolbar spacing, stable height, horizontal Emoji pages, visible Smart Emoji entry, Emoji-to-letters behavior, and the thin white top-edge highlight. Bundle the static personal and Emoji dictionary files recovered from the saved FrostKeys backup, but never bundle its learned UserHistoryDictionary. Remove the external gesture-library picker and aim for a bundled offline recognizer; the owner reports GlideLib works on-device, while its redistribution rights remain unresolved. Trace the reported offline mic behavior against the Android RecognitionService actually selected, preserve inline Dictate and English/privacy guards, and do not claim Reno10 acceptance from CI.
-
-**Assistant plan and first checkpoint.** Work is authorized in reviewable batches: (0) update handoff, (1) language/style cleanup and failing-test triage, (2) geometry/tint/top-edge appearance, (3) Emoji/suggestion behavior, (4) static dictionaries and licensed bundled swipe support, (5) Dictate/provider diagnosis, privacy, build and device checklist. Every batch must update PROJECT_CONTEXT.md and this conversation record before the next. Raw screenshots, typed content, and learned history stay out of the public repo. See the active plan for exact source paths and acceptance criteria.
-
-
-## 2026-11-16 — first implementation batch: languages and styles
-
-**Assistant outcome.** Applied the first code batch from the authorized plan. `method.xml` now declares only `en-US`, `en-GB`, and `hi-Latn`; `LanguageScreen.kt` lists only these three choices; and `SubtypeSettings.kt` clears old additional languages once, enables the three choices on the first upgrade, and preserves later user language toggles. The appearance screen no longer exposes Key Style, Icon Style, individual icon customization, or theme-preset selectors. Existing default key and glyph resources are fixed in the renderer so old saved style preferences cannot bring the retired variants back.
-
-Static validation: XML parsing found exactly three subtypes and `git diff --check` passed. Local `./gradlew :app:assembleDebug` stopped before compilation because it attempted to download Gradle 8.14.4 and the workspace returned `Network is unreachable`; no tests were run. The remote workflow is the next source-build check. Next code batch: horizontal Emoji paging, visible Smart Emoji access, ABC return behavior, and keyboard frame geometry.
-
-
-## 2026-11-16 — subtype regression correction and Emoji batch
-
-**Owner direction**
-
-> Now give me an extremely detailed plan what you will do after reading all this context, okay? I guess you should start with the basic corrections, adding the emojis, the glide typing library, the layout, behavior and everything. I still see layout buttons are not how they are in my iPad. And I still see the ugly color intent. And please add all this to the GitHub's carry forwarded context. Delete all these unnecessary languages and everything. And preferences appear in toolbar and everything. Make it iOS-like. Make it a proportionate, you know, a proportionate iOS keyboard button on my Android with everything there. And work on this smart emojis entry. I don't see it working. And this dictate button, when I click on it, it's still not routing to the dictate application but some offline keyboard. I'm pretty sure about this. So give me an extremely detailed plan on how you'll do in brief points, what you'll do, what you'll change, in how many batches. And then start doing it
-
-**Outcome and correction.** The first language/style commit filtered `method.xml` to three subtype declarations, while also limiting the language screen and persisted enabled list. Obtainium run [43804893066](https://github.com/Batmancpu/brrrBoard/actions/runs/43804893066) built, signed and published v1.0.40. Debug run [43804893049](https://github.com/Batmancpu/brrrBoard/actions/runs/43804893049) built and signer-verified an APK but its automatic gate found 21/180 failures: 13 in the pre-existing baseline and eight caused by removing the internal locale fixtures (two Parser, three Subtype, three Hangul InputLogic). Restored the full internal catalog (128 subtype entries) while retaining the owner-only three-language settings list and first-run migration. This is a correction to the earlier Batch 1 note, which said the manifest itself had only three entries. v1.0.40 is not the device acceptance build.
+**Automatic debug workflow.** Run [43754830187](https://github.com/Batmancpu/brrrBoard/actions/runs/43754830187) compiled and signer-verified a debug APK, then failed the unit-test gate: 13 of 180 tests failed (ParserTest, InputLogicTest, and Emoji detection). No tests were manually run. Obt…7549 tokens truncated…The first language/style commit filtered `method.xml` to three subtype declarations, while also limiting the language screen and persisted enabled list. Obtainium run [43804893066](https://github.com/Batmancpu/brrrBoard/actions/runs/43804893066) built, signed and published v1.0.40. Debug run [43804893049](https://github.com/Batmancpu/brrrBoard/actions/runs/43804893049) built and signer-verified an APK but its automatic gate found 21/180 failures: 13 in the pre-existing baseline and eight caused by removing the internal locale fixtures (two Parser, three Subtype, three Hangul InputLogic). Restored the full internal catalog (128 subtype entries) while retaining the owner-only three-language settings list and first-run migration. This is a correction to the earlier Batch 1 note, which said the manifest itself had only three entries. v1.0.40 is not the device acceptance build.
 
 The active Emoji code batch turns the page list horizontal with snap paging and category/page state, exposes a sparkle Smart Emoji icon/accessible label on the existing Recents category, changes the lower-left key to ABC and returns to letters, and removes the redundant top-strip back arrow. Source commit [d1f8aff](https://github.com/Batmancpu/brrrBoard/commit/d1f8affdb637266693b2a3c91f8d0ba380519d0b) is on main; automatic CI is pending. The GitHub tree assembly briefly created a zero-byte `GENTS.md` due to a first-path parsing error; it is being removed in a cleanup checkpoint. Do not publish screenshots or the old personal learning history.
 
@@ -1151,3 +969,6 @@ After v1.0.227, owner directed two horizontally scrollable Toolbar rows, Setting
 # 2026-11-21 — Toolbar four-column correction released
 
 Owner clarified the Toolbar requirements: four columns by three visible rows, vertical overflow scrolling, larger icons, Settings in the footer microphone slot while Toolbar is open, and Settings fixed at grid position one. Source `5e2f827a0decd6116e6d74a4541c2d8103d5a729` passed exact-SHA full debug Android workflow `44939542456` and original-signer workflow `44939542439`; v1.0.231 is published with a 64,985,587-byte APK and SHA-256 `c7925b836a4d1bbc2e11da124428bc8f127ac2a24d3b2b274d0a86c4d0e5025a`. Current Apple-inspired suggestion replacement transitions were audited and retained; initial suggestions remain immediate. Reno10 visual/profile acceptance remains open; the Emoji top gap needs the phone’s existing `BrrImeBounds` geometry line. ContextLM remains disabled after held-out quality regression; Parakeet TDT 110M remains until Ultra passes matched device benchmarks. See `docs/TOOLBAR_AND_MOTION_FOLLOWUP_2026_11_21.md`.
+# 2026-11-22 owner GO — private voice gestures
+
+User confirmed the hold-to-talk, live batch preview, cancel-by-swipe, privacy purge and auto-send plan, then explicitly corrected that cancellation feedback must be visual/haptic only with no spoken accessibility announcement. Candidate source implements this behavior; details and release gates are in `VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`. No recovery audio/transcripts persist. Exact-SHA build and signed release still pending.

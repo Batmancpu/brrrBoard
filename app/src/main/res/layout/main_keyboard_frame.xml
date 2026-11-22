@@ -124,7 +124,7 @@
             android:maxLines="2"
             android:ellipsize="end"
             android:textSize="12sp"
-            android:importantForAccessibility="yes"
+            android:importantForAccessibility="no"
             android:visibility="gone" />
 
         <!-- Normally absent. One ephemeral, owned action in the empty region

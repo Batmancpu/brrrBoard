@@ -3,6 +3,10 @@ Total output lines: 1583
 
 # brrBoard agent instructions
 
+## 2026-11-22 — private voice hold-to-talk candidate
+
+Owner GO implements long-press/release dictation, live composing-span updates outside Incognito, final-only Incognito, default-on hold auto-send restricted to `IME_ACTION_SEND`, swipe-to-Cancel mic-to-bin feedback, and no retained recovery transcript. Cancel UI is visual+haptic only, with the cancel/status text excluded from accessibility announcements. Chunking uses local pause-aware amplitude detection plus the existing six-second hard cap; this is not a bundled neural VAD. Full details and exact release gate are in `docs/VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`. Current candidate is not compiled, signed, or released: local Gradle distribution download is blocked; use exact-SHA GitHub debug/unit CI and the original-signer release workflow. Keep voice data in volatile session memory and do not claim physical-device acceptance without device evidence.
+
 ## Build recovery when workspace networking fails
 
 If the Gradle wrapper cannot reach its distribution or Maven hosts because the managed workspace proxy is unavailable, follow [the local build network fallback](docs/LOCAL_BUILD_NETWORK_FALLBACK.md). Keep the pinned Gradle wrapper and use the `brrrBoard — Build Debug APK` workflow on the exact feature branch and commit; do not confuse a debug artifact with an Obtainium release.

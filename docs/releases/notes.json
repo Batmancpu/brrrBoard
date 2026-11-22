@@ -1,7 +1,11 @@
 {
   "schema": 1,
-  "summary": "Apply cohesive light/dark in-app icons, restore the original smiley key, refine Settings and voice controls, and add an opt-in ContextLM test in BR Brain.",
+  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; retain the existing on-device voice engine.",
   "changes": [
+    {
+      "title": "Add private hold-to-talk with live text and swipe cancel",
+      "detail": "Hold the mic to dictate and release to finish. Outside Incognito, processed batches appear as a guarded composing draft; Incognito receives only the final text. Hold-to-talk auto-send is enabled by default only for fields marked Send and can be disabled in Offline voice settings. Swipe to Cancel for the mic-to-bin animation and configured important-action haptic. Audio and interim text are discarded on cancel or failure, and no recovery transcript is saved. Cancel feedback is visual and haptic only; it does not speak."
+    },
     {
       "title": "Refresh in-app symbols in light and dark appearances",
       "detail": "Apply the reviewed 219-resource icon set across keyboard and Settings surfaces, preserving the existing light/dark state wrappers and leaving launcher and MangoLoads identity art untouched. Restore the prior smiley-key artwork. Attribution and the full mapping are included with the source. Artwork is independently authored iOS-inspired artwork, not Apple SF Symbols."

@@ -80,6 +80,8 @@ class ClipboardHistoryManager(
     private val recoveryRepository by lazy { RecoveredTranscriptRepository(latinIME) }
 
     fun onCreate() {
+        // Purge any legacy encrypted voice-recovery file; transcripts are never retained.
+        clearRecoveredTranscripts()
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(this)
         clipboardDao = ClipboardDao.getInstance(latinIME)

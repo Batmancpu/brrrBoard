@@ -55,4 +55,19 @@ class PrivateVoiceChunkerTest {
         cancelled.finish(received::add)
         assertEquals(1, received.size)
     }
+
+    @Test fun sustainedPauseEndsSpeechBatchBeforeHardLimit() {
+        val speech = ByteArray(PrivateVoiceChunker.BYTES_PER_SECOND * 4) { i ->
+            if (i % 2 == 0) 0x34 else 0x12
+        }
+        val pause = ByteArray(PrivateVoiceChunker.BYTES_PER_SECOND)
+        val chunks = ArrayList<ByteArray>()
+        val chunker = PrivateVoiceChunker()
+        chunker.append(speech, speech.size, chunks::add)
+        chunker.append(pause, pause.size, chunks::add)
+        assertTrue("A 600 ms quiet tail should close a 4 s speech batch", chunks.isNotEmpty())
+        assertTrue(chunks.first().size < PrivateVoiceChunker.MAX_BYTES)
+        chunker.discard()
+        chunks.forEach { it.fill(0) }
+    }
 }

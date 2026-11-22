@@ -11,7 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * One private dictation session: capture thread contributes only bounded PCM
  * chunks, while brrClean and the offline ASR process them sequentially in the
- * background. Nothing is inserted into an editor before capture is finished.
+ * background. Optional provisional text is delivered only to the caller's guarded
+ * composing-span callback; the pipeline itself never holds an editor connection.
  * All callbacks, IPC and ASR orchestration are serialized on the main looper;
  * no model ever runs there, and nothing is written to storage or sent online.
  */
@@ -20,6 +21,7 @@ internal class PrivateVoiceStreamingPipeline(
     private val engine: OfflineVoiceEngine,
     private val mode: VoiceNoiseMode,
     private val onDone: (Result<String>) -> Unit,
+    private val onPartialText: (String) -> Unit = {},
 ) {
     private data class Pending(val pcm: ByteArray, val enqueuedAtMs: Long)
 
@@ -125,6 +127,8 @@ internal class PrivateVoiceStreamingPipeline(
                 complete(Result.failure(IllegalStateException("Offline chunk transcription failed")))
             } else {
                 recognized += result.getOrNull().orEmpty()
+                val partial = VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(recognized))
+                if (partial.isNotBlank()) onPartialText(partial)
                 VoiceDenoiseMetrics.streamingChunkComplete(
                     SystemClock.elapsedRealtime() - activeStarted)
                 busy = false

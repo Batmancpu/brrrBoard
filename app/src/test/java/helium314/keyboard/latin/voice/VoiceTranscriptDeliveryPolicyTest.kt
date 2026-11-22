@@ -7,14 +7,14 @@ import org.junit.Test
 class VoiceTranscriptDeliveryPolicyTest {
     private val p = VoiceTranscriptDeliveryPolicy
 
-    @Test fun unchangedEditorInsertsButCaretOrFieldChangeRecovers() {
+    @Test fun unchangedEditorInsertsAndEveryOtherDestinationDrops() {
         assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.INSERT,
             p.choose(false, true, true, true))
-        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.RECOVER,
+        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.DROP,
             p.choose(false, true, false, true))
-        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.RECOVER,
+        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.DROP,
             p.choose(false, false, true, true))
-        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.RECOVER,
+        assertEquals(VoiceTranscriptDeliveryPolicy.Outcome.DROP,
             p.choose(true, true, true, true))
     }
 

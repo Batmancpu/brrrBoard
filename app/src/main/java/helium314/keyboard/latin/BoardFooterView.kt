@@ -36,6 +36,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SecureAppsPolicy
 import helium314.keyboard.latin.settings.SecureAppTemporaryOptOut
 import helium314.keyboard.latin.settings.Defaults
+import helium314.keyboard.latin.voice.VoiceGesturePreferences
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardSwitcher
@@ -64,6 +65,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var dictationProcessing = false
     private var dictationOffline = false
     private var offlineHoldActive = false
+    private var holdCancelArmed = false
     private var returnToLetters = false
     private var toolbarNavigationActive = false
     private var rightFooterAccessibilityMode: Boolean? = null
@@ -140,11 +142,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             override fun onDoubleTap(e: MotionEvent): Boolean = true
 
             override fun onLongPress(e: MotionEvent) {
-                if (!micActionAvailable() || dictationActive || dictationProcessing) return
+                if (!micActionAvailable() || dictationActive || dictationProcessing ||
+                    !VoiceGesturePreferences.isHoldToTalkEnabled(context) || isMicProtected()) return
                 offlineHoldActive = true
                 microphone.isPressed = true
                 feedback(microphone)
-                ime.startBoardOfflineDictation()
+                ime.startBoardOfflineDictation(true)
             }
 
             override fun onDoubleTapEvent(e: MotionEvent): Boolean {
@@ -576,12 +579,17 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             // Neither gesture may bind to brrSpeak or accidentally switch keyboards.
             if (offlineHoldActive) {
                 when (event.actionMasked) {
+                    MotionEvent.ACTION_MOVE -> updateHoldCancelTarget(event)
                     MotionEvent.ACTION_UP -> {
                         offlineHoldActive = false
-                        ime.stopBoardOfflineDictation()
+                        val cancel = holdCancelArmed
+                        resetHoldCancelTarget()
+                        if (cancel) ime.cancelBoardOfflineDictation()
+                        else ime.stopBoardOfflineDictation()
                     }
                     MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
                         offlineHoldActive = false
+                        resetHoldCancelTarget()
                         ime.cancelBoardOfflineDictation()
                     }
                 }
@@ -657,6 +665,50 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             }
             true
         }
+    }
+
+    private fun updateHoldCancelTarget(event: MotionEvent) {
+        val status = voiceError
+        val location = IntArray(2)
+        status.getLocationOnScreen(location)
+        val over = status.visibility == VISIBLE &&
+            event.rawX >= location[0] && event.rawX <= location[0] + status.width &&
+            event.rawY >= location[1] && event.rawY <= location[1] + status.height
+        if (over == holdCancelArmed) return
+        holdCancelArmed = over
+        if (over) {
+            status.text = "🗑  ${resources.getString(R.string.board_voice_cancel)}"
+            status.scaleX = 1.08f
+            status.scaleY = 1.08f
+            status.setTextColor(Color.WHITE)
+            val micLocation = IntArray(2)
+            microphone.getLocationOnScreen(micLocation)
+            val dx = location[0] + status.width / 2f - (micLocation[0] + microphone.width / 2f)
+            val dy = location[1] + status.height / 2f - (micLocation[1] + microphone.height / 2f)
+            microphone.animate().translationX(dx).translationY(dy)
+                .scaleX(.18f).scaleY(.18f).alpha(.18f).setDuration(160L).start()
+            // This is a deliberate, destructive discard confirmation. Route it
+            // through the keyboard policy so the user's important-haptics-in-DND
+            // setting applies consistently on devices that suppress view haptics.
+            AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
+        } else resetHoldCancelTarget()
+    }
+
+    private fun resetHoldCancelTarget() {
+        holdCancelArmed = false
+        voiceError.scaleX = 1f
+        voiceError.scaleY = 1f
+        if (voiceError.visibility == VISIBLE && dictationActive) {
+            voiceError.setText(R.string.board_voice_cancel)
+            voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        }
+        microphone.animate().cancel()
+        microphone.translationX = 0f
+        microphone.translationY = 0f
+        microphone.scaleX = 1f
+        microphone.scaleY = 1f
+        microphone.alpha = 1f
+        microphone.imageAlpha = 255
     }
 
     fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean,
@@ -768,7 +820,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         glyph.setIdleTint(Settings.getValues().mColors.get(ColorType.KEY_ICON))
         glyph.setProgress(0f)
         glyph.visibility = VISIBLE
-        microphone.announceForAccessibility(resources.getString(R.string.board_voice_discarded))
         microphone.imageAlpha = 0
         if (!KeyboardMotionSpec.enabled()) {
             glyph.setProgress(.75f)
@@ -823,7 +874,6 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         configureVoiceStatusAction(false)
         voiceError.setText(message)
         voiceError.visibility = VISIBLE
-        voiceError.announceForAccessibility(resources.getString(message))
         postDelayed(clearVoiceError, 4_000L)
     }
 
@@ -836,13 +886,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         removeCallbacks(clearVoiceError)
         val blueRecording = message == R.string.board_voice_offline_listening
         val visibleMessage = if (blueRecording) R.string.board_voice_cancel else message
-        val label = resources.getString(visibleMessage)
-        val changed = voiceError.text.toString() != label || voiceError.visibility != VISIBLE
         configureVoiceStatusAction(visibleMessage == R.string.board_voice_cancel,
             offline = blueRecording || dictationOffline)
         voiceError.setText(visibleMessage)
         voiceError.visibility = VISIBLE
-        if (changed) voiceError.announceForAccessibility(label)
     }
 
     fun clearDictationError() {

@@ -1836,9 +1836,9 @@ public class LatinIME extends InputMethodService implements
         mOfflineDictation.cancel();
     }
 
-    void startBoardOfflineDictation() {
+    void startBoardOfflineDictation(boolean holdToTalk) {
         mInlineDictation.cancel();
-        mOfflineDictation.start(mInputView);
+        mOfflineDictation.start(mInputView, holdToTalk);
     }
 
     void stopBoardOfflineDictation() {
@@ -2212,9 +2212,14 @@ public class LatinIME extends InputMethodService implements
 
     /** Inserts a dictated phrase with native suggestion refresh but without transcript learning. */
     void onPrivateVoiceTextInput(final String text) {
+        onPrivateVoiceTextInput(text, false);
+    }
+
+    void onPrivateVoiceTextInput(final String text, final boolean replaceVoiceDraft) {
         final Event event = Event.createSoftwareTextEvent(text, KeyCode.MULTIPLE_CODE_POINTS, null);
         final InputTransaction transaction = mInputLogic.onPrivateVoiceTextInput(
-                mSettings.getCurrent(), event, mKeyboardSwitcher.getKeyboardShiftMode(), mHandler);
+                mSettings.getCurrent(), event, mKeyboardSwitcher.getKeyboardShiftMode(), mHandler,
+                replaceVoiceDraft);
         updateStateAfterInputTransaction(transaction);
         mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
                 mKeyboardSwitcher.getCurrentKeyboardScript());

@@ -15,7 +15,8 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         footer = self.read("app/src/main/java/helium314/keyboard/latin/BoardFooterView.kt")
         self.assertIn("microphone.setOnClickListener {", footer)
         self.assertIn("ime.toggleBoardOfflineDictation()", footer)
-        self.assertIn("ime.startBoardOfflineDictation()", footer)
+        self.assertIn("ime.startBoardOfflineDictation(true)", footer)
+        self.assertIn("isHoldToTalkEnabled(context)", footer)
         self.assertIn("ime.stopBoardOfflineDictation()", footer)
         self.assertNotIn("ime.toggleBoardDictation()", footer)
 

@@ -312,7 +312,7 @@ public final class InputLogic {
      */
     public InputTransaction onTextInput(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler) {
-        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, false);
+        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, false, false);
     }
 
     /**
@@ -322,11 +322,17 @@ public final class InputLogic {
      */
     public InputTransaction onPrivateVoiceTextInput(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler) {
-        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, true);
+        return onPrivateVoiceTextInput(settingsValues, event, keyboardShiftMode, handler, false);
+    }
+
+    public InputTransaction onPrivateVoiceTextInput(final SettingsValues settingsValues, final Event event,
+            final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean replaceVoiceDraft) {
+        return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, true, replaceVoiceDraft);
     }
 
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
-            final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice) {
+            final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice,
+            final boolean replaceVoiceDraft) {
         mCorrectionRejection.clear();
         // Dictated text must not confirm an unrelated swipe-correction candidate.
         mRejectedSwipeSkeleton = null;
@@ -337,6 +343,7 @@ public final class InputLogic {
                 getActualCapsMode(settingsValues, keyboardShiftMode));
         mConnection.beginBatchEdit();
         if (fromVoice) {
+            if (replaceVoiceDraft) mConnection.setComposingText("", 1);
             // Don't run commitCurrentAutoCorrection on a user's already-recognized voice phrase.
             mConnection.finishComposingText();
             resetComposingState(true /* alsoResetLastComposedWord */);

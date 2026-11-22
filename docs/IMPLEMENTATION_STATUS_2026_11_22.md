@@ -1,5 +1,9 @@
 # Final update implementation status — 2026-11-22
 
+## Owner GO — private hold-to-talk candidate
+
+The current unverified source candidate adds long-press/release dictation, guarded live provisional text outside Incognito, final-only Incognito delivery, default-on auto-send only for hold-to-talk in `IME_ACTION_SEND` fields, swipe-to-Cancel mic-to-bin feedback, important-action haptics, and removal/purging of recovered transcript persistence. No spoken accessibility announcement is used. Pause-aware batching uses a bounded amplitude heuristic and the existing six-second hard cap; no neural VAD weights are bundled. Source notes: [hold-to-talk implementation](VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md). Exact-SHA CI and original-signer release are pending; do not treat this as an installable APK until those gates pass.
+
 ## Owner follow-up — BR Brain and Settings refresh
 
 This newer local candidate supersedes the earlier Device Checkup and settings placement bullets below: the guided Device Checkup, one-report copy flow, and now-unused Emoji geometry report/logger have been removed. The 110M model selector is in Advanced controls; Reset is under Backup & restore; About is top-level. The protected-app picker now gives app names and package IDs separate lines. Correction & suggestions is reachable from BR Brain with one restrained champagne-gold entry shimmer. The architecture and privacy migration plan is [BR Brain unified architecture](BR_BRAIN_UNIFIED_ARCHITECTURE_PLAN_2026_11_22.md).

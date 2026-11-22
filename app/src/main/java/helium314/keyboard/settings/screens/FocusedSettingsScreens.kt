@@ -49,6 +49,7 @@ import helium314.keyboard.latin.voice.VoiceModelChoice
 import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import helium314.keyboard.latin.voice.VoiceModelPack
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
+import helium314.keyboard.latin.voice.VoiceGesturePreferences
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.settings.SettingsWithoutKey
@@ -190,6 +191,9 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
     val installed = remember(refresh) { VoiceModelChoice.installed(ctx) }
     val selected = remember(refresh) { VoiceModelChoice.active(ctx) }
     var cleaningEnabled by remember(refresh) { mutableStateOf(VoiceNoiseChoice.isCleaningEnabled(ctx)) }
+    val voicePrefs = ctx.prefs()
+    var holdToTalk by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldToTalkEnabled(ctx)) }
+    var holdAutoSend by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldAutoSendEnabled(ctx)) }
     val ultraBundled = remember(refresh) { VoiceModelInstaller.hasBundled(ctx, UltraVoiceModelManifest.pack) }
     val scope = rememberCoroutineScope()
     var installingModel by remember { mutableStateOf<String?>(null) }
@@ -255,6 +259,44 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                     Switch(checked = cleaningEnabled, onCheckedChange = {
                         cleaningEnabled = it
                         VoiceNoiseChoice.setCleaningEnabled(ctx, it)
+                    })
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Hold mic to talk", style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text("Hold to record and release to finish. This gesture is disabled in Incognito.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = holdToTalk, onCheckedChange = {
+                        holdToTalk = it
+                        voicePrefs.edit().putBoolean(VoiceGesturePreferences.HOLD_TO_TALK, it).apply()
+                    })
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Send after hold-to-talk", style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text("On by default. Sends only in fields marked for Send; other fields receive text only.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = holdAutoSend, onCheckedChange = {
+                        holdAutoSend = it
+                        voicePrefs.edit().putBoolean(VoiceGesturePreferences.AUTO_SEND_HOLD, it).apply()
                     })
                 }
             }
