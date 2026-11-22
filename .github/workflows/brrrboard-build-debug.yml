@@ -10,6 +10,7 @@ on:
       - 'gradle/**'
       - 'tools/**'
       - 'docs/releases/notes.json'
+      - '.github/workflows/obtainium-release.yml'
       - '.github/workflows/brrrboard-build-debug.yml'
       - 'build.gradle.kts'
       - 'settings.gradle'

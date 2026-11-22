@@ -36,7 +36,7 @@
     },
     {
       "title": "Bound offline update history",
-      "detail": "Settings and the bundled version history generator retain only the ten newest valid signed updates. This keeps the visible release history useful while preventing its stored data from growing without bound."
+      "detail": "The Settings release list and bundled history generator retain only the ten newest valid signed updates, including the current release when available. Older release entries are left out of the APK so history remains useful without accumulating data."
     },
     {
       "title": "Keep suggestions steady during ChatGPT voice input",
