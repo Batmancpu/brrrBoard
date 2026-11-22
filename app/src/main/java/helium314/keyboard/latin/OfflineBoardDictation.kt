@@ -265,12 +265,18 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (composingVoiceDraft.isEmpty()) return false
         val rich = ime.mInputLogic.mConnection
         val expected = originalSelectionStart + composingVoiceDraft.length
-        return rich.expectedSelectionStart == expected && rich.expectedSelectionEnd == expected
+        if (rich.expectedSelectionStart != expected || rich.expectedSelectionEnd != expected) return false
+        // A same-length manual edit can leave the caret at the expected offset.
+        // Verify the actual composing text before clearing/replacing it.
+        return originalConnection?.getTextBeforeCursor(composingVoiceDraft.length, 0)?.toString() ==
+            composingVoiceDraft
     }
 
     private fun updateComposingDraft(connection: InputConnection, text: String) {
         if (phase != Phase.CAPTURING || text == composingVoiceDraft || !sameEditor(connection)) return
-        if (composingVoiceDraft.isNotEmpty() && !composingDraftStillAtOriginalCursor()) {
+        val destinationSafe = if (composingVoiceDraft.isEmpty()) destinationUnchanged()
+            else composingDraftStillAtOriginalCursor()
+        if (!destinationSafe) {
             cancel()
             return
         }
