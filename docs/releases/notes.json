@@ -8,7 +8,7 @@
     },
     {
       "title": "Make Settings search contextual and add Type preview",
-      "detail": "Use a slimmer Search field with deterministic on-device setting aliases and phrase intents. A sapphire-and-gold Type card opens a private keyboard preview that does not train from its sample or start the microphone."
+      "detail": "Use a slimmer Search field with deterministic on-device setting aliases and phrase intents, and link Correction & suggestions directly in the Typing group. A sapphire-and-gold Type card opens a private keyboard preview that does not train from its sample or start the microphone."
     },
     {
       "title": "Refine incognito footer indicators",
