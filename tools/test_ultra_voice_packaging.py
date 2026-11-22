@@ -27,7 +27,7 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         self.assertIn("sha256sum -c", fetch)
         self.assertIn("curl -fSL", fetch)
 
-    def test_large_pack_is_debug_artifact_only_and_never_released(self):
+    def test_large_pack_is_debug_only_and_release_requires_explicit_opt_in(self):
         release = self.read(".github/workflows/obtainium-release.yml")
         debug = self.read(".github/workflows/brrrboard-build-debug.yml")
         self.assertIn("github.ref_name == 'feature/parakeet-ultra-brain-abtest'", debug)
@@ -49,8 +49,9 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3", debug)
         self.assertIn("bash tools/join-ultra-abtest-apk.sh", self.read("docs/BR_BRAIN_PARAKEET_AB_TEST_2026_11_22.md"))
         self.assertNotIn("gh release create", debug)
-        self.assertNotIn("bundle_ultra_test_model", release)
-        self.assertNotIn("prepare-ultra-voice-pack.sh", release)
+        self.assertIn("bundle_ultra_model", release)
+        self.assertRegex(release, r"bundle_ultra_model:[\s\S]{0,180}default: false")
+        self.assertRegex(release, r"if: steps\.release_scope\.outputs\.bundle_ultra == 'true'[\s\S]{0,120}prepare-ultra-voice-pack\.sh")
 
     def test_model_comparison_is_same_take_offline_and_not_default(self):
         lab = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceNoiseLab.kt")

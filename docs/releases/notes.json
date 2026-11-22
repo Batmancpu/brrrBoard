@@ -7,6 +7,10 @@
       "detail": "Apply the reviewed 219-resource icon set across keyboard and Settings surfaces, preserving the existing light/dark state wrappers and leaving launcher and MangoLoads identity art untouched. Restore the prior smiley-key artwork. Attribution and the full mapping are included with the source. Artwork is independently authored iOS-inspired artwork, not Apple SF Symbols."
     },
     {
+      "title": "Harden exact update and animation checks",
+      "detail": "Correct the prefix-length regression assertion and make the voice-package test verify that Ultra stays opt-in by default while remaining available for explicit future updates."
+    },
+    {
       "title": "Crossfade suggestions as whole words",
       "detail": "Replace character-matching animation with a short whole-label crossfade and settle. Outgoing labels are visual-only, bounded during fast typing, and never replace the current suggestion or tap target."
     },

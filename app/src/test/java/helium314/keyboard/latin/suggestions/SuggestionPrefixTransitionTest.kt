@@ -10,7 +10,7 @@ class SuggestionPrefixTransitionTest {
     }
 
     @Test fun fullySharedPrefixKeepsExistingWordStationary() {
-        assertEquals(3, SuggestionPrefixTransition.stablePrefixEnd("play", "player"))
+        assertEquals(4, SuggestionPrefixTransition.stablePrefixEnd("play", "player"))
     }
 
     @Test fun unrelatedWordsUseWholeWordFallback() {
