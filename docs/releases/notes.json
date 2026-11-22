@@ -36,7 +36,7 @@
     },
     {
       "title": "Bound offline update history",
-      "detail": "Settings displays at most the ten newest valid signed updates, and the release history generator also writes only those ten entries so bundled history data cannot grow without bound."
+      "detail": "Settings and the bundled version history generator retain only the ten newest valid signed updates. This keeps the visible release history useful while preventing its stored data from growing without bound."
     },
     {
       "title": "Keep suggestions steady during ChatGPT voice input",

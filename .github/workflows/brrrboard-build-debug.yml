@@ -9,6 +9,7 @@ on:
       - 'buildSrc/**'
       - 'gradle/**'
       - 'tools/**'
+      - 'docs/releases/notes.json'
       - '.github/workflows/brrrboard-build-debug.yml'
       - 'build.gradle.kts'
       - 'settings.gradle'
