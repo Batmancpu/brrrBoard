@@ -27,6 +27,8 @@ class CiWorkflowContractTest(unittest.TestCase):
         self.assertNotIn(invocation, release)
         self.assertIn("name: Run unit tests", debug)
         self.assertIn("actions/upload-artifact@v4", debug)
+        self.assertLess(debug.index("name: Fail workflow when tests fail"),
+                        debug.index("name: Upload verified debug APK artifact"))
         self.assertNotIn("gh release create", debug)
         self.assertIn("if: steps.unit_tests.outcome == 'failure'", debug)
 

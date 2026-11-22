@@ -30,12 +30,13 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
     def test_large_pack_is_debug_artifact_only_and_never_released(self):
         release = self.read(".github/workflows/obtainium-release.yml")
         debug = self.read(".github/workflows/brrrboard-build-debug.yml")
-        self.assertIn("include_ultra_test_model:", debug)
-        self.assertRegex(debug, r"include_ultra_test_model:[\s\S]{0,180}default: false")
-        self.assertIn("inputs.include_ultra_test_model", debug)
         self.assertIn("github.ref_name == 'feature/parakeet-ultra-brain-abtest'", debug)
         self.assertIn("bash tools/prepare-ultra-voice-pack.sh", debug)
-        self.assertIn('verify-voice-model-packaging.sh "$APK" ultra', debug)
+        self.assertIn("bash tools/prepare-offline-voice-pack.sh", debug)
+        self.assertIn("needs: build", debug)
+        self.assertIn("sign-ultra-abtest-apk.sh", debug)
+        self.assertIn('verify-voice-model-packaging.sh "$output_apk" both',
+                      self.read("tools/sign-ultra-abtest-apk.sh"))
         self.assertIn("actions/upload-artifact@v4", debug)
         self.assertNotIn("gh release create", debug)
         self.assertNotIn("bundle_ultra_test_model", release)
@@ -59,6 +60,8 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
 
     def test_scripts_have_valid_bash_syntax(self):
         for path in ("tools/prepare-ultra-voice-pack.sh",
+                     "tools/prepare-offline-voice-pack.sh",
+                     "tools/sign-ultra-abtest-apk.sh",
                      "tools/verify-bundled-ultra-voice-model.sh",
                      "tools/verify-voice-model-packaging.sh"):
             checked = subprocess.run(["bash", "-n", str(ROOT / path)],

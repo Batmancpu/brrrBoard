@@ -24,10 +24,11 @@ model and is never removed or replaced by the test.
   `402e1190ce85b9793118ee223db21fb0d12f52db`. Four assets total 670,576,835
   bytes (about 640 MiB) and are size/hash checked at fetch, APK verification,
   and private installation.
-- The ordinary lightweight update and debug APK do not contain Ultra. An
-  explicit manual release-workflow input is required to bundle it. A second
-  independent input can include the existing 110M for a fresh offline setup;
-  both inputs default to false. The regular model asset flow is unchanged.
+- The ordinary update and Obtainium release workflow never contain Ultra. A
+  dedicated, original-signed A/B test APK is produced as a GitHub Actions
+  artifact for this feature branch only. It contains both pinned model packs
+  so fresh and upgraded installs can compare them. The workflow verifies and
+  signs the APK but has no release-publishing step.
 - On device, the BR Brain lab offers a user-confirmed install only when the
   Ultra pack is present in that APK, checks available storage, verifies the
   copied assets, and keeps the 110M untouched if installation fails.
@@ -53,15 +54,25 @@ as a Reno10 result.
 
 ## Current state and release gate
 
-Implementation is on local feature branch `feature/parakeet-ultra-brain-abtest`.
-No APK has been built, published, or released from this work. Python packaging,
-privacy/source-contract checks and shell syntax checks pass; Gradle compilation
-could not run because this workspace has no cached Gradle distribution and
-network access to `services.gradle.org` is refused. A successful exact-SHA
-Android build/test run and physical Reno10 comparison remain required before
-claiming the feature works on the owner's device. ContextLM remains disabled
-under its separate failed quality gate; this A/B addition does not silently
-turn it on.
+Implementation is on feature branch `feature/parakeet-ultra-brain-abtest`, not
+main. Its prerequisite debug build and full Android unit suite passed at exact
+source `97e5b981e246c29a7d1958db92b89b5a7ec10a89` in run
+[44994076639](https://github.com/Batmancpu/brrrBoard/actions/runs/44994076639).
+The branch now builds a separate installable A/B artifact with the original
+signer and the current production version code. It updates the existing
+`com.mangoloads.board` app in place, preserving settings and the installed
+110M model; the existing 110M pack is also included for fresh installs. The
+artifact job uploads only to Actions and never creates a release. Its exact
+APK size, hash and download link will be recorded after that job succeeds.
+Physical Reno10 install, memory, thermal, English/Indian-accent WER, latency
+and A/B comparison remain unmeasured. ContextLM stays disabled under its
+separate failed quality gate.
+
+The test APK is intentionally large. Installing Ultra needs roughly 640 MiB
+plus 64 MiB safety headroom in app storage, in addition to APK space. A fresh
+install also needs about 130 MiB plus safety headroom to install the 110M
+model. An existing install reuses the already verified 110M copy. Any
+low-storage refusal leaves existing model files and settings untouched.
 
 ## Emoji layout artifact
 

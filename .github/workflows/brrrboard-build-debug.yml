@@ -4,13 +4,18 @@ on:
   push:
     branches:
       - '**'
+    paths:
+      - 'app/**'
+      - 'buildSrc/**'
+      - 'gradle/**'
+      - 'tools/**'
+      - '.github/workflows/brrrboard-build-debug.yml'
+      - 'build.gradle.kts'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
   workflow_dispatch:
-    inputs:
-      include_ultra_test_model:
-        description: 'Stage the ~640 MiB Parakeet Ultra pack for an isolated BR Brain A/B test APK'
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
@@ -85,9 +90,6 @@ jobs:
 
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
-      - name: Stage pinned Ultra weights only for an explicitly requested test artifact
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.include_ultra_test_model) || github.ref_name == 'feature/parakeet-ultra-brain-abtest' }}
-        run: bash tools/prepare-ultra-voice-pack.sh
       - name: Stage pinned GTCRN enhancement model inside APK
         run: bash tools/fetch-board-gtcrn.sh
       - name: Stage pinned brrClean native GTCRN weights inside APK
@@ -118,19 +120,13 @@ jobs:
 
       - name: Verify APK and signing identity
         shell: bash
-        env:
-          INCLUDE_ULTRA: ${{ ((github.event_name == 'workflow_dispatch' && inputs.include_ultra_test_model) || github.ref_name == 'feature/parakeet-ultra-brain-abtest') && 'true' || 'false' }}
         run: |
           set -euo pipefail
           APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*-debug.apk' | head -n 1)"
           test -n "$APK"
           test -s "$APK"
           unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
-          if [[ "$INCLUDE_ULTRA" == true ]]; then
-            bash tools/verify-voice-model-packaging.sh "$APK" ultra
-          else
-            bash tools/verify-voice-model-packaging.sh "$APK" unbundled
-          fi
+          bash tools/verify-voice-model-packaging.sh "$APK" unbundled
           bash tools/verify-gtcrn-packaging.sh "$APK"
           bash tools/verify-brrclean-packaging.sh "$APK"
 
@@ -153,14 +149,6 @@ jobs:
           echo "APK: $APK"
           echo "SHA-256: $SHA256"
           ls -lh "$APK"
-
-      - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: brrrBoard-debug-apk-${{ github.sha }}
-          path: ${{ env.APK }}
-          if-no-files-found: error
-          retention-days: 14
 
       - name: Run unit tests
         id: unit_tests
@@ -226,5 +214,86 @@ jobs:
         if: steps.unit_tests.outcome == 'failure'
         shell: bash
         run: |
-          echo "Unit tests failed; APK was built, verified, and uploaded as an Actions artifact for audit."
+          echo "Android unit tests failed; the debug APK will not be uploaded as a verified artifact."
           exit 1
+
+      - name: Upload verified debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-debug-apk-${{ github.sha }}
+          path: ${{ env.APK }}
+          if-no-files-found: error
+          retention-days: 14
+
+  ultra_ab_test_artifact:
+    if: github.ref_name == 'feature/parakeet-ultra-brain-abtest'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout the exact tested commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Fetch pinned private ASR native runtime
+        run: bash tools/fetch-board-sherpa-onnx.sh
+      - name: Stage pinned GTCRN enhancement model inside APK
+        run: bash tools/fetch-board-gtcrn.sh
+      - name: Stage pinned brrClean native GTCRN weights inside APK
+        run: bash tools/fetch-board-brrclean.sh
+      - name: Stage the existing 110M model so A/B works on fresh installs too
+        run: bash tools/prepare-offline-voice-pack.sh
+      - name: Stage the Ultra weights for this owner-requested test artifact
+        run: bash tools/prepare-ultra-voice-pack.sh
+
+      - name: Match the currently installed product version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          if [[ ! "$tag" =~ ^v1\.0\.([0-9]+)$ ]]; then
+            echo "::error::Latest signed release tag is not a supported v1.0 version: $tag"
+            exit 1
+          fi
+          echo "Test artifact will use the current production versionCode ${BASH_REMATCH[1]}."
+          echo "TEST_VERSION_CODE=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+
+      - name: Build update-compatible, unsigned A/B test APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleObtainium -PobtainiumBuild="$TEST_VERSION_CODE"
+
+      - name: Sign and verify without publishing a release
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.OBTAINIUM_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.OBTAINIUM_KEYSTORE_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.OBTAINIUM_CERT_SHA256 || secrets.OBTAINIUM_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          unsigned="$(find app/build/outputs/apk/obtainium -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$unsigned"
+          test -s "$unsigned"
+          bash tools/sign-ultra-abtest-apk.sh "$unsigned" "$RUNNER_TEMP/brrBoard-ultra-ab-test.apk" "$TEST_VERSION_CODE"
+
+      - name: Upload signed A/B test APK artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrBoard-ultra-ab-test-${{ github.sha }}
+          path: ${{ runner.temp }}/brrBoard-ultra-ab-test.apk
+          if-no-files-found: error
+          retention-days: 14

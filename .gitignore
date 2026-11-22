@@ -29,6 +29,7 @@ tools/*.txt
 !tools/prepare-ultra-voice-pack.sh
 !tools/verify-voice-model-packaging.sh
 !tools/verify-bundled-ultra-voice-model.sh
+!tools/sign-ultra-abtest-apk.sh
 
 # Reproducibly fetched offline voice runtime and opt-in one-time model pack.
 /app/libs/sherpa-onnx-2.0.2.jar
