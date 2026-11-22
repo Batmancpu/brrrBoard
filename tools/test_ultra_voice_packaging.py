@@ -47,7 +47,7 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3", debug)
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3", debug)
         self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3", debug)
-        self.assertIn("bash tools/join-ultra-abtest-apk.sh", self.read("docs/BR_BRAIN_PARAKEET_AB_TEST_2026_11_22.md"))
+        self.assertIn("bash tools/join-ultra-abtest-apk.sh", self.read("docs/LOCAL_BUILD_NETWORK_FALLBACK.md"))
         self.assertNotIn("gh release create", debug)
         self.assertIn("bundle_ultra_model", release)
         self.assertIn("tools/offline-ultra-voice-model.lock", release)

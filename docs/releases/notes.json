@@ -20,7 +20,7 @@
     },
     {
       "title": "Keep the guided checkup as the single diagnostic report flow",
-      "detail": "The seven-step Settings checkup covers Emoji spacing, suggestions, toolbar, panel blur, active voice controls, same-audio A/B, and important DND haptics. One final text report contains the fresh geometry trace and numeric-only model metrics; typed text, transcripts, audio and clipboard contents stay out of it. Redundant standalone geometry and Voice Lab copy actions were removed."
+      "detail": "The eight-step Settings checkup covers Emoji spacing, typing suggestions, ChatGPT voice stability, toolbar, panel blur, active voice controls, same-audio A/B, and important DND haptics. One final text report contains fresh geometry, voice-stream counters and numeric-only model metrics; typed text, transcripts, audio and clipboard contents stay out of it. Redundant standalone geometry and Voice Lab copy actions were removed."
     },
     {
       "title": "Focus BR Brain on suggestions and local learning",
