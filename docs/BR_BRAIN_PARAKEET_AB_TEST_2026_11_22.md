@@ -49,9 +49,13 @@ Voice Lab result-copy action and no audio file, transcript log, or network path.
 4. Review both transcripts and their accuracy, latency, and memory results.
    Use the same phrase and conditions for later comparisons.
 5. For the complete device audit, return to **Settings → Device checkup** and
-   follow all seven checks. One final button copies the whole privacy-safe text
-   report. It includes only numeric A/B results, not the transcripts, reference,
+   follow all eight checks, including the ChatGPT voice suggestion stability
+   check. One final button copies the whole privacy-safe text report. It includes
+   only numeric A/B results and content-free counters, not transcripts, reference,
    typed test text, audio, or clipboard contents.
+6. If the three-part A/B artifact download is refused by the workspace, download
+   its parts in a browser and reassemble them with the SHA-256 checked command in
+   `docs/LOCAL_BUILD_NETWORK_FALLBACK.md`.
 
 ## Device evidence and remaining limits
 
