@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
-      "detail": "Hold the mic to dictate and release to finish. Processed 16 kHz audio batches use a bounded local amplitude pause gate (three-second minimum speech plus 600 ms quiet) and the existing hard cap. Outside Incognito, batches appear as a guarded composing draft verified against the original editor, caret and exact interim text; Incognito receives only the final text. Hold-to-talk auto-send is enabled by default only for fields marked Send and can be disabled in Offline voice settings. Swipe to Cancel for the mic-to-bin animation and configured important-action haptic. Audio and interim text are discarded on cancel or failure, and no recovery transcript is saved. Cancel feedback is visual and haptic only; it does not speak."
+      "detail": "Hold the mic to dictate and release to finish. Processed 16 kHz audio batches use a bounded local amplitude pause gate that scans consecutive 100 ms windows (three-second minimum speech plus 600 ms quiet) and the existing hard cap. Outside Incognito, batches appear as a guarded composing draft verified against the original editor, caret and exact interim text; Incognito receives only the final text. Hold-to-talk auto-send is enabled by default only for fields marked Send and can be disabled in Offline voice settings. Swipe to Cancel for the mic-to-bin animation and configured important-action haptic. Audio and interim text are discarded on cancel or failure, and no recovery transcript is saved. Cancel feedback is visual and haptic only; it does not speak."
     },
     {
       "title": "Refresh in-app symbols in light and dark appearances",

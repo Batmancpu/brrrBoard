@@ -33,9 +33,11 @@ internal class PrivateVoiceChunker {
             position += bytes
             if (used == MAX_BYTES) {
                 flushWindow(emit)
-            } else if (used - scanBytes >= ENERGY_WINDOW_BYTES) {
-                scanBytes = used
-                val energy = averageAbsAmplitude(used - ENERGY_WINDOW_BYTES, used)
+            }
+            while (used - scanBytes >= ENERGY_WINDOW_BYTES) {
+                val windowEnd = scanBytes + ENERGY_WINDOW_BYTES
+                val energy = averageAbsAmplitude(scanBytes, windowEnd)
+                scanBytes = windowEnd
                 if (energy >= SPEECH_ENERGY_THRESHOLD) {
                     speechSeen = true
                     quietBytes = 0
