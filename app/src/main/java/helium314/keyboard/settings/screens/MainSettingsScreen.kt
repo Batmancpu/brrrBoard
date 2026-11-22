@@ -137,6 +137,7 @@ fun MainSettingsScreen(
     onClickPrivacy: () -> Unit,
     onClickBackup: () -> Unit,
     onClickVoice: () -> Unit,
+    onClickDeviceCheckup: () -> Unit,
     onClickBack: () -> Unit,
 ) {
     SearchSettingsScreen(
@@ -180,6 +181,16 @@ fun MainSettingsScreen(
             }
             owner.lifecycle.addObserver(observer)
             onDispose { owner.lifecycle.removeObserver(observer) }
+        }
+        Md3ePreferenceGroup("Device check") {
+            Md3ePreference(
+                icon = "fact_check",
+                title = "Device checkup",
+                description = "Run the guided keyboard checks and copy one report",
+                onClick = onClickDeviceCheckup,
+                isFirst = true,
+                isLast = true,
+            )
         }
         if (!isImeReady) {
             Md3ePreferenceGroup("Finish setup") {
@@ -694,7 +705,8 @@ private fun PreviewScreen() {
                 onClickAdvanced = {}, onClickAppearance = {}, onClickLanguage = {},
                 onClickLayouts = {}, onClickDictionaries = {}, onClickWelcomeWizard = {},
                 onClickKeys = {}, onClickSound = {}, onClickClipboard = {},
-                onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {}, onClickBack = {}
+                onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {},
+                onClickDeviceCheckup = {}, onClickBack = {}
             )
         }
     }

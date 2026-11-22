@@ -23,6 +23,7 @@ import helium314.keyboard.settings.screens.AdvancedSettingsScreen
 import helium314.keyboard.settings.screens.AppearanceScreen
 import helium314.keyboard.settings.screens.ColorsScreen
 import helium314.keyboard.settings.screens.DebugScreen
+import helium314.keyboard.settings.screens.DeviceCheckupScreen
 import helium314.keyboard.settings.screens.DictionaryScreen
 import helium314.keyboard.settings.screens.GestureTypingScreen
 import helium314.keyboard.settings.screens.BrainDashboardScreen
@@ -95,6 +96,7 @@ fun SettingsNavHost(
                 onClickPrivacy = { navController.navigate(SettingsDestination.Privacy) },
                 onClickBackup = { navController.navigate(SettingsDestination.Backup) },
                 onClickVoice = { navController.navigate(SettingsDestination.Voice) },
+                onClickDeviceCheckup = { navController.navigate(SettingsDestination.DeviceCheckup) },
                 onClickBack = ::goBack,
             )
         }
@@ -128,6 +130,15 @@ fun SettingsNavHost(
         }
         composable(SettingsDestination.VoiceNoiseLab) {
             VoiceNoiseLabScreen(onClickBack = ::goBack)
+        }
+        composable(SettingsDestination.DeviceCheckupVoiceLab) {
+            VoiceNoiseLabScreen(onClickBack = ::goBack, hideResultCopy = true)
+        }
+        composable(SettingsDestination.DeviceCheckup) {
+            DeviceCheckupScreen(
+                onClickBack = ::goBack,
+                onOpenVoiceLab = { navController.navigate(SettingsDestination.DeviceCheckupVoiceLab) },
+            )
         }
 /*      will be added as part of passive data gathering
         composable(SettingsDestination.DataReview) {
@@ -206,6 +217,8 @@ object SettingsDestination {
     const val GestureTyping = "gesture_typing"
     const val BrainDashboard = "brain_dashboard"
     const val VoiceNoiseLab = "voice_noise_lab"
+    const val DeviceCheckupVoiceLab = "device_checkup_voice_lab"
+    const val DeviceCheckup = "device_checkup"
     const val DataGathering = "data_gathering" // remove when data gathering phase is done (end of 2026 latest)
     const val DataReview = "data_review" // remove when data gathering phase is done (end of 2026 latest)
     const val Advanced = "advanced"

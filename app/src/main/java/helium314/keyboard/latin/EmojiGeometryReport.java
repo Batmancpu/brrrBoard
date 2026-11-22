@@ -134,6 +134,18 @@ public final class EmojiGeometryReport {
         return file.isFile() && file.length() > 0 && file.length() <= MAX_REPORT_BYTES;
     }
 
+    /** True only when Emoji layout produced a sample after the supplied session began. */
+    public static boolean hasReportAfter(final Context context, final long timestampMs) {
+        final File file = file(context);
+        return file.isFile() && file.length() > 0 && file.length() <= MAX_REPORT_BYTES
+                && file.lastModified() >= timestampMs;
+    }
+
+    /** Returns the already allow-listed geometry trace for the single final checkup report. */
+    public static String readLatest(final Context context) {
+        return read(context);
+    }
+
     /** Copies only after the user presses the visible Copy report button. */
     public static boolean copyLatest(final Context context) {
         final String report = read(context);

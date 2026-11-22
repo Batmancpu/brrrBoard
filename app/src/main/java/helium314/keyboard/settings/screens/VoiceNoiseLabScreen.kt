@@ -51,7 +51,7 @@ import kotlinx.coroutines.withContext
 
 /** One physical recording per trial. GTCRN reuses the SAME PCM for A/B playback. */
 @Composable
-fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
+fun VoiceNoiseLabScreen(onClickBack: () -> Unit, hideResultCopy: Boolean = false) {
     val context = LocalContext.current
     val lab = remember(context) { VoiceNoiseLab(context) }
     DisposableEffect(lab) { onDispose { lab.close() } }
@@ -77,6 +77,9 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
     val reference = referencePhrase
     val key = VoiceNoiseLab.Key(input, mode)
     val take = state.takes.firstOrNull()
+    LaunchedEffect(take?.modelComparison) {
+        take?.modelComparison?.let { DeviceCheckupSession.record(it, take.durationMs) }
+    }
     val oldModelInstalled = remember(refresh / 3) { VoiceModelInstaller.isInstalled(context) }
     val busy = state.recording || state.playing || state.decoding || state.enhancing
     val palette = MaterialTheme.colorScheme
@@ -252,22 +255,24 @@ fun VoiceNoiseLabScreen(onClickBack: () -> Unit) {
                         comparison.failure?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                         Text("WER is measured against the editable reference; lower is better. Load, decode and total times are milliseconds. RTF is total time ÷ audio duration; lower is faster. Peak memory is sampled process PSS.",
                             style = MaterialTheme.typography.bodySmall)
-                        OutlinedButton(onClick = {
-                            val old = comparison.current110m
-                            val ultra = comparison.ultra
-                            val report = buildString {
-                                appendLine("brrBoard offline Parakeet A/B")
-                                appendLine("Reference: ${comparison.reference}")
-                                appendLine("Audio: ${take.durationMs} ms; first decoded: ${comparison.firstDecoded}")
-                                if (old != null) appendLine("110M: ${old.transcript} | WER ${old.wordErrorPercent ?: "—"}% | load ${old.modelLoadMs} ms | decode ${old.decodeMs} ms | engine total ${old.totalMs} ms | wall ${old.wallMs} ms | peak PSS ${old.peakPssKb / 1024} MiB")
-                                if (ultra != null) appendLine("Ultra 0.6B: ${ultra.transcript} | WER ${ultra.wordErrorPercent ?: "—"}% | load ${ultra.modelLoadMs} ms | decode ${ultra.decodeMs} ms | engine total ${ultra.totalMs} ms | wall ${ultra.wallMs} ms | peak PSS ${ultra.peakPssKb / 1024} MiB")
-                                comparison.failure?.let { appendLine("Result: $it") }
-                            }
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Parakeet A/B result", report))
-                            resultCopyMessage = "Transcripts and metrics copied. Audio was not copied."
-                        }) { Text("Copy comparison results") }
-                        resultCopyMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        if (!hideResultCopy) {
+                            OutlinedButton(onClick = {
+                                val old = comparison.current110m
+                                val ultra = comparison.ultra
+                                val report = buildString {
+                                    appendLine("brrBoard offline Parakeet A/B")
+                                    appendLine("Reference: ${comparison.reference}")
+                                    appendLine("Audio: ${take.durationMs} ms; first decoded: ${comparison.firstDecoded}")
+                                    if (old != null) appendLine("110M: ${old.transcript} | WER ${old.wordErrorPercent ?: "—"}% | load ${old.modelLoadMs} ms | decode ${old.decodeMs} ms | engine total ${old.totalMs} ms | wall ${old.wallMs} ms | peak PSS ${old.peakPssKb / 1024} MiB")
+                                    if (ultra != null) appendLine("Ultra 0.6B: ${ultra.transcript} | WER ${ultra.wordErrorPercent ?: "—"}% | load ${ultra.modelLoadMs} ms | decode ${ultra.decodeMs} ms | engine total ${ultra.totalMs} ms | wall ${ultra.wallMs} ms | peak PSS ${ultra.peakPssKb / 1024} MiB")
+                                    comparison.failure?.let { appendLine("Result: $it") }
+                                }
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Parakeet A/B result", report))
+                                resultCopyMessage = "Transcripts and metrics copied. Audio was not copied."
+                            }) { Text("Copy comparison results") }
+                            resultCopyMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        }
                     }
                 }
             }

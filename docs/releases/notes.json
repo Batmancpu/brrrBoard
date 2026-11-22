@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Fix the Emoji Browse top gap, reduce panel redraw work, and include a one-time combined offline Parakeet 110M and Ultra test pack for same-audio comparison.",
+  "summary": "Add one guided Settings checkup with a single privacy-safe report for Emoji layout, suggestions, toolbar, panel glass and Parakeet A/B checks.",
   "changes": [
     {
       "title": "Reuse unchanged panel glass recordings",
@@ -12,7 +12,11 @@
     },
     {
       "title": "Compare Parakeet models on the same Voice Lab recording",
-      "detail": "BR Brain can compare the existing 110M recognizer with Parakeet Ultra 0.6B INT8 on one identical RAM-only offline recording. This update includes both SHA-256-pinned model packs for Voice Lab comparison. Results include transcripts, reference-based WER, cold-load/decode/elapsed timing, real-time factor, and sampled process memory. Ultra remains an explicit, user-installed test model and never replaces default dictation. The combined update is intentionally large (about 870 MB); subsequent updates omit model weights unless explicitly requested."
+      "detail": "The Settings checkup guides the manual device checks and copies one plain-text report containing device/layout data, selected outcomes and numeric-only voice timing, WER and memory metrics. Typed test text, clipboard contents, reference phrases, transcripts, audio, screenshots and free-form notes are excluded. This update does not bundle model weights; verified models already installed in private app storage remain available. The release workflow retains an explicit bundle_ultra_model option for a future update only when requested."
+    },
+    {
+      "title": "Copy all manual check results in one report",
+      "detail": "Settings now has one guided device checkup for Emoji top spacing, smart Emoji suggestions and motion, toolbar layout, progressive panel blur, and one-take Parakeet A/B behavior. Geometry is included only when newly recorded during this checkup. The Voice Lab's separate transcript-copy control is hidden when opened from this flow."
     }
   ]
 }
