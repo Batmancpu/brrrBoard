@@ -40,13 +40,14 @@ unit suite, builds the debug APK, and uploads it as an Actions artifact. This
 workflow does not create a GitHub release or run the original-signer Obtainium
 workflow.
 
-Pushes to branches run debug verification. To add the large experimental Ultra
-weights for side-by-side BR Brain testing, use GitHub Actions → **brrrBoard —
-Build Debug APK** → **Run workflow**, select the feature branch, and set
-`include_ultra_test_model` to `true`. The default is `false`, so normal builds
-remain lightweight. This option is debug-artifact-only; it cannot publish an
-Obtainium update. Alternatively, from a host where `gh` is authenticated and
-network access works:
+Pushes to branches run debug verification. The dedicated
+`feature/parakeet-ultra-brain-abtest` branch automatically stages the large
+experimental Ultra weights into its debug artifact because the owner asked to
+test that model. Other branches remain lightweight unless a maintainer
+explicitly sets `include_ultra_test_model` to `true` in **Run workflow**. This
+option is debug-artifact-only; it cannot publish an Obtainium update.
+Alternatively, from a host where `gh` is authenticated and network access
+works:
 
 ```sh
 gh workflow run brrrboard-build-debug.yml \
