@@ -301,3 +301,49 @@ jobs:
           path: ${{ runner.temp }}/brrBoard-ultra-ab-test.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Split APK for bounded artifact download
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk"
+          split -b 300M -d -a 2 "$apk" "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-"
+          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-00"
+          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-01"
+          test -s "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-02"
+          test ! -e "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.part-03"
+          sha256sum "$apk" | awk '{print $1}' > "$RUNNER_TEMP/brrrBoard-ultra-ab-test.apk.sha256"
+
+      - name: Upload A/B APK part 1 of 3
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3
+          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-00
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload A/B APK part 2 of 3
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3
+          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-01
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload A/B APK part 3 of 3
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3
+          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.part-02
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload A/B APK checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: brrrBoard-ultra-apk-${{ github.sha }}-sha256
+          path: ${{ runner.temp }}/brrrBoard-ultra-ab-test.apk.sha256
+          if-no-files-found: error
+          retention-days: 14

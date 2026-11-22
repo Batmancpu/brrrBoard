@@ -38,6 +38,12 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         self.assertIn('verify-voice-model-packaging.sh "$output_apk" both',
                       self.read("tools/sign-ultra-abtest-apk.sh"))
         self.assertIn("actions/upload-artifact@v4", debug)
+        self.assertIn("split -b 300M", debug)
+        self.assertIn("part-3-of-3", debug)
+        self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-1-of-3", debug)
+        self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-2-of-3", debug)
+        self.assertIn("brrrBoard-ultra-apk-${{ github.sha }}-part-3-of-3", debug)
+        self.assertIn("bash tools/join-ultra-abtest-apk.sh", self.read("docs/BR_BRAIN_PARAKEET_AB_TEST_2026_11_22.md"))
         self.assertNotIn("gh release create", debug)
         self.assertNotIn("bundle_ultra_test_model", release)
         self.assertNotIn("prepare-ultra-voice-pack.sh", release)
@@ -58,10 +64,37 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         manifest = self.read("app/src/main/AndroidManifest.xml")
         self.assertIn('android.permission.INTERNET" tools:node="remove"', manifest)
 
+
+    def test_chunk_joiner_checks_hash_before_creating_output(self):
+        import hashlib
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            parts = root / "parts"
+            parts.mkdir()
+            values = [b"part-one", b"part-two", b"part-three"]
+            for suffix, value in zip(("00", "01", "02"), values):
+                (parts / f"brrrBoard-ultra-ab-test.apk.part-{suffix}").write_bytes(value)
+            expected = hashlib.sha256(b"".join(values)).hexdigest()
+            output = root / "reassembled.apk"
+            command = ["bash", str(ROOT / "tools/join-ultra-abtest-apk.sh"),
+                       str(parts), str(output), expected]
+            checked = subprocess.run(command, capture_output=True, text=True, check=False)
+            self.assertEqual(0, checked.returncode, checked.stderr)
+            self.assertEqual(b"".join(values), output.read_bytes())
+
+            output.unlink()
+            command[-1] = "0" * 64
+            rejected = subprocess.run(command, capture_output=True, text=True, check=False)
+            self.assertNotEqual(0, rejected.returncode)
+            self.assertFalse(output.exists())
+
     def test_scripts_have_valid_bash_syntax(self):
         for path in ("tools/prepare-ultra-voice-pack.sh",
                      "tools/prepare-offline-voice-pack.sh",
                      "tools/sign-ultra-abtest-apk.sh",
+                     "tools/join-ultra-abtest-apk.sh",
                      "tools/verify-bundled-ultra-voice-model.sh",
                      "tools/verify-voice-model-packaging.sh"):
             checked = subprocess.run(["bash", "-n", str(ROOT / path)],

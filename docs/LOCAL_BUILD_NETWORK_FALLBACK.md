@@ -35,30 +35,51 @@ Do not keep trying alternate mirrors or change Gradle's pinned distribution.
 ## Build and test through GitHub Actions
 
 Use the repository's **brrrBoard — Build Debug APK** workflow. It sets up Java
-21 and `gradle/actions/setup-gradle@v4`, runs repository checks and the Android
-unit suite, builds the debug APK, and uploads it as an Actions artifact. This
-workflow does not create a GitHub release or run the original-signer Obtainium
-workflow.
+21, restores the Gradle cache, runs repository checks and the Android unit
+suite, builds the debug APK, verifies its signing identity and model-packaging
+policy, then uploads the debug APK as an Actions artifact. It does not create a
+GitHub release or invoke the Obtainium publishing workflow.
 
-Pushes to branches run debug verification. The dedicated
-`feature/parakeet-ultra-brain-abtest` branch automatically stages the large
-experimental Ultra weights into its debug artifact because the owner asked to
-test that model. Other branches remain lightweight unless a maintainer
-explicitly sets `include_ultra_test_model` to `true` in **Run workflow**. This
-option is debug-artifact-only; it cannot publish an Obtainium update.
-Alternatively, from a host where `gh` is authenticated and network access
-works:
+On `feature/parakeet-ultra-brain-abtest`, a second job runs only after the full
+debug/unit-test gate passes. It stages the exact pinned 110M and Ultra packs,
+builds with the current production versionCode, signs with the existing app
+certificate, verifies package/version/offline permissions/assets, and uploads
+an update-compatible test APK to Actions. This is test-only; the regular
+Obtainium workflow never includes Ultra from this branch. Both whole APK and
+three 300 MB split artifacts are retained for 14 days. Split parts can be
+reconstructed with the repository script after extracting them into one folder:
 
 ```sh
-gh workflow run brrrboard-build-debug.yml \
-  --repo Batmancpu/brrrBoard --ref <feature-branch> \
-  -f include_ultra_test_model=false
+bash tools/join-ultra-abtest-apk.sh ./downloaded-parts ./brrrBoard-ultra-ab-test.apk <APK-SHA256>
 ```
 
-Wait for that exact branch/commit's run to complete successfully, then download
-the debug APK artifact from the run. Confirm the artifact commit SHA before
-using it. Keep the original-signer release workflow and release publication
-separate; a debug artifact is a test build, not an Obtainium update.
+The script requires all three named pieces, verifies the complete APK hash
+before leaving the output file, and prints the final size/hash. Obtain the
+expected hash from the checksum artifact or the corresponding workflow log.
+The source implementation of the split upload is in
+`.github/workflows/brrrboard-build-debug.yml`.
+
+Always select the run for the exact branch and source SHA. Do not use the
+unsigned/debug APK to update the production install; only the separately
+verified original-signed A/B artifact is update-compatible. A test artifact is
+not an Obtainium release and does not change the app's published version.
+
+## If both workspace Git and artifact transfer are blocked
+
+A dead workspace proxy can block both `git push` and downloading a large APK.
+Do not keep retrying alternate mirrors. If an authenticated GitHub connector is
+available to the coding agent, it can use the Git Database API to create blobs
+for the exact changed files, create a tree based on the inspected remote head,
+create one commit with that head as parent, then update the feature ref with
+`expected_sha` set to the inspected old head. Verify the new ref SHA and exact
+workflow run afterwards. This was used when the local proxy refused port 8080.
+Never force-move the branch or overwrite an unexpected concurrent update.
+
+For artifact access, the connected GitHub downloader has a 512 MiB per-artifact
+limit. Keep the browser-downloadable complete artifact for convenience, and
+also upload independently named pieces below the cap. Download the checksum
+and all parts from the same exact-SHA run, extract them together, and use the
+join script above. Do not join parts from different workflow runs.
 
 ## When local access returns
 

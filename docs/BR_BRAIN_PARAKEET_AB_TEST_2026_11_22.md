@@ -33,8 +33,9 @@ model and is never removed or replaced by the test.
   Ultra pack is present in that APK, checks available storage, verifies the
   copied assets, and keeps the 110M untouched if installation fails.
 - The build pins sherpa-onnx 2.0.2, the documented runtime candidate for this
-  export. This candidate has not yet passed an Android build or Reno10 device
-  acceptance in this workspace.
+  export. Exact-source Android debug/full unit CI passed on the feature branch;
+  the device's runtime, latency, memory and WER acceptance still require the
+  Reno10 comparison.
 
 ## How to exercise it after a test APK is explicitly issued
 
@@ -55,18 +56,25 @@ as a Reno10 result.
 ## Current state and release gate
 
 Implementation is on feature branch `feature/parakeet-ultra-brain-abtest`, not
-main. Its prerequisite debug build and full Android unit suite passed at exact
-source `97e5b981e246c29a7d1958db92b89b5a7ec10a89` in run
-[44994076639](https://github.com/Batmancpu/brrrBoard/actions/runs/44994076639).
-The branch now builds a separate installable A/B artifact with the original
-signer and the current production version code. It updates the existing
-`com.mangoloads.board` app in place, preserving settings and the installed
-110M model; the existing 110M pack is also included for fresh installs. The
-artifact job uploads only to Actions and never creates a release. Its exact
-APK size, hash and download link will be recorded after that job succeeds.
+main. The exact-source debug/full Android suite passed for source
+`778d63c4cd4a0d2d0c27f72c2d5646bd6fc6cc62` in run
+[44995213924](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924).
+The A/B artifact was built as package `com.mangoloads.board`, production
+versionCode 236, and verified against the production signing certificate. Its
+APK is 869,514,509 bytes with SHA-256
+`d35a1c4252f055d8fc63238ec847e068b1f9dbbbbc133efaec061bd34947b352`.
+[Download the 14-day Actions artifact](https://github.com/Batmancpu/brrrBoard/actions/runs/44995213924/artifacts/14743318266)
+(artifact ZIP 606,500,553 bytes; ZIP SHA-256
+`f1f6e6af32b31f640d64759bf71edcd41ac32405e751e3fe5ee96bcae3acb94e`). This
+is not a GitHub/Obtainium release. A later source-only workflow fix adds
+smaller checksum-verified chunks because the connected artifact downloader
+caps a single download at 512 MiB; that exact-source build is running on
+`e9c6392fe642586e57f86532793eb908371f17c1`.
 Physical Reno10 install, memory, thermal, English/Indian-accent WER, latency
-and A/B comparison remain unmeasured. ContextLM stays disabled under its
-separate failed quality gate.
+and A/B comparison remain unmeasured. ContextLM stays disabled: after fixing a
+training-candidate mismatch and expanding to 250,000 pairs, its new fixed-seed
+holdout still tied top-1 and lost Recall@3 against the proxy in every language
+family. Detailed evidence is in `QUALITY_GATE_REEVALUATION_2026_11_22.md`.
 
 The test APK is intentionally large. Installing Ultra needs roughly 640 MiB
 plus 64 MiB safety headroom in app storage, in addition to APK space. A fresh
@@ -76,7 +84,12 @@ low-storage refusal leaves existing model files and settings untouched.
 
 ## Emoji layout artifact
 
-No emoji file is needed. On the installed app, open Emoji Browse once, then go
+No emoji file is needed. After downloading the four checksum/part artifacts,
+extract the three part ZIPs into the same folder and run
+`bash tools/join-ultra-abtest-apk.sh <part-folder> <output.apk> <APK-SHA256>`.
+Use the SHA-256 file from the run (or the exact APK hash recorded above); the
+script refuses to leave an output APK if the bytes do not match. On the
+installed app, open Emoji Browse once, then go
 to **Settings → BR Brain → Emoji layout report → Copy geometry report** and
 paste that text into the conversation. The report is content-free view geometry
 intended to locate the top blank band; it does not include typed text or

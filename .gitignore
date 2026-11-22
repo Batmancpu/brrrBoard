@@ -50,3 +50,4 @@ pr2_body.txt
 VOICE_INPUT_RESEARCH.md
 /app/src/main/assets/brrPersonal.tsv
 app/src/main/assets/voice/brrclean_gtcrn.weights
+!tools/join-ultra-abtest-apk.sh
