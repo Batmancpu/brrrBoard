@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Use installed Parakeet Ultra for keyboard dictation by default, add voice and DND haptic controls, and streamline the unified checkup and BR Brain screens.",
+  "summary": "Make settings easier to scan, keep reset reversible, use installed Parakeet Ultra by default, and retain one unified device checkup.",
   "changes": [
     {
       "title": "Reuse unchanged panel glass recordings",
@@ -25,6 +25,18 @@
     {
       "title": "Focus BR Brain on suggestions and local learning",
       "detail": "Voice model selection, cleaning, install availability, and A/B comparison now live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
+    },
+    {
+      "title": "Make Settings calmer without removing controls",
+      "detail": "Everyday actions now sit in a shorter, grouped Settings home. Less-used controls remain available under an expandable Advanced controls section, with clearer descriptions and lighter icon treatment."
+    },
+    {
+      "title": "Add a reversible settings reset",
+      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour; the slider gives continuous restrained haptics while held."
+    },
+    {
+      "title": "Bound offline update history",
+      "detail": "Settings displays at most the ten newest valid signed updates, and the release history generator also writes only those ten entries so bundled history data cannot grow without bound."
     }
   ]
 }

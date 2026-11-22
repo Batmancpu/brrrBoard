@@ -18,6 +18,7 @@ MARKER_END = "-->"
 MARKER_PATTERN = re.compile(re.escape(MARKER_START) + r"\s*(\{.*?\})\s*" + re.escape(MARKER_END), re.S)
 VERSION = re.compile(r"1\.0\.([0-9]+)\Z")
 COMMIT = re.compile(r"[0-9a-f]{40}\Z")
+MAX_HISTORY_RELEASES = 10
 
 
 def utc_timestamp(value):
@@ -117,8 +118,9 @@ def generate(notes, verified, releases, version=None, timestamp=None, commit=Non
         history[version] = validate_entry({"version": version,
             "releaseTimeUtc": utc_timestamp(timestamp), "timeSource": "release_cut",
             "commit": commit, **changes})
-    return {"schema": 1, "releases": sorted(history.values(),
-        key=lambda entry: int(VERSION.fullmatch(entry["version"]).group(1)), reverse=True)}
+    latest = sorted(history.values(),
+        key=lambda entry: int(VERSION.fullmatch(entry["version"]).group(1)), reverse=True)
+    return {"schema": 1, "releases": latest[:MAX_HISTORY_RELEASES]}
 
 
 def release_notes(entry):

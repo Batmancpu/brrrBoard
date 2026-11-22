@@ -111,6 +111,11 @@ import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.initPreview
 import helium314.keyboard.settings.preferences.Preference
+import helium314.keyboard.settings.SettingsResetManager
+import helium314.keyboard.settings.dialogs.SlideActionRail
+import helium314.keyboard.latin.AudioAndHapticFeedbackManager
+import helium314.keyboard.latin.settings.Settings
+import helium314.keyboard.keyboard.KeyboardSwitcher
 import helium314.keyboard.latin.utils.previewDark
 
 // The bundled font is a fixed instance of exactly FILL=0, GRAD=0, opsz=24, wght=400.
@@ -148,6 +153,17 @@ fun MainSettingsScreen(
         showBackButton = false,
     ) {
         val ctx = LocalContext.current
+        LaunchedEffect(ctx) {
+            AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
+        }
+        var showAdvancedControls by rememberSaveable { mutableStateOf(false) }
+        var resetUndoMs by remember { mutableStateOf(SettingsResetManager.remainingMs(ctx)) }
+        LaunchedEffect(ctx, resetUndoMs > 0L) {
+            while (resetUndoMs > 0L) {
+                delay(60_000L)
+                resetUndoMs = SettingsResetManager.remainingMs(ctx)
+            }
+        }
         val b = (ctx.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
         var offlineVoiceReady by remember { mutableStateOf(VoiceModelChoice.active(ctx) != null) }
         var offlineInstallState by remember { mutableStateOf(VoiceModelInstaller.installState) }
@@ -218,7 +234,7 @@ fun MainSettingsScreen(
             )
         }
 
-        Md3ePreferenceGroup("Make it yours") {
+        Md3ePreferenceGroup("Your keyboard") {
             Md3ePreference(
                 icon = "palette",
                 title = "Appearance & glass",
@@ -230,19 +246,7 @@ fun MainSettingsScreen(
                 icon = "language",
                 title = stringResource(R.string.language_and_layouts_title),
                 description = enabledSubtypeNames,
-                onClick = onClickLanguage
-            )
-            Md3ePreference(
-                icon = "keyboard",
-                title = "Keys & layout",
-                description = "Number row, key hints, spacing and shortcuts",
-                onClick = onClickKeys
-            )
-            Md3ePreference(
-                icon = R.drawable.ic_board_toolbar,
-                title = "Toolbar",
-                description = "Buttons, shortcuts and suggestion bar",
-                onClick = onClickToolbar,
+                onClick = onClickLanguage,
                 isLast = true
             )
         }
@@ -253,19 +257,7 @@ fun MainSettingsScreen(
                 title = "Correction & suggestions",
                 description = "Autocorrect, predictions and smart spacing",
                 onClick = onClickTextCorrection,
-                isFirst = true
-            )
-            Md3ePreference(
-                icon = "gesture",
-                title = "Swipe typing",
-                description = if (JniUtils.sHaveGestureLib) "Gesture input, trails and swipe behavior" else stringResource(R.string.gesture_not_loaded_summary),
-                onClick = onClickGestureTyping
-            )
-            Md3ePreference(
-                icon = "dictionary",
-                title = "Dictionary & learning",
-                description = "Personal words, dictionaries and brrBrain insights",
-                onClick = onClickDictionaries,
+                isFirst = true,
                 isLast = true
             )
         }
@@ -301,41 +293,134 @@ fun MainSettingsScreen(
             )
         }
 
-        Md3ePreferenceGroup("Privacy & data") {
+        Md3ePreferenceGroup("Privacy") {
             Md3ePreference(
                 icon = "shield",
                 title = "Privacy & protected apps",
                 description = "Incognito behavior and app-specific protection",
                 onClick = onClickPrivacy,
-                isFirst = true
-            )
-            Md3ePreference(
-                icon = "backup",
-                title = "Backup & restore",
-                description = "Safeguard your settings and dictionaries",
-                onClick = onClickBackup,
+                isFirst = true,
                 isLast = true
             )
         }
 
-        Md3ePreferenceGroup("More") {
+        Md3ePreferenceGroup("More controls") {
             Md3ePreference(
-                icon = "tune",
-                title = "Advanced controls",
-                description = "Detailed behavior, compatibility and diagnostics",
-                onClick = onClickAdvanced,
-                isFirst = true
-            )
-            Md3ePreference(
-                icon = R.drawable.mangoloads_brand_small,
-                title = "About brrBoard",
-                description = "Version, privacy, licenses and setup help",
-                onClick = onClickAbout,
-                brandIcon = true,
+                icon = if (showAdvancedControls) "expand_less" else "tune",
+                title = if (showAdvancedControls) "Hide advanced controls" else "Show advanced controls",
+                description = "Toolbar, key layout, gestures, dictionaries, backup and detailed options",
+                onClick = { showAdvancedControls = !showAdvancedControls },
+                isFirst = true,
                 isLast = true
             )
         }
-        
+
+        AnimatedVisibility(
+            visible = showAdvancedControls,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Md3ePreferenceGroup("Advanced controls") {
+                Md3ePreference(
+                    icon = "keyboard",
+                    title = "Keys & layout",
+                    description = "Number row, key hints, spacing and shortcuts",
+                    onClick = onClickKeys,
+                    isFirst = true,
+                )
+                Md3ePreference(
+                    icon = R.drawable.ic_board_toolbar,
+                    title = "Toolbar",
+                    description = "Buttons, shortcuts and suggestion bar",
+                    onClick = onClickToolbar,
+                )
+                Md3ePreference(
+                    icon = "gesture",
+                    title = "Swipe typing",
+                    description = if (JniUtils.sHaveGestureLib) "Gesture input, trails and swipe behavior" else stringResource(R.string.gesture_not_loaded_summary),
+                    onClick = onClickGestureTyping,
+                )
+                Md3ePreference(
+                    icon = "dictionary",
+                    title = "Dictionary & learning",
+                    description = "Personal words, dictionaries and brrBrain insights",
+                    onClick = onClickDictionaries,
+                )
+                Md3ePreference(
+                    icon = "tune",
+                    title = "Detailed preferences",
+                    description = "Fine-tune key behavior and less common options",
+                    onClick = onClickPreferences,
+                )
+                Md3ePreference(
+                    icon = "settings",
+                    title = "Compatibility & advanced",
+                    description = "Detailed behavior, diagnostics and compatibility",
+                    onClick = onClickAdvanced,
+                )
+                Md3ePreference(
+                    icon = "backup",
+                    title = "Backup & restore",
+                    description = "Safeguard your settings and dictionaries",
+                    onClick = onClickBackup,
+                )
+                Md3ePreference(
+                    icon = R.drawable.mangoloads_brand_small,
+                    title = "About brrBoard",
+                    description = "Version, privacy, licenses and setup help",
+                    onClick = onClickAbout,
+                    brandIcon = true,
+                    isLast = true,
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Reset settings", style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold)
+                Text("Restore keyboard preferences to their defaults. Your dictionaries, clipboard history, recordings and installed voice models stay on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                SlideActionRail(
+                    label = "Slide to reset settings",
+                    onConfirmed = {
+                        if (SettingsResetManager.reset(ctx)) {
+                            resetUndoMs = SettingsResetManager.remainingMs(ctx)
+                            AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
+                            runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
+                            AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
+                        }
+                    },
+                    onDragStateChanged = { dragging ->
+                        val feedback = AudioAndHapticFeedbackManager.getInstance()
+                        if (dragging) feedback.startImportantActionHapticLoop()
+                        else feedback.stopImportantActionHapticLoop()
+                    },
+                )
+                if (resetUndoMs > 0L) {
+                    val minutes = (resetUndoMs / 60_000L).coerceAtLeast(1L)
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Settings reset · undo available for ${minutes}m",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall)
+                        Button(onClick = {
+                            if (SettingsResetManager.undo(ctx)) {
+                                resetUndoMs = 0L
+                                AudioAndHapticFeedbackManager.getInstance().refreshForSettings(ctx)
+                                runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
+                            }
+                        }) { Text("Undo changes") }
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
@@ -386,42 +471,38 @@ fun Md3ePreference(
             .clip(shape)
             .background(cardColor)
             .clickable { onClick() }
-            .padding(horizontal = 15.dp, vertical = 15.dp)
+            .padding(horizontal = 16.dp, vertical = 13.dp)
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(42.dp)
-                .background(
-                    if (brandIcon) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer,
-                    RoundedCornerShape(13.dp)
-                )
+                .size(34.dp)
         ) {
             if (brandIcon && icon is Int) {
                 // Never apply Material Icon tint to the full-color MangoLoads mark.
                 Image(
                     painter = painterResource(id = icon),
                     contentDescription = null,
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier.size(34.dp),
                 )
             } else if (icon is String) {
                 Text(
                     text = icon,
                     fontFamily = materialSymbols,
-                    fontSize = 23.sp,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontSize = 25.sp,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clearAndSetSemantics { }
                 )
             } else if (icon is Int) {
                 Icon(
                     painter = painterResource(id = icon),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(24.dp)
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(25.dp)
                 )
             }
         }
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(15.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,

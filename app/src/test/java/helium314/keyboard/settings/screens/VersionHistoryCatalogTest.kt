@@ -47,4 +47,14 @@ class VersionHistoryCatalogTest {
           {"version":"1.0.188","releaseTimeUtc":"tomorrow", "summary":"Fake", "changes":[]}
         ]}""").isEmpty())
     }
+
+    @Test fun historyShowsOnlyTheLatestTenSignedUpdates() {
+        val records = (180..194).reversed().joinToString(",") { version ->
+            """{"version":"1.0.$version","releaseTimeUtc":"2026-11-20T09:00:00Z","summary":"Update $version","changes":[{"title":"Change","detail":"Verified release note."}]}"""
+        }
+        val entries = VersionHistoryCatalog.parse("""{"schema":1,"releases":[$records]}""")
+        assertEquals(10, entries.size)
+        assertEquals("1.0.194", entries.first().version)
+        assertEquals("1.0.185", entries.last().version)
+    }
 }
