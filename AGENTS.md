@@ -3,9 +3,9 @@ Total output lines: 1583
 
 # brrBoard agent instructions
 
-## 2026-11-22 — private voice hold-to-talk candidate
+## 2026-11-22 — private voice hold-to-talk released
 
-Owner GO implements long-press/release dictation, live composing-span updates outside Incognito, final-only Incognito, default-on hold auto-send restricted to `IME_ACTION_SEND`, swipe-to-Cancel mic-to-bin feedback, and no retained recovery transcript. Cancel UI is visual+haptic only, with the cancel/status text excluded from accessibility announcements. Chunking uses local pause-aware amplitude detection plus the existing six-second hard cap; this is not a bundled neural VAD. Full details and exact release gate are in `docs/VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`. Current candidate is not compiled, signed, or released: local Gradle distribution download is blocked; use exact-SHA GitHub debug/unit CI and the original-signer release workflow. Keep voice data in volatile session memory and do not claim physical-device acceptance without device evidence.
+Owner GO implements long-press/release dictation, live composing-span updates outside Incognito, final-only Incognito, default-on hold auto-send restricted to `IME_ACTION_SEND`, swipe-to-Cancel mic-to-bin feedback, and no retained recovery transcript. Cancel UI is visual+haptic only, with the cancel/status text excluded from accessibility announcements. Chunking uses local pause-aware amplitude detection plus the existing six-second hard cap; this is not a bundled neural VAD. Original-signed v1.0.251 is published from exact source `2f2e742`; debug/full-suite runs `45057840833` and `45058407501` passed, release run `45058407505` passed. APK size 63,511,404 bytes, SHA-256 `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. No Parakeet speech model weights were added. Physical hold/release, cancellation, DND, Incognito, send-field and TalkBack acceptance still require the owner device.
 
 ## Build recovery when workspace networking fails
 

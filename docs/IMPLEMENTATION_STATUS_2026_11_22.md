@@ -1,8 +1,8 @@
 # Final update implementation status — 2026-11-22
 
-## Owner GO — private hold-to-talk candidate
+## Owner GO — private hold-to-talk shipped in v1.0.251
 
-The current unverified source candidate adds long-press/release dictation, guarded live provisional text outside Incognito, final-only Incognito delivery, default-on auto-send only for hold-to-talk in `IME_ACTION_SEND` fields, swipe-to-Cancel mic-to-bin feedback, important-action haptics, and removal/purging of recovered transcript persistence. No spoken accessibility announcement is used. Pause-aware batching uses a bounded amplitude heuristic and the existing six-second hard cap; no neural VAD weights are bundled. Source notes: [hold-to-talk implementation](VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md). Exact-SHA CI and original-signer release are pending; do not treat this as an installable APK until those gates pass.
+Original-signed [v1.0.251](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251) ships long-press/release dictation, guarded live provisional text outside Incognito, final-only Incognito delivery, default-on auto-send only for hold-to-talk in `IME_ACTION_SEND` fields, swipe-to-Cancel mic-to-bin feedback, important-action haptics, and removal/purging of recovered transcript persistence. No spoken accessibility announcement is used. Pause-aware batching uses a bounded amplitude heuristic and the existing six-second hard cap; no neural VAD weights are bundled. Source `2f2e7424883fab5f597e4f2c3889ec6bfb00ee29` passed feature debug/full suite `45057840833`, main debug/full suite `45058407501`, and original-signer release `45058407505`. APK size 63,511,404 bytes, SHA-256 `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`; no Parakeet model weights were bundled. Physical interaction acceptance remains owner-side. Full details: [hold-to-talk implementation](VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md).
 
 ## Owner follow-up — BR Brain and Settings refresh
 
