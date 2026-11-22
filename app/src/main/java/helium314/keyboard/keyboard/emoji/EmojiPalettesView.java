@@ -477,8 +477,10 @@ public final class EmojiPalettesView extends LinearLayout
     private void invalidatePanelGlass() {
         final View header = findViewById(R.id.emoji_header_scrim);
         final View bottom = findViewById(R.id.emoji_bottom_glass);
-        if (header != null) header.postInvalidateOnAnimation();
-        if (bottom != null) bottom.postInvalidateOnAnimation();
+        if (header instanceof helium314.keyboard.keyboard.PanelGlassOverlayView)
+            ((helium314.keyboard.keyboard.PanelGlassOverlayView) header).invalidateSource();
+        if (bottom instanceof helium314.keyboard.keyboard.PanelGlassOverlayView)
+            ((helium314.keyboard.keyboard.PanelGlassOverlayView) bottom).invalidateSource();
         final helium314.keyboard.latin.BoardFooterView footer =
                 getRootView().findViewById(R.id.board_footer);
         if (footer != null) footer.invalidatePanelGlass();

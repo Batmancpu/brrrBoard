@@ -1,18 +1,10 @@
 {
   "schema": 1,
-  "summary": "Improve contextual Emoji suggestions and add a private, one-tap layout report for diagnosing the Emoji panel spacing.",
+  "summary": "Reduce redundant drawing work in the frosted Emoji, Clipboard, and Toolbar panels.",
   "changes": [
     {
-      "title": "Faster contextual Emoji suggestions",
-      "detail": "Smart Emoji suggestions reuse the current editor's bounded context snapshot when the Emoji panel opens, avoiding an extra text query and repeated ranking pass."
-    },
-    {
-      "title": "Copy an Emoji layout report",
-      "detail": "BR Brain can copy a content-free layout report with one tap. It contains panel geometry and insets only, so the unresolved top spacing can be diagnosed without ADB or a screenshot."
-    },
-    {
-      "title": "Erase local layout diagnostics",
-      "detail": "The Emoji layout report can be erased from BR Brain; file cleanup runs off the keyboard interface so the diagnostic does not slow typing."
+      "title": "Reuse unchanged panel glass recordings",
+      "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
     }
   ]
 }

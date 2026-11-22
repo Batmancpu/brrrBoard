@@ -444,7 +444,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     /** The source may move child views without changing its own scrollX/Y. */
     fun invalidatePanelGlass() {
-        if (glass.visibility == VISIBLE) glass.postInvalidateOnAnimation()
+        if (glass.visibility == VISIBLE) glass.invalidateSource()
     }
 
     @SuppressLint("ClickableViewAccessibility")

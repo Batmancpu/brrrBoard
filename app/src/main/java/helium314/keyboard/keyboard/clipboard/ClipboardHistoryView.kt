@@ -317,8 +317,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     private fun invalidatePanelGlass() {
-        headerScrim.postInvalidateOnAnimation()
-        findViewById<View>(R.id.clipboard_bottom_glass)?.postInvalidateOnAnimation()
+        (headerScrim as? helium314.keyboard.keyboard.PanelGlassOverlayView)?.invalidateSource()
+        findViewById<helium314.keyboard.keyboard.PanelGlassOverlayView>(R.id.clipboard_bottom_glass)
+            ?.invalidateSource()
         rootView.findViewById<BoardFooterView>(R.id.board_footer)?.invalidatePanelGlass()
     }
 

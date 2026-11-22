@@ -94,8 +94,8 @@ class AccessPointMenuView @JvmOverloads constructor(
         scroll.isSmoothScrollingEnabled = true
         PanelMaterial.extendIntoFooter(scroll.parent as View, scroll)
         scroll.setOnScrollChangeListener { _, _, _, _, _ ->
-            findViewById<View>(R.id.access_point_header_scrim)?.postInvalidateOnAnimation()
-            findViewById<View>(R.id.access_point_bottom_glass)?.postInvalidateOnAnimation()
+            findViewById<PanelGlassOverlayView>(R.id.access_point_header_scrim)?.invalidateSource()
+            findViewById<PanelGlassOverlayView>(R.id.access_point_bottom_glass)?.invalidateSource()
             rootView.findViewById<BoardFooterView>(R.id.board_footer)?.invalidatePanelGlass()
         }
         val dropPinnedKeyListener = View.OnDragListener { target, event -> onPinnedKeyDropFromStrip(target, event) }

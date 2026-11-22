@@ -19,6 +19,14 @@ import android.view.ViewTreeObserver
 import kotlin.math.ceil
 import androidx.core.graphics.ColorUtils
 
+/** Small state machine that avoids re-recording an unchanged panel source. */
+internal class PanelGlassRecordState {
+    private var dirty = true
+    fun invalidate() { dirty = true }
+    fun needsRecording(hasDisplayList: Boolean): Boolean = dirty || !hasDisplayList
+    fun recordingCompleted() { dirty = false }
+}
+
 /**
  * An in-IME-only backdrop. Records the *current* scroll surface into a GPU
  * RenderNode, applies HWUI blur and composites crisp controls separately in
@@ -51,7 +59,11 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private var blurBleed = -1
     private var headerMaskShader: LinearGradient? = null
     private var registeredObserver: ViewTreeObserver? = null
-    private val scrollObserver = ViewTreeObserver.OnScrollChangedListener { postInvalidateOnAnimation() }
+    private val scrollObserver = ViewTreeObserver.OnScrollChangedListener { invalidateSource() }
+    private val recordState = PanelGlassRecordState()
+    private val sourceLayoutListener = OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> invalidateSource() }
+    private val overlayLayoutListener = OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> invalidateSource() }
+    private val globalLayoutObserver = ViewTreeObserver.OnGlobalLayoutListener { invalidateSource() }
 
     init {
         // Fixed glass is a touch-exclusion region for covered list items.
@@ -60,24 +72,28 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         isFocusable = false
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
         setWillNotDraw(false)
+        addOnLayoutChangeListener(overlayLayoutListener)
     }
 
     fun configure(content: View?, edge: Edge, color: Int) {
         if (source !== content) {
             unobserve()
+            source?.removeOnLayoutChangeListener(sourceLayoutListener)
             source = content
             // Drop the old GPU display list when leaving a sensitive panel.
             node = null
             blurWidth = 0
             blurHeight = 0
             blurBleed = -1
+            recordState.invalidate()
+            content?.addOnLayoutChangeListener(sourceLayoutListener)
             observe()
         }
         this.edge = edge
         val newBase = ColorUtils.setAlphaComponent(color, 255)
         if (newBase != baseColor) headerMaskShader = null
         baseColor = newBase
-        invalidate()
+        invalidateSource()
     }
 
     /**
@@ -95,12 +111,13 @@ class PanelGlassOverlayView @JvmOverloads constructor(
                 colorFilter = ColorMatrixColorFilter(matrix)
             }
         }
-        invalidate()
+        postInvalidateOnAnimation()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         headerMaskShader = null
+        recordState.invalidate()
     }
 
     override fun onAttachedToWindow() {
@@ -111,6 +128,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         unobserve()
         node = null
+        recordState.invalidate()
         super.onDetachedFromWindow()
     }
 
@@ -119,13 +137,23 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         val observer = source!!.viewTreeObserver
         if (observer.isAlive) {
             observer.addOnScrollChangedListener(scrollObserver)
+            observer.addOnGlobalLayoutListener(globalLayoutObserver)
             registeredObserver = observer
         }
     }
 
     private fun unobserve() {
-        registeredObserver?.takeIf { it.isAlive }?.removeOnScrollChangedListener(scrollObserver)
+        registeredObserver?.takeIf { it.isAlive }?.let {
+            it.removeOnScrollChangedListener(scrollObserver)
+            it.removeOnGlobalLayoutListener(globalLayoutObserver)
+        }
         registeredObserver = null
+    }
+
+    /** Mark only content/geometry changes dirty; unchanged frames reuse the GPU display list. */
+    fun invalidateSource() {
+        recordState.invalidate()
+        postInvalidateOnAnimation()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -184,27 +212,31 @@ class PanelGlassOverlayView @JvmOverloads constructor(
             blurWidth = width
             blurHeight = height
             blurBleed = bleed
+            recordState.invalidate()
             renderNode.setPosition(0, 0, width, recordedHeight)
             renderNode.setRenderEffect(RenderEffect.createBlurEffect(
                 blur, blur, Shader.TileMode.DECAL))
         }
-        content.getLocationInWindow(sourcePosition)
-        getLocationInWindow(overlayPosition)
         // RecordingCanvas captures GPU drawing commands only; no bitmap or
         // clipboard screenshot is stored. Both bottom strips now use the same
         // continuous source sampling neighborhood around their shared edge.
-        val recording = renderNode.beginRecording(width, recordedHeight)
-        try {
-            val save = recording.save()
+        if (recordState.needsRecording(renderNode.hasDisplayList())) {
+            content.getLocationInWindow(sourcePosition)
+            getLocationInWindow(overlayPosition)
+            val recording = renderNode.beginRecording(width, recordedHeight)
             try {
-                recording.translate((sourcePosition[0] - overlayPosition[0]).toFloat(),
-                    (sourcePosition[1] - overlayPosition[1] + bleed).toFloat())
-                content.draw(recording)
+                val save = recording.save()
+                try {
+                    recording.translate((sourcePosition[0] - overlayPosition[0]).toFloat(),
+                        (sourcePosition[1] - overlayPosition[1] + bleed).toFloat())
+                    content.draw(recording)
+                } finally {
+                    recording.restoreToCount(save)
+                }
             } finally {
-                recording.restoreToCount(save)
+                renderNode.endRecording()
             }
-        } finally {
-            renderNode.endRecording()
+            recordState.recordingCompleted()
         }
         // saveLayer's filter is applied only to nontransparent RenderNode
         // samples. In particular, alpha-zero areas remain alpha-zero so the
