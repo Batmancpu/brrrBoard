@@ -3,11 +3,18 @@ name: brrrBoard — Build Debug APK
 on:
   push:
     branches:
-      - main
+      - '**'
   workflow_dispatch:
+    inputs:
+      include_ultra_test_model:
+        description: 'Stage the ~640 MiB Parakeet Ultra pack for an isolated BR Brain A/B test APK'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
-  contents: write
+  contents: read
+  actions: write
 
 concurrency:
   # Keep one debug verification for each exact SHA until it finishes.
@@ -38,39 +45,6 @@ jobs:
       - name: Validate premium Settings navigation and resource contract
         run: python3 tools/check_premium_settings_contract.py
 
-      - name: Determine whether this commit changes the app
-        id: release_scope
-        shell: bash
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" != "push" || -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
-            echo "product_changed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
-          if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
-            echo "product_changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "product_changed=false" >> "$GITHUB_OUTPUT"
-            echo "No application or build inputs changed; CI will run without publishing a release."
-          fi
-
-      - name: Require per-release change notes for application updates
-        if: github.event_name == 'push' && steps.release_scope.outputs.product_changed == 'true'
-        shell: bash
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then exit 0; fi
-          changes="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
-          if ! grep -Fx 'docs/releases/notes.json' <<< "$changes"; then
-            echo '::error::Update docs/releases/notes.json with exact user-visible changes for this application release.'
-            exit 1
-          fi
-
       - name: Validate bundled Version History catalog
         run: |
           python3 -m unittest discover -s tools -p 'test_generate_version_history.py' -v
@@ -96,6 +70,9 @@ jobs:
 
       - name: Fetch pinned private ASR native runtime
         run: bash tools/fetch-board-sherpa-onnx.sh
+      - name: Stage pinned Ultra weights only for an explicitly requested test artifact
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.include_ultra_test_model }}
+        run: bash tools/prepare-ultra-voice-pack.sh
       - name: Stage pinned GTCRN enhancement model inside APK
         run: bash tools/fetch-board-gtcrn.sh
       - name: Stage pinned brrClean native GTCRN weights inside APK
@@ -126,13 +103,19 @@ jobs:
 
       - name: Verify APK and signing identity
         shell: bash
+        env:
+          INCLUDE_ULTRA: ${{ github.event_name == 'workflow_dispatch' && inputs.include_ultra_test_model && 'true' || 'false' }}
         run: |
           set -euo pipefail
           APK="$(find app/build/outputs/apk/debug -maxdepth 1 -type f -name '*-debug.apk' | head -n 1)"
           test -n "$APK"
           test -s "$APK"
           unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
-          bash tools/verify-voice-model-packaging.sh "$APK" unbundled
+          if [[ "$INCLUDE_ULTRA" == true ]]; then
+            bash tools/verify-voice-model-packaging.sh "$APK" ultra
+          else
+            bash tools/verify-voice-model-packaging.sh "$APK" unbundled
+          fi
           bash tools/verify-gtcrn-packaging.sh "$APK"
           bash tools/verify-brrclean-packaging.sh "$APK"
 
@@ -183,6 +166,8 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_bundled_voice_contract.py' -v
       - name: Verify opt-in BR Brain voice lab privacy and stable mic routing
         run: python3 -m unittest discover -s tools -p 'test_voice_noise_lab_contract.py' -v
+      - name: Verify opt-in Parakeet Ultra A/B packaging and privacy contract
+        run: python3 -m unittest discover -s tools -p 'test_ultra_voice_packaging.py' -v
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
         if: steps.unit_tests.outcome == 'success'
@@ -226,26 +211,5 @@ jobs:
         if: steps.unit_tests.outcome == 'failure'
         shell: bash
         run: |
-          echo "Unit tests failed; APK was still built, verified, and published for audit/testing."
+          echo "Unit tests failed; APK was built, verified, and uploaded as an Actions artifact for audit."
           exit 1
-
-      - name: Publish GitHub release
-        if: steps.release_scope.outputs.product_changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION_NAME="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
-          SHORT_SHA="${GITHUB_SHA::7}"
-          STAMP="$(date -u +'%Y%m%d-%H%M%S')"
-
-          if [ "$GITHUB_REF_NAME" = "main" ]; then
-            TAG="v${VERSION_NAME}-debug.${STAMP}-${SHORT_SHA}"
-            TITLE="brrrBoard v${VERSION_NAME} Debug — ${SHORT_SHA}"
-            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TITLE" --notes "Debug/test APK. Commit: $GITHUB_SHA. SHA-256: $SHA256. Persistent debug signing key. Unit-test status: ${{ steps.unit_tests.outcome }}." --prerelease
-          else
-            TAG="brrrboard-test-${STAMP}-${SHORT_SHA}"
-            TITLE="brrrBoard Test Build — ${SHORT_SHA}"
-            gh release create "$TAG" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TITLE" --notes "Audit/test build. Commit: $GITHUB_SHA. SHA-256: $SHA256." --prerelease
-          fi

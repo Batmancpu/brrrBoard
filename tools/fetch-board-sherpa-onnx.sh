@@ -3,8 +3,8 @@
 # Native libraries are not checked into Git; the GitHub Actions build verifies their hashes.
 set -euo pipefail
 
-VERSION="1.13.3"
-ARCHIVE_SHA256="243ad797a3b6e75ebbeaf7a2ab4aec0777e7d71b730685abb762a120940b07b6"
+VERSION="2.0.2"
+ARCHIVE_SHA256="6420cfb86c2ef8462dadd77b2202b7430487bdfb2bc715e9ce2864871209a80e"
 URL="https://github.com/k2-fsa/sherpa-onnx/releases/download/v${VERSION}/sherpa-onnx-${VERSION}.aar"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 JAR="$ROOT/app/libs/sherpa-onnx-${VERSION}.jar"

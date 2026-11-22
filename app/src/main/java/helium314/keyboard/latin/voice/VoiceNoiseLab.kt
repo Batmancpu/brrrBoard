@@ -12,11 +12,15 @@ import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.media.audiofx.NoiseSuppressor
-import android.os.SystemClock
 import android.os.Build
+import android.os.Debug
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * One user-controlled, RAM-only microphone comparison lab. It is never called by
@@ -45,6 +49,23 @@ internal class VoiceNoiseLab(context: Context) {
         val enhancedWordErrorPercent: Int? = null,
         val enhanceMs: Long? = null,
         val enhanceStatus: String = "Not requested",
+        val modelComparison: ModelComparison? = null,
+    )
+    data class ModelScore(
+        val transcript: String,
+        val wordErrorPercent: Int?,
+        val modelLoadMs: Long,
+        val decodeMs: Long,
+        val totalMs: Long,
+        val peakPssKb: Long,
+        val wallMs: Long,
+    )
+    data class ModelComparison(
+        val reference: String,
+        val current110m: ModelScore?,
+        val ultra: ModelScore?,
+        val firstDecoded: String,
+        val failure: String? = null,
     )
     data class Snapshot(
         val status: String,
@@ -74,6 +95,9 @@ internal class VoiceNoiseLab(context: Context) {
     private val enhancedClips = LinkedHashMap<Key, ByteArray>()
     private val takes = LinkedHashMap<Key, Take>()
     private var decodeRequest: VoiceDecodeRequest? = null
+    private var ultraTestClient: UltraVoiceTestClient? = null
+    private var comparisonLatch: CountDownLatch? = null
+    private var comparisonOrder = 0
     private var enhanceBridge: BrrCleanVoiceBridge? = null
     private var enhanceInput: ByteArray? = null
 
@@ -374,6 +398,152 @@ internal class VoiceNoiseLab(context: Context) {
         return true
     }
 
+    /** Decodes one identical volatile PCM take, sequentially and cold, on both ASR models. */
+    fun compareModels(key: Key, reference: String): Boolean {
+        val pcm = synchronized(gate) {
+            if (closed || busy.get() || playBusy.get() || enhanceBusy.get() ||
+                !decodeBusy.compareAndSet(false, true)) return false
+            if (!VoiceModelInstaller.isInstalled(appContext)) {
+                status = "The existing Parakeet 110M model must be installed before comparison."
+                decodeBusy.set(false)
+                return false
+            }
+            if (!VoiceModelInstaller.isInstalled(appContext, UltraVoiceModelManifest.pack)) {
+                status = "Install the bundled Ultra test pack before comparing ASR models."
+                decodeBusy.set(false)
+                return false
+            }
+            clips[key]?.copyOf() ?: run { decodeBusy.set(false); return false }
+        }
+        val order = synchronized(gate) { comparisonOrder++ and 1 }
+        synchronized(gate) {
+            takes[key]?.let { takes[key] = it.copy(modelComparison = null) }
+            status = "Comparing both offline models on the same audio take…"
+        }
+        Thread({
+            var oldScore: ModelScore? = null
+            var ultraScore: ModelScore? = null
+            val currentFirst = order == 0
+            try {
+                if (currentFirst) {
+                    oldScore = decodeCurrentModel(pcm, reference)
+                    ultraScore = decodeUltraModel(pcm, reference)
+                } else {
+                    ultraScore = decodeUltraModel(pcm, reference)
+                    oldScore = decodeCurrentModel(pcm, reference)
+                }
+                synchronized(gate) {
+                    val previous = takes[key]
+                    if (!closed && previous != null && oldScore != null && ultraScore != null) {
+                        takes[key] = previous.copy(modelComparison = ModelComparison(reference,
+                            oldScore!!, ultraScore!!, if (currentFirst) "110M" else "Ultra"))
+                        status = "Both models finished. The same RAM-only take was decoded one at a time."
+                    }
+                }
+            } catch (error: Exception) {
+                synchronized(gate) {
+                    if (!closed) {
+                        takes[key]?.let { take ->
+                            if (oldScore != null || ultraScore != null) {
+                                takes[key] = take.copy(modelComparison = ModelComparison(reference,
+                                    oldScore, ultraScore, if (currentFirst) "110M" else "Ultra",
+                                    "The comparison stopped before both models finished."))
+                            }
+                        }
+                        status = error.message?.take(180)
+                            ?: "Model comparison failed. The existing 110M model remains selected."
+                    }
+                }
+            } finally {
+                pcm.fill(0)
+                runCatching { OfflineVoiceEngine.shared(appContext).releaseAndWait() }
+                synchronized(gate) {
+                    decodeRequest = null
+                    ultraTestClient = null
+                    comparisonLatch = null
+                    decodeBusy.set(false)
+                }
+            }
+        }, "brrBoard-voice-model-comparison").apply { isDaemon = true }.start()
+        return true
+    }
+
+    private fun decodeCurrentModel(pcm: ByteArray, reference: String): ModelScore {
+        val engine = OfflineVoiceEngine.shared(appContext)
+        val wallStarted = SystemClock.elapsedRealtime()
+        engine.releaseAndWait()
+        val peakPss = AtomicLong(Debug.getPss().toLong())
+        val sampling = AtomicBoolean(true)
+        val sampler = startPssSampler(peakPss, sampling)
+        val latch = CountDownLatch(1)
+        var answer: Result<OfflineVoiceRecognition>? = null
+        val request = engine.transcribeMeasured(pcm.copyOf(), formatTranscript = false) {
+            answer = it
+            latch.countDown()
+        }
+        synchronized(gate) {
+            if (closed) {
+                request.cancel()
+                latch.countDown()
+            } else {
+                decodeRequest = request
+                comparisonLatch = latch
+            }
+        }
+        try {
+            check(latch.await(MAX_COMPARISON_SECONDS, TimeUnit.SECONDS)) {
+                request.cancel()
+                "110M comparison timed out."
+            }
+            val measured = requireNotNull(answer).getOrThrow()
+            return ModelScore(measured.transcript,
+                VoiceLabScore.wordErrorPercent(reference, measured.transcript),
+                measured.modelLoadMs, measured.decodeMs, measured.totalMs, peakPss.get(),
+                SystemClock.elapsedRealtime() - wallStarted)
+        } finally {
+            sampling.set(false)
+            sampler.join(250)
+            engine.releaseAndWait()
+        }
+    }
+
+    private fun decodeUltraModel(pcm: ByteArray, reference: String): ModelScore {
+        val wallStarted = SystemClock.elapsedRealtime()
+        val latch = CountDownLatch(1)
+        var answer: Result<UltraVoiceTestResult>? = null
+        val client = UltraVoiceTestClient(appContext)
+        synchronized(gate) { ultraTestClient = client; comparisonLatch = latch }
+        client.transcribe(pcm) {
+            answer = it
+            latch.countDown()
+        }
+        check(latch.await(MAX_COMPARISON_SECONDS, TimeUnit.SECONDS)) {
+            client.cancel()
+            "Ultra comparison timed out; the main 110M process is unaffected."
+        }
+        val measured = requireNotNull(answer).getOrThrow()
+        return ModelScore(measured.transcript,
+            VoiceLabScore.wordErrorPercent(reference, measured.transcript),
+            measured.modelLoadMs, measured.decodeMs, measured.totalMs, measured.peakPssKb,
+            SystemClock.elapsedRealtime() - wallStarted)
+    }
+
+    private fun startPssSampler(peakPss: AtomicLong, sampling: AtomicBoolean): Thread =
+        Thread({
+            while (sampling.get()) {
+                updatePeak(peakPss, Debug.getPss().toLong())
+                try { Thread.sleep(PSS_SAMPLE_INTERVAL_MS) }
+                catch (_: InterruptedException) { break }
+            }
+        }, "brrBoard-110m-memory-sample").apply { isDaemon = true; start() }
+
+    private fun updatePeak(peak: AtomicLong, value: Long) {
+        while (true) {
+            val current = peak.get()
+            if (value <= current || peak.compareAndSet(current, value)) return
+        }
+    }
+
     /** The *same* stored microphone take is enhanced without reopening AudioRecord. */
     private fun enhance(key: Key) {
         val original = synchronized(gate) {
@@ -438,6 +608,8 @@ internal class VoiceNoiseLab(context: Context) {
             enhanceInput?.fill(0)
             enhanceInput = null
             decodeRequest?.cancel()
+            ultraTestClient?.cancel()
+            comparisonLatch?.countDown()
             clips.values.forEach { it.fill(0) }
             enhancedClips.values.forEach { it.fill(0) }
             clips.clear()
@@ -502,5 +674,7 @@ internal class VoiceNoiseLab(context: Context) {
         private const val SAMPLE_RATE = 16_000
         private const val MAX_SECONDS = 12
         private const val MAX_AUDIO_BYTES = SAMPLE_RATE * 2 * MAX_SECONDS
+        private const val MAX_COMPARISON_SECONDS = 240L
+        private const val PSS_SAMPLE_INTERVAL_MS = 100L
     }
 }

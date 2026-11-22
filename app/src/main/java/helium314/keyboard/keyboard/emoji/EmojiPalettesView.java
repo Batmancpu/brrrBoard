@@ -221,6 +221,10 @@ public final class EmojiPalettesView extends LinearLayout
         final View strip = getRootView().findViewById(R.id.strip_container);
         final int accessoryHeight = settings.mToolbarMode == ToolbarMode.HIDDEN ? 0
                 : res.getDimensionPixelSize(R.dimen.config_suggestions_strip_height);
+        // Search results and the empty-state row are 56dp siblings above the
+        // weighted Browse grid. A stale visibility from an async Search update
+        // reserves that exact height as a blank band in ordinary Emoji Browse.
+        hideSearchSiblingsOutsideSearch();
         // The fixed Emoji tabs are mounted IN the grid shell, not in the
         // alphabet suggestion strip. An asynchronously restored strip must not
         // reserve a second blank 48dp band above Compact or Expanded Browse.
@@ -504,6 +508,15 @@ public final class EmojiPalettesView extends LinearLayout
         setupSearchField();
         setupSearchClickListeners();
         applySearchTheme();
+    }
+
+    private void hideSearchSiblingsOutsideSearch() {
+        if (mSearchMode) return;
+        if (mSearchBarContainer != null) mSearchBarContainer.setVisibility(View.GONE);
+        if (mSearchResultsScrollView != null) mSearchResultsScrollView.setVisibility(View.GONE);
+        if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
+        if (mSearchResultsView != null) mSearchResultsView.setVisibility(View.GONE);
+        setSearchResultsPending(false);
     }
 
     private void setupSearchResultKeyboard() {
@@ -1277,15 +1290,21 @@ public final class EmojiPalettesView extends LinearLayout
         mSearchDisplayedResultCount = visibleEmojis.size();
         mDisplayedSearchEmojis = List.copyOf(visibleEmojis);
         if (mSearchEmptyView != null) {
-            mSearchEmptyView.setVisibility(mSearchMode && noMatches ? View.VISIBLE : View.GONE);
-            if (mSearchResultsScrollView != null)
-                mSearchResultsScrollView.setVisibility(mSearchMode && noMatches ? View.GONE : View.VISIBLE);
+            mSearchEmptyView.setVisibility(EmojiSearchSurfacePolicy.emptyVisible(mSearchMode, noMatches)
+                    ? View.VISIBLE : View.GONE);
+            if (mSearchResultsScrollView != null) {
+                mSearchResultsScrollView.setVisibility(
+                        EmojiSearchSurfacePolicy.resultsVisible(mSearchMode, noMatches)
+                                ? View.VISIBLE : View.GONE);
+            }
         }
         if (mSearchResultsScrollView != null) {
             mSearchResultsScrollView.scrollTo(0, 0);
         }
         setSearchResultsPending(false);
-        if (resultsChanged && mSearchResultMorph != null && finalAnswer) {
+        if (!mSearchMode && mSearchResultMorph != null) {
+            mSearchResultMorph.cancel();
+        } else if (resultsChanged && mSearchResultMorph != null && finalAnswer) {
             mSearchResultMorph.reveal(noMatches ? mSearchEmptyView : mSearchResultsScrollView);
         }
         mSearchResultsView.invalidate();

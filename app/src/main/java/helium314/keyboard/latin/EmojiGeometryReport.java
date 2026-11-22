@@ -75,6 +75,8 @@ public final class EmojiGeometryReport {
             case "orientation": case "density": case "panelSearch":
             case "keyboardState": case "toolbarMode":
             case "framePadding":
+            case "searchBarVisibility": case "searchResultsVisibility":
+            case "searchEmptyVisibility": case "smartSectionVisibility":
                 return true;
             default: return false;
         }
@@ -83,6 +85,8 @@ public final class EmojiGeometryReport {
     private static boolean isGeometryValue(final String value) {
         return "absent".equals(value) || "hidden".equals(value)
                 || "unavailable".equals(value) || "empty".equals(value)
+                || "visible".equals(value) || "invisible".equals(value)
+                || "gone".equals(value)
                 || "true".equals(value) || "false".equals(value)
                 || "EMOJI".equals(value) || "HIDDEN".equals(value)
                 || "SYMBOLS_SHIFTED".equals(value) || "CLIPBOARD".equals(value)

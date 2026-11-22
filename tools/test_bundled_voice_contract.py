@@ -74,16 +74,23 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         release = self.read(".github/workflows/obtainium-release.yml")
         self.assertNotIn(prep, debug)
         self.assertIn(f'{verify} "$APK" unbundled', debug)
+        self.assertIn("include_ultra_test_model:", debug)
+        self.assertIn("bash tools/prepare-ultra-voice-pack.sh", debug)
+        self.assertIn(f'{verify} "$APK" ultra', debug)
+        self.assertNotIn("gh release create", debug)
         self.assertIn('bundle_voice_model:', release)
         self.assertIn('default: false', release)
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.bundle_voice_model", release)
         self.assertIn(prep, release)
+        self.assertNotIn('bundle_ultra_test_model:', release)
+        self.assertNotIn("prepare-ultra-voice-pack.sh", release)
+        self.assertNotIn("BUNDLE_ULTRA", release)
         self.assertIn(f'{verify} "$apk" "$BUNDLE_VOICE"', release)
 
         installer = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceModelInstaller.kt")
         # No-build-weight updates must retain the pinned, already verified copy.
-        self.assertLess(installer.index("if (isInstalled(context))"),
-                        installer.index("val first = VoiceModelManifest.assets.first()"))
+        self.assertLess(installer.index("if (isInstalled(context, pack))"),
+                        installer.index("hasBundled(appContext, pack)"))
 
     def test_gtcrn_model_is_in_every_apk_with_private_fail_safe_processing(self):
         debug = self.read(".github/workflows/brrrboard-build-debug.yml")

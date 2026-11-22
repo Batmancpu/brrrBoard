@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "summary": "Reduce redundant drawing work in the frosted Emoji, Clipboard, and Toolbar panels.",
+  "summary": "Fix the Emoji Browse top gap, reduce redundant panel drawing, and add an opt-in Parakeet A/B lab for comparing the existing model with Ultra on the same offline recording.",
   "changes": [
     {
       "title": "Reuse unchanged panel glass recordings",
       "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
+    },
+    {
+      "title": "Remove the stale Search row above Emoji Browse",
+      "detail": "Emoji Search results and the no-results panel now remain hidden whenever Search mode is off, including when an asynchronous Search refresh arrives after leaving Search. This prevents the fixed 56dp row from stealing height above the category tabs and emoji grid. The content-free geometry report now includes visibility states for these Search-only rows."
+    },
+    {
+      "title": "Compare Parakeet models on the same Voice Lab recording",
+      "detail": "BR Brain's Voice Lab can optionally compare the installed 110M recognizer with Parakeet Ultra 0.6B on one identical RAM-only offline recording. Results include both transcripts, reference-based WER, cold-load/decode/elapsed timing, real-time factor, and sampled process memory. Ultra is an explicit test-only model pack and never replaces the default dictation model; its approximately 640 MiB assets are bundled only when separately requested in a manual build. This candidate has not passed Android CI or Reno10 device acceptance and must not be represented as released until those gates pass."
     }
   ]
 }

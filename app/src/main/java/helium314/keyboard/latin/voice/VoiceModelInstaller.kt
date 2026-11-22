@@ -2,10 +2,12 @@
 package helium314.keyboard.latin.voice
 
 import android.content.Context
+import android.os.StatFs
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Optionally copies pinned bootstrap APK model assets into private no-backup storage.
@@ -15,66 +17,87 @@ import java.security.MessageDigest
  */
 internal object VoiceModelInstaller {
     enum class InstallState { NOT_INSTALLED, INSTALLING, READY, FAILED }
+    data class Progress(val state: InstallState, val percent: Int)
 
     @Volatile var installState = InstallState.NOT_INSTALLED
         private set
     @Volatile var installPercent = 0
         private set
+    private val progressByModel = ConcurrentHashMap<String, Progress>()
 
-    fun modelDir(context: Context): File = File(context.noBackupFilesDir, VoiceModelManifest.MODEL_DIR)
+    fun modelDir(context: Context): File = modelDir(context, VoiceModelManifest.pack)
+    fun modelDir(context: Context, pack: VoiceModelPack): File = File(context.noBackupFilesDir, pack.modelDir)
 
-    fun isInstalled(context: Context): Boolean {
-        val dir = modelDir(context)
-        if (!File(dir, ".verified-${VoiceModelManifest.ID}").isFile) return false
-        return VoiceModelManifest.assets.all { asset -> File(dir, asset.name).length() == asset.size }
+    fun isInstalled(context: Context): Boolean = isInstalled(context, VoiceModelManifest.pack)
+
+    fun isInstalled(context: Context, pack: VoiceModelPack): Boolean {
+        val dir = modelDir(context, pack)
+        if (!File(dir, ".verified-${pack.id}").isFile) return false
+        return pack.assets.all { asset -> File(dir, asset.name).length() == asset.size }
+    }
+
+    fun hasBundled(context: Context, pack: VoiceModelPack): Boolean {
+        if (pack.assets.isEmpty()) return false
+        return runCatching {
+            val names = context.applicationContext.assets.list(pack.assetDir)?.toSet().orEmpty()
+            pack.assets.all { it.name in names }
+        }.getOrDefault(false)
     }
 
     @Synchronized
-    fun installBundledIfPresent(context: Context): Boolean {
-        if (isInstalled(context)) {
-            installPercent = 100
-            installState = InstallState.READY
+    fun installBundledIfPresent(context: Context): Boolean = installBundledIfPresent(context, VoiceModelManifest.pack)
+
+    /** Explicit BR Brain action only for the very large experimental Ultra pack. */
+    @Synchronized
+    fun installBundledIfPresent(context: Context, pack: VoiceModelPack): Boolean {
+        if (isInstalled(context, pack)) {
+            setProgress(pack, InstallState.READY, 100)
             return true
         }
         val appContext = context.applicationContext
         // Normal lightweight updates intentionally omit these assets. A verified
         // model copied by an earlier release was already returned above.
-        val first = VoiceModelManifest.assets.first()
-        val present = runCatching {
-            appContext.assets.open("${VoiceModelManifest.ASSET_DIR}/${first.name}").use { }
-        }.isSuccess
-        if (!present) {
-            installPercent = 0
-            installState = InstallState.NOT_INSTALLED
+        if (!hasBundled(appContext, pack)) {
+            setProgress(pack, InstallState.NOT_INSTALLED, 0)
             return false
         }
 
-        installPercent = 0
-        installState = InstallState.INSTALLING
+        setProgress(pack, InstallState.INSTALLING, 0)
 
-        val destination = modelDir(context)
+        val destination = modelDir(context, pack)
         val parent = requireNotNull(destination.parentFile)
         if (!parent.exists() && !parent.mkdirs()) {
-            installState = InstallState.FAILED
+            setProgress(pack, InstallState.FAILED, 0)
             return false
         }
-        val stage = File(parent, ".installing-${VoiceModelManifest.ID}")
-        if (stage.exists()) stage.deleteRecursively() // exact private staging path only
+        val stage = File(parent, ".installing-${pack.id}")
+        if (stage.exists() && !stage.deleteRecursively()) {
+            setProgress(pack, InstallState.FAILED, 0)
+            return false
+        }
+        // Keep room for the complete staged model plus filesystem/metadata overhead.
+        // The verified prior pack remains untouched if the device is short on space.
+        val totalBytes = pack.assets.sumOf { it.size }
+        val requiredBytes = totalBytes + 64L * 1024L * 1024L
+        val availableBytes = runCatching { StatFs(parent.absolutePath).availableBytes }.getOrDefault(0L)
+        if (availableBytes < requiredBytes) {
+            setProgress(pack, InstallState.FAILED, 0)
+            return false
+        }
         if (!stage.mkdirs()) {
-            installState = InstallState.FAILED
+            setProgress(pack, InstallState.FAILED, 0)
             return false
         }
         try {
-            val totalBytes = VoiceModelManifest.assets.sumOf { it.size }
             var completedBytes = 0L
-            for (asset in VoiceModelManifest.assets) {
+            for (asset in pack.assets) {
                 val file = File(stage, asset.name)
-                appContext.assets.open("${VoiceModelManifest.ASSET_DIR}/${asset.name}").use { input ->
+                appContext.assets.open("${pack.assetDir}/${asset.name}").use { input ->
                     FileOutputStream(file).use { output ->
                         val digest = MessageDigest.getInstance("SHA-256")
                         val transferred = copyAndDigest(input, output, digest) { currentBytes ->
-                            installPercent = (((completedBytes + currentBytes) * 100L) / totalBytes)
-                                .toInt().coerceIn(0, 99)
+                            setProgress(pack, InstallState.INSTALLING,
+                                (((completedBytes + currentBytes) * 100L) / totalBytes).toInt().coerceIn(0, 99))
                         }
                         require(transferred == asset.size) { "Offline voice model has an unexpected size" }
                         require(hex(digest.digest()) == asset.sha256) { "Offline voice model hash mismatch" }
@@ -83,18 +106,29 @@ internal object VoiceModelInstaller {
                 }
                 completedBytes += asset.size
             }
-            File(stage, ".verified-${VoiceModelManifest.ID}").writeText("verified v1\n")
+            File(stage, ".verified-${pack.id}").writeText("verified v1\n")
             if (destination.exists()) destination.deleteRecursively()
             require(stage.renameTo(destination)) { "Could not activate the offline voice model" }
-            val ready = isInstalled(context)
-            installState = if (ready) InstallState.READY else InstallState.FAILED
-            installPercent = if (ready) 100 else 0
+            val ready = isInstalled(context, pack)
+            setProgress(pack, if (ready) InstallState.READY else InstallState.FAILED, if (ready) 100 else 0)
             return ready
         } catch (_: Exception) {
             stage.deleteRecursively()
-            installState = InstallState.FAILED
-            installPercent = 0
+            setProgress(pack, InstallState.FAILED, 0)
             return false
+        }
+    }
+
+    fun progress(pack: VoiceModelPack): Progress = progressByModel[pack.id]
+        ?: if (pack.id == VoiceModelManifest.ID) Progress(installState, installPercent)
+        else Progress(InstallState.NOT_INSTALLED, 0)
+
+    private fun setProgress(pack: VoiceModelPack, state: InstallState, percent: Int) {
+        val safePercent = percent.coerceIn(0, 100)
+        progressByModel[pack.id] = Progress(state, safePercent)
+        if (pack.id == VoiceModelManifest.ID) {
+            installState = state
+            installPercent = safePercent
         }
     }
 

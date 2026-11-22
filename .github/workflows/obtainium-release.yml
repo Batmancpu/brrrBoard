@@ -189,8 +189,8 @@ jobs:
             echo "::error::The APK contains a full settings backup."
             exit 1
           fi
-          # Regular updates MUST exclude weights; an explicitly dispatched
-          # bootstrap MUST include all four SHA-256-pinned weights.
+          # Ultra remains a debug-only experiment; Obtainium updates never bundle it.
+          # An explicitly dispatched bootstrap may include only the legacy ASR pack.
           bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_VOICE"
           bash tools/verify-gtcrn-packaging.sh "$apk"
           bash tools/verify-brrclean-packaging.sh "$apk"
