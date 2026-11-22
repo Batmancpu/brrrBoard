@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           if [[ -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then exit 0; fi
           changes="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA")"
-          if grep -Eq '^(app/|buildSrc/|gradle/|tools/|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changes" &&
+          if grep -Eq '^(app/|buildSrc/|gradle/|tools/(make-emoji-keys/|fetch-board-|verify-(voice-model|gtcrn|brrclean)-packaging\.sh$)|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changes" &&
              ! grep -Fxq 'docs/releases/notes.json' <<< "$changes"; then
             echo '::error::Update docs/releases/notes.json with exact user-visible changes for this application update.'
             exit 1
