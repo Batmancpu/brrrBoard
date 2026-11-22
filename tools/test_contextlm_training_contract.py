@@ -21,6 +21,12 @@ class ContextLmTrainingContract(unittest.TestCase):
         self.assertIn('"evidence": "CORPUS_NGRAM_PROXY_NOT_NATIVE_IME"', source)
         self.assertIn('"quality_gate_passed": False', source)
 
+    def test_training_does_not_hide_true_target_from_candidate_proxy(self):
+        source = (ROOT / "tools/contextlm/train_dfsmn.py").read_text(encoding="utf-8")
+        candidate_builder = source.split("def minibatch(", 1)[1].split("def evaluate(", 1)[0]
+        self.assertIn("native_proxy_candidates(", candidate_builder)
+        self.assertNotIn("exclude_target=target", candidate_builder)
+
     def test_corpus_downloader_pins_revisions_and_full_hashes(self):
         source = (ROOT / "tools/contextlm/prepare_public_corpora.sh").read_text(encoding="utf-8")
         self.assertIn("0214cb358e59e36da60e01d3d59ddd24df897749", source)

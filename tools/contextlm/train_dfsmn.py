@@ -200,8 +200,7 @@ def minibatch(items, unigram, candidate_count, seed, native_proxy=None):
             native_values = []
         else:
             offered, native_values = native_proxy_candidates(
-                context, native_proxy[0], native_proxy[1], candidate_count,
-                exclude_target=target)
+                context, native_proxy[0], native_proxy[1], candidate_count)
             if target not in offered:
                 # Only training uses this forced target: production evaluation must never
                 # inject the answer when the decoder failed candidate recall.
