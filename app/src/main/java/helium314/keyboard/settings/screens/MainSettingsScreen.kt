@@ -755,7 +755,7 @@ private fun PreviewScreen() {
                 onClickLayouts = {}, onClickDictionaries = {}, onClickWelcomeWizard = {},
                 onClickKeys = {}, onClickSound = {}, onClickClipboard = {},
                 onClickPrivacy = {}, onClickBackup = {}, onClickVoice = {},
-                onClickBack = {}
+                onClickTextCorrection = {}, onClickBack = {}
             )
         }
     }
