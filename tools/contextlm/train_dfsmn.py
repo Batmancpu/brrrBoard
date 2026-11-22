@@ -345,15 +345,19 @@ def main():
     weights = export_weights(model, args.output)
     vocab_path = args.output / "vocab.json"
     vocab_path.write_text(json.dumps(vocab, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    manifest = {"status": "UNVALIDATED_TRAINING_EXPERIMENT_NOT_FOR_APK",
+    manifest = {"status": "EXPERIMENTAL_DEVICE_TEST_ONLY",
                 "architecture": "causal_dfsmn_5x128_taps4_candidate_head",
                 "sources": SOURCE_REVISIONS,
+                "source_license": "CC-BY-4.0",
                 "sources_sha256": {path.name: sha256(path) for path in args.corpus_dir.glob("*.csv")},
                 "parameters": weights, "vocab_count": len(vocab),
                 "weights_sha256": sha256(args.output / "weights.int8"),
                 "vocab_sha256": sha256(vocab_path),
                 "trained_candidate_head_synthetic_not_native_ground_truth": True,
-                "do_not_ship_until_accuracy_latency_licensing_size_tests_pass": True}
+                "quality_gate_passed": False,
+                "do_not_use_for_autocorrection": True,
+                "apply_only_to_manual_suggestions": True,
+                "do_not_ship_as_production_ranker_until_native_quality_and_device_latency_pass": True}
     (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     torch.save(model.state_dict(), args.output / "train_checkpoint.pt")
     print(json.dumps({"int8_bytes": (args.output / "weights.int8").stat().st_size,

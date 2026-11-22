@@ -53,6 +53,7 @@ import helium314.keyboard.keyboard.KeyboardActionListener;
 import helium314.keyboard.keyboard.KeyboardActionListenerImpl;
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView;
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine;
+import helium314.keyboard.latin.brain.BrContextLmExperiment;
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.InsetsOutlineProvider;
@@ -837,6 +838,9 @@ public class LatinIME extends InputMethodService implements
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START);
 
         loadSettings();
+        if (BrContextLmExperiment.isEnabled(this)) {
+            BrContextLmExperiment.setEnabled(this, true);
+        }
         mClipboardHistoryManager.onCreate();
         mHandler.onCreate();
         if (FoldableUtils.INSTANCE.isFoldable())

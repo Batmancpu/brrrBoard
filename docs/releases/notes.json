@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Apply cohesive light/dark in-app icons, restore the original smiley key, refine Settings and voice controls, and remove Device Checkup.",
+  "summary": "Apply cohesive light/dark in-app icons, restore the original smiley key, refine Settings and voice controls, and add an opt-in ContextLM test in BR Brain.",
   "changes": [
     {
       "title": "Refresh in-app symbols in light and dark appearances",
@@ -77,6 +77,10 @@
     {
       "title": "Bring Correction & suggestions into BR Brain",
       "detail": "BR Brain now links directly to the existing correction and prediction controls. A single restrained champagne-gold shimmer accents the Brain header once; it does not run continuously or recolor the rest of Settings."
+    },
+    {
+      "title": "Add an opt-in ContextLM test",
+      "detail": "Settings → BR Brain now includes a small experimental Hindi-English ContextLM toggle and live, content-free scoring and latency counters. It runs locally only in eligible text fields, reranks existing manual suggestions, and never changes automatic correction. The candidate did not pass the fixed public-corpus quality gate, so the test is off by default and clearly marked experimental. No Parakeet weights or voice A/B test are included."
     }
   ]
 }

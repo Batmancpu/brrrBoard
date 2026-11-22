@@ -7,6 +7,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import android.content.Context;
+import androidx.test.core.app.ApplicationProvider;
+
 import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.common.ComposedData;
@@ -53,6 +56,11 @@ public class BrContextLmInt8Test {
 
         BrContextLmInt8 load() throws IOException {
             return BrContextLmInt8.load(new ByteArrayInputStream(manifest),
+                    new ByteArrayInputStream(vocabulary), new ByteArrayInputStream(weights));
+        }
+
+        BrContextLmInt8 loadExperimentalForTesting() throws IOException {
+            return BrContextLmInt8.loadExperimentalForTesting(new ByteArrayInputStream(manifest),
                     new ByteArrayInputStream(vocabulary), new ByteArrayInputStream(weights));
         }
     }
@@ -148,5 +156,41 @@ public class BrContextLmInt8Test {
         BrContextLmInt8.load(new ByteArrayInputStream(manifest.toString().getBytes(StandardCharsets.UTF_8)),
                 new ByteArrayInputStream(model.vocabulary),
                 new ByteArrayInputStream(model.weights));
+    }
+
+    @Test public void explicitlyExperimentalModelLoadsOnlyThroughTestEntryPoint() throws Exception {
+        final ModelBytes model = fixture();
+        final JSONObject manifest = new JSONObject(new String(model.manifest, StandardCharsets.UTF_8))
+                .put("status", "EXPERIMENTAL_DEVICE_TEST_ONLY")
+                .put("quality_gate_passed", false)
+                .put("do_not_use_for_autocorrection", true)
+                .put("apply_only_to_manual_suggestions", true);
+        final ModelBytes experimental = new ModelBytes(
+                manifest.toString().getBytes(StandardCharsets.UTF_8), model.vocabulary, model.weights);
+        assertEquals(0, experimental.loadExperimentalForTesting().score(
+                BrPersonalContextFeatures.fromNative(new NgramContext(), new ArrayList<>(), true, false)).length);
+        try {
+            experimental.load();
+            throw new AssertionError("Production loader accepted experimental weights");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("release approval"));
+        }
+    }
+
+    @Test public void packagedExperimentalWeightsHaveMatchingHashesAndStayUnapproved() throws Exception {
+        final Context context = ApplicationProvider.getApplicationContext();
+        try (java.io.InputStream manifest = context.getAssets().open("contextlm/experimental/manifest.json");
+             java.io.InputStream vocab = context.getAssets().open("contextlm/experimental/vocab.json");
+             java.io.InputStream weights = context.getAssets().open("contextlm/experimental/weights.int8")) {
+            BrContextLmInt8.loadExperimentalForTesting(manifest, vocab, weights);
+        }
+        try (java.io.InputStream manifest = context.getAssets().open("contextlm/experimental/manifest.json");
+             java.io.InputStream vocab = context.getAssets().open("contextlm/experimental/vocab.json");
+             java.io.InputStream weights = context.getAssets().open("contextlm/experimental/weights.int8")) {
+            BrContextLmInt8.load(manifest, vocab, weights);
+            throw new AssertionError("Production entry point accepted experimental model assets");
+        } catch (IOException expected) {
+            assertTrue(expected.getMessage().contains("release approval"));
+        }
     }
 }

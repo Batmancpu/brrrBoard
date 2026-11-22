@@ -1,0 +1,171 @@
+{
+  "status": "EXPERIMENTAL_DEVICE_TEST_ONLY",
+  "architecture": "causal_dfsmn_5x128_taps4_candidate_head",
+  "sources": {
+    "COMI-LINGUA": "0214cb358e59e36da60e01d3d59ddd24df897749",
+    "HinGE": "e25a10382d9adb77f3a4f03b721fbd0a43c0de4c"
+  },
+  "source_license": "CC-BY-4.0",
+  "sources_sha256": {
+    "COMI_TN_train.csv": "307cf5ad66f64411fa90a938a9958147bfdb09cabec528d8383fe62e69277258",
+    "HinGE.csv": "dcfaf37ca9d7528e27da7be6b0cfffafb8bbe7825fe4da45077b96236cd9c9c3",
+    "COMI_MT_train.csv": "9a9bf88ced2cd94925549cce0b3f361eb4ae1f70b1d4abf9fbeec22deae1a2cc"
+  },
+  "parameters": [
+    {
+      "name": "embedding.weight",
+      "shape": [
+        8192,
+        128
+      ],
+      "scale": 0.004050959752300593,
+      "offset": 0,
+      "bytes": 1048576
+    },
+    {
+      "name": "memories",
+      "shape": [
+        5,
+        4,
+        128
+      ],
+      "scale": 0.004816105046610194,
+      "offset": 1048576,
+      "bytes": 2560
+    },
+    {
+      "name": "personal_base",
+      "shape": [
+        4
+      ],
+      "scale": 0.011506614722604827,
+      "offset": 1051136,
+      "bytes": 4
+    },
+    {
+      "name": "personal_gate.bias",
+      "shape": [
+        4
+      ],
+      "scale": 0.0007327316314216674,
+      "offset": 1051140,
+      "bytes": 4
+    },
+    {
+      "name": "personal_gate.weight",
+      "shape": [
+        4,
+        128
+      ],
+      "scale": 0.0016758129821987603,
+      "offset": 1051144,
+      "bytes": 512
+    },
+    {
+      "name": "projections.0.bias",
+      "shape": [
+        128
+      ],
+      "scale": 0.0018644316459265281,
+      "offset": 1051656,
+      "bytes": 128
+    },
+    {
+      "name": "projections.0.weight",
+      "shape": [
+        128,
+        128
+      ],
+      "scale": 0.0028221602514972837,
+      "offset": 1051784,
+      "bytes": 16384
+    },
+    {
+      "name": "projections.1.bias",
+      "shape": [
+        128
+      ],
+      "scale": 0.001657534537352915,
+      "offset": 1068168,
+      "bytes": 128
+    },
+    {
+      "name": "projections.1.weight",
+      "shape": [
+        128,
+        128
+      ],
+      "scale": 0.002818825911349199,
+      "offset": 1068296,
+      "bytes": 16384
+    },
+    {
+      "name": "projections.2.bias",
+      "shape": [
+        128
+      ],
+      "scale": 0.0013748627948010062,
+      "offset": 1084680,
+      "bytes": 128
+    },
+    {
+      "name": "projections.2.weight",
+      "shape": [
+        128,
+        128
+      ],
+      "scale": 0.0029428725636850193,
+      "offset": 1084808,
+      "bytes": 16384
+    },
+    {
+      "name": "projections.3.bias",
+      "shape": [
+        128
+      ],
+      "scale": 0.0009085279046081182,
+      "offset": 1101192,
+      "bytes": 128
+    },
+    {
+      "name": "projections.3.weight",
+      "shape": [
+        128,
+        128
+      ],
+      "scale": 0.003490835428237915,
+      "offset": 1101320,
+      "bytes": 16384
+    },
+    {
+      "name": "projections.4.bias",
+      "shape": [
+        128
+      ],
+      "scale": 0.0009409700205006938,
+      "offset": 1117704,
+      "bytes": 128
+    },
+    {
+      "name": "projections.4.weight",
+      "shape": [
+        128,
+        128
+      ],
+      "scale": 0.0031357391143408348,
+      "offset": 1117832,
+      "bytes": 16384
+    }
+  ],
+  "vocab_count": 8192,
+  "weights_sha256": "e77a7f6988331dd68cac690ef91abc7c1701e95265d878b8ca3b0a3f12ada653",
+  "vocab_sha256": "5d5fcbc1284a6528c2de381dedddf21ca0ddb90791d40ed4fb636072a8f637a6",
+  "trained_candidate_head_synthetic_not_native_ground_truth": true,
+  "quality_gate_passed": false,
+  "do_not_use_for_autocorrection": true,
+  "apply_only_to_manual_suggestions": true,
+  "do_not_ship_as_production_ranker_until_native_quality_and_device_latency_pass": true,
+  "training_seed": 2827,
+  "training_pairs": 250000,
+  "epochs": 1
+}

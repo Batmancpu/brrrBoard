@@ -16,6 +16,7 @@ import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
+import helium314.keyboard.latin.brain.BrContextLmExperiment
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
@@ -67,6 +68,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // Only content-free timing/counts, and never while an incognito/protected editor is active.
         // The timing covers this entire local candidate generation call, not display latency.
         val values = Settings.getValues()
+        val requestedEditorGeneration = LatinIME.getInstance()?.editorGeneration() ?: -1L
         val measurable = values != null && values.mInputAttributes.mShouldShowSuggestions
             && EmojiContextEligibility.isEligible(
                 LatinIME.getInstance()?.currentInputEditorInfo, values.mIncognitoModeEnabled)
@@ -82,7 +84,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                     settingsValuesForSuggestion, inputStyle, sequenceNumber)
             } else {
                 getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard,
-                    settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber)
+                    settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber,
+                    requestedEditorGeneration)
             }
             if (measurable) BrainPerformanceMetrics.recordSuggestionBatch(result.size())
             return result
@@ -95,7 +98,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     // and calls the callback function with the suggestions.
     private fun getSuggestedWordsForNonBatchInput(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                       settingsValuesForSuggestion: SettingsValuesForSuggestion, inputStyleIfNotPrediction: Int,
-                      isCorrectionEnabled: Boolean, sequenceNumber: Int): SuggestedWords {
+                      isCorrectionEnabled: Boolean, sequenceNumber: Int,
+                      requestedEditorGeneration: Long): SuggestedWords {
         val typedWordString = wordComposer.typedWord
         val resultsArePredictions = !wordComposer.isComposingWord
         val suggestionResults = if (typedWordString.isEmpty())
@@ -229,7 +233,14 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                         SuggestedWordInfo.NOT_A_CONFIDENCE))
             }
         }
-        return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions,
+        val contextLmSuggestions = if (!hasAutoCorrection
+            && mayUseEmojiContext && !currentSettings.mInputAttributes.mNoLearning
+            && emojiService != null) {
+            BrContextLmExperiment.rerankManualSuggestions(
+                emojiService, ngramContext, suggestionsList, requestedEditorGeneration, true
+            )
+        } else suggestionsList
+        return SuggestedWords(contextLmSuggestions, suggestionResults.mRawSuggestions,
             typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
             rankedEmojiCandidates, emojiSuggestionEditor.takeIf { rankedEmojiCandidates.isNotEmpty() })
     }

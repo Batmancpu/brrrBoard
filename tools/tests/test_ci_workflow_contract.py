@@ -31,6 +31,8 @@ class CiWorkflowContractTest(unittest.TestCase):
                         debug.index("name: Upload verified debug APK artifact"))
         self.assertNotIn("gh release create", debug)
         self.assertIn("if: steps.unit_tests.outcome == 'failure'", debug)
+        self.assertIn("verify_contextlm_experiment_packaging.py", debug)
+        self.assertIn("Verify ContextLM stays opt-in and bounded in the APK", release)
 
     def test_release_notes_repair_triggers_both_workflows(self):
         debug = DEBUG.read_text()

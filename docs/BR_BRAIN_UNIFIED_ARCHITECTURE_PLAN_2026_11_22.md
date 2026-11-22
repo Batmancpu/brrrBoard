@@ -1,7 +1,7 @@
 # BR Brain: unified on-device suggestions plan
 
 Date: 22 November 2026
-Status: Settings cleanup is implemented as an unbuilt source candidate; unified Brain coordination, learning-store migration and a new ranking model remain unimplemented. No new ranking model is activated by this plan.
+Status: The Settings cleanup and an explicitly opt-in, experimental ContextLM manual-suggestion test are implemented in source. The neural candidate did not pass its fixed public-corpus gate and is not a production ranker. Unified Brain coordination and encrypted native-history migration remain unimplemented.
 
 ## Direction
 

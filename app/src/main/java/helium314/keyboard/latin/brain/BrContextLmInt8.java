@@ -24,8 +24,8 @@ import java.util.Map;
  * <p>All disk/asset reads, digest verification and model construction MUST happen on a bounded
  * background worker; never construct this object on the IME rendering/key thread. The INT8
  * weights are expanded once to floats, avoiding an extra native runtime or JNI crash surface.
- * This reference executor may be activated only after trained-weights, latency, quality and APK
- * gates pass on the actual target device. No model is bundled by this source change.
+ * The production loader requires release approval. A separate explicit test loader accepts only
+ * a manifest marked experimental, quality-gate-failed, and manual-suggestions-only.
  */
 public final class BrContextLmInt8 {
     public static final int CONTEXT_TOKENS = 12;
@@ -98,6 +98,24 @@ public final class BrContextLmInt8 {
     @NonNull public static BrContextLmInt8 load(@NonNull final InputStream manifestStream,
                                                 @NonNull final InputStream vocabStream,
                                                 @NonNull final InputStream modelStream) throws IOException {
+        return loadInternal(manifestStream, vocabStream, modelStream, false);
+    }
+
+    /**
+     * Loads an explicitly experimental model for the user-visible BR Brain test mode only.
+     * This never grants permission to use the model for automatic correction or normal ranking.
+     */
+    @NonNull public static BrContextLmInt8 loadExperimentalForTesting(
+            @NonNull final InputStream manifestStream,
+            @NonNull final InputStream vocabStream,
+            @NonNull final InputStream modelStream) throws IOException {
+        return loadInternal(manifestStream, vocabStream, modelStream, true);
+    }
+
+    private static BrContextLmInt8 loadInternal(@NonNull final InputStream manifestStream,
+                                                @NonNull final InputStream vocabStream,
+                                                @NonNull final InputStream modelStream,
+                                                final boolean allowExperimental) throws IOException {
         try {
             final byte[] manifestBytes = readBounded(manifestStream, MAX_MANIFEST_BYTES);
             final byte[] vocabBytes = readBounded(vocabStream, MAX_VOCAB_BYTES);
@@ -105,8 +123,14 @@ public final class BrContextLmInt8 {
             final JSONObject manifest = new JSONObject(new String(manifestBytes, StandardCharsets.UTF_8));
             // Training exports are deliberately marked experimental. Accidentally
             // copying one into assets must never silently activate an unvalidated model.
-            if (!"APPROVED_FOR_BUNDLING".equals(manifest.optString("status"))
-                    || manifest.optBoolean("do_not_ship_until_accuracy_latency_licensing_size_tests_pass", true)) {
+            final boolean approved = "APPROVED_FOR_BUNDLING".equals(manifest.optString("status"))
+                    && !manifest.optBoolean("do_not_ship_until_accuracy_latency_licensing_size_tests_pass", true);
+            final boolean experimental = allowExperimental
+                    && "EXPERIMENTAL_DEVICE_TEST_ONLY".equals(manifest.optString("status"))
+                    && !manifest.optBoolean("quality_gate_passed", true)
+                    && manifest.optBoolean("do_not_use_for_autocorrection", false)
+                    && manifest.optBoolean("apply_only_to_manual_suggestions", false);
+            if (allowExperimental ? !experimental : !approved) {
                 throw new IOException("ContextLM has not passed release approval");
             }
             if (!EXPECTED_ARCH.equals(manifest.optString("architecture"))) {

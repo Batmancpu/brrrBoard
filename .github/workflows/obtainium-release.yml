@@ -131,6 +131,13 @@ jobs:
             --release-notes-output "$RUNNER_TEMP/brrBoard-release-notes.md"
       - name: Build unsigned APK
         run: ./gradlew --no-daemon --stacktrace :app:assembleObtainium -PobtainiumBuild="$GITHUB_RUN_NUMBER"
+      - name: Verify ContextLM stays opt-in and bounded in the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/obtainium -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          python3 tools/verify_contextlm_experiment_packaging.py "$apk"
       # The complete Android unit suite runs once in the exact-SHA debug gate.
       # Publication below remains blocked until that independent run succeeds.
       # Never bypass that gate; duplicating the suite here wastes CI minutes.

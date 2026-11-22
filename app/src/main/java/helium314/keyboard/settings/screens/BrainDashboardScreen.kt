@@ -25,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
+import helium314.keyboard.latin.brain.BrContextLmExperiment
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -80,6 +82,10 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenCorrection: () -> Unit) 
     }
     val firstSuggestionFrame = remember(refresh) {
         BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.KEY_TO_SUGGESTION_PREDRAW)
+    }
+    val contextLmSnapshot = remember(refresh) { BrContextLmExperiment.snapshot() }
+    var contextLmEnabled by remember {
+        mutableStateOf(BrContextLmExperiment.isEnabled(context))
     }
     val enabled = context.prefs().getBoolean(
         Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
@@ -176,10 +182,56 @@ fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenCorrection: () -> Unit) 
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("What powers your suggestions", fontWeight = FontWeight.SemiBold,
                         color = palette.onTertiaryContainer)
-                    Text("Typing and next word: existing offline dictionaries and native word history. Swipe: native gesture candidates, n-gram reranking and the existing confirmed-correction learner. Emoji: reviewed phrase cues, Recents and encrypted local associations. Bilingual neural ContextLM: not yet trained or installed.",
+                    Text("Typing and next word: existing offline dictionaries and native word history. Swipe: native gesture candidates, n-gram reranking and the existing confirmed-correction learner. Emoji: reviewed phrase cues, Recents and encrypted local associations. An experimental ContextLM can be enabled below for manual-suggestion testing.",
                         color = palette.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
                     Text("How BR Brain learns: deliberate word/swipe corrections and Emoji selections in eligible fields. It never uses protected fields, clipboard or voice transcripts as training input.",
                         color = palette.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
+                Column(modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("ContextLM test", fontWeight = FontWeight.SemiBold,
+                                color = palette.onSurface)
+                            Text("Experimental on-device candidate ranking",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.onSurfaceVariant)
+                        }
+                        Switch(checked = contextLmEnabled, onCheckedChange = { enabled ->
+                            contextLmEnabled = enabled
+                            BrContextLmExperiment.setEnabled(context, enabled)
+                            refresh++
+                        })
+                    }
+                    Text("Status: ${BrContextLmExperiment.status(context)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant)
+                    Text("When enabled, this experimental model can reorder existing manual suggestions in eligible text fields. It never controls automatic correction, does not generate new words, and stores no typed text. The research quality gate did not pass, so treat its suggestions as a test candidate.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        EvidenceMetric("Scored", contextLmSnapshot.requestsScored.toString(),
+                            "Eligible batches", Modifier.weight(1f))
+                        EvidenceMetric("Changed order", contextLmSnapshot.batchesReranked.toString(),
+                            "Manual suggestions", Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        EvidenceMetric("P50 / P95", if (contextLmSnapshot.latencySamples == 0) "—"
+                            else "${"%.1f".format(Locale.ROOT, contextLmSnapshot.p50Ms)} / ${"%.1f".format(Locale.ROOT, contextLmSnapshot.p95Ms)} ms",
+                            "Last ${contextLmSnapshot.latencySamples} runs", Modifier.weight(1f))
+                        EvidenceMetric("Load errors", contextLmSnapshot.loadFailures.toString(),
+                            "This process", Modifier.weight(1f))
+                    }
+                    OutlinedButton(onClick = {
+                        BrContextLmExperiment.clearStats()
+                        refresh++
+                    }) { Text("Reset ContextLM test stats") }
                 }
             }
 

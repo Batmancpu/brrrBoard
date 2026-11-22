@@ -1,0 +1,17 @@
+BR ContextLM experimental test model
+
+Training material:
+- COMI-LINGUA, Lingo Research Group, IIT Gandhinagar, pinned revision 0214cb358e59e36da60e01d3d59ddd24df897749.
+  Dataset card: https://huggingface.co/datasets/LingoIITGN/COMI-LINGUA
+- HinGE, Lingo Research Group, IIT Gandhinagar, pinned revision e25a10382d9adb77f3a4f03b721fbd0a43c0de4c.
+  Dataset card: https://huggingface.co/datasets/LingoIITGN/HinGE
+
+Both source datasets identify their license as Creative Commons Attribution 4.0 International
+(CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ . The experimental weights are a
+small model trained on processed public examples; the source corpora and user typing data are
+not included. The exact revisions and source file SHA-256 values are in the model manifest.
+
+The candidate did not pass the fixed-holdout quality gate. It is included only for explicit
+on-device manual-suggestion testing. It must not be used for automatic correction or described
+as an approved production ranker. Training and evaluation sources are documented in the
+source repository at docs/QUALITY_GATE_REEVALUATION_2026_11_22.md.
