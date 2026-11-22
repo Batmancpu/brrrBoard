@@ -2,7 +2,7 @@
 
 ## Owner device evidence
 
-The supplied Reno10 checkup report is from brrBoard v1.0.238 on Android 15. Emoji spacing, smart Emoji/suggestion motion, clipboard glass, and voice A/B were marked good; the owner confirmed the toolbar item and the rest of the reported visual checks are fixed. The same 4.736-second recording scored Ultra 0.6B at 12% WER and 110M at 25%. Ultra took 4,974 ms wall time, with 4,152 ms model load, 683 ms decode, and 775,982 KB peak PSS. 110M took 1,630 ms wall time, with 1,366 ms load, 223 ms decode, and 450,352 KB peak PSS. These are one device/take results, not a broad accuracy guarantee.
+The owner confirmed the visual checks and supplied a same-audio voice comparison. Ultra produced fewer recognition errors than 110M on that take, while using more memory and taking longer to load and decode. The owner chose Ultra as the preferred model. This one-device, one-take result is not a broad accuracy guarantee.
 
 ## Shipped source changes in this update candidate
 

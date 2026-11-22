@@ -55,14 +55,14 @@ Voice Lab result-copy action and no audio file, transcript log, or network path.
 
 ## Device evidence and remaining limits
 
-The owner-supplied Reno10 A/B run showed Ultra WER of 12% versus 25% for 110M on
-that one phrase. Ultra used more memory and took longer to cold-load/decode; this
-is one device/take, not a general accuracy guarantee. The v1.0.238 Reno10 report
-marked Emoji spacing, suggestions, panel glass, and A/B as good, and recorded a
-toolbar issue. The owner then said the reported items are fixed. The next
-checkup revision adds explicit checks for model selection, voice cleaning, and
-important DND haptics. ContextLM remains disabled because its corrected
-held-out quality gate did not improve the native baseline.
+The owner-provided A/B take showed Ultra making fewer recognition errors than
+110M, with higher memory use and longer load/decode time. The owner chose Ultra
+as the preferred model for this device, while retaining 110M as a lighter
+fallback. This is one take, not a general accuracy guarantee. The owner
+confirmed the reported visual checks are fixed. The new checkup adds explicit
+checks for model selection, voice cleaning, and important DND haptics.
+ContextLM remains disabled because its corrected held-out quality gate did not
+improve the native baseline.
 
 The initial A/B artifact came from source
 `5997430406b91edf1e2a1682d6a8bacae67581b4`, verified by exact-SHA Android CI and
