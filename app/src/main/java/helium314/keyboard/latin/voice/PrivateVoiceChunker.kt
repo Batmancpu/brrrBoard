@@ -43,7 +43,7 @@ internal class PrivateVoiceChunker {
                     quietBytes += ENERGY_WINDOW_BYTES
                     if (used >= MIN_EARLY_CHUNK_BYTES && quietBytes >= END_SILENCE_BYTES) {
                         // A pause ends the utterance sooner than the hard 6 s cap.
-                        flushWindow(used)
+                        flushWindow(used, emit)
                         quietBytes = 0
                         speechSeen = false
                     }
