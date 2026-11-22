@@ -1,7 +1,7 @@
 # ContextLM and Parakeet Ultra quality-gate re-evaluation
 
 Date: 22 November 2026
-Baseline app release: original-signed v1.0.231.
+Baseline app release: original-signed v1.0.231. Follow-up containing the tooling/report path: original-signed v1.0.234 from source `4d42fa598a6fd1686f6682dce8dee6e121958418`, exact-SHA debug `44982800637` and signer `44982800542` successful. APK is 64,985,587 bytes, SHA-256 `1d42db4fd79845f936ad20bb8bd59e2aba7225b06b716b74075300fcae9d5db6`.
 Purpose: continue the owner-approved implementation, record actual model evidence, and keep every result distinct from Reno10 acceptance.
 
 ## Emoji geometry and Smart Emoji implementation

@@ -38,6 +38,16 @@ class CiWorkflowContractTest(unittest.TestCase):
         self.assertTrue(notes["summary"].strip())
         self.assertTrue(notes["changes"])
 
+    def test_obtainium_skips_publication_for_test_and_documentation_only_pushes(self):
+        release = RELEASE.read_text()
+        self.assertIn("id: release_scope", release)
+        self.assertIn("grep -Ev '^app/src/test/'", release)
+        self.assertIn("No shipped application or build inputs changed", release)
+        self.assertIn(
+            "if: github.event_name != 'push' || steps.release_scope.outputs.product_changed == 'true'",
+            release,
+        )
+
     def test_original_signer_requires_matching_successful_debug_gate(self):
         release = RELEASE.read_text()
         self.assertIn('head_sha=$GITHUB_SHA', release)

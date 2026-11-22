@@ -1,8 +1,8 @@
 # brrBoard agent instructions
 
-## 2026-11-22 — continuation candidate, CI/release pending
+## 2026-11-22 — v1.0.234 released; device trace requested
 
-Owner explicitly directed continued work after earlier ContextLM and Ultra gates failed. Current workspace candidate: `tools/contextlm/train_dfsmn.py` no longer fabricates history/personal signals absent from production; a pinned corpus fetcher and same-audio Parakeet benchmark are added. Emoji Browse now reuses its last eligible editor-bound ranked context instead of synchronously asking the host editor for text during panel construction. BR Brain has a one-tap, content-free Emoji geometry report copy/erase card. Do not call this candidate built, tested, released or device accepted until exact-SHA Android CI and original-signer release finish. Reno10 gap localization still requires the user to paste the copied report. Full evidence: `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+Owner-directed source `4d42fa598a6fd1686f6682dce8dee6e121958418` passed exact-SHA debug/full suite `44982800637` and original-signer release `44982800542`. Non-prerelease [v1.0.234](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.234) contains the Emoji cached-context improvement and BR Brain geometry report; APK 64,985,587 bytes, SHA-256 `1d42db4fd79845f936ad20bb8bd59e2aba7225b06b716b74075300fcae9d5db6`. To provide the Reno10 geometry report: open Emoji Browse once, open **Settings → BR Brain → Emoji layout report**, tap **Copy geometry report**, then paste the clipboard text into the conversation. The top-gap source is not localized until that trace is available. ContextLM remains disabled after corrected one- and three-epoch experiments lost to the corpus n-gram proxy; calibrated neural weight is 0. Ultra is not bundled because the 300-clip English benchmark showed much higher CPU latency and lacks Indian-accent/Reno10 results. Full evidence and remaining device gates: `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
 
 ## 2026-11-21 — four-column Toolbar / footer Settings released
 

@@ -1,8 +1,8 @@
 # brrBoard project context
 
-## 2026-11-22 — model and geometry re-evaluation in progress
+## 2026-11-22 — v1.0.234 released; remaining Reno10 diagnostics
 
-The owner directed us to keep working after ContextLM failed its quality gate and add an in-app path to share the Emoji geometry trace. The local candidate removes fake per-user history features from ContextLM training, reuses an editor-bound Smart Emoji snapshot rather than making a panel-open text query, and adds a private one-tap BR Brain geometry report. A matched same-audio Ultra/110M benchmark is underway. No new APK is yet verified; the ContextLM gate remains red until retraining beats untouched holdout native candidates, Ultra remains subject to North Indian accent and Reno10 runtime/memory results, and the Emoji gap remains unlocalized until the report is pasted. See `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
+Current source `4d42fa598a6fd1686f6682dce8dee6e121958418` passed full debug/unit CI `44982800637` and original-signer release `44982800542`. [v1.0.234](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.234) is non-prerelease; APK 64,985,587 bytes, SHA-256 `1d42db4fd79845f936ad20bb8bd59e2aba7225b06b716b74075300fcae9d5db6`. It reuses the eligible editor-bound Smart Emoji snapshot on panel open and provides one-tap copy/erase for an allow-listed, text-free layout report under **Settings → BR Brain → Emoji layout report**. Open Emoji Browse once, then tap **Copy geometry report** and paste it into the conversation to localize the remaining top gap. ContextLM stays off after the corrected holdout/fusion still lost; Ultra stays out of the APK pending target-device language, latency and memory results. Evidence: `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.
 
 ## Current Toolbar state — v1.0.231 (2026-11-21)
 

@@ -1,8 +1,8 @@
 # brrBoard engineering handoff
 
-## 2026-11-22 — continuing implementation, exact-SHA CI pending
+## 2026-11-22 — v1.0.234 release and next device action
 
-Owner asked that earlier failed model gates be actively debugged and that Emoji geometry collection not require ADB. Current candidate removes fabricated ContextLM history inputs, removes Emoji-panel-open `getTextBeforeCursor` and repeated ranking by reusing the bounded editor-bound `SuggestedWords` snapshot, and adds a content-free BR Brain geometry report copy/erase action. Paired Parakeet Ultra/110M benchmark tooling and an initial public-English run are recorded in `QUALITY_GATE_REEVALUATION_2026_11_22.md`. No release or Oppo acceptance is claimed yet. Run exact-SHA full Android CI and original signer before publication; use the phone report to localize the first gap boundary. Keep ContextLM disabled and Parakeet 110M active until the actual quality/device gates pass.
+Source `4d42fa598a6fd1686f6682dce8dee6e121958418` passed exact-SHA debug/full suite `44982800637` and original-signer workflow `44982800542`. Non-prerelease [v1.0.234](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.234) APK: 64,985,587 bytes, SHA-256 `1d42db4fd79845f936ad20bb8bd59e2aba7225b06b716b74075300fcae9d5db6`. It includes the Smart Emoji snapshot reuse and BR Brain one-tap content-free Emoji geometry report. On the Reno10, open Emoji Browse once, then **Settings → BR Brain → Emoji layout report → Copy geometry report** and paste the report into this conversation. Use its first parent/child boundary to fix the remaining top gap from source. ContextLM remains disabled after corrected retraining and dev fusion selected weight 0; Ultra remains unbundled after the host benchmark showed a substantial CPU latency penalty and no Reno10/Indian-accent evidence. See `QUALITY_GATE_REEVALUATION_2026_11_22.md` for exact metrics and device acceptance steps.
 
 ## 2026-11-21 — v1.0.227 released; Reno10 diagnosis open
 
