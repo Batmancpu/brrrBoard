@@ -1154,3 +1154,8 @@ Owner clarified the Toolbar requirements: four columns by three visible rows, ve
 # 2026-11-22 owner GO — private voice gestures shipped
 
 User confirmed hold-to-talk, live batch preview, cancel-by-swipe, privacy purge and auto-send, then corrected that cancellation feedback must be visual/haptic only with no spoken accessibility announcement. Shipped as original-signed v1.0.251 from exact source `2f2e7424883fab5f597e4f2c3889ec6bfb00ee29`; exact-SHA debug and original-signer workflows passed. APK checksum and workflow IDs are in `VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`. No recovery audio/transcripts persist. Physical acceptance remains unverified.
+
+
+## 2026-11-23 — current handoff: v1.0.257 and biometric hold
+
+The owner asked for a durable repository handoff so another AI can continue without re-asking. The latest public signed APK is v1.0.257 (63,544,172 bytes; SHA-256 `aae9aad384b8f70a3a30ae05c5f55ee66d50bbe7580c675fc25d5ea275b1e8a9`). Release notes say it fixes biometric protected access, model discovery and obsolete Toolbar actions; owner reports the biometric flow still does not work on-device, so hold it and do not claim physical acceptance. The requested replacement is an enrolled gesture in the reserved footer area for protected app access and deliberate secret insertion. The code currently in `/tmp/brrboard-pr9` is uncommitted and unverified; exact paths, constraints, and release gates are in [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md).

@@ -3,6 +3,10 @@ Total output lines: 1475
 
 # brrBoard project context
 
+## Current owner handoff (2026-11-23)
+
+Read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md) first. Latest confirmed public APK is v1.0.257. Despite its release-note fix, the owner reports biometric access still does not work and has put it on hold; a custom enrolled footer gesture is now requested. The handoff records the release evidence, current uncommitted source boundary, security limits, and next implementation gates. Older entries are chronological history.
+
 ## 2026-11-23 — release pointer and current security candidate
 
 Latest published release remains original-signed [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252); the README has direct download, install, update, size, and hash details. PR #9 is an unpublished candidate. It contains BR Brain eligibility coordination, a strong-biometric-only protected note and Brain detail view, and a default-off one-use private footer gesture. It also changes the app default to credential-encrypted storage, moves clipboard/native learned history after first unlock, preserves models/settings in explicit device-protected paths, and migrates old encrypted no-backup records. Exact-SHA Android CI and original-signer release workflows are required before any new APK exists. The Android platform/Oppo biometric and gesture behaviors are not physically verified.

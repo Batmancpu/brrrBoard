@@ -3,6 +3,10 @@ Total output lines: 1583
 
 # brrBoard agent instructions
 
+## Mandatory current context (2026-11-23)
+
+Before editing, read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md), `PROJECT_CONTEXT.md`, and the relevant topic plan. Inspect branch, exact SHA, staged/unstaged changes and preserve them. Latest confirmed APK is v1.0.257. The owner says device biometric access still fails and has put it on hold; implement the custom footer-gesture direction from the handoff without claiming it is biometric-grade security. Keep this file synchronized and separate source, CI, release, and device-verified claims.
+
 ## 2026-11-23 — current product-plan implementation candidate (not released)
 
 The latest published installable APK is original-signed [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252), 63,544,172 bytes, SHA-256 `8f20284bb8d0179f1341ba50a801b8f63b40afe24f61a4a3e311c5bec917d1f1`. Detailed download/install/hash instructions are in the README. PR #9 is an unpublished source candidate; it is not an APK until exact-SHA Android CI and the original-signer release workflow pass.
