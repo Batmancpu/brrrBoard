@@ -11,6 +11,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.onLongClick as semanticsOnLongClick
+import androidx.compose.ui.semantics.onClick as semanticsOnClick
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -141,6 +149,7 @@ fun MainSettingsScreen(
     onClickSound: () -> Unit,
     onClickClipboard: () -> Unit,
     onClickPrivacy: () -> Unit,
+    onClickProtectedPrivacy: () -> Unit = {},
     onClickBackup: () -> Unit,
     onClickVoice: () -> Unit,
     onClickBack: () -> Unit,
@@ -289,8 +298,10 @@ fun MainSettingsScreen(
             Md3ePreference(
                 icon = "shield",
                 title = "Privacy & protected apps",
-                description = "Incognito behavior and app-specific protection",
+                description = "Tap for privacy controls · hold 2.5 seconds for biometric-only data",
                 onClick = onClickPrivacy,
+                onLongClick = onClickProtectedPrivacy,
+                holdDurationMillis = 2500,
                 isFirst = true,
                 isLast = true
             )
@@ -421,7 +432,37 @@ fun Md3ePreference(
     isFirst: Boolean = false,
     isLast: Boolean = false,
     brandIcon: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    holdDurationMillis: Long = 2500,
 ) {
+    val hostView = LocalView.current
+    val longClick = onLongClick
+    val interactionModifier = if (longClick == null) {
+        Modifier.clickable { onClick() }
+    } else {
+        val holdAction = requireNotNull(longClick)
+        Modifier.semantics {
+            semanticsOnClick { onClick(); true }
+            semanticsOnLongClick(label = "Open biometric protected area") {
+                holdAction()
+                true
+            }
+        }.pointerInput(holdAction, holdDurationMillis) {
+            while (true) {
+                awaitPointerEventScope { awaitFirstDown(requireUnconsumed = false) }
+                val releasedNormally = withTimeoutOrNull(holdDurationMillis) {
+                    awaitPointerEventScope { waitForUpOrCancellation() != null }
+                }
+                if (releasedNormally == null) {
+                    hostView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    holdAction()
+                    awaitPointerEventScope { waitForUpOrCancellation() }
+                } else if (releasedNormally) {
+                    onClick()
+                }
+            }
+        }
+    }
     val shape = RoundedCornerShape(
         topStart = if (isFirst) 19.dp else 5.dp,
         topEnd = if (isFirst) 19.dp else 5.dp,
@@ -437,7 +478,7 @@ fun Md3ePreference(
             .fillMaxWidth()
             .clip(shape)
             .background(cardColor)
-            .clickable { onClick() }
+            .then(interactionModifier)
             .padding(horizontal = 16.dp, vertical = 13.dp)
     ) {
         Box(
