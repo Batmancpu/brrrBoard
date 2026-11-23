@@ -53,8 +53,42 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 @Composable
-fun BrainDashboardScreen(onClickBack: () -> Unit, onOpenCorrection: () -> Unit) {
+fun BrainDashboardScreen(
+    onClickBack: () -> Unit,
+    onOpenCorrection: () -> Unit,
+    showDetailedStats: Boolean = false,
+    onUnlockDetails: () -> Unit = {},
+) {
     val context = LocalContext.current
+    if (!showDetailedStats) {
+        val enabled = context.prefs().getBoolean(
+            Settings.PREF_LEARN_SWIPE_CORRECTIONS, Defaults.PREF_LEARN_SWIPE_CORRECTIONS
+        ) && context.prefs().getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true)
+        SearchSettingsScreen(onClickBack = onClickBack, title = "BR Brain", settings = emptyList()) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BrainGoldShimmer()
+                        Text("Local intelligence", style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold)
+                        Text(if (enabled) "Learning is enabled in eligible text fields."
+                            else "Personal learning is paused by your settings.",
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("Detailed usage and learning statistics are protected.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
+                    Text("Correction & suggestion controls")
+                }
+                OutlinedButton(onClick = onUnlockDetails, modifier = Modifier.fillMaxWidth()) {
+                    Text("Hold Privacy & protected apps to unlock private details")
+                }
+            }
+        }
+        return
+    }
     var refresh by remember { mutableIntStateOf(0) }
     var confirmErase by remember { mutableStateOf(false) }
     var confirmEraseEmoji by remember { mutableStateOf(false) }

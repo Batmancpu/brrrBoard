@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; retain the existing on-device voice engine.",
+  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; add biometric-only protected data and retain on-device voice models.",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -85,6 +85,26 @@
     {
       "title": "Add an opt-in ContextLM test",
       "detail": "Settings → BR Brain now includes a small experimental Hindi-English ContextLM toggle and live, content-free scoring and latency counters. It runs locally only in eligible text fields, reranks existing manual suggestions, and never changes automatic correction. The candidate did not pass the fixed public-corpus quality gate, so the test is off by default and clearly marked experimental. No Parakeet weights or voice A/B test are included."
+    },
+    {
+      "title": "Add biometric-only protected data",
+      "detail": "Hold Privacy & protected apps to open a separate strong-biometric-only area with an encrypted local note vault and detailed BR Brain counters. The vault uses an Android Keystore AES-GCM key per operation, is excluded from backup, locks when the app backgrounds, and suppresses screenshots while open. Device PIN/password fallback is not enabled."
+    },
+    {
+      "title": "Add a default-off one-use private gesture",
+      "detail": "After biometric access, the user may explicitly arm a circle gesture for 30 seconds. A visible footer cue appears only while the gesture can be used; the gesture is one-use, RAM-only, and rejects incognito, password/no-learning, protected-app, dictation, and accessibility touch-exploration contexts. It is not a biometric fallback, and the native learned-word dictionary remains unchanged."
+    },
+    {
+      "title": "Explain unavailable strong biometrics clearly",
+      "detail": "Before showing the protected-area prompt, Settings now checks whether a strong biometric is available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area remains locked in every failure case; device credentials are not substituted."
+    },
+    {
+      "title": "Keep an encrypted note removable after key loss",
+      "detail": "The protected note can still be explicitly deleted after biometric enrollment changes invalidate its encryption key. This removes the ciphertext and stale Keystore key after the protected area itself has been opened with biometrics."
+    },
+    {
+      "title": "Wire the one-use private gesture into keyboard input",
+      "detail": "The authenticated one-use gesture session now exposes its consume operation through a Java-compatible bridge used by the keyboard service. Its privacy exclusions, one-use lifetime, and disabled-by-default behavior are unchanged."
     }
   ]
 }

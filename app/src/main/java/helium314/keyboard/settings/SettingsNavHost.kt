@@ -41,6 +41,7 @@ import helium314.keyboard.settings.screens.ClipboardSettingsScreen
 import helium314.keyboard.settings.screens.PrivacySettingsScreen
 import helium314.keyboard.settings.screens.BackupSettingsScreen
 import helium314.keyboard.settings.screens.VoiceSettingsScreen
+import helium314.keyboard.settings.screens.ProtectedPrivacyScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -92,6 +93,7 @@ fun SettingsNavHost(
                 onClickSound = { navController.navigate(SettingsDestination.Sound) },
                 onClickClipboard = { navController.navigate(SettingsDestination.Clipboard) },
                 onClickPrivacy = { navController.navigate(SettingsDestination.Privacy) },
+                onClickProtectedPrivacy = { navController.navigate(SettingsDestination.ProtectedPrivacy) },
                 onClickBackup = { navController.navigate(SettingsDestination.Backup) },
                 onClickVoice = { navController.navigate(SettingsDestination.Voice) },
                 onClickBack = ::goBack,
@@ -113,6 +115,12 @@ fun SettingsNavHost(
         composable(SettingsDestination.Sound) { SoundFeedbackScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.ProtectedPrivacy) {
+            ProtectedPrivacyScreen(
+                onClickBack = ::goBack,
+                onOpenBrainDetails = { navController.navigate(SettingsDestination.ProtectedBrain) },
+            )
+        }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Voice) {
             VoiceSettingsScreen(
@@ -128,6 +136,14 @@ fun SettingsNavHost(
         composable(SettingsDestination.BrainDashboard) {
             BrainDashboardScreen(
                 onClickBack = ::goBack,
+                onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
+                onUnlockDetails = { navController.navigate(SettingsDestination.ProtectedPrivacy) },
+            )
+        }
+        composable(SettingsDestination.ProtectedBrain) {
+            ProtectedPrivacyScreen(
+                onClickBack = ::goBack,
+                showDashboardAfterAuth = true,
                 onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
             )
         }
@@ -202,6 +218,8 @@ object SettingsDestination {
     const val Sound = "sound_feedback"
     const val Clipboard = "clipboard"
     const val Privacy = "privacy"
+    const val ProtectedPrivacy = "protected_privacy"
+    const val ProtectedBrain = "protected_brain"
     const val Backup = "backup"
     const val Voice = "voice"
     const val Toolbar = "toolbar"

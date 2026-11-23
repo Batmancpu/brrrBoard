@@ -50,6 +50,7 @@ import kotlin.math.sin
 
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private val glass = PanelGlassOverlayView(context)
+    private var privateGestureZone: PrivateFooterGestureView? = null
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
@@ -123,9 +124,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             post {
                 if (ViewCompat.isAttachedToWindow(this)) {
                     syncEmojiPrivacy(animate = true)
+                    refreshPrivateGestureAvailability()
                     requestLayout()
                 }
             }
+        } else if (key == PrivateGestureSession.PREF_ENABLED) {
+            post { refreshPrivateGestureAvailability() }
         }
     }
     /** Idle single taps wait for the double-tap switch window; an active stop is immediate. */
@@ -268,6 +272,32 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun refreshPrivacyState() = syncEmojiPrivacy(animate = true)
+
+    fun refreshPrivateGestureAvailability() {
+        val zone = privateGestureZone ?: return
+        if (!this::ime.isInitialized) {
+            zone.setCaptureEnabled(false)
+            return
+        }
+        val values = Settings.getValues()
+        if (values == null) {
+            zone.setCaptureEnabled(false)
+            return
+        }
+        val attrs = values.mInputAttributes
+        val secure = SecureAppsPolicy.isSecure(context.prefs(), attrs.mTargetApplicationPackageName)
+        val enabled = context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)
+            && attrs.mIsGeneralTextInput && !attrs.mNoLearning && !attrs.mIsPasswordField
+            && !values.mIncognitoModeEnabled && !secure
+            && !dictationActive && !dictationProcessing && !toolbarNavigationActive
+            && !isMicTouchExplorationEnabled()
+            && PrivateGestureSession.remainingMs() > 0
+        zone.setCaptureEnabled(enabled)
+        zone.removeCallbacks(expirePrivateGestureZone)
+        if (enabled) zone.postDelayed(expirePrivateGestureZone, PrivateGestureSession.remainingMs())
+    }
+
+    private val expirePrivateGestureZone = Runnable { refreshPrivateGestureAvailability() }
 
     private fun syncEmojiPrivacy(animate: Boolean) {
         val privateMode = Settings.getValues().mIncognitoModeEnabled
@@ -418,6 +448,15 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // Backdrop underlays the *existing* footer buttons; they never blur.
         addView(glass, 0, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         glass.visibility = GONE
+        val privateZone = PrivateFooterGestureView(context)
+        privateGestureZone = privateZone
+        privateZone.onCircle = {
+            if (this::ime.isInitialized && ime.insertArmedPrivateGestureSecret()) {
+                AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
+                refreshPrivateGestureAvailability()
+            }
+        }
+        addView(privateZone, 1, LayoutParams(dp(112), LayoutParams.MATCH_PARENT, Gravity.CENTER))
         // Emoji, ABC and the mic keep their original unframed touch surfaces.
         // Recording/processing illuminate only the exact mic silhouette below.
         idleMicBackground = microphone.background
@@ -454,6 +493,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     fun bind(owner: LatinIME) {
         if (this::ime.isInitialized && ime === owner) return
         ime = owner
+        refreshPrivateGestureAvailability()
         emojiButton.setOnClickListener {
             feedback(it)
             if (returnToLetters) {
@@ -716,6 +756,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         visibility = if (show) VISIBLE else GONE
         returnToLetters = returnToAbc
         toolbarNavigationActive = toolbarActive
+        refreshPrivateGestureAvailability()
         if (returnToAbc) emojiButton.setImageResource(R.drawable.ic_board_abc)
         else emojiButton.setImageDrawable(privateEmojiIcon)
         emojiButton.contentDescription = resources.getString(
@@ -785,6 +826,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // actual keyboard surface below the existing 48dp mic touch target.
         microphone.background = idleMicBackground
         if (active) startMicPulse() else stopMicPulse()
+        refreshPrivateGestureAvailability()
     }
 
     fun showDictationProcessing(processing: Boolean = true, offline: Boolean = dictationOffline) {
@@ -806,6 +848,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             // The turquoise glyph and its mic-shaped underlight breathe together.
             startMicPulse()
         }
+        refreshPrivateGestureAvailability()
     }
 
     /** Called only after an explicit user Cancel of an active private voice session. */
@@ -1033,6 +1076,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     override fun onDetachedFromWindow() {
         context.prefs().unregisterOnSharedPreferenceChangeListener(privacyListener)
+        privateGestureZone?.setCaptureEnabled(false)
         reset()
         privateEmojiIcon.stopAnimation()
         super.onDetachedFromWindow()
@@ -1042,6 +1086,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         super.onAttachedToWindow()
         context.prefs().registerOnSharedPreferenceChangeListener(privacyListener)
         if (this::ime.isInitialized) syncEmojiPrivacy(animate = false)
+        refreshPrivateGestureAvailability()
     }
 
     private fun feedback(view: android.view.View, event: HapticEvent = HapticEvent.KEY_PRESS) {
