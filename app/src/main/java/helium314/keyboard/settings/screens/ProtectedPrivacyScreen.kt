@@ -4,6 +4,7 @@ package helium314.keyboard.settings.screens
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.content.ContextWrapper
 import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
@@ -155,6 +156,12 @@ private object PrivateVaultStore {
             ((bytes[offset + 2].toInt() and 255) shl 8) or (bytes[offset + 3].toInt() and 255)
 }
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> if (baseContext === this) null else baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 fun ProtectedPrivacyScreen(
     onClickBack: () -> Unit,
@@ -163,7 +170,7 @@ fun ProtectedPrivacyScreen(
     onOpenCorrection: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val activity = context.findActivity()
     val lifecycleOwner = LocalLifecycleOwner.current
     var authenticated by remember { mutableStateOf(false) }
     var promptPending by remember { mutableStateOf(false) }

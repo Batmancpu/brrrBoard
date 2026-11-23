@@ -93,6 +93,10 @@
     {
       "title": "Add a default-off one-use private gesture",
       "detail": "After biometric access, the user may explicitly arm a circle gesture for 30 seconds. A visible footer cue appears only while the gesture can be used; the gesture is one-use, RAM-only, and rejects incognito, password/no-learning, protected-app, dictation, and accessibility touch-exploration contexts. It is not a biometric fallback, and the native learned-word dictionary remains unchanged."
+    },
+    {
+      "title": "Explain unavailable strong biometrics clearly",
+      "detail": "Before showing the protected-area prompt, Settings now checks whether a strong biometric is available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area remains locked in every failure case; device credentials are not substituted."
     }
   ]
 }
