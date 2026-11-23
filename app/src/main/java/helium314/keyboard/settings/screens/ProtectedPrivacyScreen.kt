@@ -186,7 +186,6 @@ fun ProtectedPrivacyScreen(
         val wasSecure = window != null && (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
         window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         onDispose {
-            PrivateGestureSession.clear()
             if (window != null && !wasSecure) {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
@@ -278,7 +277,6 @@ fun ProtectedPrivacyScreen(
             if (event == Lifecycle.Event.ON_STOP) {
                 authenticated = false
                 note = ""
-                PrivateGestureSession.clear()
                 status = "Locked when the app left the foreground."
             }
         }
@@ -377,10 +375,24 @@ fun ProtectedPrivacyScreen(
                         }
                         if (privateGestureEnabled) {
                             OutlinedButton(onClick = {
-                                if (PrivateGestureSession.arm(note)) {
-                                    status = "Armed for one circle in the keyboard footer center for 30 seconds."
-                                } else {
-                                    status = "Could not arm a blank or oversized private note."
+                                try {
+                                    val operation = PrivateVaultStore.newDecryptOperation(context)
+                                    prompt(operation.cipher) { cipher ->
+                                        try {
+                                            val confirmedSecret = PrivateVaultStore.read(
+                                                context, requireNotNull(cipher))
+                                            if (PrivateGestureSession.arm(confirmedSecret)) {
+                                                status = "Fingerprint confirmed. One circle gesture is armed for 30 seconds."
+                                            } else {
+                                                status = "Could not arm a blank or oversized private note."
+                                            }
+                                            note = ""
+                                        } catch (_: Exception) {
+                                            status = "Could not authorize the private gesture. The note remains locked."
+                                        }
+                                    }
+                                } catch (_: Exception) {
+                                    status = "Could not prepare the biometric authorization."
                                 }
                             }) { Text("Arm one use (30 seconds)") }
                         }

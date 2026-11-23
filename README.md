@@ -31,7 +31,7 @@ Four reasons to switch: **intelligence that learns locally**, **voice that recog
 | :--- | :--- | :--- |
 | Offline word and next-word suggestions, English/Hinglish typing, and context-aware **Smart Emoji** cues. | Confirmed swipe corrections and eligible Emoji choices can improve later local suggestions. Incognito and protected fields are excluded. | The **BR Brain** dashboard exposes local processing-speed measurements, learning activity and erase controls. No cloud analytics. |
 
-The production suggestion path uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. The APK also includes a small Hindi-English ContextLM experiment, but it is **off by default**, limited to optional manual-suggestion reranking, and does not control autocorrection. Its fixed public-corpus quality gate did not pass, so we do not present it as an improvement or as a production ranker.
+The currently shipped intelligence uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. A separate bilingual neural model is still in development; **we don't claim it is already in the APK**. This is a smarter-feeling alternative built around useful behavior, not inflated AI promises.
 
 ## 02 / A voice that doesn't need the cloud.
 
@@ -45,6 +45,7 @@ Tap the microphone for **offline English dictation** using an installed NVIDIA P
 - **Private diagnostics.** A one-session troubleshooting tool can record only sanitized stages and timings—not audio, transcripts, app names or typed words.
 
 The recognition model is provisioned locally and runs on-device. A first-time installation may need the special model-inclusive bootstrap described [below](#before-using-voice-or-swipe). brrClean is bundled with the app; neither model is fetched at runtime. Noise reduction has not been shown to improve recognition accuracy on every device or in every environment.
+
 
 ## 03 / Zero internet. Zero keyboard uploads.
 
@@ -105,6 +106,8 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 ## Make it your keyboard.
 
 ### Download brrBoard for Android
+
+See the [current implementation status and open release gates](docs/PRODUCT_PLAN_IMPLEMENTATION_STATUS_2026_11_23.md) for what is released, what is still a source candidate, and the remaining device checks.
 
 **Latest official APK:** [Download brrBoard v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.252/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
 
@@ -188,14 +191,14 @@ The keyboard itself does not request Android internet permission. Opening a GitH
 <details>
 <summary>Is BR Brain an online AI service?</summary>
 
-No. Word/next-word suggestions, native swipe candidates, local correction learning and Smart Emoji associations run on the device. A small Hindi-English ContextLM experiment is included but off by default after it failed its fixed public-corpus quality gate; it only reranks manual suggestions when explicitly enabled and never changes autocorrection. We don't claim unverified model accuracy or superiority over another keyboard.
+No. Its current word/next-word suggestions, native swipe candidates, local correction learning and Smart Emoji associations run on the device. The separately planned bilingual neural ContextLM is not yet trained or installed; we don't claim unverified model accuracy or superiority over another keyboard.
 
 </details>
 
 <details>
 <summary>What does brrClean do, and can it combine phone and earbud microphones?</summary>
 
-brrClean is an offline GTCRN denoiser that runs in an isolated process before the selected installed Parakeet model. A denoising failure falls back to raw audio. The keyboard does not fuse separate phone and earbud microphone streams; Android or the device manufacturer controls microphone routing and may silence concurrent capture. Noise reduction is not a guarantee of better recognition accuracy.
+brrClean is an offline GTCRN denoiser that runs in an isolated process before Parakeet 110M transcription. Android `NoiseSuppressor` and raw microphone audio are also available in BR Brain. A denoising failure falls back to raw audio. The keyboard does not fuse separate phone and earbud microphone streams; Android or the device manufacturer controls microphone routing and may silence concurrent capture. Noise reduction is not a guarantee of better recognition accuracy.
 
 </details>
 

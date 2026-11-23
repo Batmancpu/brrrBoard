@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Route Smart Emoji, confirmed swipe learning, and opt-in manual reranking through one BR Brain policy boundary.",
+  "summary": "Coordinate BR Brain suggestions and strengthen local privacy; detailed v1.0.252 download guidance",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -107,8 +107,16 @@
       "detail": "The authenticated one-use gesture session now exposes its consume operation through a Java-compatible bridge used by the keyboard service. Its privacy exclusions, one-use lifetime, and disabled-by-default behavior are unchanged."
     },
     {
-      "title": "Coordinate suggestion features through BR Brain",
-      "detail": "A shared on-device policy boundary now gates contextual Emoji ranking/learning, confirmed swipe-learning access, and the opt-in ContextLM manual reranker. Native candidate generation and automatic correction stay authoritative; the coordinator adds no editor-text IPC, model loading, or disk work on key-down. ContextLM remains off by default because its quality gate did not pass. The one-use private gesture also rechecks accessibility touch exploration at the final insertion boundary."
+      "title": "Route suggestion eligibility through BR Brain",
+      "detail": "A shared on-device policy boundary gates contextual Emoji ranking and learning, confirmed swipe-learning access, and the opt-in manual ContextLM reranker. Native candidates and automatic correction remain authoritative; ContextLM stays off by default after failing its fixed quality gate."
+    },
+    {
+      "title": "Move learned history into credential-protected storage",
+      "detail": "After the user unlocks Android, the keyboard atomically copies legacy native user-history dictionary files from device-protected storage into credential-protected storage, verifies each copy by SHA-256, and deletes a source only after verification. On migration error it fails closed and preserves the source. Android protects credential storage at rest; the native dictionary is not app-layer AES-GCM encrypted."
+    },
+    {
+      "title": "Make private one-use secret insertion usable and time bounded",
+      "detail": "Arming the footer-circle secret now requires a fresh strong-biometric prompt. The secret stays in a volatile character buffer, expires and is wiped after 30 seconds, and is consumed once. It is never put in preferences, backups, clipboard, logs, or a transcript store."
     }
   ]
 }

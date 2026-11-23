@@ -2,6 +2,8 @@
 package helium314.keyboard.latin
 
 import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
 
 /** Short-lived, one-use in-memory secret authorization created only after vault decryption. */
 object PrivateGestureSession {
@@ -9,6 +11,12 @@ object PrivateGestureSession {
     const val PREF_ENABLED = "pref_private_note_circle_enabled"
     private var secret: CharArray? = null
     private var expiresAtMs = 0L
+    private val expiryHandler = Handler(Looper.getMainLooper())
+    private val expireRunnable = Runnable {
+        synchronized(this) {
+            if (SystemClock.elapsedRealtime() >= expiresAtMs) clearLocked()
+        }
+    }
 
     @Synchronized
     fun arm(value: String): Boolean {
@@ -16,6 +24,7 @@ object PrivateGestureSession {
         if (value.isBlank() || value.length > 2048) return false
         secret = value.toCharArray()
         expiresAtMs = SystemClock.elapsedRealtime() + LIFETIME_MS
+        expiryHandler.postDelayed(expireRunnable, LIFETIME_MS)
         return true
     }
 
@@ -45,6 +54,7 @@ object PrivateGestureSession {
     fun clear() = clearLocked()
 
     private fun clearLocked() {
+        expiryHandler.removeCallbacks(expireRunnable)
         secret?.fill('\u0000')
         secret = null
         expiresAtMs = 0L

@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 35348)
-Total output lines: 2995
-
 /*
  * Copyright (C) 2008 The Android Open Source Project
  * modified
@@ -1071,7 +1068,865 @@ public class LatinIME extends InputMethodService implements
         if (mDictionaryFacilitator.usesSameSettings(
                 locales,
                 mSettings.getCurrent().mUseContactsDictionary,
-                mSettings.getCurrent().mUs…10348 tokens truncated…r inset into its
+                mSettings.getCurrent().mUseAppsDictionary,
+                mSettings.getCurrent().mUsePersonalizedDicts)) {
+            return;
+        }
+        resetDictionaryFacilitator(subtypeLocale);
+    }
+
+    /**
+     * Reset the facilitator by loading dictionaries for the given locale and
+     * the current settings values.
+     *
+     * @param locale the locale
+     */
+    // TODO: make sure the current settings always have the right locales, and read
+    // from them.
+    private void resetDictionaryFacilitator(@NonNull final Locale locale) {
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        try {
+            mDictionaryFacilitator.resetDictionaries(this, locale,
+                    settingsValues.mUseContactsDictionary, settingsValues.mUseAppsDictionary,
+                    settingsValues.mUsePersonalizedDicts, false, "", this);
+        } catch (Throwable e) {
+            // this should not happen, but in case it does we at least want to show a
+            // keyboard
+            Log.e(TAG, "Could not reset dictionary facilitator, please fix ASAP", e);
+        }
+        mInputLogic.mSuggest.setAutoCorrectionThreshold(settingsValues.mAutoCorrectionThreshold);
+    }
+
+    /**
+     * Reset suggest by loading the main dictionary of the current locale.
+     */
+    /* package private */ void resetSuggestMainDict() {
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        mInputLogic.mSuggest.clearNextWordSuggestionsCache();
+        mDictionaryFacilitator.resetDictionaries(this, mDictionaryFacilitator.getMainLocale(),
+                settingsValues.mUseContactsDictionary, settingsValues.mUseAppsDictionary,
+                settingsValues.mUsePersonalizedDicts, true, "", this);
+        mKeyboardSwitcher.setThemeNeedsReload(); // necessary for emoji search
+        EmojiPalettesView.closeDictionaryFacilitator();
+    }
+
+    // used for debug
+    public String getLocaleAndConfidenceInfo() {
+        return mDictionaryFacilitator.localesAndConfidences();
+    }
+
+    @Override
+    public void onDestroy() {
+        mInlineDictation.cancel();
+        mOfflineDictation.cancel();
+        mIsDestroyed = true;
+        sInstance = null;
+        mHandler.removeCallbacksAndMessages(null);
+        mInputLogic.onDestroy();
+        mClipboardHistoryManager.onDestroy();
+        mDictionaryFacilitator.closeDictionaries();
+        mSettings.onDestroy();
+        if (foldableObserver != null)
+            foldableObserver.unregister(this);
+        unregisterReceiver(mRingerModeChangeReceiver);
+        unregisterReceiver(mPowerSaveModeChangeReceiver);
+        unregisterReceiver(mDictionaryPackInstallReceiver);
+        unregisterReceiver(mDictionaryDumpBroadcastReceiver);
+        unregisterReceiver(mRestartAfterDeviceUnlockReceiver);
+        mStatsUtilsManager.onDestroy(this /* context */);
+        KtxKt.prefs(this).unregisterOnSharedPreferenceChangeListener(mPrefsListener);
+        mFrostedPrefsHandler.removeCallbacksAndMessages(null);
+        mFrostedLiveRedrawScheduled = false;
+        mFrostedLiveRedrawDirty = false;
+        // Proposed safe-check handling for SDK 37 view extraction bugs
+        try {
+            if (getWindow() != null && getWindow().getWindow() != null) {
+                final android.view.View decorView = getWindow().getWindow().getDecorView();
+                if (decorView == null || decorView.getParent() == null) {
+                    // If the decorator view is already unparented or orphaned, 
+                    // manually bypass standard dialog layout cascading triggers if possible
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Pre-empted window lifecycle crash during cleanup", e);
+        }
+
+        // Wrap super execution to catch unhandled framework lifecycle exceptions on Android 17
+        mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);
+        mViewModelStore.clear();
+        try {
+            super.onDestroy();
+        } catch (NullPointerException npe) {
+            Log.e(TAG, "Swallowed framework NullPointerException during onDestroy view dismissal", npe);
+        } catch (Throwable t) {
+            Log.e(TAG, "Swallowed framework error during onDestroy view dismissal", t);
+        }
+        helium314.keyboard.keyboard.KeyboardTheme.setThemeOverride(null);
+        deallocateMemory();
+    }
+
+    private boolean isImeSuppressedByHardwareKeyboard() {
+        final KeyboardSwitcher switcher = KeyboardSwitcher.getInstance();
+        return !onEvaluateInputViewShown() && switcher.isImeSuppressedByHardwareKeyboard(
+                mSettings.getCurrent(), switcher.getKeyboardSwitchState());
+    }
+
+    @Override
+    public void onConfigurationChanged(final Configuration conf) {
+        SettingsValues settingsValues = mSettings.getCurrent();
+        Log.i(TAG, "onConfigurationChanged");
+        // Loophole fix: if we are in live preview mode, ignore system configuration changes to avoid flickers or theme fighting
+        if (helium314.keyboard.keyboard.KeyboardTheme.getThemeOverride() != null) return;
+        SubtypeSettings.INSTANCE.reloadSystemLocales(this);
+        if (settingsValues.mDisplayOrientation != conf.orientation) {
+            mHandler.startOrientationChanging();
+            mInputLogic.onOrientationChange(mSettings.getCurrent());
+        }
+        if (settingsValues.mHasHardwareKeyboard != Settings.readHasHardwareKeyboard(conf)) {
+            // If the state of having a hardware keyboard changed, then we want to reload
+            // the
+            // settings to adjust for that.
+            // TODO: we should probably do this unconditionally here, rather than only when
+            // we
+            // have a change in hardware keyboard configuration.
+            loadSettings();
+            if (isImeSuppressedByHardwareKeyboard()) {
+                // We call cleanupInternalStateForFinishInput() because it's the right thing to
+                // do;
+                // however, it seems at the moment the framework is passing us a seemingly valid
+                // but actually non-functional InputConnection object. So if this bug ever gets
+                // fixed we'll be able to remove the composition, but until it is this code is
+                // actually not doing much.
+                cleanupInternalStateForFinishInput();
+            }
+        }
+        // KeyboardSwitcher will check by itself if theme update is necessary
+        mKeyboardSwitcher.updateKeyboardTheme(KtxKt.getDisplayContext(this));
+        super.onConfigurationChanged(conf);
+    }
+
+    @Override
+    public void onInitializeInterface() {
+        mDisplayContext = KtxKt.getDisplayContext(this);
+        Log.d(TAG, "onInitializeInterface");
+        mKeyboardSwitcher.updateKeyboardTheme(mDisplayContext);
+    }
+
+    @Override
+    public View onCreateInputView() {
+        StatsUtils.onCreateInputView();
+        return mKeyboardSwitcher.onCreateInputView(KtxKt.getDisplayContext(this), mIsHardwareAcceleratedDrawingEnabled);
+    }
+
+    @Override
+    public void setInputView(final View view) {
+        mInlineDictation.cancel();
+        mOfflineDictation.onEditorLost();
+        ViewTreeLifecycleOwner.set(view, this);
+        ViewTreeSavedStateRegistryOwner.set(view, this);
+        ViewTreeViewModelStoreOwner.set(view, this);
+        try {
+            if (getWindow() != null && getWindow().getWindow() != null) {
+                final View decorView = getWindow().getWindow().getDecorView();
+                if (decorView != null) {
+                    ViewTreeLifecycleOwner.set(decorView, this);
+                    ViewTreeSavedStateRegistryOwner.set(decorView, this);
+                    ViewTreeViewModelStoreOwner.set(decorView, this);
+                    final int parentPanelId = getResources().getIdentifier("parentPanel", "id", "android");
+                    if (parentPanelId != 0) {
+                        final View parentPanel = decorView.findViewById(parentPanelId);
+                        if (parentPanel != null) {
+                            ViewTreeLifecycleOwner.set(parentPanel, this);
+                            ViewTreeSavedStateRegistryOwner.set(parentPanel, this);
+                            ViewTreeViewModelStoreOwner.set(parentPanel, this);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to set view tree owners on decorView or parentPanel", e);
+        }
+        super.setInputView(view);
+        mInputView = view;
+        if (view instanceof InputView) ((InputView) view).bindBoardControls(this);
+        mInsetsUpdater = ViewOutlineProviderUtilsKt.setInsetsOutlineProvider(view);
+        FrostedGlassHelper.configureFrostedGlass(this, view, FrostedGlassHelper.isFrostedTheme(this));
+        updateSuggestionStripView(view);
+        // Ensure navigation bar insets are dispatched immediately to the new view tree,
+        // preventing the first-frame race condition where the keyboard draws behind the nav bar.
+        view.requestApplyInsets();
+    }
+
+    public void updateSuggestionStripView(View view) {
+        mSuggestionStripView = mSettings.getCurrent().mToolbarMode == ToolbarMode.HIDDEN ? null
+                : view.findViewById(R.id.suggestion_strip_view);
+        if (hasSuggestionStripView()) {
+            mSuggestionStripView.setRtl(mRichImm.getCurrentSubtype().isRtlSubtype());
+            mSuggestionStripView.setListener(this, view);
+        }
+    }
+
+    @Override
+    public void setCandidatesView(final View view) {
+        // To ensure that CandidatesView will never be set.
+    }
+
+    @Override
+    public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        helium314.keyboard.latin.brain.BrainPerformanceMetrics
+                .cancelPendingKeyToSuggestionPreDraw();
+        mEditorFocusEpoch++;
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
+        mInlineDictation.cancel();
+        // Entering a protected editor is a privacy boundary, not a recoverable
+        // destination change. Do not keep an old audio decode running there.
+        if (ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
+                mSettings.getCurrent().mIncognitoModeEnabled)
+                || SecureAppsPolicy.isSecure(KtxKt.prefs(this),
+                        editorInfo == null ? null : editorInfo.packageName))
+            mOfflineDictation.cancel();
+        else mOfflineDictation.onEditorLost();
+        mHandler.onStartInput(editorInfo, restarting);
+    }
+
+    @Override
+    public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
+        mHandler.onStartInputView(editorInfo, restarting);
+        mStatsUtilsManager.onStartInputView();
+        FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
+    }
+
+    @Override
+    public void onFinishInputView(final boolean finishingInput) {
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
+        mInlineDictation.cancel();
+        mOfflineDictation.onEditorLost();
+        if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
+        StatsUtils.onFinishInputView();
+        mHandler.onFinishInputView(finishingInput);
+        mStatsUtilsManager.onFinishInputView();
+        mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
+    }
+
+    @Override
+    public void onFinishInput() {
+        mEditorFocusEpoch++;
+        mInlineProviderViewActive = false;
+        mInlineRequestEpoch = -1;
+        mInlineDictation.cancel();
+        mOfflineDictation.onEditorLost();
+        mHandler.onFinishInput();
+    }
+
+    @Override
+    public void onCurrentInputMethodSubtypeChanged(final InputMethodSubtype subtype) {
+        // Note that the calling sequence of onCreate() and
+        // onCurrentInputMethodSubtypeChanged()
+        // is not guaranteed. It may even be called at the same time on a different
+        // thread.
+        if (subtype.hashCode() == 0x7000000f) {
+            // For some reason sometimes the system wants to set the dummy subtype, which
+            // messes with the currently enabled subtype.
+            // Now that the dummy subtype has a fixed id, we can easily avoid enabling it.
+            return;
+        }
+        InputMethodSubtype oldSubtype = mRichImm.getCurrentSubtype().getRawSubtype();
+        if (subtype.equals(oldSubtype)) {
+            // onStartInput may be called more than once, resulting in duplicate subtype
+            // switches
+            return;
+        }
+
+        mSubtypeState.onSubtypeChanged(oldSubtype, subtype);
+        StatsUtils.onSubtypeChanged(oldSubtype, subtype);
+        mRichImm.onSubtypeChanged(subtype);
+        mInputLogic.onSubtypeChanged(SubtypeLocaleUtils.getCombiningRulesExtraValue(subtype),
+                mSettings.getCurrent());
+        loadKeyboard();
+        if (hasSuggestionStripView()) {
+            mSuggestionStripView.setRtl(mRichImm.getCurrentSubtype().isRtlSubtype());
+        }
+        mSettings.saveSubtypeForApp(mRichImm.getCurrentSubtype(), getCurrentInputEditorInfo().packageName);
+    }
+
+    /**
+     * alias to onCurrentInputMethodSubtypeChanged with a better name, as it's also
+     * used for internal switching
+     */
+    public void switchToSubtype(final InputMethodSubtype subtype) {
+        if (subtype.hashCode() == 0x7000000f) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            try {
+                final String imiId = mRichImm.getInputMethodInfoOfThisIme().getId();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    switchInputMethod(imiId, subtype);
+                } else {
+                    final android.os.IBinder token = getWindow().getWindow().getAttributes().token;
+                    if (token != null) {
+                        mRichImm.getInputMethodManager().setInputMethodAndSubtype(token, imiId, subtype);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to switch subtype on system", e);
+            }
+        }
+        onCurrentInputMethodSubtypeChanged(subtype);
+    }
+
+    private void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
+        SecureAppTemporaryOptOut.clear();
+        mEditorSessionGeneration.invalidate();
+        mHandler.cancelUpdateSuggestionStrip();
+        mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+        mPendingChatGptVoiceSuggestions = null;
+        mHandler.cancelResumeSuggestions();
+        super.onStartInput(editorInfo, restarting);
+
+        final RichInputMethodSubtype subtypeForApp = editorInfo == null
+                ? null
+                : mSettings.getSubtypeForApp(editorInfo.packageName);
+        final List<Locale> hintLocales = EditorInfoCompatUtils.getHintLocales(editorInfo);
+        final InputMethodSubtype subtypeForLocales = mSubtypeState.getSubtypeForLocales(mRichImm, hintLocales,
+                subtypeForApp);
+        if (subtypeForLocales != null) {
+            // found a better subtype using hint locales and saved-per-app subtype, that we
+            // should switch to.
+            mHandler.postSwitchLanguage(subtypeForLocales);
+        }
+    }
+
+    void onStartInputViewInternal(final EditorInfo editorInfo, final boolean restarting) {
+        // A same-package EditorInfo restart can skip the ordinary inputTypeChanged
+        // branch. Revoke RAM-only consent here too, even when the system never
+        // sends onStartInputInternal between two visible editor sessions.
+        SecureAppTemporaryOptOut.clear();
+        mStartupSuggestionSeedVisible = false;
+        cancelPendingEmptyPredictionClear();
+        mKeyboardSwitcher.cancelPanelTransition();
+        super.onStartInputView(editorInfo, restarting);
+
+        // Never switch an editor into the retired gesture-trace research mode.
+        mDictionaryFacilitator.onStartInput();
+        // Switch to the null consumer to handle cases leading to early exit below, for
+        // which we
+        // also wouldn't be consuming gesture data.
+        mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
+        mRichImm.refreshSubtypeCaches();
+        final KeyboardSwitcher switcher = mKeyboardSwitcher;
+        // A new EditorInfo/restart is a new Emoji navigation session. Do not
+        // clear Recents; ABC<->Emoji taps inside this session still retain rows.
+        switcher.beginEmojiEditorSession();
+
+        // If we are starting input in a different text field from before, we'll have to
+        // reload
+        // settings, so currentSettingsValues can't be final.
+        SettingsValues currentSettingsValues = mSettings.getCurrent();
+        final boolean secureEditor = SecureAppsPolicy.isSecure(KtxKt.prefs(this),
+                editorInfo == null ? null : editorInfo.packageName);
+        if (secureEditor && !currentSettingsValues.mIncognitoModeEnabled)
+            mInputLogic.clearPendingPrivateLearning();
+        boolean inputTypeChanged = !currentSettingsValues.isSameInputType(editorInfo)
+                // Two apps can focus identical editor types during an IME
+                // restart. Secure-app membership must be recomputed for each
+                // target package, not inherited from the previous editor.
+                || !java.util.Objects.equals(
+                        currentSettingsValues.mInputAttributes.mTargetApplicationPackageName,
+                        editorInfo == null ? null : editorInfo.packageName);
+        if (inputTypeChanged) mInputLogic.clearPendingPrivateLearning();
+        boolean isDifferentTextField = !restarting || inputTypeChanged || secureEditor;
+
+        // we want to reload the settings before calling updateKeyboardTheme, because
+        // updateKeyboardTheme reads SettingsValues.mToolbarMode
+        if (isDifferentTextField || !currentSettingsValues.hasSameOrientation(getResources().getConfiguration())) {
+            loadSettings();
+            if (hasSuggestionStripView())
+                mSuggestionStripView.updateVoiceKey();
+        }
+
+        switcher.updateKeyboardTheme(mDisplayContext);
+        // The input frame can outlive a focused editor. Reapply the freshly loaded
+        // theme surface so a recycled background never keeps a stale color filter.
+        if (mInputView instanceof InputView inputView) {
+            inputView.refreshBoardFrameBackground();
+        }
+        MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
+        currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
+        if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
+
+        if (editorInfo == null) {
+            Log.e(TAG, "Null EditorInfo in onStartInputView()");
+            if (DebugFlags.DEBUG_ENABLED) {
+                throw new NullPointerException("Null EditorInfo in onStartInputView()");
+            }
+            return;
+        }
+        // Load the target app's secure/incognito settings BEFORE reading any
+        // system clipboard data. The previous editor's privacy state is stale.
+        mClipboardHistoryManager.updatePrimaryClip();
+        Log.i(TAG, (restarting ? "Res" : "S") + "tarting input. Cursor position = " + editorInfo.initialSelStart + ","
+                + editorInfo.initialSelEnd);
+        if (DebugFlags.DEBUG_ENABLED) {
+            EditorInfoCompatUtils.INSTANCE.debugLog(editorInfo, TAG);
+        }
+
+        // In landscape mode, this method gets called without the input view being
+        // created.
+        if (mainKeyboardView == null) {
+            return;
+        }
+
+        // Update to a gesture consumer with the current editor and IME state.
+        mGestureConsumer = GestureConsumer.newInstance(editorInfo,
+                mInputLogic.getPrivateCommandPerformer(),
+                mRichImm.getCurrentSubtypeLocale(),
+                switcher.getKeyboard());
+
+        // Forward this event to the accessibility utilities, if enabled.
+        final AccessibilityUtils accessUtils = AccessibilityUtils.Companion.getInstance();
+        if (accessUtils.isTouchExplorationEnabled()) {
+            accessUtils.onStartInputViewInternal(mainKeyboardView, editorInfo, restarting);
+        }
+
+        StatsUtils.onStartInputView(editorInfo.inputType,
+                Settings.getValues().mDisplayOrientation,
+                !isDifferentTextField);
+
+        // The EditorInfo might have a flag that affects fullscreen mode.
+        // Note: This call should be done by InputMethodService?
+        updateFullscreenMode();
+
+        // ALERT: settings have not been reloaded and there is a chance they may be
+        // stale.
+        // In the practice, if it is, we should have gotten onConfigurationChanged so it
+        // should
+        // be fine, but this is horribly confusing and must be fixed AS SOON AS
+        // POSSIBLE.
+
+        // In some cases the input connection has not been reset yet and we can't access
+        // it. In
+        // this case we will need to call loadKeyboard() later, when it's accessible, so
+        // that we
+        // can go into the correct mode, so we need to do some housekeeping here.
+        final boolean needToCallLoadKeyboardLater;
+        final Suggest suggest = mInputLogic.mSuggest;
+        if (!isImeSuppressedByHardwareKeyboard()) {
+            // The app calling setText() has the effect of clearing the composing
+            // span, so we should reset our state unconditionally, even if restarting is
+            // true.
+            // We also tell the input logic about the combining rules for the current
+            // subtype, so
+            // it can adjust its combiners if needed.
+            mInputLogic.startInput(mRichImm.getCombiningRulesExtraValueOfCurrentSubtype(), currentSettingsValues);
+
+            resetDictionaryFacilitatorIfNecessary();
+
+            // TODO[IL]: Can the following be moved to InputLogic#startInput?
+            if (!mInputLogic.mConnection.resetCachesUponCursorMoveAndReturnSuccess(
+                    editorInfo.initialSelStart, editorInfo.initialSelEnd,
+                    false /* shouldFinishComposition */)) {
+                // Sometimes, while rotating, for some reason the framework tells the app we are
+                // not
+                // connected to it and that means we can't refresh the cache. In this case,
+                // schedule
+                // a refresh later.
+                // We try resetting the caches up to 5 times before giving up.
+                mHandler.postResetCaches(isDifferentTextField, 5 /* remainingTries */);
+                // mLastSelection{Start,End} are reset later in this method, no need to do it
+                // here
+                needToCallLoadKeyboardLater = true;
+            } else {
+                // When rotating, and when input is starting again in a field from where the
+                // focus
+                // didn't move (the keyboard having been closed with the back key),
+                // initialSelStart and initialSelEnd sometimes are lying. Make a best effort to
+                // work around this bug.
+                mInputLogic.mConnection.tryFixIncorrectCursorPosition();
+                if (mInputLogic.mConnection.isCursorTouchingWord(currentSettingsValues.mSpacingAndPunctuations, true)) {
+                    mHandler.postResumeSuggestions(true /* shouldDelay */);
+                }
+                needToCallLoadKeyboardLater = false;
+            }
+        } else {
+            // If we have a hardware keyboard we don't need to call loadKeyboard later
+            // anyway.
+            needToCallLoadKeyboardLater = false;
+        }
+
+        if (isDifferentTextField) {
+            mainKeyboardView.closing();
+            suggest.setAutoCorrectionThreshold(currentSettingsValues.mAutoCorrectionThreshold);
+            switcher.reloadMainKeyboard();
+            if (needToCallLoadKeyboardLater) {
+                // If we need to call loadKeyboard again later, we need to save its state now.
+                // The
+                // later call will be done in #retryResetCaches.
+                switcher.saveKeyboardState();
+            }
+        } else if (restarting) {
+            // TODO: Come up with a more comprehensive way to reset the keyboard layout when
+            // a keyboard layout set doesn't get reloaded in this method.
+            switcher.resetKeyboardStateToAlphabet(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+            // In apps like Talk, we come here when the text is sent and the field gets
+            // emptied and
+            // we need to re-evaluate the shift state, but not the whole layout which would
+            // be
+            // disruptive.
+            // Space state must be updated before calling updateShiftState
+            switcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+        }
+        if (hasSuggestionStripView()) mSuggestionStripView.onNewEditorSession();
+        // Set neutral suggestions and show the toolbar if the "Auto show toolbar"
+        // setting is enabled.
+        if (!mHandler.hasPendingResumeSuggestions()) {
+            mHandler.cancelUpdateSuggestionStrip();
+            // Publish an initial row synchronously, BEFORE the keyboard's first
+            // draw. A posted dictionary callback cannot populate the entry frame.
+            // Clipboard/inline autofill, privacy and application completions win.
+            final boolean shouldSeed = helium314.keyboard.latin.suggestions.StartupSuggestionPolicy
+                    .eligible(mRichImm.getCurrentSubtypeLocale(),
+                            currentSettingsValues.mInputAttributes.mIsGeneralTextInput,
+                            currentSettingsValues.needsToLookupSuggestions(),
+                            currentSettingsValues.mBigramPredictionEnabled,
+                            currentSettingsValues.isSuggestionsEnabledPerUserSettings(),
+                            secureEditor || currentSettingsValues.mIncognitoModeEnabled,
+                            currentSettingsValues.isApplicationSpecifiedCompletionsOn(),
+                            mInlineProviderViewActive, isImeSuppressedByHardwareKeyboard(),
+                            needToCallLoadKeyboardLater,
+                            editorInfo.initialSelStart, editorInfo.initialSelEnd);
+            if (shouldSeed && hasSuggestionStripView() && onEvaluateInputViewShown()
+                    && !tryShowClipboardSuggestion()) {
+                mStartupSuggestionSeedVisible = true;
+                setSuggestedWords(helium314.keyboard.latin.suggestions.StartupSuggestionPolicy
+                        .initialEnglishWords());
+            } else {
+                setNeutralSuggestionStrip();
+                if (hasSuggestionStripView() && currentSettingsValues.mAutoShowToolbar
+                        && !tryShowClipboardSuggestion()) {
+                    mSuggestionStripView.setToolbarVisibility(true);
+                }
+            }
+            // Warm the very first context candidates while the keyboard is
+            // already visible, instead of waiting for a second character.
+            if (currentSettingsValues.needsToLookupSuggestions()
+                    && currentSettingsValues.mBigramPredictionEnabled
+                    && !currentSettingsValues.isApplicationSpecifiedCompletionsOn()
+                    && !needToCallLoadKeyboardLater
+                    && !isImeSuppressedByHardwareKeyboard()) {
+                mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_PREDICTION);
+            }
+        }
+
+        mainKeyboardView.setMainDictionaryAvailability(mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary());
+        mainKeyboardView.setKeyPreviewPopupEnabled(currentSettingsValues.mKeyPreviewPopupOn);
+        mainKeyboardView.setSlidingKeyInputPreviewEnabled(currentSettingsValues.mSlidingKeyInputPreviewEnabled);
+        mainKeyboardView.setGestureHandlingEnabledByUser(
+                currentSettingsValues.mGestureInputEnabled,
+                currentSettingsValues.mGestureTrailEnabled,
+                currentSettingsValues.mGestureFloatingPreviewTextEnabled);
+
+        if (TRACE)
+            Debug.startMethodTracing("/data/trace/latinime");
+    }
+
+    @Override
+    public void onWindowShown() {
+        super.onWindowShown();
+        mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);
+        if (isInputViewShown()) {
+            setNavigationBarColor();
+            workaroundForHuaweiStatusBarIssue();
+            FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
+        }
+    }
+
+    @Override
+    public void onWindowHidden() {
+        SecureAppTemporaryOptOut.clear();
+        if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
+        mEditorSessionGeneration.invalidate();
+        mKeyboardSwitcher.cancelPanelTransition();
+        // Hiding the IME also ends the visible typing session, including OEMs
+        // that reopen without a fresh onStartInputView callback.
+        mKeyboardSwitcher.beginEmojiEditorSession();
+        mInlineDictation.cancel();
+        mOfflineDictation.onEditorLost();
+        super.onWindowHidden();
+        mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
+        Log.i(TAG, "onWindowHidden");
+
+        mKeyboardSwitcher.clearCachedPersistentEmojis();
+
+        // Completely disable background blur composition, layout attributes and clear SemBlurInfo/window flags to save GPU context
+        FrostedGlassHelper.configureFrostedGlass(this, mInputView, false);
+
+        final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
+        if (mainKeyboardView != null) {
+            mainKeyboardView.closing();
+        }
+        clearNavigationBarColor();
+
+        // Release keyboard buffers and stop active panels without forcing a process-wide GC.
+        deallocateMemory();
+
+        // Reset to the main alphabet keyboard so that reopening always shows the ABC view
+        // instead of whatever panel (emoji, clipboard, AI tools, klipy) was active.
+        mKeyboardSwitcher.setAlphabetKeyboard();
+    }
+
+    void onFinishInputInternal() {
+        SecureAppTemporaryOptOut.clear();
+        mEditorSessionGeneration.invalidate();
+        mKeyboardSwitcher.cancelPanelTransition();
+        super.onFinishInput();
+        Log.i(TAG, "onFinishInput");
+
+        mDictionaryFacilitator.onFinishInput();
+        final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
+        if (mainKeyboardView != null) {
+            mainKeyboardView.closing();
+        }
+    }
+
+    void onFinishInputViewInternal(final boolean finishingInput) {
+        mKeyboardSwitcher.cancelPanelTransition();
+        super.onFinishInputView(finishingInput);
+        Log.i(TAG, "onFinishInputView");
+        cleanupInternalStateForFinishInput();
+    }
+
+    private void cleanupInternalStateForFinishInput() {
+        SecureAppTemporaryOptOut.clear();
+        mEditorSessionGeneration.invalidate();
+        // Remove pending messages related to update suggestions
+        mHandler.cancelUpdateSuggestionStrip();
+        // Should do the following in onFinishInputInternal but until JB MR2 it's not
+        // called :(
+        mInputLogic.finishInput();
+        mKeyboardActionListener.resetMetaState();
+    }
+
+    protected void deallocateMemory() {
+        mKeyboardSwitcher.deallocateMemory();
+    }
+
+    @Override
+    public void onUpdateSelection(final int oldSelStart, final int oldSelEnd,
+            final int newSelStart, final int newSelEnd,
+            final int composingSpanStart, final int composingSpanEnd) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
+                composingSpanStart, composingSpanEnd);
+        final SettingsValues selectionSettings = mSettings.getCurrent();
+        final EditorInfo selectionEditor = getCurrentInputEditorInfo();
+        if (!selectionSettings.mIncognitoModeEnabled
+                && selectionSettings.mInputAttributes.mIsGeneralTextInput
+                && selectionSettings.mInputAttributes.mIsPasswordField == false
+                && !ClipboardPrivacyPolicy.isPrivateEditor(selectionEditor,
+                        selectionSettings.mIncognitoModeEnabled)
+                && ChatGptVoiceSuggestionStability.noteSelectionUpdate(selectionEditor,
+                        oldSelEnd, newSelStart, newSelEnd, android.os.SystemClock.uptimeMillis())) {
+            mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+            mHandler.postDelayed(mFlushChatGptVoiceSuggestions,
+                    ChatGptVoiceSuggestionStability.SETTLE_MS);
+        }
+        if (DebugFlags.DEBUG_ENABLED) {
+            Log.i(TAG, "onUpdateSelection: oss=" + oldSelStart + ", ose=" + oldSelEnd
+                    + ", nss=" + newSelStart + ", nse=" + newSelEnd
+                    + ", cs=" + composingSpanStart + ", ce=" + composingSpanEnd);
+        }
+
+        // This call happens whether our view is displayed or not, but if it's not then
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        if (isInputViewShown()
+                && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
+                        composingSpanStart, composingSpanEnd, settingsValues)) {
+            // we don't want to update a manually set shift state if selection changed
+            // towards one side
+            // because this may end the manual shift, which is unwanted in case of shift +
+            // arrow keys for changing selection
+            // todo: this is not fully implemented yet, and maybe should be behind a setting
+            if (mKeyboardSwitcher.getKeyboard() != null
+                    && mKeyboardSwitcher.getKeyboard().mId.isAlphabetShiftedManually()
+                    && ((oldSelEnd == newSelEnd && oldSelStart != newSelStart)
+                            || (oldSelEnd != newSelEnd && oldSelStart == newSelStart)))
+                return;
+            mKeyboardSwitcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+        }
+    }
+
+    /**
+     * This is called when the user has clicked on the extracted text view,
+     * when running in fullscreen mode. The default implementation hides
+     * the suggestions view when this happens, but only if the extracted text
+     * editor has a vertical scroll bar because its text doesn't fit.
+     * Here we override the behavior due to the possibility that a re-correction
+     * could
+     * cause the suggestions strip to disappear and re-appear.
+     */
+    @Override
+    public void onExtractedTextClicked() {
+        if (mSettings.getCurrent().needsToLookupSuggestions()) {
+            return;
+        }
+
+        super.onExtractedTextClicked();
+    }
+
+    /**
+     * This is called when the user has performed a cursor movement in the
+     * extracted text view, when it is running in fullscreen mode. The default
+     * implementation hides the suggestions view when a vertical movement
+     * happens, but only if the extracted text editor has a vertical scroll bar
+     * because its text doesn't fit.
+     * Here we override the behavior due to the possibility that a re-correction
+     * could
+     * cause the suggestions strip to disappear and re-appear.
+     */
+    @Override
+    public void onExtractedCursorMovement(final int dx, final int dy) {
+        if (mSettings.getCurrent().needsToLookupSuggestions()) {
+            return;
+        }
+
+        super.onExtractedCursorMovement(dx, dy);
+    }
+
+    @Override
+    public void onViewClicked(final boolean focusChanged) {
+        exitEmojiSearchModeFromAppClick();
+        super.onViewClicked(focusChanged);
+    }
+
+    private boolean exitEmojiSearchModeFromAppClick() {
+        final EmojiPalettesView emojiPalettesView = mKeyboardSwitcher.getEmojiPalettesView();
+        if (emojiPalettesView == null || !emojiPalettesView.isSearchMode()) {
+            return false;
+        }
+        emojiPalettesView.exitSearchMode(false);
+        return true;
+    }
+
+    @Override
+    public void hideWindow() {
+        Log.i(TAG, "hideWindow");
+        if (hasSuggestionStripView() && mSettings.getCurrent().mToolbarMode == ToolbarMode.EXPANDABLE)
+            mSuggestionStripView.setToolbarVisibility(false);
+        mKeyboardSwitcher.onHideWindow();
+
+        if (TRACE)
+            Debug.stopMethodTracing();
+        if (isShowingOptionDialog()) {
+            mOptionsDialog.dismiss();
+            mOptionsDialog = null;
+        }
+        super.hideWindow();
+    }
+
+    @Override
+    public void requestHideSelf(int flags) {
+        super.requestHideSelf(flags);
+        Log.i(TAG, "requestHideSelf: " + flags);
+    }
+
+    void cancelBoardDictation() {
+        mInlineDictation.cancel();
+        mOfflineDictation.cancel();
+    }
+
+    void startBoardOfflineDictation(boolean holdToTalk) {
+        mInlineDictation.cancel();
+        mOfflineDictation.start(mInputView, holdToTalk);
+    }
+
+    void stopBoardOfflineDictation() {
+        mOfflineDictation.stop();
+    }
+
+    void cancelBoardOfflineDictation() {
+        mOfflineDictation.cancelFromUser();
+    }
+
+    void toggleBoardOfflineDictation() {
+        mInlineDictation.cancel();
+        mOfflineDictation.toggle(mInputView);
+    }
+
+    void toggleBoardDictation() {
+        // All mic/VOICE_INPUT entry points are private and offline. Preserve the
+        // old method name for compatibility; never invoke the brrSpeak transport.
+        toggleBoardOfflineDictation();
+    }
+
+    @Override
+    public void onSwipeDownOnToolbar() {
+        requestHideSelf(0);
+    }
+
+    @Override
+    public void onDisplayCompletions(final CompletionInfo[] applicationSpecifiedCompletions) {
+        if (DebugFlags.DEBUG_ENABLED) {
+            Log.i(TAG, "Received completions:");
+            if (applicationSpecifiedCompletions != null) {
+                for (int i = 0; i < applicationSpecifiedCompletions.length; i++) {
+                    Log.i(TAG, "  #" + i + ": " + applicationSpecifiedCompletions[i]);
+                }
+            }
+        }
+        if (!mSettings.getCurrent().isApplicationSpecifiedCompletionsOn()) {
+            return;
+        }
+        // If we have an update request in flight, we need to cancel it so it does not
+        // override
+        // these completions.
+        mHandler.cancelUpdateSuggestionStrip();
+        if (applicationSpecifiedCompletions == null) {
+            setNeutralSuggestionStrip();
+            return;
+        }
+
+        final ArrayList<SuggestedWords.SuggestedWordInfo> applicationSuggestedWords = SuggestedWords
+                .getFromApplicationSpecifiedCompletions(
+                        applicationSpecifiedCompletions);
+        final SuggestedWords suggestedWords = new SuggestedWords(applicationSuggestedWords,
+                null /* rawSuggestions */,
+                null /* typedWord */,
+                false /* typedWordValid */,
+                false /* willAutoCorrect */,
+                false /* isObsoleteSuggestions */,
+                SuggestedWords.INPUT_STYLE_APPLICATION_SPECIFIED /* inputStyle */,
+                SuggestedWords.NOT_A_SEQUENCE_NUMBER);
+        // When in fullscreen mode, show completions generated by the application
+        // forcibly
+        setSuggestedWords(suggestedWords);
+    }
+
+    @Override
+    public void onComputeInsets(final InputMethodService.Insets outInsets) {
+        super.onComputeInsets(outInsets);
+        if (mInputView == null) return;
+
+        View visibleKeyboardView = mKeyboardSwitcher.getWrapperView();
+        if (visibleKeyboardView == null || visibleKeyboardView.getVisibility() != View.VISIBLE) {
+            if (mKeyboardSwitcher.getEmojiPalettesView() != null && mKeyboardSwitcher.getEmojiPalettesView().getVisibility() == View.VISIBLE) {
+                visibleKeyboardView = mKeyboardSwitcher.getEmojiPalettesView();
+            } else if (mKeyboardSwitcher.getClipboardHistoryView() != null && mKeyboardSwitcher.getClipboardHistoryView().getVisibility() == View.VISIBLE) {
+                visibleKeyboardView = mKeyboardSwitcher.getClipboardHistoryView();
+            } else if (mKeyboardSwitcher.getAccessPointMenuView() != null && mKeyboardSwitcher.getAccessPointMenuView().getVisibility() == View.VISIBLE) {
+                visibleKeyboardView = mKeyboardSwitcher.getAccessPointMenuView();
+            }
+        }
+
+        final int inputHeight = mInputView.getHeight();
+        final int stripHeight = mKeyboardSwitcher.isShowingStripContainer() ? mKeyboardSwitcher.getStripContainer().getHeight() : 0;
+        final int persistentEmojiRowHeight = mKeyboardSwitcher.isShowingPersistentEmojiRow() ? mKeyboardSwitcher.getPersistentEmojiRowHeight() : 0;
+        final View footer = mInputView.findViewById(R.id.board_footer);
+        final int footerHeight = footer != null && footer.isShown() ? footer.getHeight() : 0;
+        final View keyboardFrame = mInputView.findViewById(R.id.main_keyboard_frame);
+        // RoundedKeyboardFrameView puts the system navigation-bar inset into its
         // bottom padding. That padding is part of the IME window, so subtract it
         // when deriving the residual top inset; otherwise host apps under-resize
         // by the navigation inset and their last content row sits behind brrBoard.
