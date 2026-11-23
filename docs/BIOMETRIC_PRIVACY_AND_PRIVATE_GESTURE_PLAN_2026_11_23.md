@@ -72,7 +72,7 @@ Keep everyday privacy settings direct, but make detailed BR Brain statistics and
 
 - The proposed private keyboard gesture that types a vault value is **not active**. The footer's center area is already an owner-scoped temporary voice/cancel action; routing arbitrary secret gestures through it without interfering with mic, cancellation, trackpad, and accessibility input needs a distinct input-state implementation. No gesture was added that could silently type a secret. The vault currently offers a manual, authenticated read/edit path only.
 - Existing native `UserHistoryDictionary` files are still app-private but are not converted to an encrypted-at-rest format. The native decoder opens those files directly, so a safe encrypted migration needs an explicit open/decrypt/close/encrypt lifecycle and crash-safe upgrade before it can be claimed. This code does not modify or erase learned words.
-- The new Kotlin code has not compiled on this workspace: the Gradle wrapper distribution download to `services.gradle.org` failed with `Connection refused`. `git diff --check` passed; the exact-source GitHub Actions build and Android 15/Oppo biometric behavior remain necessary before a release.
+- The new Kotlin code compiled on GitHub Actions at source SHA `7e4ec7b397f868362753aa07d04b862d2a50f5fe`; the debug build and repository test gates passed in [run 45112619321](https://github.com/Batmancpu/brrrBoard/actions/runs/45112619321). It produced a 42,519,682-byte debug APK artifact, which is not an original-signer release. The workspace Gradle download itself remains blocked with `Connection refused`. Android 15/Oppo biometric behavior still needs device verification before release.
 
 ## Research used for the implementation
 
@@ -80,4 +80,4 @@ Keep everyday privacy settings direct, but make detailed BR Brain statistics and
 - Android's [Keystore authentication guidance](https://developer.android.com/reference/android/security/keystore/KeyGenParameterSpec.Builder#setUserAuthenticationParameters(int,int)) documents per-operation authorization when the timeout is zero and the authentication-type binding. The vault uses that mode and passes the cipher through `CryptoObject`, binding the prompt to the actual AES-GCM operation.
 - Reddit/F-Droid vault discussions were treated as usability examples only. They do not establish the security properties; those come from Android platform documentation above.
 
-- GitHub candidate branch: `feature/biometric-private-vault-20261123` at the security implementation SHA. Exact-source Actions build status: pending; this is not a product release.
+- GitHub candidate branch: `feature/biometric-private-vault-20261123`; the latest source documentation commit records the successful exact-source build above. This is not a product release.
