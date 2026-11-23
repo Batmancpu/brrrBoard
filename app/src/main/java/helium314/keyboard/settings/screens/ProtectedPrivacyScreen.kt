@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.latin.PrivateGestureSession
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.latin.utils.NoBackupStorageMigration
 import java.io.File
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -59,7 +60,14 @@ private object PrivateVaultStore {
 
     data class DecryptOperation(val cipher: Cipher, val iv: ByteArray)
 
-    fun hasNote(context: Context): Boolean = file(context).baseFile.exists()
+    fun hasNote(context: Context): Boolean {
+        val migrated = NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")
+        if (!migrated) {
+            val legacy = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, "private_note.v1")
+            return legacy.exists() || file(context).baseFile.exists()
+        }
+        return file(context).baseFile.exists()
+    }
 
     fun newEncryptOperation(context: Context): Cipher {
         requireStrongBiometricPlatform()
@@ -70,6 +78,9 @@ private object PrivateVaultStore {
 
     fun newDecryptOperation(context: Context): DecryptOperation {
         requireStrongBiometricPlatform()
+        check(NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")) {
+            "Private note storage migration did not complete"
+        }
         val bytes = file(context).openRead().use { it.readBytes() }
         require(bytes.size > 4 + IV_BYTES && readInt(bytes, 0) == MAGIC) { "Private note is missing or invalid" }
         val iv = bytes.copyOfRange(4, 4 + IV_BYTES)
@@ -79,6 +90,9 @@ private object PrivateVaultStore {
     }
 
     fun save(context: Context, cipher: Cipher, note: String) {
+        check(NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")) {
+            "Private note storage migration did not complete"
+        }
         val plain = note.toByteArray(Charsets.UTF_8)
         require(plain.size <= MAX_PLAINTEXT_BYTES) { "Private note is too large" }
         try {
@@ -105,6 +119,9 @@ private object PrivateVaultStore {
     }
 
     fun read(context: Context, cipher: Cipher): String {
+        check(NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")) {
+            "Private note storage migration did not complete"
+        }
         val bytes = file(context).openRead().use { it.readBytes() }
         require(bytes.size > 4 + IV_BYTES && readInt(bytes, 0) == MAGIC) { "Private note is missing or invalid" }
         val encrypted = bytes.copyOfRange(4 + IV_BYTES, bytes.size)
@@ -124,6 +141,7 @@ private object PrivateVaultStore {
 
     fun delete(context: Context) {
         file(context).delete()
+        File(context.createDeviceProtectedStorageContext().noBackupFilesDir, "private_note.v1").delete()
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         store.deleteEntry(KEY_ALIAS)
     }
@@ -186,7 +204,6 @@ fun ProtectedPrivacyScreen(
         val wasSecure = window != null && (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
         window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         onDispose {
-            PrivateGestureSession.clear()
             if (window != null && !wasSecure) {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
@@ -278,7 +295,6 @@ fun ProtectedPrivacyScreen(
             if (event == Lifecycle.Event.ON_STOP) {
                 authenticated = false
                 note = ""
-                PrivateGestureSession.clear()
                 status = "Locked when the app left the foreground."
             }
         }
@@ -377,10 +393,24 @@ fun ProtectedPrivacyScreen(
                         }
                         if (privateGestureEnabled) {
                             OutlinedButton(onClick = {
-                                if (PrivateGestureSession.arm(note)) {
-                                    status = "Armed for one circle in the keyboard footer center for 30 seconds."
-                                } else {
-                                    status = "Could not arm a blank or oversized private note."
+                                try {
+                                    val operation = PrivateVaultStore.newDecryptOperation(context)
+                                    prompt(operation.cipher) { cipher ->
+                                        try {
+                                            val confirmedSecret = PrivateVaultStore.read(
+                                                context, requireNotNull(cipher))
+                                            if (PrivateGestureSession.arm(confirmedSecret)) {
+                                                status = "Fingerprint confirmed. One circle gesture is armed for 30 seconds."
+                                            } else {
+                                                status = "Could not arm a blank or oversized private note."
+                                            }
+                                            note = ""
+                                        } catch (_: Exception) {
+                                            status = "Could not authorize the private gesture. The note remains locked."
+                                        }
+                                    }
+                                } catch (_: Exception) {
+                                    status = "Could not prepare the biometric authorization."
                                 }
                             }) { Text("Arm one use (30 seconds)") }
                         }

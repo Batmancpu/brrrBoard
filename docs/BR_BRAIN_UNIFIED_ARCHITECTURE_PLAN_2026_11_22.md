@@ -1,7 +1,7 @@
 # BR Brain: unified on-device suggestions plan
 
 Date: 22 November 2026
-Status: The Settings cleanup and an explicitly opt-in, experimental ContextLM manual-suggestion test are implemented in source. The neural candidate did not pass its fixed public-corpus gate and is not a production ranker. Unified Brain coordination and encrypted native-history migration remain unimplemented.
+Status (2026-11-23): the protected privacy route is in v1.0.252. This source candidate adds a shared BrSuggestionBrain eligibility boundary and moves native UserHistoryDictionary files to Android credential-protected storage with atomic, verified migration. Exact-source Android CI is pending. ContextLM remains off by default after failing its fixed quality gate. The native dictionary remains a native file and is not app-layer AES-GCM encrypted.
 
 ## Direction
 
@@ -17,7 +17,7 @@ The “one place” is one BR Brain API and one encrypted personal-learning prof
 - `SwipeCorrectionLearner` stores bounded gesture-skeleton-to-confirmed-word associations in `noBackupFilesDir` and seals them using `BrainLearningVault` (AES-GCM with a non-exportable Android Keystore key). It is an alternative candidate prior, not a silent replacement.
 - `BrainPerformanceMetrics` keeps content-free timing windows in RAM. This remains the place to inspect typing/next-word/swipe/Emoji timings; it is not a guided device checkup.
 - `VoiceModelChoice` selects between installed Parakeet packs. Voice recognition should remain a separate producer: no speech model should run during ordinary typing, and BR Brain must never ingest microphone audio or intermediate transcripts. Only an explicitly committed, eligible correction may be considered as a text-learning event.
-- `UserHistoryDictionary` is an `ExpandableBinaryDictionary` persisted as a `.dict` file under `filesDir`. That file is app-private and protected by Android storage security, but unlike the swipe/Emoji profile it is not sealed by the app's AES-GCM vault. This is the first data-migration question to solve before claiming app-level encryption for all learned text.
+- `UserHistoryDictionary` is an `ExpandableBinaryDictionary` persisted as a native `.dict` file. The app manifest makes its default context device-protected, which is available before the first unlock. This source candidate atomically migrates those legacy files into credential-protected storage once Android reports the user unlocked, then loads history from that store. Android encrypts that store at rest; the native file is not app-layer AES-GCM encrypted, so do not claim every learning file uses the Brain vault.
 - The manifest already sets `allowBackup=false` and uses private extraction rules. Android's documentation notes that on some devices this can still allow device-to-device transfer; the personal learning profile should therefore live in a no-backup location and never depend on OS restore for its key or encrypted records.
 - `BrainLearningVault` currently bounds a sealed record to 16 KiB. A unified store may need versioned chunks/snapshots rather than expanding this limit without measurement.
 - `LatinIMEHandler.editorGeneration()` and the batch-input path already reject work from an old editor. A coordinator should carry/reuse that generation through any later asynchronous reranking rather than introduce a second unrelated counter.

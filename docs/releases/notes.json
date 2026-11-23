@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; add biometric-only protected data and retain on-device voice models.",
+  "summary": "Coordinate BR Brain suggestions and strengthen local privacy; detailed v1.0.252 download guidance",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -95,16 +95,32 @@
       "detail": "After biometric access, the user may explicitly arm a circle gesture for 30 seconds. A visible footer cue appears only while the gesture can be used; the gesture is one-use, RAM-only, and rejects incognito, password/no-learning, protected-app, dictation, and accessibility touch-exploration contexts. It is not a biometric fallback, and the native learned-word dictionary remains unchanged."
     },
     {
-      "title": "Explain unavailable strong biometrics clearly",
-      "detail": "Before showing the protected-area prompt, Settings now checks whether a strong biometric is available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area remains locked in every failure case; device credentials are not substituted."
-    },
-    {
-      "title": "Keep an encrypted note removable after key loss",
-      "detail": "The protected note can still be explicitly deleted after biometric enrollment changes invalidate its encryption key. This removes the ciphertext and stale Keystore key after the protected area itself has been opened with biometrics."
+      "title": "Handle biometric availability and key loss safely",
+      "detail": "Before showing the protected-area prompt, Settings checks whether strong biometrics are available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area stays locked in every failure case; device credentials are never substituted. If biometric enrollment changes invalidate the note key, the note can still be explicitly deleted after the protected area itself is opened with biometrics, removing both ciphertext and stale Keystore key."
     },
     {
       "title": "Wire the one-use private gesture into keyboard input",
       "detail": "The authenticated one-use gesture session now exposes its consume operation through a Java-compatible bridge used by the keyboard service. Its privacy exclusions, one-use lifetime, and disabled-by-default behavior are unchanged."
+    },
+    {
+      "title": "Route suggestion eligibility through BR Brain",
+      "detail": "A shared on-device policy boundary gates contextual Emoji ranking and learning, confirmed swipe-learning access, and the opt-in manual ContextLM reranker. Native candidates and automatic correction remain authoritative; ContextLM stays off by default after failing its fixed quality gate. The reranked list preserves the native presentation contract and automatic-correction behavior."
+    },
+    {
+      "title": "Move learned history into credential-protected storage",
+      "detail": "After first unlock, the app atomically copies native user-history dictionary files from the legacy device-protected files directory into credential-protected storage, verifies each copy by SHA-256, and deletes a source only after verification. Android's public Context API does not expose a credential-storage context while the app defaults to device-protected storage, so the candidate changes the app default to credential-encrypted storage and explicitly keeps settings, installed voice models, and user gesture libraries on their original device-protected paths. The native dictionary is Android-encrypted at rest, not app-layer AES-GCM encrypted."
+    },
+    {
+      "title": "Make private one-use secret insertion usable and time bounded",
+      "detail": "Arming the footer-circle secret now requires a fresh strong-biometric prompt. The secret stays in a volatile character buffer, expires and is wiped after 30 seconds, and is consumed once. It is never put in preferences, backups, clipboard, logs, or a transcript store."
+    },
+    {
+      "title": "Migrate clipboard history behind first unlock",
+      "detail": "The plaintext clipboard-history SQLite database is now stored in Android credential-encrypted storage. An upgrade moves the existing database from device-protected storage only after the user unlocks Android, and never overwrites an existing credential database. The clipboard panel retries initialization after unlock; before unlock it returns no history. Existing settings, Parakeet model files, and user-installed gesture libraries keep their explicit device-protected paths."
+    },
+    {
+      "title": "Keep private learning records and notes available across storage migration",
+      "detail": "Encrypted Emoji/swipe learning records and the biometric note migrate from the old device-protected no-backup directory into credential-encrypted no-backup storage after unlock. Copies are atomically written, SHA-256 verified, bounded, and preserve the source on conflict or failure. Legacy recovered-transcript files are purged from both storage areas; speech transcripts have no persistence path."
     }
   ]
 }

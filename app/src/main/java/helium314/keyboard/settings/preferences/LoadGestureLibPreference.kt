@@ -17,6 +17,7 @@ import helium314.keyboard.latin.R
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.ChecksumCalculator
 import helium314.keyboard.latin.utils.JniUtils
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import helium314.keyboard.latin.utils.protectedPrefs
 import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
@@ -31,7 +32,7 @@ fun LoadGestureLibPreference(setting: Setting) {
     val ctx = LocalContext.current
     val prefs = ctx.protectedPrefs()
     val abi = Build.SUPPORTED_ABIS[0]
-    val libFile = File(ctx.filesDir?.absolutePath + File.separator + JniUtils.JNI_LIB_IMPORT_FILE_NAME)
+    val libFile = File(DeviceProtectedUtils.getFilesDir(ctx), JniUtils.JNI_LIB_IMPORT_FILE_NAME)
     fun renameToLibFileAndRestart(file: File, checksum: String) {
         try {
             installGestureLibrary(ctx, file, checksum)

@@ -39,6 +39,7 @@ import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.RichInputConnection;
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner;
+import helium314.keyboard.latin.brain.BrSuggestionBrain;
 import helium314.keyboard.latin.brain.SwipeGeometryRescue;
 import helium314.keyboard.latin.brain.SwipeContextWindow;
 import helium314.keyboard.latin.SingleDictionaryFacilitator;
@@ -150,10 +151,14 @@ public final class InputLogic {
     // prefix, keyboard session, or editor after a newer input request.
     private long mSuggestionRequestSerial;
 
+    private SwipeCorrectionLearner swipeLearnerIfAllowed(final SettingsValues values) {
+        if (values == null || mConnection.hasSlowInputConnection()) return null;
+        return BrSuggestionBrain.swipeLearnerIfAllowed(mLatinIME,
+                mLatinIME.getCurrentInputEditorInfo(), values);
+    }
+
     private boolean mayLearnSwipe(final SettingsValues values) {
-        return values != null && SwipeCorrectionLearner.isAllowed(mLatinIME,
-                mLatinIME.getCurrentInputEditorInfo(), values.mIncognitoModeEnabled,
-                values.isSuggestionsEnabledPerUserSettings()) && !mConnection.hasSlowInputConnection();
+        return swipeLearnerIfAllowed(values) != null;
     }
 
     /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
@@ -178,9 +183,8 @@ public final class InputLogic {
 
     private void confirmSwipeCorrection(final SettingsValues values,
             final String skeleton, final String word) {
-        if (skeleton != null && mayLearnSwipe(values)) {
-            SwipeCorrectionLearner.get(mLatinIME).confirm(skeleton, word);
-        }
+        final SwipeCorrectionLearner learner = skeleton == null ? null : swipeLearnerIfAllowed(values);
+        if (learner != null) learner.confirm(skeleton, word);
     }
 
     /**
@@ -807,8 +811,9 @@ public final class InputLogic {
         final SettingsValues values = Settings.getValues();
         final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
         mCurrentSwipeSkeleton = null;
-        if (mayLearnSwipe(values) && keyboard != null) {
-            SwipeCorrectionLearner.get(mLatinIME).recordSwipeAttempt();
+        final SwipeCorrectionLearner swipeLearner = swipeLearnerIfAllowed(values);
+        if (swipeLearner != null && keyboard != null) {
+            swipeLearner.recordSwipeAttempt();
             final java.util.List<String> hints = SwipeGeometryRescue.INSTANCE.hints(batchPointers, keyboard);
             if (!hints.isEmpty()) mCurrentSwipeSkeleton = hints.get(0);
         }

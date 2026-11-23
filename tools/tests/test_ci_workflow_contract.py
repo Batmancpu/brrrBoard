@@ -44,6 +44,13 @@ class CiWorkflowContractTest(unittest.TestCase):
         self.assertTrue(notes["summary"].strip())
         self.assertTrue(notes["changes"])
 
+    def test_release_notes_gate_handles_unavailable_force_push_base(self):
+        debug = DEBUG.read_text()
+        self.assertIn('git cat-file -e "${BEFORE_SHA}^{commit}"', debug)
+        self.assertIn("git fetch --no-tags origin main", debug)
+        self.assertIn('git merge-base origin/main "$GITHUB_SHA"', debug)
+        self.assertIn('git diff --name-only "$diff_base" "$GITHUB_SHA"', debug)
+
     def test_obtainium_skips_publication_for_test_and_documentation_only_pushes(self):
         release = RELEASE.read_text()
         self.assertIn("id: release_scope", release)

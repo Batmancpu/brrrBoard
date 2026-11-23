@@ -24,7 +24,7 @@ import helium314.keyboard.latin.common.splitOnWhitespace
 import helium314.keyboard.latin.dictionary.AppsBinaryDictionary
 import helium314.keyboard.latin.dictionary.BrrPersonalDictionary
 import helium314.keyboard.latin.brain.SwipeGeometryRescue
-import helium314.keyboard.latin.brain.SwipeCorrectionLearner
+import helium314.keyboard.latin.brain.BrSuggestionBrain
 import helium314.keyboard.latin.dictionary.ContactsBinaryDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.dictionary.DictionaryFactory
@@ -568,10 +568,9 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         // Keep Glide's native top-1 and verify only finite lexical alternatives.
         val activeIme = LatinIME.getInstance()
         val sv = Settings.getValues()
-        val learner = if (activeIme != null && sv != null && SwipeCorrectionLearner.isAllowed(
-                activeIme, activeIme.currentInputEditorInfo, sv.mIncognitoModeEnabled,
-                sv.isSuggestionsEnabledPerUserSettings()
-            )) SwipeCorrectionLearner.get(activeIme) else null
+        val learner = BrSuggestionBrain.swipeLearnerIfAllowed(
+            activeIme, activeIme?.currentInputEditorInfo, sv
+        )
         val types = arrayOf(Dictionary.TYPE_MAIN, Dictionary.TYPE_BRR_PERSONAL, Dictionary.TYPE_USER)
         for (seed in seeds) {
             val words = LinkedHashSet<String>()

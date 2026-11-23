@@ -61,6 +61,7 @@ import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.stickers.AnimatedStickerProcessor
 import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import helium314.keyboard.latin.utils.dpToPx
 import helium314.keyboard.latin.utils.prefs
 import kotlinx.coroutines.*
@@ -749,7 +750,7 @@ class KlipyPalettesView @JvmOverloads constructor(
                     val cacheId = getStickerProcessingCacheId(item.id, isSticker)
                     val cachedFile = getUsableCachedProcessedStickerFile(cacheId) ?: if (!sendAsSticker) {
                         val storageDir = if (isSticker) {
-                            File(context.filesDir, "stickers/klipy")
+                            File(DeviceProtectedUtils.getFilesDir(context), "stickers/klipy")
                         } else {
                             File(context.cacheDir, "klipy")
                         }
@@ -997,7 +998,7 @@ class KlipyPalettesView @JvmOverloads constructor(
     }
 
     private fun getUsableCachedProcessedStickerFile(cacheId: String): File? {
-        val file = File(context.filesDir, "stickers/klipy/animated_klipy_${cacheId}.webp")
+        val file = File(DeviceProtectedUtils.getFilesDir(context), "stickers/klipy/animated_klipy_${cacheId}.webp")
         if (!file.exists()) return null
         if (file.length() > MAX_STICKER_FILE_BYTES) {
             file.delete()
@@ -1040,7 +1041,7 @@ class KlipyPalettesView @JvmOverloads constructor(
             keptStickerFiles.add("animated_klipy_sticker_${id}.webp")
         }
         deleteStaleKlipyFiles(
-            directory = File(context.filesDir, "stickers/klipy"),
+            directory = File(DeviceProtectedUtils.getFilesDir(context), "stickers/klipy"),
             keptFileNames = keptStickerFiles
         ) { name ->
             (name.startsWith("klipy_") || name.startsWith("animated_klipy_")) && name.endsWith(".webp")
@@ -1083,7 +1084,7 @@ class KlipyPalettesView @JvmOverloads constructor(
                 if (!response.isSuccessful) return null
 
                 val storageDir = if (isSticker) {
-                    File(context.filesDir, "stickers/klipy").apply { mkdirs() }
+                    File(DeviceProtectedUtils.getFilesDir(context), "stickers/klipy").apply { mkdirs() }
                 } else {
                     File(context.cacheDir, "klipy").apply { mkdirs() }
                 }

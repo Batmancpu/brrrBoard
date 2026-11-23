@@ -44,6 +44,7 @@ public class UserHistoryDictionary extends ExpandableBinaryDictionary {
         return getDictName(name, locale, dictFile);
     }
 
+    @Nullable
     public static UserHistoryDictionary getDictionary(final Context context, final Locale locale,
             final File dictFile, final String dictNamePrefix) {
         return PersonalizationHelper.getUserHistoryDictionary(context, locale);

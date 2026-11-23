@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.net.Uri
 import android.util.Log
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import com.aureusapps.android.webpandroid.CodecException
 import com.aureusapps.android.webpandroid.CodecResult
 import com.aureusapps.android.webpandroid.decoder.WebPDecodeListener
@@ -35,7 +36,8 @@ class AnimatedStickerProcessor(private val context: Context) {
     }
 
     private fun createWhatsAppAnimatedStickerLocked(sourceFile: File): File? {
-        val outputDir = File(context.filesDir, "stickers/klipy").apply { if (!exists()) mkdirs() }
+        val outputDir = File(DeviceProtectedUtils.getFilesDir(context), "stickers/klipy")
+            .apply { if (!exists()) mkdirs() }
         val outputFile = File(outputDir, "animated_${sourceFile.nameWithoutExtension}.webp")
         val oversizedMarkerFile = File(outputDir, "$OVERSIZED_MARKER_PREFIX${sourceFile.nameWithoutExtension}.marker")
 

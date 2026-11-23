@@ -52,8 +52,8 @@ public final class JniUtils {
                         .getMethod("currentApplication").invoke(null, (Object[]) null);
             } catch (Exception ignored) { }
         }
-        if (app != null && app.getFilesDir() != null) // use the actual path if possible
-            filesDir = app.getFilesDir().getAbsolutePath();
+        if (app != null && DeviceProtectedUtils.getFilesDir(app) != null) // retain legacy user library path
+            filesDir = DeviceProtectedUtils.getFilesDir(app).getAbsolutePath();
 
         File userSuppliedLibrary;
         try {

@@ -29,6 +29,7 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.Process;
 import android.os.Trace;
+import android.os.UserManager;
 import android.util.PrintWriterPrinter;
 import android.util.Printer;
 import android.view.KeyEvent;
@@ -52,8 +53,8 @@ import helium314.keyboard.event.HapticEvent;
 import helium314.keyboard.keyboard.KeyboardActionListener;
 import helium314.keyboard.keyboard.KeyboardActionListenerImpl;
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView;
-import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine;
 import helium314.keyboard.latin.brain.BrContextLmExperiment;
+import helium314.keyboard.latin.brain.BrSuggestionBrain;
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.common.InsetsOutlineProvider;
@@ -824,7 +825,7 @@ public class LatinIME extends InputMethodService implements
         sInstance = this;
         mSettings.startListener();
         EmojiPalettesView.AdaptiveEmojiEngine.warmUsageCache(this);
-        BrrSmartEmojiEngine.warm(this);
+        BrSuggestionBrain.warmEmojiIndex(this);
         KeyboardIconsSet.Companion.getInstance().loadIcons(this);
         mRichImm = RichInputMethodManager.getInstance();
         AudioAndHapticFeedbackManager.init(this);
@@ -1047,6 +1048,14 @@ public class LatinIME extends InputMethodService implements
     }
 
     void resetDictionaryFacilitatorIfNecessary() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            final UserManager userManager = getSystemService(UserManager.class);
+            if (userManager == null || !userManager.isUserUnlocked()) {
+                // Direct-Boot keyboard sessions can begin before CE is unlocked.
+                // Avoid opening any personalized/user dictionary from CE storage.
+                return;
+            }
+        }
         final Locale subtypeSwitcherLocale = mRichImm.getCurrentSubtypeLocale();
         final Locale subtypeLocale;
         if (subtypeSwitcherLocale == null) {
@@ -1386,6 +1395,9 @@ public class LatinIME extends InputMethodService implements
         mPendingChatGptVoiceSuggestions = null;
         mHandler.cancelResumeSuggestions();
         super.onStartInput(editorInfo, restarting);
+        // A booted IME may have been created before user unlock; retry the
+        // encrypted Emoji-profile load on the first real post-unlock editor.
+        BrSuggestionBrain.warmEmojiIndex(this);
 
         final RichInputMethodSubtype subtypeForApp = editorInfo == null
                 ? null
@@ -2239,6 +2251,7 @@ public class LatinIME extends InputMethodService implements
         final String targetPackage = attributes.mTargetApplicationPackageName;
         if (!attributes.mIsGeneralTextInput || attributes.mNoLearning || attributes.mIsPasswordField
                 || current.mIncognitoModeEnabled
+                || AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
                 || SecureAppsPolicy.isSecure(KtxKt.prefs(this), targetPackage)
                 || !KtxKt.prefs(this).getBoolean(PrivateGestureSession.PREF_ENABLED, false)) {
             return false;
@@ -2591,8 +2604,8 @@ public class LatinIME extends InputMethodService implements
                         if (connection != null) preceding = connection.getTextBeforeCursor(160, 0);
                     } catch (RuntimeException ignored) { // Never interrupt the insertion.
                     }
-                    BrrSmartEmojiEngine.learn(this, getCurrentInputEditorInfo(),
-                            preceding, suggestionInfo.mWord);
+                    BrSuggestionBrain.learnEmoji(this, this, getCurrentInputEditorInfo(),
+                            mSettings.getCurrent(), preceding, suggestionInfo.mWord);
                     EmojiPalettesView.AdaptiveEmojiEngine.recordEmojiUsage(this, suggestionInfo.mWord);
                 }
             }

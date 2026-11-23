@@ -4,6 +4,8 @@ package helium314.keyboard.latin.database
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.os.Build
+import android.os.UserManager
 import androidx.core.database.sqlite.transaction
 import helium314.keyboard.latin.utils.GestureDataDao
 import helium314.keyboard.latin.utils.Log
@@ -52,9 +54,37 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
         const val NAME = "heliboard.db"
         private var instance: Database? = null
         fun getInstance(context: Context): Database {
-            if (instance == null)
-                instance = Database(context)
+            if (instance == null) {
+                val storageContext = credentialStorageContext(context)
+                migrateLegacyDeviceProtectedDatabase(storageContext)
+                instance = Database(storageContext)
+            }
             return instance!!
+        }
+
+        /** Clipboard text is sensitive and must not be read or created before first unlock. */
+        private fun credentialStorageContext(context: Context): Context {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return context
+            val userManager = context.getSystemService(UserManager::class.java)
+                ?: throw IllegalStateException("User storage state unavailable")
+            check(userManager.isUserUnlocked) { "Clipboard history is unavailable before first unlock" }
+            return context.applicationContext
+        }
+
+        /** Move the old Direct-Boot database only after the user unlocks the device. */
+        private fun migrateLegacyDeviceProtectedDatabase(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+            val sourceContext = context.createDeviceProtectedStorageContext()
+            val source = sourceContext.getDatabasePath(NAME)
+            if (!source.isFile) return
+            val destination = context.getDatabasePath(NAME)
+            if (destination.exists()) {
+                // Never replace or merge two independently-mutated history stores.
+                throw IllegalStateException("Both legacy and credential clipboard databases exist")
+            }
+            check(context.moveDatabaseFrom(sourceContext, NAME)) {
+                "Could not migrate legacy clipboard history"
+            }
         }
 
         // needs to be in sync with db version

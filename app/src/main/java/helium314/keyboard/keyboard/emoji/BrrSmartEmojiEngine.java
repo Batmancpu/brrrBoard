@@ -4,6 +4,8 @@ package helium314.keyboard.keyboard.emoji;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Build;
+import android.os.UserManager;
 import android.text.InputType;
 import android.util.AtomicFile;
 import android.view.inputmethod.EditorInfo;
@@ -27,6 +29,7 @@ import helium314.keyboard.latin.brain.BrainLearningVault;
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics;
 import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.utils.KtxKt;
+import helium314.keyboard.latin.utils.NoBackupStorageMigration;
 
 /**
  * The single offline Emoji recommender feeding typing, Smart/Recent and idle Search.
@@ -74,9 +77,22 @@ public final class BrrSmartEmojiEngine {
     }
 
     public static void warm(@NonNull final Context context) {
+        if (!userUnlocked(context)) return;
         if (!WARMED.compareAndSet(false, true)) return;
         final Context app = context.getApplicationContext();
-        IO.execute(() -> loadOnce(app));
+        IO.execute(() -> {
+            if (!NoBackupStorageMigration.migrateEncryptedRecord(app, FILE_NAME)) {
+                WARMED.set(false);
+                return;
+            }
+            loadOnce(app);
+        });
+    }
+
+    private static boolean userUnlocked(@NonNull final Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return true;
+        final UserManager manager = context.getSystemService(UserManager.class);
+        return manager != null && manager.isUserUnlocked();
     }
 
     private static void loadOnce(final Context app) {
@@ -114,13 +130,15 @@ public final class BrrSmartEmojiEngine {
             final CharSequence previousContext, final String emoji) {
         if (!EmojiContextEligibility.isEligible(editor, Settings.getValues().mIncognitoModeEnabled)
                 || !personalizationAllowed(context)
-                || previousContext == null || emoji == null || emoji.isEmpty()) return;
+                || previousContext == null || emoji == null || emoji.isEmpty()
+                || !userUnlocked(context)) return;
         final String appScope = scope(editor);
         // Only the bounded ephemeral suffix reaches the worker. It is hashed before persistence.
         final String suffix = previousContext.subSequence(
                 Math.max(0, previousContext.length() - 160), previousContext.length()).toString();
         final Context app = context.getApplicationContext();
         IO.execute(() -> {
+            if (!NoBackupStorageMigration.migrateEncryptedRecord(app, FILE_NAME)) return;
             loadOnce(app);
             synchronized (LOCK) {
                 MODEL.learn(appScope, suffix, emoji, System.currentTimeMillis());
@@ -220,6 +238,8 @@ public final class BrrSmartEmojiEngine {
                 MODEL.deserialize("v1\n", System.currentTimeMillis());
                 loaded = true;
                 new AtomicFile(new File(app.getNoBackupFilesDir(), FILE_NAME)).delete();
+                new AtomicFile(new File(app.createDeviceProtectedStorageContext()
+                        .getNoBackupFilesDir(), FILE_NAME)).delete();
             }
             if (onCompleted != null) new Handler(Looper.getMainLooper()).post(onCompleted);
         });

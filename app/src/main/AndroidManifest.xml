@@ -28,7 +28,6 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
             android:allowBackup="false"
             android:fullBackupContent="false"
             android:dataExtractionRules="@xml/brr_private_data_extraction"
-            android:defaultToDeviceProtectedStorage="true"
             android:directBootAware="true"
             android:enableOnBackInvokedCallback="true"
             android:localeConfig="@xml/locales_config"
