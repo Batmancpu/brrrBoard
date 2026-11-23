@@ -108,7 +108,7 @@
     },
     {
       "title": "Route suggestion eligibility through BR Brain",
-      "detail": "A shared on-device policy boundary gates contextual Emoji ranking and learning, confirmed swipe-learning access, and the opt-in manual ContextLM reranker. Native candidates and automatic correction remain authoritative; ContextLM stays off by default after failing its fixed quality gate."
+      "detail": "A shared on-device policy boundary gates contextual Emoji ranking and learning, confirmed swipe-learning access, and the opt-in manual ContextLM reranker. Native candidates and automatic correction remain authoritative; ContextLM stays off by default after failing its fixed quality gate. The reranked list preserves the native presentation contract and automatic-correction behavior."
     },
     {
       "title": "Move learned history into credential-protected storage",
