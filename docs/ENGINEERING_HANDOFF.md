@@ -7,11 +7,9 @@ Total output lines: 524
 
 Read [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md). v1.0.257 is the latest confirmed signed APK. Its notes report a biometric access fix, but the owner says biometrics still fail on-device and has put them on hold. Next candidate should provide an enrolled gesture in the reserved footer gap for protected access and intentional secret insertion; treat this as convenience security, not biometric strength. The gesture code is preserved but unverified on `wip/private-footer-gesture-20261123` (`75a4db30`); it is not merged or released.
 
-## 2026-11-23 — current candidate / download / verification boundary
+## 2026-11-23 — current release / candidate boundary
 
-The README's **Download brrBoard for Android** section points to the latest signed release v1.0.252 and contains the APK size/hash plus install/update instructions. PR #9 is an unpublished candidate, not a download. Local Gradle distribution access was refused by the workspace proxy; compile/test the exact candidate SHA through the existing GitHub Actions debug workflow, then require the matching original-signer workflow before publishing. The Android/Oppo acceptance work remains device-side.
-
-Current candidate adds a biometric-only protected route, bounded encrypted note vault, screenshot protection/relock, and default-off one-use circle gesture. The native learned-word dictionary remains unencrypted at the app layer and is a genuine unfinished privacy item; do not mark the broader privacy plan complete. Source and gate details: `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` and `AGENTS.md` top checkpoint.
+The latest confirmed signed download in README is v1.0.257 (63,544,172 bytes, SHA-256 `aae9aad384b8f70a3a30ae05c5f55ee66d50bbe7580c675fc25d5ea275b1e8a9`). Its release notes report a protected-access fix; the owner still reports biometric failure and has put that entry path on hold. The custom footer gesture is preserved on `wip/private-footer-gesture-20261123` at `75a4db30`, but is not compiled, verified, merged or released. Continue from `docs/NEXT_AGENT_HANDOFF_2026_11_23.md`. The native learned-word dictionary remains without app-layer AES-GCM; do not claim whole-app encryption. Routine updates exclude large voice models.
 
 ## 2026-11-22 — Ultra selected; A/B test path cancelled
 
