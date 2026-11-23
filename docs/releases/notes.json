@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; add biometric-only protected data and retain on-device voice models.",
+  "summary": "Route Smart Emoji, confirmed swipe learning, and opt-in manual reranking through one BR Brain policy boundary.",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -105,6 +105,10 @@
     {
       "title": "Wire the one-use private gesture into keyboard input",
       "detail": "The authenticated one-use gesture session now exposes its consume operation through a Java-compatible bridge used by the keyboard service. Its privacy exclusions, one-use lifetime, and disabled-by-default behavior are unchanged."
+    },
+    {
+      "title": "Coordinate suggestion features through BR Brain",
+      "detail": "A shared on-device policy boundary now gates contextual Emoji ranking/learning, confirmed swipe-learning access, and the opt-in ContextLM manual reranker. Native candidate generation and automatic correction stay authoritative; the coordinator adds no editor-text IPC, model loading, or disk work on key-down. ContextLM remains off by default because its quality gate did not pass."
     }
   ]
 }

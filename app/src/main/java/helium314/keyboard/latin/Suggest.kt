@@ -10,13 +10,12 @@ import android.util.LruCache
 import com.android.inputmethod.latin.utils.BinaryDictionaryUtils
 import helium314.keyboard.keyboard.Keyboard
 import helium314.keyboard.keyboard.emoji.EmojiContextScorer
-import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
 import helium314.keyboard.keyboard.emoji.EmojiContextEligibility
 import helium314.keyboard.keyboard.emoji.EmojiPalettesView
 import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersion
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
-import helium314.keyboard.latin.brain.BrContextLmExperiment
+import helium314.keyboard.latin.brain.BrSuggestionBrain
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
@@ -213,8 +212,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val rankedEmojiPicks = if (mayUseEmojiContext && emojiContext.isNotBlank()
             && emojiService != null
             && emojiService.currentInputEditorInfo === emojiSuggestionEditor) {
-            BrrSmartEmojiEngine.suggest(
-                emojiService, emojiSuggestionEditor, emojiContext, 48, false
+            BrSuggestionBrain.suggestEmoji(
+                emojiService, emojiService, emojiSuggestionEditor, currentSettings,
+                emojiContext, 48, false
             )
         } else emptyList()
         val rankedEmojiCandidates = rankedEmojiPicks.map { it.emoji }
@@ -236,8 +236,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val contextLmSuggestions = if (!hasAutoCorrection
             && mayUseEmojiContext && !currentSettings.mInputAttributes.mNoLearning
             && emojiService != null) {
-            BrContextLmExperiment.rerankManualSuggestions(
-                emojiService, ngramContext, suggestionsList, requestedEditorGeneration, true
+            BrSuggestionBrain.rerankManualSuggestions(
+                emojiService, emojiSuggestionEditor, currentSettings, ngramContext,
+                suggestionsList, requestedEditorGeneration
             )
         } else suggestionsList
         return SuggestedWords(contextLmSuggestions, suggestionResults.mRawSuggestions,

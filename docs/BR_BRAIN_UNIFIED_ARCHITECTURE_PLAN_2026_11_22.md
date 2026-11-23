@@ -1,7 +1,7 @@
 # BR Brain: unified on-device suggestions plan
 
 Date: 22 November 2026
-Status: The Settings cleanup and an explicitly opt-in, experimental ContextLM manual-suggestion test are implemented in source. The neural candidate did not pass its fixed public-corpus gate and is not a production ranker. Unified Brain coordination and encrypted native-history migration remain unimplemented.
+Status (2026-11-23): Settings cleanup, the default-off experimental ContextLM manual-suggestion test, protected biometric note/statistics route, and private one-use gesture are in original-signed [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252). Exact-SHA main debug/full Android checks passed (`45119781916`) and original-signer release passed (`45119781929`). A follow-up source candidate now routes contextual Emoji ranking/learning, swipe learner access, and optional manual reranking through a shared `BrSuggestionBrain` policy boundary without changing native ordering or autocorrection; its Android CI is pending. The ContextLM candidate did not pass its fixed public-corpus quality gate and is not a production ranker. AES-GCM migration for native UserHistoryDictionary and Oppo physical acceptance remain open.
 
 ## Direction
 
@@ -78,7 +78,7 @@ The “one place” is one BR Brain API and one encrypted personal-learning prof
 ## Execution order
 
 1. **Settings and privacy cleanup (source candidate complete):** remove the recurring Device Checkup and obsolete geometry-report UI/instrumentation; move Parakeet 110M selection to Advanced controls; move Reset into Backup & restore; keep About outside Advanced controls; separate protected-app labels from package IDs; link Correction & suggestions from BR Brain and apply a restrained gold accent. Exact-commit release build and signing are recorded by GitHub Actions; physical-device acceptance remains owner-side.
-2. **No-behavior-change coordinator:** add `BrSuggestionBrain` request/result types that reuse `BrPersonalContextFeatures`, the existing strict editor eligibility policy, and `LatinIMEHandler.editorGeneration()`; adapt the native, Emoji and swipe paths; keep the existing display order and learning unchanged. Prove no per-keystroke I/O.
+2. **No-behavior-change coordinator — implemented in the current candidate:** `BrSuggestionBrain` now owns the shared privacy eligibility boundary and adapters for Emoji scoring/learning, swipe learner access, and the default-off manual reranker. The native decoder still generates and immediately displays candidates; ranking/autocorrection are unchanged. Policy tests cover prose, no-learning, password and incognito rejection. Exact-SHA Android build/tests are the next gate; physical perf acceptance remains pending.
 3. **Encrypted learning store:** inventory every personal word/association/backup file; design native decoder interop; migrate old data with verification and rollback; prevent app/cloud/device transfer and ensure clear/uninstall semantics.
 4. **Measured ranker:** capture an on-device baseline, train/evaluate only on licensed data, run shadow scoring on actual native top-K candidates, and tune confidence/rollback behavior. Keep ContextLM disabled until it clears quality and latency gates.
 5. **Adapters and refinement:** connect next-word, text correction, swipe, Smart Emoji and committed voice events through one coordinator. Preserve independent component fallbacks and per-surface safety rules.

@@ -3,13 +3,13 @@ Total output lines: 1583
 
 # brrBoard agent instructions
 
-## 2026-11-23 — current product-plan implementation candidate (not released)
+## 2026-11-23 — latest release and current Brain candidate
 
-The latest published installable APK is original-signed [v1.0.251](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251), 63,511,404 bytes, SHA-256 `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. Detailed download/install instructions are now in the README. Local source changes after that release include the settings/voice follow-up, opt-in ContextLM device-test path already at HEAD `bf64218`, and biometric protected-note/vault work with a default-off one-use footer circle gesture. **They are not yet exact-SHA compiled, signed, or released.**
+The latest published installable APK is original-signed [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252), 63,544,172 bytes, SHA-256 `8f20284bb8d0179f1341ba50a801b8f63b40afe24f61a4a3e311c5bec917d1f1`. The public README has detailed official-download, checksum, update and fresh-install instructions. The release includes the settings/voice follow-up, default-off opt-in ContextLM test, biometric protected-note/vault route and default-off one-use footer circle gesture. The new `BrSuggestionBrain` integration is a separate candidate and is not yet compiled, signed, or released.
 
 The protected route uses `BIOMETRIC_STRONG` only, auth-per-operation AES-GCM in Android Keystore, `noBackupFilesDir` + `AtomicFile`, secure-window screenshot protection, foreground relock, and a one-use in-memory gesture authorization that is cleared on background/auth failure. The gesture is shown only when explicitly armed and valid for the current normal prose field; its default is OFF. Android's native `UserHistoryDictionary` remains app-private but not app-layer encrypted because its native mmap/file update lifecycle has no crash-safe encrypted storage integration yet. Do not claim whole-app encryption or a biometric credential fallback.
 
-Local Python repository contracts pass (16 tests). Local Gradle could not configure dependencies: first the sandbox blocked interface enumeration; with network permission, Maven access still failed `Network is unreachable`, and offline caches lack AGP 8.13.2/Kotlin 2.3.20. Use the exact-source GitHub Actions workflow for Android compilation/tests. Do not publish until the matching original-signer gate passes. Physical biometric/gesture acceptance remains an owner-device gate. Current tracked design and limitations: `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md`; latest stable download: `README.md` → **Download brrBoard for Android**.
+Local Python repository contracts pass (16 tests). Local Gradle cannot configure dependencies because Maven access is unavailable in this workspace and the required artifacts are not cached. Use exact-source GitHub Actions for Android compilation/tests. Do not publish until the matching original-signer gate passes. Physical biometric/gesture acceptance remains an owner-device gate. Current tracked design and limitations: `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md`; latest stable download: `README.md` → **Download brrBoard for Android**.
 
 ## 2026-11-22 — private voice hold-to-talk released
 

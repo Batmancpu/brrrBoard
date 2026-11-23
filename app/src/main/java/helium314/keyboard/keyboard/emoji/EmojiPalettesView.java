@@ -81,6 +81,7 @@ import helium314.keyboard.latin.RichInputMethodSubtype;
 import helium314.keyboard.latin.Suggest;
 import helium314.keyboard.latin.SuggestedWords;
 import helium314.keyboard.latin.SingleDictionaryFacilitator;
+import helium314.keyboard.latin.brain.BrSuggestionBrain;
 import helium314.keyboard.latin.common.ColorType;
 import helium314.keyboard.latin.common.Colors;
 import helium314.keyboard.latin.common.Constants;
@@ -880,8 +881,8 @@ public final class EmojiPalettesView extends LinearLayout
         }
         // Search's initial row is the same BR Brain suggestion ordering as
         // Smart/Recent and the text strip, including learned app/field usage.
-        for (final BrrSmartEmojiEngine.Pick candidate : BrrSmartEmojiEngine.suggest(
-                getContext(), editor, safeContext, 10, false)) {
+        for (final BrrSmartEmojiEngine.Pick candidate : BrSuggestionBrain.suggestEmoji(
+                getContext(), ime, editor, Settings.getValues(), safeContext, 10, false)) {
             ordered.add(EmojiParserKt.getEmojiDefaultVersion(candidate.emoji));
         }
         mSearchIdleReviewed = List.copyOf(ordered);
@@ -1815,8 +1816,8 @@ public final class EmojiPalettesView extends LinearLayout
                 if (input != null) preceding = input.getTextBeforeCursor(160, 0);
             } catch (RuntimeException ignored) { // Never block Emoji insertion.
             }
-            BrrSmartEmojiEngine.learn(getContext(),
-                    activeIme.getCurrentInputEditorInfo(), preceding, emojiStr);
+            BrSuggestionBrain.learnEmoji(getContext(), activeIme,
+                    activeIme.getCurrentInputEditorInfo(), Settings.getValues(), preceding, emojiStr);
             AdaptiveEmojiEngine.recordEmojiUsage(getContext(), emojiStr);
         }
         // Defer visible recents reordering until the panel is closed to avoid RecyclerView
@@ -2162,7 +2163,7 @@ public final class EmojiPalettesView extends LinearLayout
         // this exact editor while processing the last input event. Reusing that
         // immutable snapshot avoids synchronous getTextBeforeCursor Binder work
         // and a second full scorer pass during Emoji panel construction.
-        return BrrSmartEmojiEngine.picksFromSnapshot(
+        return BrSuggestionBrain.picksFromSnapshot(ime, editorInfo, Settings.getValues(),
                 ime.currentContextualEmojiCandidates(editorInfo), maxPicks);
     }
 

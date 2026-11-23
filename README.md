@@ -37,10 +37,10 @@ The currently shipped intelligence uses offline dictionaries, native word/gestur
 
 ![Private offline voice: microphone capture, brrClean noise reduction and on-device Parakeet recognition](art/brand/mangoloads/readme-offline-voice.svg)
 
-Tap the blue microphone for **offline English dictation**, powered by an on-device **NVIDIA Parakeet TDT 110M INT8** recognition model (once provisioned). Audio is captured privately, decoded on your phone, and inserted into your text field—without sending speech to an online transcription service.
+Tap the microphone for **offline English dictation** using an installed NVIDIA Parakeet model. Parakeet Ultra is the preferred keyboard model when installed; Parakeet 110M is available as the smaller, lower-memory fallback under Advanced controls. The normal signed APK does not include either large speech model, and it does not download one in the background. An already-installed model remains in brrBoard's private storage during an in-place update.
 
-- **Three local processing choices.** In **BR Brain → Voice & Noise Reduction**, choose brrClean, Android `NoiseSuppressor`, or raw microphone audio. New installs default to brrClean; an existing explicit choice is preserved. Android's effect is used only when supported and the app reports whether it activated.
-- **Long dictation stays bounded.** The phone captures 16-kHz audio into short in-memory chunks and sends them sequentially through the isolated brrClean process and Parakeet 110M while recording continues. If brrClean fails or a chunk is outside its processing limit, that audio falls back to raw Parakeet input. Text is inserted only after capture finishes and the original editor is still safe.
+- **Local voice cleaning.** In **Everyday tools → Offline voice**, choose the installed recognition model and turn brrClean on or off. brrClean defaults on for new installs; if it fails, the original captured audio goes to the recognizer.
+- **Long dictation stays bounded.** The phone captures 16-kHz audio into short in-memory chunks and processes them sequentially while recording continues. The current hold-to-talk flow shows guarded text batches outside Incognito, keeps Incognito text hidden until recording ends, and auto-sends only from hold-to-talk in fields marked Send (that behavior can be switched off). Canceling or failing a session discards the audio and transcript; no recovery transcript is retained.
 - **Thoughtful safety.** Dictation is blocked when Android reports an active phone or video call. The normal blue mic prefers the built-in phone input; The keyboard uses one verified microphone input and does not combine phone and earbud microphones.
 - **Private diagnostics.** A one-session troubleshooting tool can record only sanitized stages and timings—not audio, transcripts, app names or typed words.
 
@@ -106,18 +106,47 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 
 ### Download brrBoard for Android
 
-The installable package is the **original-signed release APK**. Download it from the [latest release page](https://github.com/Batmancpu/brrrBoard/releases/latest) or use the direct [latest `brrBoard.apk` link](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk). The current published release is **v1.0.251**; its APK is 63,511,404 bytes and SHA-256 is `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. The release notes and assets are on the [v1.0.251 page](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251).
+**Latest official APK:** [Download brrBoard v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.252/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
 
-1. Download `brrBoard.apk` from that release page. Do not install an Actions debug artifact as a replacement for the signed release.
-2. If Android blocks the installer, allow **Install unknown apps** for the browser or file manager you used, then return to the APK and install it. Android may ask you to confirm an update from the same signer.
-3. Open brrBoard and follow **Enable keyboard** in the setup wizard. Review the [privacy policy](PRIVACY_POLICY.md) and Android's input-method warning before enabling any keyboard.
-4. Choose **Switch to brrBoard** in the wizard or select it from Android's keyboard picker.
+This is the original-signed production APK (`com.mangoloads.board`), 63,544,172 bytes (about 60.6 MiB). Its SHA-256 is `8f20284bb8d0179f1341ba50a801b8f63b40afe24f61a4a3e311c5bec917d1f1`. The signed APK is the installable download; pull-request builds and GitHub Actions debug artifacts are for development and must not be installed over the production app.
 
-For automatic signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates. A new APK is available only after the exact-source build and original-signer release workflow passes; commits, draft PRs, and debug artifacts are not published releases.
+#### Update an existing current brrBoard installation
 
-The normal update does not include large speech-recognition weights: an already-installed private voice model is reused. A first-time installation or deliberate model recovery uses the separate model-inclusive bootstrap described [below](#before-using-voice-or-swipe).
+1. Download the APK from the official release link above, or install [Obtainium](docs/OBTAINIUM.md) and add `https://github.com/Batmancpu/brrrBoard` as the update source.
+2. Open the downloaded APK and choose **Update**. Keep the existing app installed; **uninstalling first deletes its app-private data and installed voice model**.
+3. If Android blocks the file, allow **Install unknown apps** for the browser or file manager that opened it, then reopen the APK.
+4. Open brrBoard, verify the keyboard is enabled, and select it from the Android keyboard picker if needed.
 
-For straightforward signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates.
+The update keeps brrBoard's private files because it uses the same package and original signing identity. It does not bundle or redownload the large Parakeet weights; an already-installed, verified voice model stays on the device. If a speech model has never been provisioned or was deleted, the normal update cannot restore it; use the separate, explicitly requested model-inclusive bootstrap in [Before using voice or swipe](#before-using-voice-or-swipe).
+
+#### Fresh installation
+
+1. Download the signed APK from the official release link and, if desired, verify its SHA-256 before opening it.
+2. Open the APK from Downloads and accept Android's installation prompts. If needed, allow **Install unknown apps** for that file manager.
+3. Launch brrBoard and follow its **Enable keyboard** setup steps. In Android Settings, enable brrBoard under **Available keyboards** and select it using the system keyboard picker.
+4. Read Android's standard input-method trust prompt and the [brrBoard privacy policy](PRIVACY_POLICY.md) before enabling it.
+
+#### Verify the APK file
+
+Run the command for the computer where you downloaded `brrBoard.apk`, then compare the result with the checksum above:
+
+```sh
+# Linux
+sha256sum brrBoard.apk
+
+# macOS
+shasum -a 256 brrBoard.apk
+```
+
+In Windows PowerShell:
+
+```powershell
+Get-FileHash .\brrBoard.apk -Algorithm SHA256
+```
+
+If the hash differs, do not install that copy; delete it and download again from the official release page. GitHub publishes a new APK only after the exact-source Android build/tests and original-signer release workflow pass.
+
+**Older package migration:** `com.orion.frostkeys.brrrboard` is a different Android app ID and cannot update in place. Export **Settings → Backup and restore** from the older app, install the new APK without deleting the old app, import and verify the backup, then remove the old package only after confirming the data you need is present. The exported ZIP is not encrypted; keep it private.
 
 ## Your data, in plain language.
 
@@ -166,7 +195,7 @@ No. Its current word/next-word suggestions, native swipe candidates, local corre
 <details>
 <summary>What does brrClean do, and can it combine phone and earbud microphones?</summary>
 
-brrClean is an offline GTCRN denoiser that runs in an isolated process before Parakeet 110M transcription. Android `NoiseSuppressor` and raw microphone audio are also available in BR Brain. A denoising failure falls back to raw audio. The keyboard does not fuse separate phone and earbud microphone streams; Android or the device manufacturer controls microphone routing and may silence concurrent capture. Noise reduction is not a guarantee of better recognition accuracy.
+brrClean is an offline GTCRN denoiser that runs in an isolated process before the selected installed Parakeet model. A denoising failure falls back to raw audio. The keyboard does not fuse separate phone and earbud microphone streams; Android or the device manufacturer controls microphone routing and may silence concurrent capture. Noise reduction is not a guarantee of better recognition accuracy.
 
 </details>
 

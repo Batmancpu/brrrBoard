@@ -3,11 +3,17 @@ Total output lines: 1475
 
 # brrBoard project context
 
-## 2026-11-23 — release pointer and current security candidate
+## 2026-11-23 — original-signed v1.0.252 and remaining Brain work
 
-Latest published release remains original-signed [v1.0.251](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251); the README now has direct download, install, update, size, and hash details. Current local source work is still an unpublished candidate. It contains the settings/voice follow-up, default-off experimental ContextLM device test from `bf64218`, a strong-biometric-only protected note and detailed Brain view, and a default-off one-use private footer gesture. Exact-SHA Android CI and original-signer workflows are required before a new APK exists. The Android platform/Oppo biometric and gesture behaviors are not physically verified.
+Latest release: original-signed, non-prerelease [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252), source `fbd13cdacc1f10c51f3898a931f3ffd49636922b`. Exact merged-SHA debug/full Android workflow `45119781916` and original-signer release workflow `45119781929` succeeded. APK size 63,544,172 bytes; asset SHA-256 `8f20284bb8d0179f1341ba50a801b8f63b40afe24f61a4a3e311c5bec917d1f1`. Download, install/update, and checksum verification steps are in README. No Parakeet model weights were added.
 
-Private notes use an auth-per-operation Android Keystore AES-GCM key, atomic app-private no-backup storage, and a secure window. The gesture requires explicit one-use arming and is restricted to ordinary nonprivate prose fields. Existing native user-history dictionary data is **not yet app-layer encrypted**; its direct file/mmap writer makes a crash-safe migration nontrivial. No claim that every local data file is encrypted is valid yet. See `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` for the live ledger.
+The release adds the settings/voice follow-up, opt-in failed-gate ContextLM test, strong-biometric protected note and detailed Brain view, one-use default-off private footer gesture, and hold-to-talk safety changes. The note uses an auth-per-operation Android Keystore AES-GCM key, atomic app-private no-backup storage, and a secure window. Android 15/Oppo biometric, haptic, gesture-boundary and live typing acceptance remain physical-device checks.
+
+The larger Brain plan remains in progress: current native typing, Emoji and swipe components have not yet been routed through one no-behavior-change coordinator; the native UserHistoryDictionary uses app-private internal storage/Android file-based encryption but does not have a brrBoard AES-GCM layer or biometric access gate. Do not claim unified ranking or app-layer encryption for that native file. ContextLM stays an opt-in manual-suggestion experiment because its held-out proxy gate failed. See `docs/BR_BRAIN_UNIFIED_ARCHITECTURE_PLAN_2026_11_22.md` and `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` for the remaining engineering and device acceptance ledger.
+
+## 2026-11-23 — shared Brain coordinator candidate (not released)
+
+The current follow-up source adds `BrSuggestionBrain` as the single policy entry point for contextual Emoji scoring/learning, confirmed-swipe learner access, and the opt-in manual ContextLM reranker. It retains the native decoder as the immediate candidate producer and adds no per-key editor IPC, model loading, or persistence. Added pure policy coverage for prose versus password, incognito, `NO_PERSONALIZED_LEARNING`, and non-general editors. It has not yet passed exact-SHA Android CI or signing, so it is not downloadable; v1.0.252 remains the latest APK until this candidate passes its build/release gates.
 
 ## 2026-11-22 — v1.0.234 released; remaining Reno10 diagnostics
 

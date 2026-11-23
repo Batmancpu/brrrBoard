@@ -1,8 +1,14 @@
 # Final update implementation status — 2026-11-22
 
-## 2026-11-23 — current unpublished candidate
+## 2026-11-23 — v1.0.252 released; Brain consolidation remains open
 
-The previous release remains v1.0.251; download and verified integrity details are in the README. This source checkout has additional settings, voice, ContextLM-test, and biometric privacy work. The protected note vault and default-off one-use circle gesture are now present in source, but this candidate has not passed exact-SHA Android CI or original signing; it is not an APK download. Local Python contracts pass, while local Gradle dependency resolution is blocked by unavailable Maven access. The learned native dictionary is still not app-layer encrypted, and Oppo biometric/gesture behavior is unverified. See `BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` for the remaining plan.
+Original-signed, non-prerelease [v1.0.252](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.252) is published from exact source `fbd13cdacc1f10c51f3898a931f3ffd49636922b`. Merged-SHA debug/full Android checks passed in `45119781916`; the original-signer workflow `45119781929` passed and published the release. APK size 63,544,172 bytes, SHA-256 `8f20284bb8d0179f1341ba50a801b8f63b40afe24f61a4a3e311c5bec917d1f1`. The [README download section](../README.md#download-brrboard-for-android) now describes the official source, checksum verification, in-place updates and model retention. Both Parakeet weight bundles were excluded.
+
+The release contains the biometric-only protected route and note vault, protected Brain detail counters, default-off one-use private gesture, latest hold-to-talk behavior and settings changes described below. Do not mark the larger Brain architecture complete: a unified coordinator and an app-layer encrypted native UserHistoryDictionary migration remain unfinished; the ContextLM quality gate failed, so its setting remains opt-in and manual-only. Oppo biometric/gesture/haptic/typing acceptance is pending the owner's device. See `BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` and `BR_BRAIN_UNIFIED_ARCHITECTURE_PLAN_2026_11_22.md`.
+
+## 2026-11-23 — shared BR Brain coordinator source candidate (release pending)
+
+`BrSuggestionBrain` now centralizes editor eligibility and dispatch for Smart Emoji scoring/learning, the existing encrypted swipe-correction adapter, and the opt-in manual ContextLM reranker. The native decoder remains the fast first producer; candidate ordering and automatic correction stay unchanged. The coordinator does not read surrounding editor text itself, load a model, or perform disk/Keystore work on key-down. A pure policy test covers normal chat, no-learning, incognito, password, and non-general-editor exclusions. README now points to signed v1.0.252 and provides platform-specific SHA-256 commands. This follow-up needs full exact-SHA Android CI and the original-signer gate; it is not yet a newer APK. The native history dictionary’s app-layer encryption and Oppo physical acceptance remain open.
 
 ## Owner GO — private hold-to-talk shipped in v1.0.251
 
