@@ -2,11 +2,14 @@
 package helium314.keyboard.latin.brain;
 
 import android.content.Context;
+import android.os.Build;
+import android.os.UserManager;
 import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,6 +19,7 @@ import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.settings.SettingsValues;
+import helium314.keyboard.latin.utils.NoBackupStorageMigration;
 
 /**
  * The single policy/coordination entry point for on-device suggestion features.
@@ -85,7 +89,7 @@ public final class BrSuggestionBrain {
     @NonNull public static List<BrrSmartEmojiEngine.Pick> picksFromSnapshot(
             @Nullable final LatinIME ime, @Nullable final EditorInfo editor,
             @Nullable final SettingsValues values,
-            @NonNull final List<BrrSmartEmojiEngine.Pick> candidates,
+            @NonNull final List<String> candidates,
             final int maxPicks) {
         if (!isEligible(ime, editor, values) || maxPicks <= 0) return Collections.emptyList();
         return BrrSmartEmojiEngine.picksFromSnapshot(candidates, maxPicks);
@@ -99,19 +103,29 @@ public final class BrSuggestionBrain {
             final long editorGeneration) {
         if (!isEligible(ime, editor, values)) return nativeSuggestions;
         return BrContextLmExperiment.rerankManualSuggestions(
-                ime, context, nativeSuggestions, editorGeneration, true);
+                ime, context, new ArrayList<>(nativeSuggestions), editorGeneration, true);
     }
 
     /** Returns the existing confirmed-swipe adapter only for an eligible editor. */
     @Nullable public static SwipeCorrectionLearner swipeLearnerIfAllowed(
             @Nullable final LatinIME ime, @Nullable final EditorInfo editor,
             @Nullable final SettingsValues values) {
-        if (!isEligible(ime, editor, values)
+        if (!isEligible(ime, editor, values) || !userUnlocked(ime)
+                || !NoBackupStorageMigration.migrateEncryptedRecord(
+                        ime, "brr_swipe_corrections_v2.aesgcm")
+                || !NoBackupStorageMigration.migrateEncryptedRecord(
+                        ime, "brr_swipe_corrections_v1")
                 || !SwipeCorrectionLearner.isAllowed(ime, editor,
                         values.mIncognitoModeEnabled,
                         values.isSuggestionsEnabledPerUserSettings())) {
             return null;
         }
         return SwipeCorrectionLearner.get(ime);
+    }
+
+    private static boolean userUnlocked(@NonNull final Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return true;
+        final UserManager manager = context.getSystemService(UserManager.class);
+        return manager != null && manager.isUserUnlocked();
     }
 }

@@ -68,7 +68,9 @@ public class PersonalizationHelper {
         final UserManager userManager = context.getSystemService(UserManager.class);
         if (userManager == null || !userManager.isUserUnlocked()) return null;
         final Context deviceContext = context.createDeviceProtectedStorageContext();
-        final Context credentialContext = context.createCredentialProtectedStorageContext();
+        // With defaultToDeviceProtectedStorage removed from the manifest, the
+        // ordinary app context is Android's credential-protected context.
+        final Context credentialContext = context;
         if (!PersonalizationStorageMigration.moveLegacyHistoryFiles(
                 deviceContext.getFilesDir(), credentialContext.getFilesDir(), UserHistoryDictionary.NAME)) {
             Log.w(TAG, "User-history storage migration did not complete; keeping history unavailable and preserving source data.");
@@ -92,7 +94,6 @@ public class PersonalizationHelper {
             deleteHistoryFiles(context.getFilesDir());
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 try {
-                    deleteHistoryFiles(context.createCredentialProtectedStorageContext().getFilesDir());
                     deleteHistoryFiles(context.createDeviceProtectedStorageContext().getFilesDir());
                 } catch (final IllegalStateException error) {
                     // Credential storage can be unavailable before the first device unlock.

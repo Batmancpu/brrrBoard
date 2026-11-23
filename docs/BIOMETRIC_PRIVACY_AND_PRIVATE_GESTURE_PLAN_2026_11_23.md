@@ -7,10 +7,10 @@ Keep everyday privacy settings direct, but make detailed BR Brain statistics and
 ## Current source findings
 
 - **Present:** always-incognito, package-exact protected apps, temporary secure-app opt-out scoped to one editor, password/no-learning filters, and private editor gates for suggestions/clipboard/learning.
-- **Present:** encrypted bounded swipe and Emoji learning stores in no-backup storage using Android Keystore AES-GCM.
-- **Missing:** biometric prompt or lock lifecycle, biometric-only protected settings destination, protected statistics gate, private notes vault, gesture enrollment/recognition, and a write/read encrypted persistence path for the learned user-history dictionary.
-- **Voice:** the latest release removes retained recovery transcripts. Keep this behavior: no voice-history feature is planned.
-- **Repository status:** the checkout has local modifications from the prior voice task; preserve them and do not reset or overwrite unrelated source.
+- **Present in the protected-area source:** a 2.5-second long-press entry, strong-biometric-only prompt, secure-window protection, foreground lock of the note UI, a bounded AES-GCM/Android-Keystore private note, protected BR Brain counters, and an opt-in one-use footer gesture that is authorized by a fresh biometric operation and expires after 30 seconds.
+- **Present:** bounded swipe and Emoji learning records use Android Keystore AES-GCM. UserHistoryDictionary remains a native dictionary format, so it is protected by Android credential-encrypted storage but is not app-layer AES-GCM sealed.
+- **Voice:** transcript recovery has no write path. Existing recovery files are purged; no dictation history is retained.
+- **Storage boundary:** the app's default storage is credential-encrypted. After first unlock, legacy history, clipboard database, and encrypted no-backup records are migrated from device-protected storage. Settings, voice models, and the user-installed gesture library continue using explicit device-protected paths to preserve Direct Boot and already-installed large models.
 
 ## Work sequence
 
@@ -65,16 +65,17 @@ Keep everyday privacy settings direct, but make detailed BR Brain statistics and
 - The ordinary Privacy & protected apps row still opens its current settings on a tap. A 2.5-second press opens a separate protected route.
 - That route asks Android for `BIOMETRIC_STRONG` only. It does not include `DEVICE_CREDENTIAL`; on Android 10 and older, this protected feature deliberately stays unavailable instead of using a PIN/password fallback.
 - A new one-note vault stores a bounded note as AES-GCM ciphertext in `noBackupFilesDir`, via `AtomicFile`. The Android Keystore AES key requires strong biometric authorization for every encryption/decryption operation and is invalidated by biometric enrollment changes. Decrypt/encrypt uses a biometric `CryptoObject`; the app never writes the note as a preference or log entry. The UI does not copy or paste the secret automatically and clears its note state when the protected route leaves the foreground.
-- The protected route adds `FLAG_SECURE` while it is open to prevent screenshots and task-switcher previews, clears the one-use gesture authorization on background, disposal, and biometric failure, and zeros the temporary decrypted byte buffer after creating the UI string. Deleting the note also deletes its Keystore key.
+- The protected route adds `FLAG_SECURE` while it is open to prevent screenshots and task-switcher previews, clears the decrypted note UI when the route leaves the foreground, and zeros the temporary decrypted byte buffer after creating the UI string. A freshly biometric-authorized one-use gesture may remain armed for the explicit Settings-to-keyboard transition only, and expires after 30 seconds; app process death still destroys it. Deleting the note also deletes its Keystore key.
 - Ordinary BR Brain now exposes a small status view without personal usage counters. Detailed live counters are reached through the protected route.
 - The app manifest already disables Android backup; vault data additionally resides in `noBackupFilesDir`. Existing voice changes continue to discard transcript recovery data.
 - A default-off one-use circle gesture is now available inside the decrypted note screen. The user explicitly arms it for 30 seconds, after which a bounded recognition zone appears in the center footer. It consumes the secret once and only in normal general prose fields; incognito, password/no-learning, secure-app, Toolbar, dictation, and accessibility touch-exploration states reject it. The secret itself remains only in short-lived process memory; no gesture trace is stored. The input path uses the existing private voice-origin transaction so it does not update personal learning.
 
-## Not yet implemented or verified
+## Remaining implementation and verification
 
-- The circle gesture is a test candidate and has not yet passed target-device boundary, false-trigger, reduced-motion, DND, and TalkBack checks. It remains default-off and requires explicit one-use arming; if exact footer hit testing is unreliable on the Oppo, use the normal authenticated note view and leave the gesture off.
-- Existing native `UserHistoryDictionary` files are still app-private but are not converted to an encrypted-at-rest format. The native decoder opens those files directly, so a safe encrypted migration needs an explicit open/decrypt/close/encrypt lifecycle and crash-safe upgrade before it can be claimed. This code does not modify or erase learned words.
-- The earlier protected-vault source compiled on GitHub Actions at source SHA `7e4ec7b397f868362753aa07d04b862d2a50f5fe`; the current candidate additionally changes voice, settings, footer gesture, and documentation and needs a fresh exact-SHA workflow. It is not yet an original-signer release. Android 15/Oppo biometric and gesture behavior still needs device verification.
+- The circle gesture is still an experimental source candidate. It remains default-off, is explicitly armed for one use, and is limited to a reserved footer hit region. Exact boundary/false-trigger/reduced-motion/TalkBack and Oppo behavior still need device verification; the feature must stay off if that acceptance fails.
+- History and clipboard data move into Android credential-encrypted storage at rest, but are not app-layer AES-GCM encrypted. The note vault and the compact Emoji/swipe learning records use app-layer AES-GCM. This distinction is deliberate and must stay explicit in UI/docs.
+- Migration runs only after first unlock. It verifies copied native-history bytes before deleting the legacy source; the clipboard database uses Android's supported `moveDatabaseFrom` operation. Conflicts fail closed and preserve the old source. Exact-source Android CI must validate these changes before release.
+- The current source candidate is not an original-signer release. Android 15/Oppo biometric and gesture behavior still needs physical device verification. Do not mark the overall feature complete based only on a clean build.
 
 ## Research used for the implementation
 

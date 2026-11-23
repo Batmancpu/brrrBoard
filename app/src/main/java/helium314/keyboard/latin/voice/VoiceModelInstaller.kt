@@ -2,6 +2,7 @@
 package helium314.keyboard.latin.voice
 
 import android.content.Context
+import android.os.Build
 import android.os.StatFs
 import java.io.File
 import java.io.FileOutputStream
@@ -26,7 +27,13 @@ internal object VoiceModelInstaller {
     private val progressByModel = ConcurrentHashMap<String, Progress>()
 
     fun modelDir(context: Context): File = modelDir(context, VoiceModelManifest.pack)
-    fun modelDir(context: Context, pack: VoiceModelPack): File = File(context.noBackupFilesDir, pack.modelDir)
+    fun modelDir(context: Context, pack: VoiceModelPack): File {
+        // Model packs are large and do not contain user text. Preserve their
+        // legacy pre-unlock location across the app's move to credential storage.
+        val storage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+            context.createDeviceProtectedStorageContext() else context
+        return File(storage.noBackupFilesDir, pack.modelDir)
+    }
 
     fun isInstalled(context: Context): Boolean = isInstalled(context, VoiceModelManifest.pack)
 

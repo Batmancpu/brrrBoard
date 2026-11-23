@@ -12,6 +12,7 @@ import android.database.ContentObserver
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
+import android.os.UserManager
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -61,7 +62,20 @@ class ClipboardHistoryManager(
 
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: View? = null
-    private var clipboardDao: ClipboardDao? = null
+    private var cachedClipboardDao: ClipboardDao? = null
+    // The IME can start before first unlock. Retry lazily after unlock instead of
+    // permanently caching the expected locked-storage failure from onCreate().
+    private val clipboardDao: ClipboardDao?
+        get() {
+            cachedClipboardDao?.let { return it }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val userManager = latinIME.getSystemService(UserManager::class.java)
+                if (userManager?.isUserUnlocked != true) return null
+            }
+            return ClipboardDao.getInstance(latinIME)?.also {
+                cachedClipboardDao = it
+            }
+        }
     private var screenshotObserver: ContentObserver? = null
     private var lastProcessedImageUri: String? = null
     private val processedScreenshotUris = ArrayDeque<String>()
@@ -84,7 +98,7 @@ class ClipboardHistoryManager(
         clearRecoveredTranscripts()
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(this)
-        clipboardDao = ClipboardDao.getInstance(latinIME)
+        clipboardDao // attempt once now; getter retries on later access if still locked
         restoreProcessedScreenshotUris()
         // Migrate away from old preferences containing raw copied text/URI.
         ClipboardDismissalPreferences.removeLegacyRawContent(latinIME.prefs())

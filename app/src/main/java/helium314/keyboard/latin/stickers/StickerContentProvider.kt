@@ -8,6 +8,7 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import helium314.keyboard.latin.utils.Log
 import java.io.File
 import java.io.FileNotFoundException
@@ -65,7 +66,7 @@ class StickerContentProvider : ContentProvider() {
         val cursor = MatrixCursor(columns)
 
         // Fetch dynamic packs from internal storage
-        val stickersDir = File(context!!.filesDir, "stickers")
+        val stickersDir = File(DeviceProtectedUtils.getFilesDir(context!!), "stickers")
         if (stickersDir.exists() && stickersDir.isDirectory) {
             stickersDir.listFiles()?.forEach { file ->
                 if (file.isDirectory) {
@@ -104,7 +105,7 @@ class StickerContentProvider : ContentProvider() {
             "animated_sticker_pack"
         )
         val cursor = MatrixCursor(columns)
-        val stickersDir = File(context!!.filesDir, "stickers/$identifier")
+        val stickersDir = File(DeviceProtectedUtils.getFilesDir(context!!), "stickers/$identifier")
         if (stickersDir.exists() && stickersDir.isDirectory) {
             cursor.addRow(arrayOf<Any>(
                 identifier,
@@ -126,7 +127,7 @@ class StickerContentProvider : ContentProvider() {
     private fun getStickersCursor(identifier: String): Cursor {
         val columns = arrayOf("sticker_file_name", "sticker_emoji")
         val cursor = MatrixCursor(columns)
-        val packDir = File(context!!.filesDir, "stickers/$identifier")
+        val packDir = File(DeviceProtectedUtils.getFilesDir(context!!), "stickers/$identifier")
         if (packDir.exists() && packDir.isDirectory) {
             packDir.listFiles()?.forEach { file ->
                 if (file.isFile && file.extension == "webp" && file.name != "tray_icon.png") {
@@ -155,7 +156,7 @@ class StickerContentProvider : ContentProvider() {
             val segments = uri.pathSegments
             val identifier = segments[segments.size - 2]
             val fileName = segments.last()
-            val file = File(context!!.filesDir, "stickers/$identifier/$fileName")
+            val file = File(DeviceProtectedUtils.getFilesDir(context!!), "stickers/$identifier/$fileName")
             if (file.exists()) {
                 return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             }
@@ -169,7 +170,7 @@ class StickerContentProvider : ContentProvider() {
             val segments = uri.pathSegments
             val identifier = segments[segments.size - 2]
             val fileName = segments.last()
-            val file = File(context!!.filesDir, "stickers/$identifier/$fileName")
+            val file = File(DeviceProtectedUtils.getFilesDir(context!!), "stickers/$identifier/$fileName")
             if (file.exists()) {
                 return AssetFileDescriptor(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY), 0, AssetFileDescriptor.UNKNOWN_LENGTH)
             }

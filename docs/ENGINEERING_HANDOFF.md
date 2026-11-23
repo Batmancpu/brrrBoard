@@ -5,7 +5,7 @@ Total output lines: 524
 
 ## 2026-11-23 — current candidate / download / verification boundary
 
-The README's **Download brrBoard for Android** section points to the latest signed release v1.0.251 and contains the current APK size/hash plus install/update instructions. The in-progress product candidate is not a download yet. Local Python contract tests pass; local Gradle cannot access required Maven artifacts, so compile/test the exact candidate SHA through the existing GitHub Actions debug workflow, then require the matching original-signer workflow before publishing. The Android/Oppo acceptance work remains device-side.
+The README's **Download brrBoard for Android** section points to the latest signed release v1.0.252 and contains the APK size/hash plus install/update instructions. PR #9 is an unpublished candidate, not a download. Local Gradle distribution access was refused by the workspace proxy; compile/test the exact candidate SHA through the existing GitHub Actions debug workflow, then require the matching original-signer workflow before publishing. The Android/Oppo acceptance work remains device-side.
 
 Current candidate adds a biometric-only protected route, bounded encrypted note vault, screenshot protection/relock, and default-off one-use circle gesture. The native learned-word dictionary remains unencrypted at the app layer and is a genuine unfinished privacy item; do not mark the broader privacy plan complete. Source and gate details: `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` and `AGENTS.md` top checkpoint.
 

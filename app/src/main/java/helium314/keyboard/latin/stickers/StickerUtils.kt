@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import java.io.File
 import java.io.FileOutputStream
 
@@ -46,7 +47,7 @@ object StickerUtils {
             
             // 2. Prepare the dedicated internal directory
             val packId = "dynamic_pack"
-            val packDir = File(context.filesDir, "stickers/$packId")
+            val packDir = File(DeviceProtectedUtils.getFilesDir(context), "stickers/$packId")
             if (!packDir.exists()) {
                 packDir.mkdirs()
             }

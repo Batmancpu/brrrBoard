@@ -112,11 +112,19 @@
     },
     {
       "title": "Move learned history into credential-protected storage",
-      "detail": "After the user unlocks Android, the keyboard atomically copies legacy native user-history dictionary files from device-protected storage into credential-protected storage, verifies each copy by SHA-256, and deletes a source only after verification. On migration error it fails closed and preserves the source. Android protects credential storage at rest; the native dictionary is not app-layer AES-GCM encrypted."
+      "detail": "After first unlock, the app atomically copies native user-history dictionary files from the legacy device-protected files directory into credential-protected storage, verifies each copy by SHA-256, and deletes a source only after verification. Android's public Context API does not expose a credential-storage context while the app defaults to device-protected storage, so the candidate changes the app default to credential-encrypted storage and explicitly keeps settings, installed voice models, and user gesture libraries on their original device-protected paths. The native dictionary is Android-encrypted at rest, not app-layer AES-GCM encrypted."
     },
     {
       "title": "Make private one-use secret insertion usable and time bounded",
       "detail": "Arming the footer-circle secret now requires a fresh strong-biometric prompt. The secret stays in a volatile character buffer, expires and is wiped after 30 seconds, and is consumed once. It is never put in preferences, backups, clipboard, logs, or a transcript store."
+    },
+    {
+      "title": "Migrate clipboard history behind first unlock",
+      "detail": "The plaintext clipboard-history SQLite database is now stored in Android credential-encrypted storage. An upgrade moves the existing database from device-protected storage only after the user unlocks Android, and never overwrites an existing credential database. The clipboard panel retries initialization after unlock; before unlock it returns no history. Existing settings, Parakeet model files, and user-installed gesture libraries keep their explicit device-protected paths."
+    },
+    {
+      "title": "Keep private learning records and notes available across storage migration",
+      "detail": "Encrypted Emoji/swipe learning records and the biometric note migrate from the old device-protected no-backup directory into credential-encrypted no-backup storage after unlock. Copies are atomically written, SHA-256 verified, bounded, and preserve the source on conflict or failure. Legacy recovered-transcript files are purged from both storage areas; speech transcripts have no persistence path."
     }
   ]
 }

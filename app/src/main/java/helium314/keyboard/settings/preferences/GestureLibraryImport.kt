@@ -2,6 +2,7 @@
 package helium314.keyboard.settings.preferences
 
 import android.content.Context
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import android.net.Uri
 import android.os.Build
 import android.system.Os
@@ -21,7 +22,9 @@ private const val ARM64_MODULE_ENTRY = "system/lib64/libjni_latinimegoogle.so"
 
 internal fun stageGestureLibrary(context: Context, uri: Uri): File {
     val selected = File.createTempFile("gesture-source-", ".tmp", context.cacheDir)
-    val staged = File.createTempFile("gesture-lib-", ".tmp", context.filesDir)
+    val appFilesDir = DeviceProtectedUtils.getFilesDir(context)
+        ?: throw IOException("App data directory unavailable")
+    val staged = File.createTempFile("gesture-lib-", ".tmp", appFilesDir)
     var stagedSuccessfully = false
     try {
         val source = context.contentResolver.openInputStream(uri) ?: throw IOException("Empty selection")
@@ -60,7 +63,9 @@ internal fun stageGestureLibrary(context: Context, uri: Uri): File {
 }
 
 internal fun installGestureLibrary(context: Context, staged: File, checksum: String) {
-    val destination = File(context.filesDir, JniUtils.JNI_LIB_IMPORT_FILE_NAME)
+    val appFilesDir = DeviceProtectedUtils.getFilesDir(context)
+        ?: throw IOException("App data directory unavailable")
+    val destination = File(appFilesDir, JniUtils.JNI_LIB_IMPORT_FILE_NAME)
     Os.rename(staged.absolutePath, destination.absolutePath)
     context.protectedPrefs().edit(commit = true) { putString(Settings.PREF_LIBRARY_CHECKSUM, checksum) }
 }

@@ -4,6 +4,7 @@ package helium314.keyboard.settings.screens.gesturedata
 import android.content.ClipData
 import android.content.ComponentName
 import android.content.Context
+import helium314.keyboard.latin.utils.DeviceProtectedUtils
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -214,7 +215,7 @@ private fun getGestureDataFileName(context: Context): String = context.getString
 
 private fun fileGetDelegate(context: Context, filename: String): File {
     // ensure folder exists
-    val dir = File(context.filesDir, context.getString(R.string.gesture_data_directory))
+    val dir = File(DeviceProtectedUtils.getFilesDir(context), context.getString(R.string.gesture_data_directory))
     if (!dir.exists()) {
         dir.mkdirs()
     }
