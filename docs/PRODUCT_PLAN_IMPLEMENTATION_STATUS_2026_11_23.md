@@ -1,5 +1,7 @@
 # Product plan implementation status — 2026-11-23
 
+> **Current release pointer:** v1.0.257 is now the latest confirmed public APK; see the root README for link, size, and SHA-256. The v1.0.255 boundary below is historical. v1.0.257 release notes report a protected-access fix, model discovery fix, and Toolbar cleanup. The owner still reports biometric failure on-device and has put biometrics on hold; that physical issue is not accepted as solved. Current next-AI requirements: [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md).
+
 ## Download and release boundary
 
 The latest public production APK is original-signed [brrBoard v1.0.255](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.255). Install or update from the [release APK](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.255/brrBoard.apk); it is 63,544,172 bytes and has SHA-256 `8a64fcf8b8f8535c9209751b3c212a79758099262d63f0a1b671cbed40773f1a`. The root README carries the full direct-download, update, fresh-install, Android keyboard setup, and checksum steps. In-place update preserves app-private installed voice weights; uninstalling removes them. This release does not bundle either large Parakeet model.

@@ -3,6 +3,10 @@ Total output lines: 524
 
 # brrBoard engineering handoff
 
+## Current owner direction — 2026-11-23
+
+Read [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md). v1.0.257 is the latest confirmed signed APK. Its notes report a biometric access fix, but the owner says biometrics still fail on-device and has put them on hold. Next candidate should provide an enrolled gesture in the reserved footer gap for protected access and intentional secret insertion; treat this as convenience security, not biometric strength. Current local gesture code is uncommitted and unverified in `/tmp/brrboard-pr9`; preserve it if that workspace is available.
+
 ## 2026-11-23 — current candidate / download / verification boundary
 
 The README's **Download brrBoard for Android** section points to the latest signed release v1.0.252 and contains the APK size/hash plus install/update instructions. PR #9 is an unpublished candidate, not a download. Local Gradle distribution access was refused by the workspace proxy; compile/test the exact candidate SHA through the existing GitHub Actions debug workflow, then require the matching original-signer workflow before publishing. The Android/Oppo acceptance work remains device-side.
