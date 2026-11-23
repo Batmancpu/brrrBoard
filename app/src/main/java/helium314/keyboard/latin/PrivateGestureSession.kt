@@ -20,6 +20,7 @@ object PrivateGestureSession {
     }
 
     @Synchronized
+    @JvmStatic
     fun consume(): String? {
         if (SystemClock.elapsedRealtime() >= expiresAtMs) {
             clearLocked()
