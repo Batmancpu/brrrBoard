@@ -109,9 +109,9 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 
 See the [product-plan implementation status](docs/PRODUCT_PLAN_IMPLEMENTATION_STATUS_2026_11_23.md) for the shipped work, privacy boundaries, and the remaining owner-device checks.
 
-**Latest official APK:** [Download brrBoard v1.0.255](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.255/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.255) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
+**Latest official APK:** [Download brrBoard v1.0.257](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.257/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.257) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
 
-This is the original-signed production APK (`com.mangoloads.board`), 63,544,172 bytes (about 60.6 MiB). Its SHA-256 is `8a64fcf8b8f8535c9209751b3c212a79758099262d63f0a1b671cbed40773f1a`. This update does not bundle either large Parakeet speech model. The signed APK is the installable download; pull-request builds and GitHub Actions debug artifacts are for development and must not be installed over the production app.
+This is the original-signed production APK (`com.mangoloads.board`), 63,544,172 bytes (about 60.6 MiB). Its SHA-256 is `aae9aad384b8f70a3a30ae05c5f55ee66d50bbe7580c675fc25d5ea275b1e8a9`. It fixes protected biometric access, restores discovery of installed models across both private storage areas, and removes obsolete toolbar actions. This update does not bundle either large Parakeet speech model. The signed APK is the installable download; pull-request builds and GitHub Actions debug artifacts are for development and must not be installed over the production app.
 
 #### Update an existing current brrBoard installation
 
