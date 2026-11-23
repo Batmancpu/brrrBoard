@@ -207,11 +207,16 @@ android {
             isIncludeAndroidResources = true
             // Robolectric fetches android-all-instrumented at *test runtime*,
             // independently of Gradle's mavenCentral() repositories. The
-            // repo1.maven.org default can fail on transient CI routing even
-            // after APK assembly succeeds, failing every Robolectric class.
-            // Use the canonical Maven Central host without skipping tests.
+            // Robolectric downloads android-all-instrumented separately from
+            // Gradle dependencies. Maven Central returned HTTP 429 to CI and
+            // caused every Robolectric class to fail before executing. Keep the
+            // full suite enabled and use Google's public Central mirror.
             all {
-                it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+                it.systemProperty(
+                    "robolectric.dependency.repo.url",
+                    "https://maven-central.storage-download.googleapis.com/maven2",
+                )
+                it.systemProperty("robolectric.dependency.repo.id", "google-maven-central")
             }
         }
     }
