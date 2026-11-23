@@ -67,19 +67,19 @@ only gesture workflow.
 
 - The verified baseline is `origin/main` at `981fa30d` (v1.0.257 release
   documentation).
-- At handoff time, the shared developer workspace also has a local branch
-  `fix/biometric-crash-toolbar-model-20261123` with uncommitted custom-gesture
-  work in `/tmp/brrboard-pr9`. The files are `PrivateFooterGestureView.kt`,
-  `PrivateGestureSession.kt`, `PrivateGestureTrace.kt`, `PrivateGestureVault.kt`,
-  `PrivateGestureSetupPanel.kt`, `ProtectedPrivacyScreen.kt`,
-  `BoardFooterView.kt`, and `FocusedSettingsScreens.kt`. That implementation
-  has not passed compile/CI and is not committed or on GitHub. If the same
-  workspace is available, preserve it and inspect `git status`/diffs; do not
-  reset, clean or overwrite it. If starting from a clean clone, this handoff
-  carries the requirements but not that uncommitted source.
-- No post-v1.0.257 custom-gesture APK has been built or published. v1.0.257 is
-  the confirmed installable APK until exact-source Android CI and original
-  signer evidence establish a later release.
+- The custom-gesture source candidate is now preserved on GitHub branch
+  [`wip/private-footer-gesture-20261123`](https://github.com/Batmancpu/brrrBoard/tree/wip/private-footer-gesture-20261123),
+  commit `75a4db30`, based on v1.0.257 main. It changes `BoardFooterView.kt`,
+  `PrivateFooterGestureView.kt`, `PrivateGestureSession.kt`,
+  `PrivateGestureTrace.kt`, `PrivateGestureVault.kt`,
+  `PrivateGestureSetupPanel.kt`, `ProtectedPrivacyScreen.kt`, and
+  `FocusedSettingsScreens.kt`.
+- This is **WIP source only**: no compile/full-suite CI or device acceptance has
+  passed for commit `75a4db30`; it is not merged to main and no post-v1.0.257
+  APK exists. Preserve the branch and continue its implementation/testing; do
+  not treat it as a release. The v1.0.257 signed APK remains the confirmed
+  installable version until matching CI, original-signer evidence and a new
+  release establish otherwise.
 
 ## Other owner requirements to preserve
 
