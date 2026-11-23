@@ -132,6 +132,7 @@ public final class InputView extends FrameLayout {
 
     public void refreshBoardPrivacy() {
         if (mFooter != null) mFooter.refreshPrivacyState();
+        if (mFooter != null) mFooter.refreshPrivateGestureAvailability();
     }
 
     @Override

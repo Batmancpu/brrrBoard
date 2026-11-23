@@ -104,9 +104,18 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 
 ## Make it your keyboard.
 
-1. **[Download `brrBoard.apk`](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk)** from the latest GitHub release. Android may ask your browser or file manager for permission to install the APK.
-2. Open brrBoard and follow **Enable keyboard** in the setup wizard. Android's input-method warning is a normal security reminder; please review the [privacy policy](PRIVACY_POLICY.md) before enabling any keyboard.
-3. Choose **Switch to brrBoard** in the wizard or Android's keyboard picker. You're ready to type.
+### Download brrBoard for Android
+
+The installable package is the **original-signed release APK**. Download it from the [latest release page](https://github.com/Batmancpu/brrrBoard/releases/latest) or use the direct [latest `brrBoard.apk` link](https://github.com/Batmancpu/brrrBoard/releases/latest/download/brrBoard.apk). The current published release is **v1.0.251**; its APK is 63,511,404 bytes and SHA-256 is `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. The release notes and assets are on the [v1.0.251 page](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251).
+
+1. Download `brrBoard.apk` from that release page. Do not install an Actions debug artifact as a replacement for the signed release.
+2. If Android blocks the installer, allow **Install unknown apps** for the browser or file manager you used, then return to the APK and install it. Android may ask you to confirm an update from the same signer.
+3. Open brrBoard and follow **Enable keyboard** in the setup wizard. Review the [privacy policy](PRIVACY_POLICY.md) and Android's input-method warning before enabling any keyboard.
+4. Choose **Switch to brrBoard** in the wizard or select it from Android's keyboard picker.
+
+For automatic signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates. A new APK is available only after the exact-source build and original-signer release workflow passes; commits, draft PRs, and debug artifacts are not published releases.
+
+The normal update does not include large speech-recognition weights: an already-installed private voice model is reused. A first-time installation or deliberate model recovery uses the separate model-inclusive bootstrap described [below](#before-using-voice-or-swipe).
 
 For straightforward signed updates, add [`https://github.com/Batmancpu/brrrBoard`](https://github.com/Batmancpu/brrrBoard) to [Obtainium](docs/OBTAINIUM.md). Keep the same app package and signing identity for in-place updates.
 

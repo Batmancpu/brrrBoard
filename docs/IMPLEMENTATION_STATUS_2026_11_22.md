@@ -1,5 +1,9 @@
 # Final update implementation status — 2026-11-22
 
+## 2026-11-23 — current unpublished candidate
+
+The previous release remains v1.0.251; download and verified integrity details are in the README. This source checkout has additional settings, voice, ContextLM-test, and biometric privacy work. The protected note vault and default-off one-use circle gesture are now present in source, but this candidate has not passed exact-SHA Android CI or original signing; it is not an APK download. Local Python contracts pass, while local Gradle dependency resolution is blocked by unavailable Maven access. The learned native dictionary is still not app-layer encrypted, and Oppo biometric/gesture behavior is unverified. See `BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` for the remaining plan.
+
 ## Owner GO — private hold-to-talk shipped in v1.0.251
 
 Original-signed [v1.0.251](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251) ships long-press/release dictation, guarded live provisional text outside Incognito, final-only Incognito delivery, default-on auto-send only for hold-to-talk in `IME_ACTION_SEND` fields, swipe-to-Cancel mic-to-bin feedback, important-action haptics, and removal/purging of recovered transcript persistence. No spoken accessibility announcement is used. Pause-aware batching uses a bounded amplitude heuristic and the existing six-second hard cap; no neural VAD weights are bundled. Source `2f2e7424883fab5f597e4f2c3889ec6bfb00ee29` passed feature debug/full suite `45057840833`, main debug/full suite `45058407501`, and original-signer release `45058407505`. APK size 63,511,404 bytes, SHA-256 `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`; no Parakeet model weights were bundled. Physical interaction acceptance remains owner-side. Full details: [hold-to-talk implementation](VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md).

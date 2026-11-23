@@ -3,6 +3,12 @@ Total output lines: 1475
 
 # brrBoard project context
 
+## 2026-11-23 — release pointer and current security candidate
+
+Latest published release remains original-signed [v1.0.251](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.251); the README now has direct download, install, update, size, and hash details. Current local source work is still an unpublished candidate. It contains the settings/voice follow-up, default-off experimental ContextLM device test from `bf64218`, a strong-biometric-only protected note and detailed Brain view, and a default-off one-use private footer gesture. Exact-SHA Android CI and original-signer workflows are required before a new APK exists. The Android platform/Oppo biometric and gesture behaviors are not physically verified.
+
+Private notes use an auth-per-operation Android Keystore AES-GCM key, atomic app-private no-backup storage, and a secure window. The gesture requires explicit one-use arming and is restricted to ordinary nonprivate prose fields. Existing native user-history dictionary data is **not yet app-layer encrypted**; its direct file/mmap writer makes a crash-safe migration nontrivial. No claim that every local data file is encrypted is valid yet. See `docs/BIOMETRIC_PRIVACY_AND_PRIVATE_GESTURE_PLAN_2026_11_23.md` for the live ledger.
+
 ## 2026-11-22 — v1.0.234 released; remaining Reno10 diagnostics
 
 Product source `34a55cef5401f18cceb0dcba06a0d65fd27b4b0e` passed full debug/unit CI `44988353702` and original-signer release `44988353733`. [v1.0.236](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.236) is non-prerelease; APK 64,985,587 bytes, SHA-256 `5523a7f3dca0bd040572de82c51d3c08fbfa3748ca58e76a8d452c3bcdd390db`. It contains v1.0.234's editor-bound Smart Emoji snapshot and one-tap content-free Emoji layout report, plus cached GPU RenderNode source recordings for Emoji/Clipboard/Toolbar glass with explicit scroll/layout/size/content invalidation. Owner supplied the trace; diagnosis and candidate fix for the 56dp stale Search-results sibling appear below. ContextLM stays off after the corrected holdout/fusion still lost; Ultra stays out of the APK pending target-device language, latency and memory results. Evidence: `docs/QUALITY_GATE_REEVALUATION_2026_11_22.md`.

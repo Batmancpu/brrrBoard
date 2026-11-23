@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Add biometric protected BR Brain details and an encrypted private note vault; retain existing offline typing and voice privacy behavior.",
+  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; add biometric-only protected data and retain on-device voice models.",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -87,8 +87,12 @@
       "detail": "Settings → BR Brain now includes a small experimental Hindi-English ContextLM toggle and live, content-free scoring and latency counters. It runs locally only in eligible text fields, reranks existing manual suggestions, and never changes automatic correction. The candidate did not pass the fixed public-corpus quality gate, so the test is off by default and clearly marked experimental. No Parakeet weights or voice A/B test are included."
     },
     {
-      "title": "Protect detailed BR Brain and add a private note vault",
-      "detail": "A 2.5-second hold on Privacy & protected apps opens a separate protected area using Android strong biometrics only, with no device PIN or password fallback. The ordinary BR Brain screen now omits personal usage counters; detailed counters stay behind the biometric route. The protected area includes one small AES-GCM encrypted note in Android no-backup storage, with a Keystore key requiring biometric authorization for each encryption or decryption operation. No note is copied automatically, and the vault locks when the app leaves the foreground. The private keyboard gesture and encrypted migration of native learned-word files are not part of this update."
+      "title": "Add biometric-only protected data",
+      "detail": "Hold Privacy & protected apps to open a separate strong-biometric-only area with an encrypted local note vault and detailed BR Brain counters. The vault uses an Android Keystore AES-GCM key per operation, is excluded from backup, locks when the app backgrounds, and suppresses screenshots while open. Device PIN/password fallback is not enabled."
+    },
+    {
+      "title": "Add a default-off one-use private gesture",
+      "detail": "After biometric access, the user may explicitly arm a circle gesture for 30 seconds. A visible footer cue appears only while the gesture can be used; the gesture is one-use, RAM-only, and rejects incognito, password/no-learning, protected-app, dictation, and accessibility touch-exploration contexts. It is not a biometric fallback, and the native learned-word dictionary remains unchanged."
     }
   ]
 }

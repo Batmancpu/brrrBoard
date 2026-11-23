@@ -5,7 +5,6 @@ import helium314.keyboard.settings.LocalSearchState
 import helium314.keyboard.settings.StaticSearchField
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut

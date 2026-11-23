@@ -1456,6 +1456,7 @@ public class LatinIME extends InputMethodService implements
         }
         MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
+        if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
 
         if (editorInfo == null) {
             Log.e(TAG, "Null EditorInfo in onStartInputView()");
@@ -2224,6 +2225,28 @@ public class LatinIME extends InputMethodService implements
         mInputLogic.restartSuggestionsOnWordTouchedByCursor(mSettings.getCurrent(),
                 mKeyboardSwitcher.getCurrentKeyboardScript());
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+    }
+
+    /**
+     * Consume the one-use, short-lived vault authorization only in an ordinary prose field.
+     * This path uses the normal editor transaction but never feeds the secret to personalization.
+     */
+    public boolean insertArmedPrivateGestureSecret() {
+        if (!isInputViewShown() || getCurrentInputConnection() == null) return false;
+        final SettingsValues current = mSettings.getCurrent();
+        if (current == null) return false;
+        final var attributes = current.mInputAttributes;
+        final String targetPackage = attributes.mTargetApplicationPackageName;
+        if (!attributes.mIsGeneralTextInput || attributes.mNoLearning || attributes.mIsPasswordField
+                || current.mIncognitoModeEnabled
+                || SecureAppsPolicy.isSecure(KtxKt.prefs(this), targetPackage)
+                || !KtxKt.prefs(this).getBoolean(PrivateGestureSession.PREF_ENABLED, false)) {
+            return false;
+        }
+        final String privateText = PrivateGestureSession.consume();
+        if (privateText == null || privateText.isEmpty()) return false;
+        onPrivateVoiceTextInput(privateText);
+        return true;
     }
 
     /** Only a deliberate tap in Clipboard may place an undelivered transcript. */

@@ -11,8 +11,10 @@ import android.os.CancellationSignal
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.AtomicFile
+import android.view.WindowManager
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -21,6 +23,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -36,6 +39,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.latin.PrivateGestureSession
+import helium314.keyboard.latin.utils.prefs
 import java.io.File
 import java.security.KeyStore
 import javax.crypto.Cipher
@@ -104,7 +109,12 @@ private object PrivateVaultStore {
         val encrypted = bytes.copyOfRange(4 + IV_BYTES, bytes.size)
         return try {
             cipher.updateAAD(aad())
-            String(cipher.doFinal(encrypted), Charsets.UTF_8)
+            val plaintext = cipher.doFinal(encrypted)
+            try {
+                String(plaintext, Charsets.UTF_8)
+            } finally {
+                plaintext.fill(0)
+            }
         } finally {
             encrypted.fill(0)
             bytes.fill(0)
@@ -113,6 +123,8 @@ private object PrivateVaultStore {
 
     fun delete(context: Context) {
         file(context).delete()
+        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        store.deleteEntry(KEY_ALIAS)
     }
 
     private fun getOrCreateKey(): SecretKey {
@@ -157,7 +169,22 @@ fun ProtectedPrivacyScreen(
     var promptPending by remember { mutableStateOf(false) }
     var hasNote by remember { mutableStateOf(PrivateVaultStore.hasNote(context)) }
     var note by remember { mutableStateOf("") }
+    var privateGestureEnabled by remember {
+        mutableStateOf(context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false))
+    }
     var status by remember { mutableStateOf("Confirm a strong biometric to open this protected area.") }
+
+    DisposableEffect(activity) {
+        val window = activity?.window
+        val wasSecure = window != null && (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose {
+            PrivateGestureSession.clear()
+            if (window != null && !wasSecure) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+    }
 
     fun prompt(cipher: Cipher? = null, onSuccess: (Cipher?) -> Unit) {
         if (Build.VERSION.SDK_INT < 30 || activity == null) {
@@ -185,10 +212,12 @@ fun ProtectedPrivacyScreen(
                     promptPending = false
                     authenticated = false
                     note = ""
+                    PrivateGestureSession.clear()
                     status = "Still locked: $errString"
                 }
 
                 override fun onAuthenticationFailed() {
+                    PrivateGestureSession.clear()
                     status = "Biometric not recognized. Protected data remains locked."
                 }
             }
@@ -208,6 +237,7 @@ fun ProtectedPrivacyScreen(
             if (event == Lifecycle.Event.ON_STOP) {
                 authenticated = false
                 note = ""
+                PrivateGestureSession.clear()
                 status = "Locked when the app left the foreground."
             }
         }
@@ -285,10 +315,39 @@ fun ProtectedPrivacyScreen(
                         OutlinedTextField(value = note, onValueChange = { note = it },
                             modifier = Modifier.fillMaxWidth(), label = { Text("Decrypted private note") },
                             minLines = 3, maxLines = 6)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                                Text("One-use circle gesture", style = MaterialTheme.typography.titleSmall)
+                                Text("Off by default. After biometric unlock, arm one use for 30 seconds.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = privateGestureEnabled, onCheckedChange = { checked ->
+                                privateGestureEnabled = checked
+                                context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, checked).apply()
+                                PrivateGestureSession.clear()
+                                status = if (checked) "Gesture enabled. Unlock the note and arm each use explicitly."
+                                    else "Private gesture disabled and any armed use cleared."
+                            })
+                        }
+                        if (privateGestureEnabled) {
+                            OutlinedButton(onClick = {
+                                if (PrivateGestureSession.arm(note)) {
+                                    status = "Armed for one circle in the keyboard footer center for 30 seconds."
+                                } else {
+                                    status = "Could not arm a blank or oversized private note."
+                                }
+                            }) { Text("Arm one use (30 seconds)") }
+                        }
                         Button(onClick = {
                             try { prompt(PrivateVaultStore.newEncryptOperation(context)) { cipher ->
                                 try {
                                     PrivateVaultStore.save(context, requireNotNull(cipher), note)
+                                    PrivateGestureSession.clear()
                                     status = "Private note updated."
                                 } catch (_: Exception) { status = "Could not update the note; encrypted data was retained." }
                             } } catch (_: Exception) { status = "Could not prepare encrypted storage." }
@@ -301,6 +360,9 @@ fun ProtectedPrivacyScreen(
                                     .setNegativeButton("Cancel", null)
                                     .setPositiveButton("Delete") { _, _ ->
                                         PrivateVaultStore.delete(context)
+                                        PrivateGestureSession.clear()
+                                        context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, false).apply()
+                                        privateGestureEnabled = false
                                         note = ""
                                         hasNote = false
                                         status = "Private note deleted."
