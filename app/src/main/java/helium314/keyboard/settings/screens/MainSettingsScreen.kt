@@ -80,6 +80,9 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
 import android.view.inputmethod.InputMethodManager
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -108,13 +111,12 @@ import helium314.keyboard.latin.voice.VoiceModelManifest
 import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import kotlinx.coroutines.delay
 import helium314.keyboard.latin.utils.JniUtils
-import helium314.keyboard.latin.utils.SubtypeLocaleUtils.displayName
-import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.NextScreenIcon
 import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.SafeCrashReport
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.latin.utils.Theme
@@ -191,10 +193,6 @@ fun MainSettingsScreen(
             }
         }
 
-        val enabledSubtypes = remember(b?.value) { SubtypeSettings.getEnabledSubtypes(true) }
-        val enabledSubtypeNames = remember(enabledSubtypes) {
-            enabledSubtypes.joinToString(", ") { it.displayName() }
-        }
         // Android's actual keyboard enable/default state is the only setup criterion.
         // Optional swipe typing or dictionary preferences are not unfinished setup.
         val imm = remember(ctx) { ctx.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager }
@@ -240,13 +238,7 @@ fun MainSettingsScreen(
                 title = "Appearance & glass",
                 description = "Themes, frosted glass and visual details",
                 onClick = onClickAppearance,
-                isFirst = true
-            )
-            Md3ePreference(
-                icon = "language",
-                title = stringResource(R.string.language_and_layouts_title),
-                description = enabledSubtypeNames,
-                onClick = onClickLanguage,
+                isFirst = true,
                 isLast = true
             )
         }
@@ -297,7 +289,7 @@ fun MainSettingsScreen(
             Md3ePreference(
                 icon = "shield",
                 title = "Privacy & protected apps",
-                description = "Tap for privacy controls · hold 2.5 seconds for biometric-only data",
+                description = "Private apps, incognito and sensitive-field controls",
                 onClick = onClickPrivacy,
                 onLongClick = onClickProtectedPrivacy,
                 holdDurationMillis = 2500,
@@ -324,11 +316,23 @@ fun MainSettingsScreen(
         ) {
             Md3ePreferenceGroup("Advanced controls") {
                 Md3ePreference(
+                    icon = "language",
+                    title = stringResource(R.string.language_and_layouts_title),
+                    description = "Manage enabled languages and layouts",
+                    onClick = onClickLanguage,
+                    isFirst = true,
+                )
+                Md3ePreference(
+                    icon = "view_quilt",
+                    title = "Keyboard layout variants",
+                    description = "Configure alternate layouts for enabled languages",
+                    onClick = onClickLayouts,
+                )
+                Md3ePreference(
                     icon = "keyboard",
                     title = "Keys & layout",
                     description = "Number row, key hints, spacing and shortcuts",
                     onClick = onClickKeys,
-                    isFirst = true,
                 )
                 Md3ePreference(
                     icon = R.drawable.ic_board_toolbar,
@@ -376,6 +380,18 @@ fun MainSettingsScreen(
                     title = "Compatibility & advanced",
                     description = "Detailed behavior, diagnostics and compatibility",
                     onClick = onClickAdvanced,
+                )
+                Md3ePreference(
+                    icon = "bug_report",
+                    title = "Copy safe crash report",
+                    description = "Copies the last crash type and code frames only; no typed text, audio or transcript",
+                    onClick = {
+                        val report = SafeCrashReport.copyText(ctx)
+                        ctx.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                            ClipData.newPlainText("brrBoard safe crash report", report)
+                        )
+                        Toast.makeText(ctx, "Safe report copied", Toast.LENGTH_SHORT).show()
+                    },
                 )
                 Md3ePreference(
                     icon = "backup",
@@ -454,8 +470,13 @@ fun Md3ePreference(
                 }
                 if (releasedNormally == null) {
                     hostView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    holdAction()
-                    awaitPointerEventScope { waitForUpOrCancellation() }
+                    // Finish the pointer gesture before navigation replaces this node.
+                    // Navigating while the pointer coroutine is active can tear down the
+                    // route during dispatch on some OEM Compose builds.
+                    val releasedAfterHold = awaitPointerEventScope {
+                        waitForUpOrCancellation() != null
+                    }
+                    if (releasedAfterHold) holdAction()
                 } else if (releasedNormally) {
                     onClick()
                 }

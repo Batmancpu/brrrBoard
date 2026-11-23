@@ -4,6 +4,7 @@ package helium314.keyboard.latin.voice
 import android.content.Context
 import android.os.Build
 import android.os.StatFs
+import android.os.UserManager
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -28,19 +29,33 @@ internal object VoiceModelInstaller {
 
     fun modelDir(context: Context): File = modelDir(context, VoiceModelManifest.pack)
     fun modelDir(context: Context, pack: VoiceModelPack): File {
-        // Model packs are large and do not contain user text. Preserve their
-        // legacy pre-unlock location across the app's move to credential storage.
-        val storage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-            context.createDeviceProtectedStorageContext() else context
-        return File(storage.noBackupFilesDir, pack.modelDir)
+        val directories = modelDirectories(context, pack)
+        return directories.firstOrNull { isInstalledAt(it, pack) } ?: directories.first()
     }
 
     fun isInstalled(context: Context): Boolean = isInstalled(context, VoiceModelManifest.pack)
 
     fun isInstalled(context: Context, pack: VoiceModelPack): Boolean {
-        val dir = modelDir(context, pack)
+        return modelDirectories(context, pack).any { isInstalledAt(it, pack) }
+    }
+
+    private fun isInstalledAt(dir: File, pack: VoiceModelPack): Boolean {
         if (!File(dir, ".verified-${pack.id}").isFile) return false
         return pack.assets.all { asset -> File(dir, asset.name).length() == asset.size }
+    }
+
+    private fun modelDirectories(context: Context, pack: VoiceModelPack): List<File> {
+        // v1.0.255 changed the app's default storage from device-protected to
+        // credential-protected. Keep finding valid packs in either location;
+        // never copy 600+ MiB simply to change directories during an update.
+        val deviceContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+            context.createDeviceProtectedStorageContext() else context
+        val directories = mutableListOf(File(deviceContext.noBackupFilesDir, pack.modelDir))
+        val userManager = context.getSystemService(UserManager::class.java)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || userManager?.isUserUnlocked == true) {
+            directories += File(context.noBackupFilesDir, pack.modelDir)
+        }
+        return directories.distinctBy { it.absolutePath }
     }
 
     fun hasBundled(context: Context, pack: VoiceModelPack): Boolean {

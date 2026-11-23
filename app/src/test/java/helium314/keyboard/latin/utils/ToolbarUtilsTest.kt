@@ -39,11 +39,10 @@ class ToolbarUtilsTest {
     fun pinnedToolbarKeysAreLimitedToFive() {
         val enabled = listOf(
             ToolbarKey.VOICE,
-            ToolbarKey.CLIPBOARD,
             ToolbarKey.NUMPAD,
             ToolbarKey.UNDO,
             ToolbarKey.REDO,
-            ToolbarKey.SETTINGS,
+            ToolbarKey.COPY,
         )
         prefs.edit { putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled)) }
 
@@ -54,74 +53,97 @@ class ToolbarUtilsTest {
     fun persistentToolbarKeyIsExcludedFromMiddlePinnedKeys() {
         val enabled = listOf(
             ToolbarKey.VOICE,
-            ToolbarKey.CLIPBOARD,
             ToolbarKey.NUMPAD,
             ToolbarKey.UNDO,
             ToolbarKey.REDO,
-            ToolbarKey.SETTINGS,
+            ToolbarKey.COPY,
         )
         prefs.edit { putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled)) }
 
         assertEquals(
-            listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.SETTINGS),
+            listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.COPY),
             getPinnedToolbarKeys(prefs, ToolbarKey.VOICE)
         )
     }
 
     @Test
     fun quickPinRefusesSixthMiddlePinnedKey() {
-        val enabled = listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.SETTINGS)
+        val enabled = listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.COPY, ToolbarKey.PASTE)
         prefs.edit {
             putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, ToolbarKey.VOICE.name)
             putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled))
         }
 
-        assertFalse(addPinnedKey(prefs, ToolbarKey.STICKERS))
+        assertFalse(addPinnedKey(prefs, ToolbarKey.RESIZE))
         assertEquals(enabled, getPinnedToolbarKeys(prefs, ToolbarKey.VOICE))
     }
 
     @Test
     fun quickPinRefusesPersistentToolbarKeyDuplicate() {
-        prefs.edit { putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, ToolbarKey.STICKERS.name) }
+        prefs.edit { putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, ToolbarKey.RESIZE.name) }
 
-        assertFalse(addPinnedKey(prefs, ToolbarKey.STICKERS))
-        assertTrue(getPinnedToolbarKeys(prefs, ToolbarKey.STICKERS).isEmpty())
+        assertFalse(addPinnedKey(prefs, ToolbarKey.RESIZE))
+        assertTrue(getPinnedToolbarKeys(prefs, ToolbarKey.RESIZE).isEmpty())
     }
 
     @Test
     fun dragPinFromAccessInsertsAtIndexAndPushesOverflow() {
-        val enabled = listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.SETTINGS)
+        val enabled = listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.COPY, ToolbarKey.PASTE)
         prefs.edit {
             putString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, ToolbarKey.VOICE.name)
             putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled))
         }
 
         assertEquals(
-            listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.STICKERS, ToolbarKey.UNDO, ToolbarKey.REDO),
-            pinToolbarKeyAt(prefs, ToolbarKey.STICKERS, 2)
+            listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.RESIZE, ToolbarKey.REDO, ToolbarKey.COPY),
+            pinToolbarKeyAt(prefs, ToolbarKey.RESIZE, 2)
         )
     }
 
     @Test
     fun dragPinFromAccessAppendsWhenDroppedPastShortRow() {
-        val enabled = listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO)
+        val enabled = listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO)
         prefs.edit { putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled)) }
 
         assertEquals(
-            listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.STICKERS),
-            pinToolbarKeyAt(prefs, ToolbarKey.STICKERS, 99)
+            listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.RESIZE),
+            pinToolbarKeyAt(prefs, ToolbarKey.RESIZE, 99)
         )
     }
 
     @Test
     fun dragPinnedKeyMovesExistingKeyWithoutDuplicating() {
-        val enabled = listOf(ToolbarKey.CLIPBOARD, ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO)
+        val enabled = listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.COPY)
         prefs.edit { putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(enabled)) }
 
         assertEquals(
-            listOf(ToolbarKey.NUMPAD, ToolbarKey.UNDO, ToolbarKey.CLIPBOARD, ToolbarKey.REDO),
-            pinToolbarKeyAt(prefs, ToolbarKey.CLIPBOARD, 2)
+            listOf(ToolbarKey.UNDO, ToolbarKey.REDO, ToolbarKey.NUMPAD, ToolbarKey.COPY),
+            pinToolbarKeyAt(prefs, ToolbarKey.NUMPAD, 2)
         )
+    }
+
+    @Test
+    fun removedToolbarShortcutsStayHiddenAndArePurgedFromSavedPrefs() {
+        val legacy = listOf(ToolbarKey.SETTINGS, ToolbarKey.CLIPBOARD, ToolbarKey.EMOJI,
+            ToolbarKey.AI_TOOLS, ToolbarKey.UNDO)
+        prefs.edit {
+            putString(Settings.PREF_TOOLBAR_KEYS, pinnedPref(legacy))
+            putString(Settings.PREF_PINNED_TOOLBAR_KEYS, pinnedPref(legacy))
+        }
+
+        assertEquals(listOf(ToolbarKey.UNDO), getEnabledToolbarKeys(prefs))
+        assertEquals(listOf(ToolbarKey.UNDO), getPinnedToolbarKeys(prefs))
+        upgradeToolbarPrefs(prefs)
+
+        val saved = prefs.getString(Settings.PREF_TOOLBAR_KEYS, "").orEmpty()
+        assertFalse(saved.contains("SETTINGS=true"))
+        assertFalse(saved.contains("CLIPBOARD=true"))
+        assertFalse(saved.contains("EMOJI=true"))
+        assertFalse(saved.contains("AI_TOOLS=true"))
+        assertTrue(ToolbarKey.SETTINGS.isAvailableInToolbarUi().not())
+        assertTrue(ToolbarKey.CLIPBOARD.isAvailableInToolbarUi().not())
+        assertTrue(ToolbarKey.EMOJI.isAvailableInToolbarUi().not())
+        assertTrue(ToolbarKey.AI_TOOLS.isAvailableInToolbarUi().not())
     }
 
     private fun pinnedPref(enabled: List<ToolbarKey>): String {

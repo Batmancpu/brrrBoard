@@ -12,6 +12,7 @@ import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.utils.FoldableUtils
 import helium314.keyboard.latin.utils.LayoutUtilsCustom
 import helium314.keyboard.latin.utils.Log
+import helium314.keyboard.latin.utils.SafeCrashReport
 import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.upgradeToolbarPrefs
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
+        SafeCrashReport.install(this)
         // Files written after this cold start may be active recordings. Never delete them.
         val voiceCleanupBoundary = System.currentTimeMillis()
         if (BuildConfig.DEBUG) {
@@ -64,8 +66,9 @@ class App : Application() {
 
         RichInputMethodManager.init(this)
         checkVersionUpgrade(this)
-        if (BuildConfig.DEBUG) // do this on every debug apk start because we may work on adding a new toolbar key
-            upgradeToolbarPrefs(prefs())
+        // Upgrade in production too: this prunes legacy keys that now have dedicated
+        // controls elsewhere, so a normal app update actually removes their old buttons.
+        upgradeToolbarPrefs(prefs())
         transferOldPinnedClips(this) // todo: remove in a few months, maybe end 2026
         app = this
         Defaults.initDynamicDefaults(this)

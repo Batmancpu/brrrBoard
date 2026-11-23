@@ -491,7 +491,7 @@ class AccessPointMenuView @JvmOverloads constructor(
         val reorderedEnabled = mutableListOf<ToolbarKey>()
         for (i in 0 until grid.childCount) {
             val tile = grid.getChildAt(i)
-            val key = tile.tag as? ToolbarKey
+            val key = (tile.tag as? ToolbarKey)?.takeIf { it.isAvailableInToolbarUi() }
             if (key != null) {
                 reorderedEnabled.add(key)
             }
@@ -503,7 +503,8 @@ class AccessPointMenuView @JvmOverloads constructor(
         }
         for (entry in allEntries) {
             val name = entry.substringBefore(Constants.Separators.KV)
-            if (reorderedEnabled.none { it.name == name }) {
+            val existing = runCatching { ToolbarKey.valueOf(name) }.getOrNull()
+            if (existing?.isAvailableInToolbarUi() == true && reorderedEnabled.none { it == existing }) {
                 newEntries.add(entry)
             }
         }

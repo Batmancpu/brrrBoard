@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Coordinate BR Brain suggestions and strengthen local privacy; detailed v1.0.252 download guidance",
+  "summary": "Fix biometric protected access, legacy toolbar actions and offline model detection; preserve the complete product-plan behavior.",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -39,8 +39,8 @@
       "detail": "Emoji Search results and the no-results panel remain hidden whenever Search mode is off, including when an asynchronous refresh arrives after leaving Search. This prevents the fixed 56dp row from taking height above the category tabs and emoji grid. The temporary geometry-report action and logger are removed now that the supplied device trace identified the cause."
     },
     {
-      "title": "Use installed Parakeet Ultra for offline dictation",
-      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The side-by-side comparison screen and oversized test APK workflow are removed. No speech model weights are bundled in this update; verified installed model files remain in private app storage."
+      "title": "Select and preserve installed offline voice models",
+      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The side-by-side comparison screen and oversized test APK workflow are removed. No speech model weights are bundled in this update; verified installed model files remain in private app storage. The compact Parakeet 110M fallback is available under Advanced controls. Model discovery checks both credential-protected and device-protected private storage so an app storage-default change does not make a previously installed pack disappear; it never duplicates or deletes a pack during detection. Parakeet 110M selection is now tucked under Advanced controls as the lower-memory fallback. Ultra remains the everyday model choice when installed; reset does not change the model files, and no speech model weights are added by this change."
     },
     {
       "title": "Keep only important confirmations in Do Not Disturb",
@@ -65,10 +65,6 @@
     {
       "title": "Keep suggestions steady during ChatGPT voice input",
       "detail": "When ChatGPT streams speech into its text field without keyboard typing, brrBoard briefly holds changing prediction rows and shows the latest results after the transcript settles. BR Brain's in-memory performance counters record timing and update counts only; they never retain words, transcripts, audio or screenshots."
-    },
-    {
-      "title": "Put the compact voice model in Advanced controls",
-      "detail": "Parakeet 110M selection is now tucked under Advanced controls as the lower-memory fallback. Ultra remains the everyday model choice when installed; reset does not change the model files, and no speech model weights are added by this change."
     },
     {
       "title": "Move reset into Backup & restore",
@@ -121,6 +117,10 @@
     {
       "title": "Keep private learning records and notes available across storage migration",
       "detail": "Encrypted Emoji/swipe learning records and the biometric note migrate from the old device-protected no-backup directory into credential-encrypted no-backup storage after unlock. Copies are atomically written, SHA-256 verified, bounded, and preserve the source on conflict or failure. Legacy recovered-transcript files are purged from both storage areas; speech transcripts have no persistence path."
+    },
+    {
+      "title": "Fix protected access, toolbar cleanup and update diagnostics",
+      "detail": "Declare the Android USE_BIOMETRIC permission and fail closed if biometric availability cannot be queried; the protected route no longer crashes on permission failure. Long-press navigation now finishes the touch sequence before changing screens, the Privacy row no longer advertises the hidden hold gesture, and BR Brain uses a clear fingerprint-unlock action. Production startup removes legacy Settings, Clipboard, Emoji and AI-tools toolbar entries from saved preferences, while Language & layouts moves into Advanced controls. The voice installer discovers verified models in both Android storage areas without copying large files; the mic error now directs users to local model status instead of claiming an update erased the model. Advanced controls adds one-copy safe crash reporting with stack frames and model/toolbar status only; exception messages, typed text, audio and transcripts are excluded."
     }
   ]
 }

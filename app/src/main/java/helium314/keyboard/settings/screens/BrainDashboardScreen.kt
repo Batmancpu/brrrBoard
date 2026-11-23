@@ -83,7 +83,7 @@ fun BrainDashboardScreen(
                     Text("Correction & suggestion controls")
                 }
                 OutlinedButton(onClick = onUnlockDetails, modifier = Modifier.fillMaxWidth()) {
-                    Text("Hold Privacy & protected apps to unlock private details")
+                    Text("Unlock protected details with fingerprint")
                 }
             }
         }

@@ -147,7 +147,11 @@ enum class ToolbarKey {
     PAGE_UP, PAGE_DOWN, FULL_LEFT, FULL_RIGHT, PAGE_START, PAGE_END, AI_TOOLS, GIFS, STICKERS, RESIZE
 }
 
-private val unavailableToolbarUiKeys = setOf(CLOSE_HISTORY, AI_TOOLS, GIFS, STICKERS)
+// These actions already have dedicated keyboard chrome or are intentionally absent
+// from the toolbar. Filtering them here also removes choices retained by old prefs.
+private val unavailableToolbarUiKeys = setOf(
+    CLOSE_HISTORY, SETTINGS, CLIPBOARD, EMOJI, AI_TOOLS, GIFS, STICKERS,
+)
 
 /** Whether this action is a supported user-facing toolbar choice. */
 fun ToolbarKey.isAvailableInToolbarUi() = this !in unavailableToolbarUiKeys
@@ -159,7 +163,7 @@ enum class ToolbarMode {
 val toolbarKeyStrings = entries.associateWithTo(EnumMap(ToolbarKey::class.java)) { it.toString().lowercase(Locale.US) }
 
 val defaultToolbarPref by lazy {
-    val default = listOf(SETTINGS, CLIPBOARD, UNDO, REDO, SELECT_WORD, COPY, PASTE, SELECT_ALL, ONE_HANDED, SPLIT, INCOGNITO, EMOJI)
+    val default = listOf(UNDO, REDO, SELECT_WORD, COPY, PASTE, SELECT_ALL, ONE_HANDED, SPLIT, INCOGNITO)
     val others = entries.filter { it.isAvailableInToolbarUi() && it !in default }
     default.joinToString(Separators.ENTRY) { it.name + Separators.KV + true } + Separators.ENTRY +
             others.joinToString(Separators.ENTRY) { it.name + Separators.KV + false }
@@ -257,6 +261,7 @@ fun pinToolbarKeyAt(prefs: SharedPreferences, key: ToolbarKey, index: Int): List
 fun setPinnedToolbarKeys(prefs: SharedPreferences, keys: List<ToolbarKey>): List<ToolbarKey> {
     val persistentKey = getPersistentToolbarKey(prefs)
     val pinnedKeys = keys
+        .filter { it.isAvailableInToolbarUi() }
         .filterNot { it == CLOSE_HISTORY || it == persistentKey }
         .distinct()
         .take(MAX_PINNED_TOOLBAR_KEYS)
@@ -287,7 +292,7 @@ private fun getEnabledToolbarKeys(prefs: SharedPreferences, pref: String, defaul
         val split = it.split(Separators.KV)
         if (split.last() == "true") {
             try {
-                ToolbarKey.valueOf(split.first())
+                ToolbarKey.valueOf(split.first()).takeIf { key -> key.isAvailableInToolbarUi() }
             } catch (_: IllegalArgumentException) {
                 null
             }
@@ -299,7 +304,7 @@ private fun getEnabledToolbarKeys(prefs: SharedPreferences, pref: String, defaul
             val split = it.split(Separators.KV)
             if (split.last() == "true") {
                 try {
-                    ToolbarKey.valueOf(split.first())
+                    ToolbarKey.valueOf(split.first()).takeIf { key -> key.isAvailableInToolbarUi() }
                 } catch (_: IllegalArgumentException) {
                     null
                 }

@@ -61,12 +61,18 @@ private object PrivateVaultStore {
     data class DecryptOperation(val cipher: Cipher, val iv: ByteArray)
 
     fun hasNote(context: Context): Boolean {
-        val migrated = NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")
+        val migrated = runCatching {
+            NoBackupStorageMigration.migrateEncryptedRecord(context, "private_note.v1")
+        }.getOrDefault(false)
         if (!migrated) {
-            val legacy = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, "private_note.v1")
-            return legacy.exists() || file(context).baseFile.exists()
+            // If storage cannot be inspected, fail closed as though a note exists. This
+            // prevents the first render from crashing or offering to overwrite a vault.
+            return runCatching {
+                val legacy = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, "private_note.v1")
+                legacy.exists() || file(context).baseFile.exists()
+            }.getOrDefault(true)
         }
-        return file(context).baseFile.exists()
+        return runCatching { file(context).baseFile.exists() }.getOrDefault(true)
     }
 
     fun newEncryptOperation(context: Context): Cipher {
@@ -216,9 +222,14 @@ fun ProtectedPrivacyScreen(
             return
         }
         if (promptPending) return
-        val biometricAvailability = activity.getSystemService(BiometricManager::class.java)
-            ?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-            ?: BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
+        val biometricAvailability = try {
+            activity.getSystemService(BiometricManager::class.java)
+                ?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                ?: BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
+        } catch (_: SecurityException) {
+            // A missing platform permission must degrade to a locked message, never crash Settings.
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
+        }
         if (biometricAvailability != BiometricManager.BIOMETRIC_SUCCESS) {
             PrivateGestureSession.clear()
             status = when (biometricAvailability) {
