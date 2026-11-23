@@ -192,6 +192,21 @@ fun ProtectedPrivacyScreen(
             return
         }
         if (promptPending) return
+        val biometricAvailability = BiometricManager.from(activity)
+            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+        if (biometricAvailability != BiometricManager.BIOMETRIC_SUCCESS) {
+            PrivateGestureSession.clear()
+            status = when (biometricAvailability) {
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+                    "No strong biometric is enrolled. Protected data stays locked; device PIN/password is not a fallback."
+                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+                    "This device has no supported strong biometric. Protected data stays locked."
+                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+                    "The biometric sensor is unavailable. Protected data stays locked."
+                else -> "Strong biometric authentication is unavailable. Protected data stays locked."
+            }
+            return
+        }
         promptPending = true
         try {
             val prompt = BiometricPrompt.Builder(activity)
