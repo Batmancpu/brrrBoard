@@ -1,6 +1,6 @@
 # Product plan implementation status — 2026-11-23
 
-> **Current release pointer:** v1.0.257 is now the latest confirmed public APK; see the root README for link, size, and SHA-256. The v1.0.255 boundary below is historical. v1.0.257 release notes report a protected-access fix, model discovery fix, and Toolbar cleanup. The owner still reports biometric failure on-device and has put biometrics on hold; that physical issue is not accepted as solved. Current next-AI requirements: [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md).
+> **Current release pointer:** v1.0.257 is now the latest confirmed public APK; see the root README for link, size, and SHA-256. The v1.0.255 boundary below is historical. v1.0.257 release notes report a protected-access fix, model discovery fix, and Toolbar cleanup. The owner still reports biometric failure on-device and has put biometrics on hold; that physical issue is not accepted as solved. Current next-AI requirements and the unverified gesture source branch `wip/private-footer-gesture-20261123` (`75a4db30`): [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md).
 
 ## Download and release boundary
 

@@ -5,7 +5,7 @@ Total output lines: 1475
 
 ## Current owner handoff (2026-11-23)
 
-Read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md) first. Latest confirmed public APK is v1.0.257. Despite its release-note fix, the owner reports biometric access still does not work and has put it on hold; a custom enrolled footer gesture is now requested. The handoff records the release evidence, current uncommitted source boundary, security limits, and next implementation gates. Older entries are chronological history.
+Read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md) first. Latest confirmed public APK is v1.0.257. Despite its release-note fix, the owner reports biometric access still does not work and has put it on hold; a custom enrolled footer gesture is now requested. The handoff records release evidence, the WIP gesture branch `wip/private-footer-gesture-20261123` (`75a4db30`), its unverified state, security limits, and next gates. Older entries are chronological history.
 
 ## 2026-11-23 — release pointer and current security candidate
 

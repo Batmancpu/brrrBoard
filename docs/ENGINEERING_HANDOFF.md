@@ -5,7 +5,7 @@ Total output lines: 524
 
 ## Current owner direction — 2026-11-23
 
-Read [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md). v1.0.257 is the latest confirmed signed APK. Its notes report a biometric access fix, but the owner says biometrics still fail on-device and has put them on hold. Next candidate should provide an enrolled gesture in the reserved footer gap for protected access and intentional secret insertion; treat this as convenience security, not biometric strength. Current local gesture code is uncommitted and unverified in `/tmp/brrboard-pr9`; preserve it if that workspace is available.
+Read [`NEXT_AGENT_HANDOFF_2026_11_23.md`](NEXT_AGENT_HANDOFF_2026_11_23.md). v1.0.257 is the latest confirmed signed APK. Its notes report a biometric access fix, but the owner says biometrics still fail on-device and has put them on hold. Next candidate should provide an enrolled gesture in the reserved footer gap for protected access and intentional secret insertion; treat this as convenience security, not biometric strength. The gesture code is preserved but unverified on `wip/private-footer-gesture-20261123` (`75a4db30`); it is not merged or released.
 
 ## 2026-11-23 — current candidate / download / verification boundary
 
