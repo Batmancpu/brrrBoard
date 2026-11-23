@@ -199,8 +199,9 @@ fun ProtectedPrivacyScreen(
             return
         }
         if (promptPending) return
-        val biometricAvailability = BiometricManager.from(activity)
-            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+        val biometricAvailability = activity.getSystemService(BiometricManager::class.java)
+            ?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            ?: BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
         if (biometricAvailability != BiometricManager.BIOMETRIC_SUCCESS) {
             PrivateGestureSession.clear()
             status = when (biometricAvailability) {
@@ -250,6 +251,24 @@ fun ProtectedPrivacyScreen(
             promptPending = false
             authenticated = false
             status = "Biometric protection is unavailable. Protected data remains locked."
+        }
+    }
+
+    fun confirmDeleteNote() {
+        activity?.let { host ->
+            AlertDialog.Builder(host)
+                .setTitle("Delete private note?")
+                .setMessage("This permanently removes the encrypted note.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete") { _, _ ->
+                    PrivateVaultStore.delete(context)
+                    PrivateGestureSession.clear()
+                    context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, false).apply()
+                    privateGestureEnabled = false
+                    note = ""
+                    hasNote = false
+                    status = "Private note deleted."
+                }.show()
         }
     }
 
@@ -374,23 +393,10 @@ fun ProtectedPrivacyScreen(
                                 } catch (_: Exception) { status = "Could not update the note; encrypted data was retained." }
                             } } catch (_: Exception) { status = "Could not prepare encrypted storage." }
                         }, enabled = !promptPending) { Text("Save changes with fingerprint") }
-                        OutlinedButton(onClick = {
-                            activity?.let { host ->
-                                AlertDialog.Builder(host)
-                                    .setTitle("Delete private note?")
-                                    .setMessage("This permanently removes the encrypted note.")
-                                    .setNegativeButton("Cancel", null)
-                                    .setPositiveButton("Delete") { _, _ ->
-                                        PrivateVaultStore.delete(context)
-                                        PrivateGestureSession.clear()
-                                        context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, false).apply()
-                                        privateGestureEnabled = false
-                                        note = ""
-                                        hasNote = false
-                                        status = "Private note deleted."
-                                    }.show()
-                            }
-                        }) { Text("Delete note") }
+                        OutlinedButton(onClick = { confirmDeleteNote() }) { Text("Delete note") }
+                    }
+                    if (note.isEmpty()) {
+                        OutlinedButton(onClick = { confirmDeleteNote() }) { Text("Delete encrypted note") }
                     }
                 }
             }

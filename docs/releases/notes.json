@@ -97,6 +97,10 @@
     {
       "title": "Explain unavailable strong biometrics clearly",
       "detail": "Before showing the protected-area prompt, Settings now checks whether a strong biometric is available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area remains locked in every failure case; device credentials are not substituted."
+    },
+    {
+      "title": "Keep an encrypted note removable after key loss",
+      "detail": "The protected note can still be explicitly deleted after biometric enrollment changes invalidate its encryption key. This removes the ciphertext and stale Keystore key after the protected area itself has been opened with biometrics."
     }
   ]
 }
