@@ -31,7 +31,7 @@ Four reasons to switch: **intelligence that learns locally**, **voice that recog
 | :--- | :--- | :--- |
 | Offline word and next-word suggestions, English/Hinglish typing, and context-aware **Smart Emoji** cues. | Confirmed swipe corrections and eligible Emoji choices can improve later local suggestions. Incognito and protected fields are excluded. | The **BR Brain** dashboard exposes local processing-speed measurements, learning activity and erase controls. No cloud analytics. |
 
-The currently shipped intelligence uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. A separate bilingual neural model is still in development; **we don't claim it is already in the APK**. This is a smarter-feeling alternative built around useful behavior, not inflated AI promises.
+The production suggestion path uses offline dictionaries, native word/gesture candidates, local learning and encrypted Emoji associations. The APK also includes a small Hindi-English ContextLM experiment, but it is **off by default**, limited to optional manual-suggestion reranking, and does not control autocorrection. Its fixed public-corpus quality gate did not pass, so we do not present it as an improvement or as a production ranker.
 
 ## 02 / A voice that doesn't need the cloud.
 
@@ -188,7 +188,7 @@ The keyboard itself does not request Android internet permission. Opening a GitH
 <details>
 <summary>Is BR Brain an online AI service?</summary>
 
-No. Its current word/next-word suggestions, native swipe candidates, local correction learning and Smart Emoji associations run on the device. The separately planned bilingual neural ContextLM is not yet trained or installed; we don't claim unverified model accuracy or superiority over another keyboard.
+No. Word/next-word suggestions, native swipe candidates, local correction learning and Smart Emoji associations run on the device. A small Hindi-English ContextLM experiment is included but off by default after it failed its fixed public-corpus quality gate; it only reranks manual suggestions when explicitly enabled and never changes autocorrection. We don't claim unverified model accuracy or superiority over another keyboard.
 
 </details>
 
