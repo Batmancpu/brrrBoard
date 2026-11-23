@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Add private hold-to-talk with live safe previews, swipe-to-cancel, and no transcript recovery; retain the existing on-device voice engine.",
+  "summary": "Add biometric protected BR Brain details and an encrypted private note vault; retain existing offline typing and voice privacy behavior.",
   "changes": [
     {
       "title": "Add private hold-to-talk with live text and swipe cancel",
@@ -85,6 +85,10 @@
     {
       "title": "Add an opt-in ContextLM test",
       "detail": "Settings → BR Brain now includes a small experimental Hindi-English ContextLM toggle and live, content-free scoring and latency counters. It runs locally only in eligible text fields, reranks existing manual suggestions, and never changes automatic correction. The candidate did not pass the fixed public-corpus quality gate, so the test is off by default and clearly marked experimental. No Parakeet weights or voice A/B test are included."
+    },
+    {
+      "title": "Protect detailed BR Brain and add a private note vault",
+      "detail": "A 2.5-second hold on Privacy & protected apps opens a separate protected area using Android strong biometrics only, with no device PIN or password fallback. The ordinary BR Brain screen now omits personal usage counters; detailed counters stay behind the biometric route. The protected area includes one small AES-GCM encrypted note in Android no-backup storage, with a Keystore key requiring biometric authorization for each encryption or decryption operation. No note is copied automatically, and the vault locks when the app leaves the foreground. The private keyboard gesture and encrypted migration of native learned-word files are not part of this update."
     }
   ]
 }
