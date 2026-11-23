@@ -241,7 +241,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 suggestionsList, requestedEditorGeneration
             )
         } else suggestionsList
-        return SuggestedWords(contextLmSuggestions, suggestionResults.mRawSuggestions,
+        return SuggestedWords(ArrayList(contextLmSuggestions), suggestionResults.mRawSuggestions,
             typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
             rankedEmojiCandidates, emojiSuggestionEditor.takeIf { rankedEmojiCandidates.isNotEmpty() })
     }
