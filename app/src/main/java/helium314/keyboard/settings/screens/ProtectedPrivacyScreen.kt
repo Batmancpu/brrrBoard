@@ -27,6 +27,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -196,124 +199,101 @@ fun ProtectedPrivacyScreen(
     val context = LocalContext.current
     val activity = context.findActivity()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    val gestureConfigured = remember(context) {
+        context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)
+            && PrivateGestureVault.isConfigured(context)
+    }
     var authenticated by remember { mutableStateOf(false) }
     var promptPending by remember { mutableStateOf(false) }
-    var hasNote by remember { mutableStateOf(PrivateVaultStore.hasNote(context)) }
-    var note by remember { mutableStateOf("") }
-    var privateGestureEnabled by remember {
-        mutableStateOf(context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false))
-    }
-    var status by remember { mutableStateOf("Confirm a strong biometric to open this protected area.") }
+    var legacyNote by remember { mutableStateOf<String?>(null) }
+    var status by remember { mutableStateOf("Set up a custom footer gesture in Privacy & protected apps, then use it here.") }
+    val gestureEvent by PrivateGestureSession.eventFlow.collectAsState(initial = null)
 
     DisposableEffect(activity) {
         val window = activity?.window
         val wasSecure = window != null && (window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
         window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         onDispose {
-            if (window != null && !wasSecure) {
-                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            }
+            if (window != null && !wasSecure) window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 
-    fun prompt(cipher: Cipher? = null, onSuccess: (Cipher?) -> Unit) {
-        if (Build.VERSION.SDK_INT < 30 || activity == null) {
-            status = "Biometric-only protection requires Android 11 or newer. This area remains locked."
+    fun promptLegacyNote() {
+        if (Build.VERSION.SDK_INT < 30 || activity == null || promptPending) {
+            status = "The old note remains encrypted and untouched; strong biometric access is paused here."
             return
         }
-        if (promptPending) return
-        val biometricAvailability = try {
+        val availability = try {
             activity.getSystemService(BiometricManager::class.java)
                 ?.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 ?: BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
-        } catch (_: SecurityException) {
-            // A missing platform permission must degrade to a locked message, never crash Settings.
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE
-        }
-        if (biometricAvailability != BiometricManager.BIOMETRIC_SUCCESS) {
-            PrivateGestureSession.clear()
-            status = when (biometricAvailability) {
-                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
-                    "No strong biometric is enrolled. Protected data stays locked; device PIN/password is not a fallback."
-                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-                    "This device has no supported strong biometric. Protected data stays locked."
-                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
-                    "The biometric sensor is unavailable. Protected data stays locked."
-                else -> "Strong biometric authentication is unavailable. Protected data stays locked."
-            }
+        } catch (_: SecurityException) { BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE }
+        if (availability != BiometricManager.BIOMETRIC_SUCCESS) {
+            status = "The legacy note is still encrypted. The biometric sensor is unavailable; no data was changed."
             return
         }
-        promptPending = true
         try {
+            val operation = PrivateVaultStore.newDecryptOperation(context)
             val prompt = BiometricPrompt.Builder(activity)
-                .setTitle("Unlock protected data")
-                .setSubtitle("Use a strong biometric. Device PIN and password are not accepted.")
+                .setTitle("Open previously saved note")
+                .setSubtitle("Strong biometric only; the note stays encrypted if unavailable.")
                 .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 .build()
-            val executor = activity.mainExecutor
-            val callback = object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    promptPending = false
-                    authenticated = true
-                    status = "Protected area unlocked for this foreground session."
-                    onSuccess(result.cryptoObject?.cipher)
-                }
-
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    promptPending = false
-                    authenticated = false
-                    note = ""
-                    PrivateGestureSession.clear()
-                    status = "Still locked: $errString"
-                }
-
-                override fun onAuthenticationFailed() {
-                    PrivateGestureSession.clear()
-                    status = "Biometric not recognized. Protected data remains locked."
-                }
-            }
-            val signal = CancellationSignal()
-            if (cipher == null) prompt.authenticate(signal, executor, callback)
-            else prompt.authenticate(BiometricPrompt.CryptoObject(cipher), signal, executor, callback)
-        } catch (error: Exception) {
+            promptPending = true
+            prompt.authenticate(CancellationSignal(), activity.mainExecutor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        promptPending = false
+                        try {
+                            legacyNote = PrivateVaultStore.read(context, requireNotNull(result.cryptoObject?.cipher))
+                            status = "Legacy note decrypted for this foreground session."
+                        } catch (_: Exception) { status = "Could not decrypt the legacy note; the encrypted file was preserved." }
+                    }
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        promptPending = false
+                        status = "Legacy note remains locked; no content was changed."
+                    }
+                    override fun onAuthenticationFailed() {
+                        status = "Biometric not recognized. Legacy note remains locked."
+                    }
+                })
+        } catch (_: Exception) {
             promptPending = false
-            authenticated = false
-            status = "Biometric protection is unavailable. Protected data remains locked."
+            status = "Could not open the biometric prompt. The existing encrypted note was preserved."
         }
     }
 
-    fun confirmDeleteNote() {
-        activity?.let { host ->
-            AlertDialog.Builder(host)
-                .setTitle("Delete private note?")
-                .setMessage("This permanently removes the encrypted note.")
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Delete") { _, _ ->
-                    PrivateVaultStore.delete(context)
-                    PrivateGestureSession.clear()
-                    context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, false).apply()
-                    privateGestureEnabled = false
-                    note = ""
-                    hasNote = false
-                    status = "Private note deleted."
-                }.show()
+    LaunchedEffect(gestureEvent) {
+        when (gestureEvent) {
+            PrivateGestureSession.Event.Unlocked -> {
+                authenticated = true
+                status = "Protected details unlocked for this foreground session."
+                PrivateGestureSession.cancelCapture()
+                keyboard?.hide()
+            }
+            PrivateGestureSession.Event.Mismatch -> status = "Gesture did not match. Protected details remain locked."
+            is PrivateGestureSession.Event.SampleCaptured -> Unit
+            PrivateGestureSession.Event.SecretInserted, null -> Unit
         }
     }
 
-    LaunchedEffect(activity) { prompt() {} }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
                 authenticated = false
-                note = ""
+                legacyNote = null
+                PrivateGestureSession.lock()
                 status = "Locked when the app left the foreground."
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            PrivateGestureSession.lock()
             authenticated = false
-            note = ""
+            legacyNote = null
         }
     }
 
@@ -326,15 +306,42 @@ fun ProtectedPrivacyScreen(
     } else SearchSettingsScreen(onClickBack = onClickBack, title = "Protected privacy", settings = emptyList()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Biometric privacy", style = MaterialTheme.typography.titleLarge)
+                    Text("Custom gesture access", style = MaterialTheme.typography.titleLarge)
                     Text(status, style = MaterialTheme.typography.bodyMedium)
                     if (!authenticated) {
-                        Button(onClick = { prompt() {} }, enabled = !promptPending) {
-                            Text(if (promptPending) "Waiting for fingerprint…" else "Unlock with fingerprint")
+                        if (!gestureConfigured) {
+                            Text("Set up a private gesture and secret in Settings → Privacy & protected apps first.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            var unlockProbe by remember { mutableStateOf("") }
+                            OutlinedTextField(
+                                value = unlockProbe,
+                                onValueChange = { unlockProbe = "" },
+                                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                                label = { Text("Gesture entry (input is immediately discarded)") },
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                                    autoCorrectEnabled = false,
+                                ),
+                                singleLine = true,
+                            )
+                            Button(onClick = {
+                                PrivateGestureSession.beginUnlock()
+                                focusRequester.requestFocus()
+                                keyboard?.show()
+                                status = "Draw your saved gesture in the center strip below the space bar."
+                            }, enabled = !promptPending) {
+                                Text("Unlock with keyboard gesture")
+                            }
+                            Text("The gesture is limited to the reserved footer strip. This is a convenience unlock; it is less resistant to observation than biometrics.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -345,101 +352,30 @@ fun ProtectedPrivacyScreen(
                         Text("Open detailed BR Brain")
                     }
                 }
-                Text("Private note vault", style = MaterialTheme.typography.titleLarge)
-                Text("One small note, encrypted locally. It is excluded from Android backup and is never copied automatically.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!hasNote) {
-                    OutlinedTextField(
-                        value = note,
-                        onValueChange = { if (it.toByteArray(Charsets.UTF_8).size <= 8 * 1024) note = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Private note") },
-                        minLines = 3,
-                        maxLines = 6,
-                    )
-                    Button(onClick = {
-                        try { prompt(PrivateVaultStore.newEncryptOperation(context)) { cipher ->
-                            try {
-                                requireNotNull(cipher)
-                                PrivateVaultStore.save(context, cipher, note)
-                                hasNote = true
-                                status = "Private note saved with biometric-bound encryption."
-                            } catch (_: Exception) { status = "Could not save the note. It was not stored in plaintext." }
-                        } } catch (_: Exception) { status = "Could not prepare encrypted storage. No plaintext copy was saved." }
-                    }, enabled = note.isNotBlank() && !promptPending) { Text("Save securely") }
-                } else {
-                    OutlinedButton(onClick = {
-                        try {
-                            val operation = PrivateVaultStore.newDecryptOperation(context)
-                            prompt(operation.cipher) { cipher ->
-                                try {
-                                    note = PrivateVaultStore.read(context, requireNotNull(cipher))
-                                    status = "Note decrypted only after biometric authorization."
-                                } catch (_: Exception) { note = ""; status = "The note could not be decrypted; no fallback was used." }
+                Text("Private secret", style = MaterialTheme.typography.titleLarge)
+                Text("The enrolled secret is encrypted on this device and inserted only after the reserved footer gesture matches. It is excluded in Incognito, password, secure-app, no-learning, dictation and accessibility touch-exploration states.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (PrivateVaultStore.hasNote(context)) {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Previously saved biometric note", style = MaterialTheme.typography.titleMedium)
+                            Text("This older note stays encrypted and was not discarded. It still uses its original biometric-bound key.",
+                                style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = ::promptLegacyNote, enabled = !promptPending) {
+                                Text(if (promptPending) "Waiting for fingerprint…" else "Try opening old note")
                             }
-                        } catch (_: Exception) { status = "The note is unavailable or its biometric key was invalidated." }
-                    }, enabled = !promptPending) { Text("Open note with fingerprint") }
-                    if (note.isNotEmpty()) {
-                        OutlinedTextField(value = note, onValueChange = { note = it },
-                            modifier = Modifier.fillMaxWidth(), label = { Text("Decrypted private note") },
-                            minLines = 3, maxLines = 6)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                                Text("One-use circle gesture", style = MaterialTheme.typography.titleSmall)
-                                Text("Off by default. After biometric unlock, arm one use for 30 seconds.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Switch(checked = privateGestureEnabled, onCheckedChange = { checked ->
-                                privateGestureEnabled = checked
-                                context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, checked).apply()
-                                PrivateGestureSession.clear()
-                                status = if (checked) "Gesture enabled. Unlock the note and arm each use explicitly."
-                                    else "Private gesture disabled and any armed use cleared."
-                            })
                         }
-                        if (privateGestureEnabled) {
-                            OutlinedButton(onClick = {
-                                try {
-                                    val operation = PrivateVaultStore.newDecryptOperation(context)
-                                    prompt(operation.cipher) { cipher ->
-                                        try {
-                                            val confirmedSecret = PrivateVaultStore.read(
-                                                context, requireNotNull(cipher))
-                                            if (PrivateGestureSession.arm(confirmedSecret)) {
-                                                status = "Fingerprint confirmed. One circle gesture is armed for 30 seconds."
-                                            } else {
-                                                status = "Could not arm a blank or oversized private note."
-                                            }
-                                            note = ""
-                                        } catch (_: Exception) {
-                                            status = "Could not authorize the private gesture. The note remains locked."
-                                        }
-                                    }
-                                } catch (_: Exception) {
-                                    status = "Could not prepare the biometric authorization."
-                                }
-                            }) { Text("Arm one use (30 seconds)") }
-                        }
-                        Button(onClick = {
-                            try { prompt(PrivateVaultStore.newEncryptOperation(context)) { cipher ->
-                                try {
-                                    PrivateVaultStore.save(context, requireNotNull(cipher), note)
-                                    PrivateGestureSession.clear()
-                                    status = "Private note updated."
-                                } catch (_: Exception) { status = "Could not update the note; encrypted data was retained." }
-                            } } catch (_: Exception) { status = "Could not prepare encrypted storage." }
-                        }, enabled = !promptPending) { Text("Save changes with fingerprint") }
-                        OutlinedButton(onClick = { confirmDeleteNote() }) { Text("Delete note") }
-                    }
-                    if (note.isEmpty()) {
-                        OutlinedButton(onClick = { confirmDeleteNote() }) { Text("Delete encrypted note") }
                     }
                 }
+                if (legacyNote != null) {
+                    OutlinedTextField(value = legacyNote.orEmpty(), onValueChange = {},
+                        modifier = Modifier.fillMaxWidth(), readOnly = true,
+                        label = { Text("Legacy note — read only") }, minLines = 3, maxLines = 6)
+                }
+                Text("Unlocking lasts only while this screen stays in the foreground; returning to another app locks it again.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

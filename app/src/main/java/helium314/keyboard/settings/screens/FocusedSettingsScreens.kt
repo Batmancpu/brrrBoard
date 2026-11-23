@@ -174,7 +174,7 @@ fun PrivacySettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
         Settings.PREF_KEY_USE_PERSONALIZED_DICTS,
         Settings.PREF_USE_CONTACTS,
         Settings.PREF_USE_APPS,
-    )
+    ), footer = { PrivateGestureSetupPanel() },
 )
 
 @Composable

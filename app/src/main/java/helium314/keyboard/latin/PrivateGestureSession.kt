@@ -1,62 +1,151 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
-import android.os.SystemClock
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import helium314.keyboard.latin.utils.prefs
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import java.lang.ref.WeakReference
+import java.util.concurrent.CopyOnWriteArraySet
 
-/** Short-lived, one-use in-memory secret authorization created only after vault decryption. */
+/** Short-lived command state. Enrolled gesture/secret bytes live in [PrivateGestureVault]. */
 object PrivateGestureSession {
-    private const val LIFETIME_MS = 30_000L
-    const val PREF_ENABLED = "pref_private_note_circle_enabled"
-    private var secret: CharArray? = null
-    private var expiresAtMs = 0L
-    private val expiryHandler = Handler(Looper.getMainLooper())
-    private val expireRunnable = Runnable {
-        synchronized(this) {
-            if (SystemClock.elapsedRealtime() >= expiresAtMs) clearLocked()
-        }
+    const val PREF_ENABLED = "pref_private_custom_gesture_enabled_v1"
+
+    enum class CaptureMode { IDLE, ENROLLING, UNLOCKING }
+    sealed interface Event {
+        data class SampleCaptured(val normalizedTrace: FloatArray) : Event
+        data object Unlocked : Event
+        data object Mismatch : Event
+        data object SecretInserted : Event
     }
 
-    @Synchronized
-    fun arm(value: String): Boolean {
-        clearLocked()
-        if (value.isBlank() || value.length > 2048) return false
-        secret = value.toCharArray()
-        expiresAtMs = SystemClock.elapsedRealtime() + LIFETIME_MS
-        expiryHandler.postDelayed(expireRunnable, LIFETIME_MS)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val events = MutableSharedFlow<Event>(extraBufferCapacity = 8)
+    val eventFlow = events.asSharedFlow()
+    private val listeners = CopyOnWriteArraySet<WeakReference<() -> Unit>>()
+    @Volatile private var mode = CaptureMode.IDLE
+    private var armedSecret: CharArray? = null
+    private var unlockExpiresAt = 0L
+
+    fun captureMode(): CaptureMode = mode
+    fun isUnlocked(): Boolean = android.os.SystemClock.elapsedRealtime() < unlockExpiresAt
+
+    fun beginEnrollment() {
+        mode = CaptureMode.ENROLLING
+        notifyChanged()
+    }
+
+    fun beginUnlock() {
+        mode = CaptureMode.UNLOCKING
+        notifyChanged()
+    }
+
+    fun cancelCapture() {
+        mode = CaptureMode.IDLE
+        synchronized(this) { clearArmedSecretLocked() }
+        notifyChanged()
+    }
+
+    fun lock() {
+        mode = CaptureMode.IDLE
+        unlockExpiresAt = 0L
+        synchronized(this) { clearArmedSecretLocked() }
+        notifyChanged()
+    }
+
+    fun addAvailabilityListener(listener: () -> Unit) {
+        listeners.add(WeakReference(listener))
+    }
+
+    fun removeAvailabilityListener(listener: () -> Unit) {
+        listeners.removeAll { it.get() == null || it.get() === listener }
+    }
+
+    /** Called only by the dedicated footer hit zone after a complete single-finger trace. */
+    fun onFooterGesture(context: Context, normalizedTrace: FloatArray): Boolean {
+        when (mode) {
+            CaptureMode.ENROLLING -> {
+                mode = CaptureMode.IDLE
+                events.tryEmit(Event.SampleCaptured(normalizedTrace.copyOf()))
+                notifyChanged()
+                return true
+            }
+            CaptureMode.UNLOCKING -> {
+                val match = PrivateGestureVault.matches(context, normalizedTrace)
+                mode = CaptureMode.IDLE
+                if (match) {
+                    unlockExpiresAt = android.os.SystemClock.elapsedRealtime() + UNLOCK_SESSION_MS
+                    events.tryEmit(Event.Unlocked)
+                } else {
+                    events.tryEmit(Event.Mismatch)
+                }
+                notifyChanged()
+                return match
+            }
+            CaptureMode.IDLE -> Unit
+        }
+
+        if (!context.prefs().getBoolean(PREF_ENABLED, false) ||
+            !PrivateGestureVault.matches(context, normalizedTrace)) return false
+        val secret = PrivateGestureVault.readSecret(context) ?: return false
+        synchronized(this) {
+            clearArmedSecretLocked()
+            armedSecret = secret.copyOf()
+            armedUntil = android.os.SystemClock.elapsedRealtime() + SECRET_LIFETIME_MS
+        }
+        secret.fill('\u0000')
+        notifyChanged()
+        mainHandler.postDelayed({ synchronized(this) { clearArmedSecretLocked() }; notifyChanged() }, SECRET_LIFETIME_MS)
         return true
     }
 
-    @Synchronized
     @JvmStatic
+    @Synchronized
     fun consume(): String? {
-        if (SystemClock.elapsedRealtime() >= expiresAtMs) {
-            clearLocked()
+        if (!contextIsCurrent()) {
+            clearArmedSecretLocked()
             return null
         }
-        val value = secret ?: return null
-        val result = String(value)
-        clearLocked()
+        val current = armedSecret ?: return null
+        val result = String(current)
+        clearArmedSecretLocked()
+        events.tryEmit(Event.SecretInserted)
         return result
     }
 
+    private var armedUntil = 0L
+    private fun contextIsCurrent() = android.os.SystemClock.elapsedRealtime() < armedUntil
+
     @Synchronized
     fun remainingMs(): Long {
-        if (secret == null || SystemClock.elapsedRealtime() >= expiresAtMs) {
-            clearLocked()
+        val remaining = armedUntil - android.os.SystemClock.elapsedRealtime()
+        if (remaining <= 0L || armedSecret == null) {
+            clearArmedSecretLocked()
             return 0L
         }
-        return expiresAtMs - SystemClock.elapsedRealtime()
+        return remaining
     }
 
-    @Synchronized
-    fun clear() = clearLocked()
-
-    private fun clearLocked() {
-        expiryHandler.removeCallbacks(expireRunnable)
-        secret?.fill('\u0000')
-        secret = null
-        expiresAtMs = 0L
+    private fun clearArmedSecretLocked() {
+        armedSecret?.fill('\u0000')
+        armedSecret = null
+        armedUntil = 0L
     }
+
+    private fun notifyChanged() {
+        listeners.removeAll { ref ->
+            val callback = ref.get()
+            if (callback == null) true else {
+                if (Looper.myLooper() == Looper.getMainLooper()) callback()
+                else mainHandler.post(callback)
+                false
+            }
+        }
+    }
+
+    private const val SECRET_LIFETIME_MS = 5_000L
+    private const val UNLOCK_SESSION_MS = 5 * 60_000L
 }

@@ -3,29 +3,25 @@ package helium314.keyboard.latin
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
-import android.graphics.Color
-import kotlin.math.abs
-import kotlin.math.hypot
-import kotlin.math.max
 
-/** Invisible capture zone for an explicitly armed, one-use circle in the empty footer center. */
+/** Dedicated touch zone between footer controls for the optional custom private gesture. */
 class PrivateFooterGestureView(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
     private val xs = FloatArray(MAX_POINTS)
     private val ys = FloatArray(MAX_POINTS)
     private var count = 0
-    private var pathLength = 0f
     private var startedAt = 0L
     private var enabled = false
     private var strokeRejected = false
     private val cuePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val cueRect = RectF()
 
-    var onCircle: (() -> Unit)? = null
+    var onTrace: ((FloatArray) -> Unit)? = null
 
     init {
         isClickable = true
@@ -45,7 +41,7 @@ class PrivateFooterGestureView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (!enabled) return
-        val pillWidth = 68f * density
+        val pillWidth = 92f * density
         val pillHeight = 24f * density
         cueRect.set((width - pillWidth) / 2f, (height - pillHeight) / 2f,
             (width + pillWidth) / 2f, (height + pillHeight) / 2f)
@@ -58,10 +54,15 @@ class PrivateFooterGestureView(context: Context) : View(context) {
         canvas.drawRoundRect(cueRect, pillHeight / 2f, pillHeight / 2f, cuePaint)
         cuePaint.style = Paint.Style.FILL
         cuePaint.textAlign = Paint.Align.CENTER
-        cuePaint.textSize = 10f * density
+        cuePaint.textSize = 9f * density
         cuePaint.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
         cuePaint.color = Color.WHITE
-        canvas.drawText("PRIVATE READY", width / 2f, height / 2f + cuePaint.textSize * .35f, cuePaint)
+        val label = when (PrivateGestureSession.captureMode()) {
+            PrivateGestureSession.CaptureMode.ENROLLING -> "DRAW PRIVATE GESTURE"
+            PrivateGestureSession.CaptureMode.UNLOCKING -> "DRAW TO UNLOCK"
+            PrivateGestureSession.CaptureMode.IDLE -> "PRIVATE GESTURE"
+        }
+        canvas.drawText(label, width / 2f, height / 2f + cuePaint.textSize * .35f, cuePaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -88,9 +89,13 @@ class PrivateFooterGestureView(context: Context) : View(context) {
             }
             MotionEvent.ACTION_UP -> {
                 addPoint(event.x, event.y)
-                val recognized = !strokeRejected && isCircle(event.eventTime)
+                val trace = if (!strokeRejected && event.eventTime - startedAt in MIN_DURATION_MS..MAX_DURATION_MS)
+                    PrivateGestureTrace.normalize(xs, ys, count, density) else null
                 resetStroke()
-                if (recognized) onCircle?.invoke()
+                if (trace != null) {
+                    onTrace?.invoke(trace)
+                    trace.fill(0f)
+                }
                 return true
             }
             MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
@@ -108,40 +113,21 @@ class PrivateFooterGestureView(context: Context) : View(context) {
             resetStroke()
             return
         }
-        if (count > 0) pathLength += hypot(x - xs[count - 1], y - ys[count - 1])
         xs[count] = x
         ys[count] = y
         count++
     }
 
-    private fun isCircle(endTime: Long): Boolean {
-        if (count < 8 || endTime - startedAt !in MIN_DURATION_MS..MAX_DURATION_MS) return false
-        var minX = xs[0]; var maxX = xs[0]; var minY = ys[0]; var maxY = ys[0]
-        for (i in 1 until count) {
-            minX = minOf(minX, xs[i]); maxX = maxOf(maxX, xs[i])
-            minY = minOf(minY, ys[i]); maxY = maxOf(maxY, ys[i])
-        }
-        val boxWidth = maxX - minX
-        val boxHeight = maxY - minY
-        val shortSide = minOf(boxWidth, boxHeight)
-        val longSide = max(boxWidth, boxHeight)
-        if (shortSide < 30f * density || longSide / shortSide > 1.7f) return false
-        val closure = hypot(xs[count - 1] - xs[0], ys[count - 1] - ys[0])
-        if (closure > 0.35f * shortSide || pathLength < 1.35f * (boxWidth + boxHeight)) return false
-        // Reject a near-line ellipse and repeated tiny scribbles by requiring visible area.
-        val areaRatio = (boxWidth * boxHeight) / (width.toFloat() * height.toFloat()).coerceAtLeast(1f)
-        return areaRatio >= 0.12f && abs(boxWidth - boxHeight) <= 0.7f * longSide
-    }
-
     private fun resetStroke() {
+        xs.fill(0f, 0, count.coerceAtMost(xs.size))
+        ys.fill(0f, 0, count.coerceAtMost(ys.size))
         count = 0
-        pathLength = 0f
         startedAt = 0L
     }
 
     companion object {
         private const val MAX_POINTS = 80
-        private const val MIN_DURATION_MS = 180L
-        private const val MAX_DURATION_MS = 3_000L
+        private const val MIN_DURATION_MS = 250L
+        private const val MAX_DURATION_MS = 5_000L
     }
 }

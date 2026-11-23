@@ -119,6 +119,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var lastEmojiUpX = 0f
     private var lastEmojiUpY = 0f
     private var secondEmojiTap = false
+    private val privateGestureAvailabilityListener: () -> Unit = {
+        post { if (ViewCompat.isAttachedToWindow(this)) refreshPrivateGestureAvailability() }
+    }
     private val privacyListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == Settings.PREF_ALWAYS_INCOGNITO_MODE || key == Settings.PREF_SECURE_APPS) {
             post {
@@ -286,15 +289,18 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         val attrs = values.mInputAttributes
         val secure = SecureAppsPolicy.isSecure(context.prefs(), attrs.mTargetApplicationPackageName)
-        val enabled = context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)
+        val captureMode = PrivateGestureSession.captureMode()
+        val settingsCapture = captureMode != PrivateGestureSession.CaptureMode.IDLE
+            && attrs.mTargetApplicationPackageName == context.packageName
+            && !values.mIncognitoModeEnabled && !secure
+        val regularCapture = context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)
             && attrs.mIsGeneralTextInput && !attrs.mNoLearning && !attrs.mIsPasswordField
             && !values.mIncognitoModeEnabled && !secure
+        val enabled = (settingsCapture || regularCapture)
             && !dictationActive && !dictationProcessing && !toolbarNavigationActive
             && !isMicTouchExplorationEnabled()
-            && PrivateGestureSession.remainingMs() > 0
         zone.setCaptureEnabled(enabled)
         zone.removeCallbacks(expirePrivateGestureZone)
-        if (enabled) zone.postDelayed(expirePrivateGestureZone, PrivateGestureSession.remainingMs())
     }
 
     private val expirePrivateGestureZone = Runnable { refreshPrivateGestureAvailability() }
@@ -450,12 +456,22 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         glass.visibility = GONE
         val privateZone = PrivateFooterGestureView(context)
         privateGestureZone = privateZone
-        privateZone.onCircle = {
-            if (this::ime.isInitialized && ime.insertArmedPrivateGestureSecret()) {
+        privateZone.onTrace = { trace ->
+            val modeBeforeCapture = PrivateGestureSession.captureMode()
+            val handled = PrivateGestureSession.onFooterGesture(context, trace)
+            if (handled && modeBeforeCapture == PrivateGestureSession.CaptureMode.IDLE &&
+                context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)) {
+                if (this::ime.isInitialized && ime.insertArmedPrivateGestureSecret()) {
+                    AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
+                } else {
+                    PrivateGestureSession.cancelCapture()
+                }
+            } else if (handled) {
                 AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
-                refreshPrivateGestureAvailability()
             }
+            refreshPrivateGestureAvailability()
         }
+        PrivateGestureSession.addAvailabilityListener(privateGestureAvailabilityListener)
         addView(privateZone, 1, LayoutParams(dp(112), LayoutParams.MATCH_PARENT, Gravity.CENTER))
         // Emoji, ABC and the mic keep their original unframed touch surfaces.
         // Recording/processing illuminate only the exact mic silhouette below.
@@ -1076,6 +1092,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     override fun onDetachedFromWindow() {
         context.prefs().unregisterOnSharedPreferenceChangeListener(privacyListener)
+        PrivateGestureSession.removeAvailabilityListener(privateGestureAvailabilityListener)
         privateGestureZone?.setCaptureEnabled(false)
         reset()
         privateEmojiIcon.stopAnimation()
@@ -1085,6 +1102,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         context.prefs().registerOnSharedPreferenceChangeListener(privacyListener)
+        PrivateGestureSession.addAvailabilityListener(privateGestureAvailabilityListener)
         if (this::ime.isInitialized) syncEmojiPrivacy(animate = false)
         refreshPrivateGestureAvailability()
     }
