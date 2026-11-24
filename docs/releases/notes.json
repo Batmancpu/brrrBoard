@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "One-tap privacy-safe keyboard diagnostic report.",
+  "summary": "First roadmap foundation: stable panel surfaces and bounded correction rejection.",
   "changes": [
     {
-      "title": "Copy diagnostic report",
-      "detail": "Settings → About now copies recent Emoji transition geometry, frame traversal timing, icon ownership and safe crash information in one tap."
+      "title": "Stable panel handoff",
+      "detail": "The sole incoming panel no longer fades from zero after its outgoing panel is hidden; existing dedicated morphs remain."
+    },
+    {
+      "title": "Private correction receipt",
+      "detail": "The existing one-use correction rejection expires at 30 seconds and clears on hide, editor changes and private boundaries. Full original-word recall is still pending."
     }
   ]
 }

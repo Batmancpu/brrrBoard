@@ -31,7 +31,12 @@ public class CorrectionRejectionPolicyTest {
         final var editor = new Object();
         final var connection = new Object();
         policy.reject("teh", "the", editor, connection, 100L);
-        assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 16_000L));
+        assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 30_100L));
+        assertFalse(policy.hasReceipt());
+        policy.reject("teh", "the", editor, connection, 100L);
+        assertTrue(policy.consumeIfMatches("teh", "the", editor, connection, 30_099L));
+        policy.reject("teh", "the", editor, connection, 100L);
+        assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 99L));
         policy.reject("teh", "the", editor, connection, 100L);
         policy.clear();
         assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 110L));

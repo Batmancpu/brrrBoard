@@ -6,7 +6,7 @@ package helium314.keyboard.latin.inputlogic;
  * It never persists words, logs their contents, or changes dictionary scores.
  */
 final class CorrectionRejectionPolicy {
-    private static final long MAX_AGE_MS = 15_000L;
+    static final long MAX_AGE_MS = 30_000L;
     private String original;
     private String corrected;
     private Object editor;
@@ -30,12 +30,14 @@ final class CorrectionRejectionPolicy {
     boolean consumeIfMatches(String typed, String replacement, Object currentEditor,
             Object currentConnection, long now) {
         final boolean matches = original != null && now >= rejectedAt
-                && now - rejectedAt <= MAX_AGE_MS
+                && now - rejectedAt < MAX_AGE_MS
                 && editor == currentEditor && connection == currentConnection
                 && original.equals(typed) && corrected.equals(replacement);
         clear();
         return matches;
     }
+
+    boolean hasReceipt() { return original != null; }
 
     void clear() {
         original = null;

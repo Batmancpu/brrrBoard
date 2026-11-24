@@ -287,6 +287,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     private void clearTransitions() {
+        mPanelTransitionGuard.invalidate();
         EmojiPanelKeyMorph.cancel();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
@@ -321,7 +322,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return;
         }
         // Invalidate the prior end action before cancel(), since cancel may deliver it.
-        final long transitionGeneration = mPanelTransitionGuard.start();
+        mPanelTransitionGuard.start();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
             mRunningAnimator = null;
@@ -356,42 +357,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     : mKeyboardView;
             EmojiPanelKeyMorph.start(mCurrentInputView, source, destination);
         }
-        if (targetPanel == mEmojiPalettesView || targetPanel == mClipboardHistoryView
-                || (targetPanel == mKeyboardView
-                && (outgoingPanel == mEmojiPalettesView
-                    || outgoingPanel == mClipboardHistoryView))) {
-            // The source panel is already hidden by action.run(). Fading the
-            // ONLY remaining alphabet from alpha=0 exposes the host backdrop
-            // as a bright flash. Emoji entry is equally direct: don't hold its
-            // category strip at alpha=0 for a second, artificial animation.
-            targetPanel.setAlpha(1f);
-            return;
-        }
-        // Never fade the keyboard to an empty/black surface when Android has
-        // reduced animations or the panel isn't attached yet.
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-                && !android.animation.ValueAnimator.areAnimatorsEnabled()) {
-            targetPanel.setAlpha(1f);
-            return;
-        }
-        targetPanel.setAlpha(0f);
-        mCurrentAnimatingPanel = targetPanel;
-        mRunningAnimator = targetPanel.animate()
-                .alpha(1f)
-                .setDuration(KeyboardMotionSpec.panelTransitionMillis(targetPanel.getContext()))
-                .withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (!mPanelTransitionGuard.isCurrent(transitionGeneration)
-                                || mCurrentAnimatingPanel != targetPanel) {
-                            return;
-                        }
-                        targetPanel.setAlpha(1f);
-                        mCurrentAnimatingPanel = null;
-                        mRunningAnimator = null;
-                    }
-                });
-        mRunningAnimator.start();
+        // action.run() has already hidden the outgoing surface. Fading its sole
+        // replacement from zero exposes the host backdrop and flashes persistent
+        // controls. Keep the base surface fully opaque; specialized geometry and
+        // glyph transitions own their own visual roles.
+        targetPanel.setAlpha(1f);
     }
 
     /**

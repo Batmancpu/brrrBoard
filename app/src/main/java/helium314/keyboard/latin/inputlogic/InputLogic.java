@@ -141,6 +141,14 @@ public final class InputLogic {
 
     private boolean mJustRevertedACommit = false;
     private final CorrectionRejectionPolicy mCorrectionRejection = new CorrectionRejectionPolicy();
+    private final Runnable mExpireCorrectionRejection = this::clearTransientCorrectionMemory;
+
+    /** Only the transient correction receipt; do not reset normal composition or swipe state. */
+    public void clearTransientCorrectionMemory() {
+        if (!mCorrectionRejection.hasReceipt()) return;
+        mCorrectionRejection.clear();
+        mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
+    }
 
     // RAM-only direct-correction receipt; no touch coordinates are persisted.
     private String mCurrentSwipeSkeleton;
@@ -164,7 +172,7 @@ public final class InputLogic {
 
     /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
     public void clearPendingPrivateLearning() {
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mRejectedSwipeAt = 0L;
@@ -223,7 +231,7 @@ public final class InputLogic {
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
         invalidateSuggestionRequests();
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mLastInteractionUptime = 0L;
@@ -292,7 +300,7 @@ public final class InputLogic {
      */
     public void finishInput() {
         invalidateSuggestionRequests();
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         if (mWordComposer.isComposingWord()) {
@@ -346,7 +354,7 @@ public final class InputLogic {
     public void preparePrivateVoiceDraft() {
         mConnection.finishComposingText();
         resetComposingState(true);
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mWordBeingCorrectedByCursor = null;
@@ -358,7 +366,7 @@ public final class InputLogic {
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice,
             final boolean replaceVoiceDraft) {
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         // Dictated text must not confirm an unrelated swipe-correction candidate.
         mRejectedSwipeSkeleton = null;
         if (fromVoice) mCurrentSwipeSkeleton = null;
@@ -568,7 +576,7 @@ public final class InputLogic {
                 composingSpanEnd)) {
             return false;
         }
-        mCorrectionRejection.clear();
+        clearTransientCorrectionMemory();
         // TODO: the following is probably better done in resetEntireInputState().
         // it should only happen when the cursor moved, and the very purpose of the
         // test below is to narrow down whether this happened or not. Likewise with
@@ -2470,11 +2478,14 @@ public final class InputLogic {
 
         // We have a separator between the word and the cursor: we should show
         // predictions.
-        if (!inputTransaction.getSettingsValues().mIncognitoModeEnabled
-                && !inputTransaction.getSettingsValues().mInputAttributes.mNoLearning) {
+        clearTransientCorrectionMemory();
+        if (mLatinIME.mayUseTransientCorrectionMemory(inputTransaction.getSettingsValues())) {
             mCorrectionRejection.reject(originallyTypedWord.toString(), committedWordString,
                     mLatinIME.getCurrentInputEditorInfo(), mLatinIME.getCurrentInputConnection(),
-                    SystemClock.uptimeMillis());
+                    SystemClock.elapsedRealtime());
+            if (mCorrectionRejection.hasReceipt()) {
+                mLatinIME.mHandler.postDelayed(mExpireCorrectionRejection, CorrectionRejectionPolicy.MAX_AGE_MS);
+            }
         }
         inputTransaction.setRequiresUpdateSuggestions();
         return true;
@@ -2968,9 +2979,17 @@ public final class InputLogic {
         final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();
         final String proposedCorrection = autoCorrectionOrNull != null ? autoCorrectionOrNull.mWord : typedWord;
-        final boolean rejectRepeatedCorrection = mCorrectionRejection.consumeIfMatches(
-                typedWord, proposedCorrection, mLatinIME.getCurrentInputEditorInfo(),
-                mLatinIME.getCurrentInputConnection(), SystemClock.uptimeMillis());
+        boolean rejectRepeatedCorrection = false;
+        if (mCorrectionRejection.hasReceipt()) {
+            mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
+            if (mLatinIME.mayUseTransientCorrectionMemory(settingsValues)) {
+                rejectRepeatedCorrection = mCorrectionRejection.consumeIfMatches(
+                        typedWord, proposedCorrection, mLatinIME.getCurrentInputEditorInfo(),
+                        mLatinIME.getCurrentInputConnection(), SystemClock.elapsedRealtime());
+            } else {
+                mCorrectionRejection.clear();
+            }
+        }
         final String stringToCommit = rejectRepeatedCorrection ? typedWord : proposedCorrection;
         if (stringToCommit != null) {
             final boolean isBatchMode = mWordComposer.isBatchMode();

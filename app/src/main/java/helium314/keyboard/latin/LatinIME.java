@@ -1294,6 +1294,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mInputLogic.clearTransientCorrectionMemory();
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
@@ -1321,6 +1322,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mInputLogic.clearTransientCorrectionMemory();
         mVaultSelectionEpoch++;
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
@@ -1335,6 +1337,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mInputLogic.clearTransientCorrectionMemory();
         mEditorFocusEpoch++;
         mVaultSelectionEpoch++;
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
@@ -1675,6 +1678,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mInputLogic.clearTransientCorrectionMemory();
         SecureAppTemporaryOptOut.clear();
         if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
         mEditorSessionGeneration.invalidate();
@@ -2364,6 +2368,19 @@ public class LatinIME extends InputMethodService implements
                         mSettings.getCurrent().mIncognitoModeEnabled)) return false;
         onPrivateVoiceTextInput(text);
         return true;
+    }
+
+    /** Additional learning/recall must never bypass the protected editor policy. */
+    public boolean mayUseTransientCorrectionMemory(final SettingsValues values) {
+        final EditorInfo editor = getCurrentInputEditorInfo();
+        return values != null && editor != null && getCurrentInputConnection() != null
+                && values.mInputAttributes.mIsGeneralTextInput
+                && !values.mInputAttributes.mNoLearning && !values.mInputAttributes.mIsPasswordField
+                && !values.mInputAttributes.mVaultPrivateEditor
+                && !ClipboardPrivacyPolicy.isPrivateEditor(editor, values.mIncognitoModeEnabled)
+                && !WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editor)
+                && !SecureAppsPolicy.isSecure(KtxKt.prefs(this), editor.packageName)
+                && !helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this);
     }
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
