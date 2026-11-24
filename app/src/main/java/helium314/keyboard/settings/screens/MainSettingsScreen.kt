@@ -151,6 +151,7 @@ fun MainSettingsScreen(
     onClickClipboard: () -> Unit,
     onClickPrivacy: () -> Unit,
     onClickProtectedPrivacy: () -> Unit = {},
+    onClickVault: () -> Unit = {},
     onClickBackup: () -> Unit,
     onClickVoice: () -> Unit,
     onClickBack: () -> Unit,
@@ -160,6 +161,7 @@ fun MainSettingsScreen(
         title = stringResource(R.string.ime_settings),
         settings = emptyList(),
         showBackButton = false,
+        onTitleHold = onClickVault,
     ) {
         val ctx = LocalContext.current
         LaunchedEffect(ctx) {

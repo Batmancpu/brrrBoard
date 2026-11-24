@@ -334,6 +334,12 @@ public final class InputLogic {
         return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, true, replaceVoiceDraft);
     }
 
+    /** Clear composition and private learning state before a direct credential commit. */
+    public void preparePrivateCredential() {
+        preparePrivateVoiceDraft();
+        clearPendingPrivateLearning();
+    }
+
     /** Finish an unrelated typed word without autocorrecting it before the first voice batch. */
     public void preparePrivateVoiceDraft() {
         mConnection.finishComposingText();

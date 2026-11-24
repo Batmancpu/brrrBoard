@@ -60,6 +60,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.movableContentOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.layout
@@ -123,16 +128,31 @@ fun SearchSettingsScreen(
     hideTopSearchBar: Boolean = false,
     showBackButton: Boolean = true,
     filteredItems: ((String) -> List<Setting>)? = null,
+    onTitleHold: (() -> Unit)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null, // overrides settings if not null
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val titleView = LocalView.current
+    val titleHoldAction by androidx.compose.runtime.rememberUpdatedState(onTitleHold)
+    val holdModifier = if (onTitleHold == null) Modifier else Modifier.pointerInput(Unit) {
+        while (true) {
+            awaitPointerEventScope { awaitFirstDown(requireUnconsumed = true) }
+            val released = withTimeoutOrNull(3_000L) {
+                awaitPointerEventScope { waitForUpOrCancellation() != null }
+            }
+            if (released == null) {
+                titleView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                if (awaitPointerEventScope { waitForUpOrCancellation() != null }) titleHoldAction?.invoke()
+            }
+        }
+    }
     SearchScreen(
         onClickBack = onClickBack,
         hideTopSearchBar = hideTopSearchBar,
         showBackButton = showBackButton,
-        title = { Text(title, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+        title = { Text(title, modifier = holdModifier, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         content = {
             if (content == null) {
                 settings.forEach {

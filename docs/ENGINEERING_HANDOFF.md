@@ -1,3 +1,7 @@
+## 2026-11-24 — owner-authorized password gesture candidate
+
+See [VAULT_GESTURE_2026_11_24.md](VAULT_GESTURE_2026_11_24.md). Hold main Settings title three seconds; setup via Android device credential, enroll three consistent traces; encrypted independent vault with dedicated footer-only masked-password commit, no suggestion or voice path. No stale branch merge. Exact-source Android CI, original-signer release and physical Reno10 acceptance pending. One credential initially; ordinary/unmasked fields excluded pending leakage verification. Do not claim release before exact evidence.
+
 Warning: truncated output (original token count: 29616)
 Total output lines: 524
 

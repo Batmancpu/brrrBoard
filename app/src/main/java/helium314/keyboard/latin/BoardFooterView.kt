@@ -51,6 +51,7 @@ import kotlin.math.sin
 class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(context, attrs) {
     private val glass = PanelGlassOverlayView(context)
     private var privateGestureZone: PrivateFooterGestureView? = null
+    private var vaultGestureZone: VaultFooterGestureView? = null
     private lateinit var ime: LatinIME
     private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
     private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
@@ -128,7 +129,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                     requestLayout()
                 }
             }
-        } else if (key == PrivateGestureSession.PREF_ENABLED) {
+        } else if (key == PrivateGestureSession.PREF_ENABLED || key == VaultGestureStore.PREF_ENABLED || key == VaultGestureStore.PREF_FAILURES) {
             post { refreshPrivateGestureAvailability() }
         }
     }
@@ -285,8 +286,15 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun refreshPrivacyState() = syncEmojiPrivacy(animate = true)
 
+    private fun vaultGestureEligible(): Boolean = this::ime.isInitialized &&
+        context.prefs().getBoolean(VaultGestureStore.PREF_ENABLED, false) &&
+        !returnToLetters && !dictationActive && !dictationProcessing && !toolbarNavigationActive &&
+        !trackpadRequested && !confirmationRequested && contextActionOwner == null &&
+        !isMicTouchExplorationEnabled() && ime.isVaultPasswordTarget()
+
     fun refreshPrivateGestureAvailability() {
         val zone = privateGestureZone ?: return
+        vaultGestureZone?.setCaptureEnabled(vaultGestureEligible())
         if (!this::ime.isInitialized) {
             zone.setCaptureEnabled(false)
             return
@@ -350,12 +358,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
      */
     fun setTrackpadMode(active: Boolean) {
         trackpadRequested = active
+        refreshPrivateGestureAvailability()
         updateTrackpadAndConfirmationVisuals()
     }
 
     /** Privacy/destructive rail hides footer legends even outside the iOS theme. */
     fun setConfirmationMode(active: Boolean) {
         confirmationRequested = active
+        refreshPrivateGestureAvailability()
         updateTrackpadAndConfirmationVisuals()
     }
 
@@ -469,6 +479,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             }
         }
         addView(privateZone, 1, LayoutParams(dp(112), LayoutParams.MATCH_PARENT, Gravity.CENTER))
+        val vaultZone = VaultFooterGestureView(context)
+        vaultGestureZone = vaultZone
+        vaultZone.onTrace = { trace ->
+            if (vaultGestureEligible()) ime.insertVaultGesture(trace) { isShown && vaultGestureEligible() }
+        }
+        addView(vaultZone, 2, LayoutParams(dp(112), LayoutParams.MATCH_PARENT, Gravity.CENTER))
         // Emoji, ABC and the mic keep their original unframed touch surfaces.
         // Recording/processing illuminate only the exact mic silhouette below.
         idleMicBackground = microphone.background
@@ -987,6 +1003,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         clearContextAction()
         if (!isShown) return
         contextActionOwner = owner
+        refreshPrivateGestureAvailability()
         contextActionCallback = callback
         val colors = Settings.getValues().mColors
         val dark = KeyboardTheme.isDarkThemeActive(context)
@@ -1033,6 +1050,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val chip = contextAction
         chip.setOnClickListener(null)
         chip.visibility = GONE
+        refreshPrivateGestureAvailability()
     }
 
     private fun startMicPulse() {
@@ -1068,6 +1086,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     }
 
     fun reset() {
+        vaultGestureZone?.setCaptureEnabled(false)
         resetTrackpadVisuals()
         micDiscardRestartTouchArmed = false
         clearMicDiscardFeedback()

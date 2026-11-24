@@ -94,6 +94,7 @@ fun SettingsNavHost(
                 onClickClipboard = { navController.navigate(SettingsDestination.Clipboard) },
                 onClickPrivacy = { navController.navigate(SettingsDestination.Privacy) },
                 onClickProtectedPrivacy = { navController.navigate(SettingsDestination.ProtectedPrivacy) },
+                onClickVault = { navController.navigate("private_vault_setup") },
                 onClickBackup = { navController.navigate(SettingsDestination.Backup) },
                 onClickVoice = { navController.navigate(SettingsDestination.Voice) },
                 onClickBack = ::goBack,
@@ -115,6 +116,9 @@ fun SettingsNavHost(
         composable(SettingsDestination.Sound) { SoundFeedbackScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
+        composable("private_vault_setup") {
+            helium314.keyboard.settings.screens.VaultSetupScreen(onClickBack = ::goBack)
+        }
         composable(SettingsDestination.ProtectedPrivacy) {
             ProtectedPrivacyScreen(
                 onClickBack = ::goBack,

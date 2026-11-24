@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Prioritize complete thoughts with a conservative, pressure-aware 12-second voice safety budget.",
+  "summary": "Add an opt-in encrypted password gesture accessed from the Settings heading.",
   "changes": [
     {
-      "title": "Thought-first continuous transcription",
-      "detail": "Keep a coherent 10–12-second thought together when Smart Turn is available. Flush on a confirmed natural pause or a safe 12-second boundary, reduce to eight seconds when decode falls behind and six seconds under memory pressure, unavailable detection or disabled adaptive mode. Keep the microphone active and preserve raw/protected audio overlap."
+      "title": "Hidden password vault setup",
+      "detail": "Hold the main Settings heading for three seconds and release, confirm the Android device credential, enter a password and enroll three consistent patterns in a practice footer."
     },
     {
-      "title": "Reduce endpoint processing and safely recover long decodes",
-      "detail": "Reuse the existing stateful denoiser and aligned VAD scores, pass only the last eight seconds to Smart Turn and avoid redundant long waveform conversion. Recover ordinary long-decode exceptions using bounded sequential six-second windows. Preserve already-recognized parts if a batch cannot be recovered; flag partial output and disable auto-send."
+      "title": "Isolated password insertion",
+      "detail": "Draw in the dedicated center footer of a masked password editor. Direct commit bypasses swipe decoding, voice and clipboard. Reject stale editors, ordinary text, protected apps and accessibility touch exploration; no auto-submit."
     },
     {
-      "title": "Preserve offline privacy and existing speech models",
-      "detail": "No new model weights, runtime download, permissions or signing changes. Add tests for adaptive limits, continuous audio, protected alignment, smaller retry windows and partial-result safety. Physical Reno10 speed and accuracy remain to be measured."
+      "title": "Encrypted local mapping",
+      "detail": "AES-256-GCM in no-backup storage with Android Keystore; Smart mode uses recent device credential authentication, explicit Instant mode requires an unlocked secure device. Five failed matches require reauthentication. Preserve legacy biometric note and all voice code. Physical device validation pending."
     }
   ]
 }

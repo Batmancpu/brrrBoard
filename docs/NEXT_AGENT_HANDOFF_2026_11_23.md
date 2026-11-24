@@ -1,3 +1,7 @@
+## 2026-11-24 — owner-authorized password gesture candidate
+
+See [VAULT_GESTURE_2026_11_24.md](VAULT_GESTURE_2026_11_24.md). Hold main Settings title three seconds; setup via Android device credential, enroll three consistent traces; encrypted independent vault with dedicated footer-only masked-password commit, no suggestion or voice path. No stale branch merge. Exact-source Android CI, original-signer release and physical Reno10 acceptance pending. One credential initially; ordinary/unmasked fields excluded pending leakage verification. Do not claim release before exact evidence.
+
 ## Verified v1.0.269 release — 2026-11-24
 
 Source `580c8209707b0a614be97ec34afb4cda2fc5868b`. Exact debug 45335526847 and original-signed Obtainium 45335527009 completed successfully; full unit tests, model/packaging and offline privacy gates passed. APK 75,525,709 bytes; SHA-256 `4e4eb4d831417fa7a7f4485fcc871afc2a0d0ae974a77cb20b92a5f7c3edf43d`. https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.269/brrBoard.apk . Physical Reno10 accuracy, peak native memory, battery and latency measurements remain pending. The broader UI efficiency source audit found an old-layout strong-cache retention opportunity; no speculative UI optimization was shipped in this voice safety release.

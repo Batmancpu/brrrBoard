@@ -223,6 +223,7 @@ public class LatinIME extends InputMethodService implements
         }
     };
     private long mEditorFocusEpoch;
+    private long mVaultSelectionEpoch;
     private long mInlineRequestEpoch = -1;
 
     private RichInputMethodManager mRichImm;
@@ -1301,6 +1302,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInputView(final EditorInfo editorInfo, final boolean restarting) {
+        mVaultSelectionEpoch++;
         if (mInputView instanceof InputView) ((InputView) mInputView).resetBoardGesture();
         mHandler.onStartInputView(editorInfo, restarting);
         mStatsUtilsManager.onStartInputView();
@@ -1309,6 +1311,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mVaultSelectionEpoch++;
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
@@ -1730,6 +1733,7 @@ public class LatinIME extends InputMethodService implements
     public void onUpdateSelection(final int oldSelStart, final int oldSelEnd,
             final int newSelStart, final int newSelEnd,
             final int composingSpanStart, final int composingSpanEnd) {
+        mVaultSelectionEpoch++;
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 composingSpanStart, composingSpanEnd);
         final SettingsValues selectionSettings = mSettings.getCurrent();
@@ -2260,6 +2264,46 @@ public class LatinIME extends InputMethodService implements
         if (privateText == null || privateText.isEmpty()) return false;
         onPrivateVoiceTextInput(privateText);
         return true;
+    }
+
+    /** Credential insertion deliberately bypasses voice, gesture decoding and suggestion events. */
+    public boolean isVaultPasswordTarget() {
+        final EditorInfo editor = getCurrentInputEditorInfo();
+        final SettingsValues values = mSettings.getCurrent();
+        return editor != null && values != null && values.mInputAttributes.mIsPasswordField
+                && VaultGestureStore.isMaskedPassword(editor.inputType)
+                && editor.packageName != null && !getPackageName().equals(editor.packageName)
+                && !AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
+                && !SecureAppsPolicy.isSecure(KtxKt.prefs(this), editor.packageName);
+    }
+
+    public void insertVaultGesture(final float[] trace, final java.util.function.BooleanSupplier stillEligible) {
+        if (!isInputViewShown() || !isVaultPasswordTarget() ||
+                !KtxKt.prefs(this).getBoolean(VaultGestureStore.PREF_ENABLED, false)) return;
+        final android.view.inputmethod.InputConnection connection = getCurrentInputConnection();
+        if (connection == null) return;
+        final long editor = mEditorFocusEpoch;
+        final long selection = mVaultSelectionEpoch;
+        VaultGestureStore.matchAsync(this, trace, secret -> {
+            if (secret == null) {
+                if (editor == mEditorFocusEpoch && isInputViewShown() && isVaultPasswordTarget())
+                    android.widget.Toast.makeText(this, "Vault locked or gesture not recognized. Hold Settings title to unlock.", android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                if (mIsDestroyed || editor != mEditorFocusEpoch || selection != mVaultSelectionEpoch
+                        || !isInputViewShown() || !isVaultPasswordTarget() || !stillEligible.getAsBoolean()
+                        || connection != getCurrentInputConnection()
+                        || !VaultGestureStore.isDeviceUnlocked(this)
+                        || !KtxKt.prefs(this).getBoolean(VaultGestureStore.PREF_ENABLED, false)) return;
+                mInputLogic.preparePrivateCredential();
+                setSuggestedWords(SuggestedWords.getEmptyInstance());
+                if (connection.commitText(new String(secret), 1))
+                    AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation();
+            } finally {
+                java.util.Arrays.fill(secret, (char) 0);
+            }
+        });
     }
 
     /** Only a deliberate tap in Clipboard may place an undelivered transcript. */
