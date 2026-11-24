@@ -45,9 +45,13 @@ class BrrCleanVoiceService : Service() {
                     .joinToString("") { "%02x".format(it) }
                 if (digest == EXPECTED_WEIGHTS_SHA256) {
                     val output = BrrCleanNative.process(pcm, model)
-                    if (output != null && output.size == pcm.size &&
-                        plausibleSpeechEnergy(pcm, output)) enhanced = output
-                    else output?.fill(0)
+                    if (output != null) {
+                        try {
+                            if (output.size == pcm.size && plausibleSpeechEnergy(pcm, output)) {
+                                enhanced = BrrCleanSpeechProtection.apply(assets, pcm, output)
+                            }
+                        } finally { output.fill(0) }
+                    }
                 }
             }
         } catch (_: Throwable) {

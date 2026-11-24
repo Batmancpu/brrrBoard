@@ -1,3 +1,12 @@
+## 2026-11-24 — BR Brain dual-path speech protection
+
+User approved full quiet-speech protection plan: do not remove low-level speech before or after noise suppression; preserve continuous dictation, privacy and responsiveness. This batch implements the protection stage on the current main branch (already containing Silero 6.2.3 and Smart Turn 3.2).
+- `ProtectedVoiceAudio.kt`: sample-aligned 32 ms raw/clean score comparison, 320/256 ms context, bounded adaptive recovery/blending, smoothly interpolated local gain with peak headroom. No destructive silence deletion, no extra ASR pass.
+- `BrrCleanSpeechProtection.kt`: verified Silero asset, one model session per isolated batch, reset recurrent history between raw and clean tracks. `BrrCleanVoiceService.kt` sends protected output only; invalid/unsupported models, crashes or timeout yield original PCM. No microphone changes, network, disk, signing or package changes.
+- Added `ProtectedVoiceAudioTest.kt` covering damaged quiet speech, noise-only, clean-path rescue, score framing, invalid scores and tail/peak bounds. These are synthetic policy tests, not a WER or device benchmark.
+- Remaining work: continuous stateful GTCRN across batches, dual-path endpointing before batch finalization, English-only endpoint candidate comparison (p99 INT8 not yet verified on Indian-accented dictation), safe silence compaction and device WER/latency/CPU/memory benchmarks. Current raw-first endpointing is non-destructive; keep existing thought model until benchmarked replacement. Do not claim full architecture or real-device acceptance yet. Run exact-SHA debug and signed Obtainium workflows, inspect any failed tests and fix them.
+- Existing docs contain literal truncation warnings from prior work; preserved original byte-length-verified files without rewriting historical content.
+
 Warning: truncated output (original token count: 85396)
 
 ## 2026-11-24 — separate private-gesture candidate compile recovery
