@@ -15,6 +15,7 @@ import android.widget.TextView
 import helium314.keyboard.latin.KeyboardMotionSpec
 import helium314.keyboard.latin.R
 import helium314.keyboard.keyboard.KeyboardTypeface
+import helium314.keyboard.keyboard.MorphFrameBudget
 import kotlin.math.max
 
 /**
@@ -101,7 +102,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
 
             val sideDelay = if (index == 1) 0L else KeyboardMotionSpec.SUGGESTION_SIDE_STAGGER_MS
             val stablePrefixEnd = SuggestionPrefixTransition.stablePrefixEnd(oldLabel, label)
-            if (!oldLabel.isNullOrBlank()) {
+            if (stablePrefixEnd > 0 && !oldLabel.isNullOrBlank()) {
                 val oldAlpha = previous.labelAlpha.getOrNull(index) ?: 1f
                 if (oldAlpha > .015f) {
                     addOutgoing(
@@ -119,25 +120,11 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
                 }
             }
 
-            // Keep the newly published label stationary and immediately tappable. For related
-            // words the old overlay clips away everything before the shared prefix, so the
-            // stable prefix never fades or jumps; only the predicted suffix contracts away to
-            // reveal the new suffix underneath (for example, tree -> they). Unrelated words and
-            // first appearances retain the bounded whole-word settle.
-            if (stablePrefixEnd > 0) {
-                resetTransform(word)
-                word.clipBounds = null
-            } else {
-                val startAlpha = if (oldLabel.isNullOrBlank())
-                    KeyboardMotionSpec.SUGGESTION_START_ALPHA else 0f
-                word.alpha = startAlpha
-                word.translationY = KeyboardMotionSpec.SUGGESTION_START_OFFSET_DP *
-                    word.resources.displayMetrics.density
-                word.scaleX = KeyboardMotionSpec.SUGGESTION_START_SCALE
-                word.scaleY = KeyboardMotionSpec.SUGGESTION_START_SCALE
-                word.clipBounds = null
-                incoming.add(Incoming(word, sideDelay, startAlpha))
-            }
+            // Never crossfade entire unrelated labels: that presents stale ink
+            // and can make the currently actionable word disappear. Only the
+            // bounded shared-prefix suffix artwork may settle over native text.
+            resetTransform(word)
+            word.clipBounds = null
         }
 
         val center = words[1]
@@ -162,10 +149,15 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
             incoming.maxOfOrNull { it.delayMs } ?: 0L,
             outgoing.maxOfOrNull { it.delayMs } ?: 0L,
         )
+        val budget = MorphFrameBudget(owner.display?.refreshRate ?: 60f)
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = KeyboardMotionSpec.WORD_CROSSFADE_MS + longestDelay
             interpolator = LinearInterpolator()
             addUpdateListener { frame ->
+                if (!owner.isShown || !KeyboardMotionSpec.enabled() || budget.shouldSnap(System.nanoTime())) {
+                    cancel(words)
+                    return@addUpdateListener
+                }
                 val elapsedMs = frame.animatedFraction *
                     (KeyboardMotionSpec.WORD_CROSSFADE_MS + longestDelay)
                 incoming.forEach { slot ->
@@ -362,7 +354,7 @@ internal class SuggestionWordMorph(private val owner: ViewGroup) {
     }
 
     private companion object {
-        const val MAX_OUTGOING_PER_SLOT = 2
+        const val MAX_OUTGOING_PER_SLOT = 1
         const val MAX_OVERLAY_POOL = 6
     }
 }

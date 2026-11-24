@@ -588,8 +588,17 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         setAccessPointIcon(isMenuOpen = isOpen)
     }
 
+    private fun hasSessionRecall(words: SuggestedWords): Boolean =
+        (0 until words.size()).any { words.getInfo(it).isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL) }
+
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
-        val previousWords = wordMorph.capture(wordViews,
+        // Expiring recall text must never survive in an outgoing overlay or
+        // delayed visual hold, even when native tap targets have been revoked.
+        val recallBoundary = hasSessionRecall(suggestedWords) || hasSessionRecall(suggestions)
+        val previousWords = if (recallBoundary) {
+            wordMorph.cancel(wordViews)
+            null
+        } else wordMorph.capture(wordViews,
             SuggestionStripLayoutHelper.isCenterConfidenceActive(
                 suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int))
         val previousDirection = direction
@@ -662,7 +671,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         updateKeys()
         val chips = shouldUseChipSuggestions(suggestedWords)
-        if (hasTypedInCurrentSession && previousDirection == direction &&
+        if (previousWords != null && hasTypedInCurrentSession && previousDirection == direction &&
             (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible) &&
             !suggestedWords.isPunctuationSuggestions && !isExternalSuggestionVisible) {
             val confident = SuggestionStripLayoutHelper.isCenterConfidenceActive(
@@ -700,7 +709,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
      */
     fun holdUnselectablePredictions(): Boolean {
         if (isExternalSuggestionVisible || isShowingMoreSuggestionPanel ||
-            suggestedWords.isEmpty ||
+            suggestedWords.isEmpty || hasSessionRecall(suggestedWords) ||
             (!suggestionsStrip.isVisible && !suggestionsChipScroll.isVisible)) return false
         for (word in wordViews) {
             word.tag = null
@@ -908,7 +917,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         var showIcon = true
         if (wordView.tag is Int) {
             val index = wordView.tag as Int
-            val type = suggestedWords.getInfo(index).mSourceDict
+            if (index !in 0 until suggestedWords.size()) return false
+            val info = suggestedWords.getInfo(index)
+            if (info.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)) return true
+            val type = info.mSourceDict
             if (type == Dictionary.DICTIONARY_USER_TYPED || type == Dictionary.DICTIONARY_HARDCODED)
                 showIcon = false
         }
