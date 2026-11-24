@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
@@ -73,6 +74,9 @@ fun SettingsNavHost(
     var privateDeadline by remember { mutableStateOf(0L) }
     val unlocked = PrivateSettingsSession.active(privateDeadline, SystemClock.elapsedRealtime()) &&
         VaultGestureStore.isDeviceUnlocked(context)
+    // The NavHost remembers its graph. Destination closures must read live state,
+    // not the Boolean captured when the graph was originally constructed.
+    val currentAuthorization by rememberUpdatedState(unlocked)
     // Not saveable: recreation or process death must never restore authorization.
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -163,13 +167,14 @@ fun SettingsNavHost(
             helium314.keyboard.settings.screens.VaultSetupScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.ProtectedPrivacy) {
-            if (unlocked) PrivateSettingsHub(
+            if (currentAuthorization) PrivateSettingsHub(
                 onClickBack = ::goBack,
                 onOpenBrainDetails = { navController.navigate(SettingsDestination.ProtectedBrain) },
                 onManageCode = { navController.navigate("private_vault_setup") },
                 onLock = { privateDeadline = 0L; goBack() },
             ) else LaunchedEffect(Unit) {
-                navController.popBackStack(SettingsDestination.Settings, false)
+                if (!navController.popBackStack(SettingsDestination.Settings, false))
+                    navController.navigate(SettingsDestination.Settings) { launchSingleTop = true }
             }
         }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
@@ -191,12 +196,13 @@ fun SettingsNavHost(
             )
         }
         composable(SettingsDestination.ProtectedBrain) {
-            if (unlocked) BrainDashboardScreen(
+            if (currentAuthorization) BrainDashboardScreen(
                 onClickBack = ::goBack,
                 showDetailedStats = true,
                 onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
             ) else LaunchedEffect(Unit) {
-                navController.popBackStack(SettingsDestination.Settings, false)
+                if (!navController.popBackStack(SettingsDestination.Settings, false))
+                    navController.navigate(SettingsDestination.Settings) { launchSingleTop = true }
             }
         }
 /*      will be added as part of passive data gathering
