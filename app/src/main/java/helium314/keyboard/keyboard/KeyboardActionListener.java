@@ -122,6 +122,7 @@ public interface KeyboardActionListener {
 
     void onMoveDeletePointer(int steps);
     void onUpWithDeletePointerActive();
+    default void onCancelDeletePointer() {}
     void resetMetaState();
 
     KeyboardActionListener EMPTY_LISTENER = new Adapter();

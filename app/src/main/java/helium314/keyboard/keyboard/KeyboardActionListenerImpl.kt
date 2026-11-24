@@ -166,7 +166,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     override fun onCancelBatchInput() = latinIME.onCancelBatchInput()
 
     // User released a finger outside any key
-    override fun onCancelInput() { }
+    override fun onCancelInput() { if (deleteAnchor >= 0) onCancelDeletePointer() }
 
     override fun onFinishSlidingInput() =
         keyboardSwitcher.onFinishSlidingInput(latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
@@ -382,24 +382,68 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         return true
     }
 
+    // Own only the preview created by this gesture. Store positions, not text.
+    private var deleteAnchor = -1
+    private var deleteHead = -1
+    private var deleteEpoch = -1L
+    private var deleteConnection: InputConnection? = null
+    private val deleteTimeout = Runnable { onCancelDeletePointer() }
+
+    private fun deleteOwnerValid(): Boolean = deleteAnchor >= 0 &&
+        deleteConnection === latinIME.currentInputConnection && deleteEpoch == latinIME.editorGeneration() &&
+        connection.expectedSelectionStart == deleteHead && connection.expectedSelectionEnd == deleteAnchor
+
     override fun onMoveDeletePointer(steps: Int) {
-        inputLogic.finishInput()
-        val end = connection.expectedSelectionEnd
-        val actualSteps = actualSteps(steps)
-        val start = connection.expectedSelectionStart + actualSteps
-        if (start > end) return
-        gestureMoveBackHaptics()
-        connection.setSelection(start, end)
+        if (steps == 0) return
+        if (deleteAnchor < 0) {
+            if (steps > 0 || connection.hasSelection()) return
+            inputLogic.finishInput()
+            val ic = latinIME.currentInputConnection ?: return
+            val anchor = connection.expectedSelectionEnd
+            if (anchor < 0 || connection.expectedSelectionStart != anchor) return
+            deleteAnchor = anchor; deleteHead = anchor
+            deleteEpoch = latinIME.editorGeneration(); deleteConnection = ic
+            latinIME.mHandler.postDelayed(deleteTimeout, 30_000)
+        }
+        if (!deleteOwnerValid()) {
+            onCancelDeletePointer()
+            return
+        }
+        val bounded = steps.coerceIn(-128, 128)
+        val text = if (bounded > 0) connection.getSelectedText(0)
+            else connection.getTextBeforeCursor(-bounded * 4, 0)
+        if (text == null) return
+        val actual = moveStepsToCharCount(text, bounded)
+        val next = deleteHead + actual
+        // Do not clamp through a grapheme boundary; ignore oversized moves.
+        if (next < (deleteAnchor - 2048).coerceAtLeast(0) || next > deleteAnchor || next == deleteHead) return
+        if (connection.setSelection(next, deleteAnchor)) {
+            deleteHead = next
+            gestureMoveBackHaptics()
+        } else onCancelDeletePointer()
     }
 
-    private fun actualSteps(steps: Int): Int {
-        val text = if (steps > 0) connection.getSelectedText(0) ?: return steps
-        else connection.getTextBeforeCursor(-steps * 4, 0) ?: return steps
-        return moveStepsToCharCount(text, steps)
+    private fun clearDeletePreview() {
+        latinIME.mHandler.removeCallbacks(deleteTimeout)
+        deleteAnchor = -1; deleteHead = -1; deleteEpoch = -1L; deleteConnection = null
+    }
+
+    override fun onCancelDeletePointer() {
+        if (deleteOwnerValid()) connection.setSelection(deleteAnchor, deleteAnchor)
+        clearDeletePreview()
     }
 
     override fun onUpWithDeletePointerActive() {
-        if (!connection.hasSelection()) return
+        if (!deleteOwnerValid() || deleteHead == deleteAnchor) {
+            onCancelDeletePointer()
+            return
+        }
+        val selected = connection.getSelectedText(0)
+        if (selected == null || selected.length != deleteAnchor - deleteHead) {
+            onCancelDeletePointer()
+            return
+        }
+        clearDeletePreview()
         inputLogic.finishInput()
         onCodeInput(KeyCode.DELETE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
     }

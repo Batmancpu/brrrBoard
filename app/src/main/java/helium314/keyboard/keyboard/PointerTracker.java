@@ -1097,8 +1097,9 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         // Release the last pressed key.
         setReleasedKeyGraphics(currentKey, true);
 
-        if (mInHorizontalSwipe && currentKey.getCode() == KeyCode.DELETE) {
-            sListener.onUpWithDeletePointerActive();
+        if (mInHorizontalSwipe && currentKey != null && currentKey.getCode() == KeyCode.DELETE) {
+            if (physicalUp && !mIsTrackingForActionDisabled) sListener.onUpWithDeletePointerActive();
+            else sListener.onCancelDeletePointer();
         }
 
         if (isShowingPopupKeysPanel()) {
@@ -1245,6 +1246,12 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     }
 
     private void onCancelEventInternal() {
+        if (mInHorizontalSwipe && mCurrentKey != null && mCurrentKey.getCode() == KeyCode.DELETE) {
+            sListener.onCancelDeletePointer();
+            mInHorizontalSwipe = false;
+            mKeySwipeAllowed = false;
+            sInKeySwipe = false;
+        }
         if (mTouchpadHandler.isTouchpadModeActive()) {
             mTouchpadHandler.disableTouchpadMode();
             mInVerticalSwipe = false;

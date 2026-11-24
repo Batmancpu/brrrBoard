@@ -1294,6 +1294,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
@@ -1323,6 +1324,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mVaultSelectionEpoch++;
@@ -1339,6 +1341,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mEditorFocusEpoch++;
@@ -1681,6 +1684,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         SecureAppTemporaryOptOut.clear();
