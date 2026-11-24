@@ -1294,6 +1294,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
@@ -1324,6 +1325,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
@@ -1341,6 +1343,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
@@ -1684,6 +1687,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
@@ -2366,6 +2370,25 @@ public class LatinIME extends InputMethodService implements
                 java.util.Arrays.fill(secret, (char) 0);
             }
         });
+    }
+
+    /** Explicit extracted text insertion; never train the dictionaries or add history. */
+    public boolean insertExtractedClipboardText(final String text, final long epoch,
+            final android.view.inputmethod.InputConnection connection) {
+        if (text == null || text.isEmpty() || text.length() > 512 || !isInputViewShown()
+                || connection == null || connection != getCurrentInputConnection()
+                || epoch != editorGeneration() || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return false;
+        mInputLogic.preparePrivateCredential();
+        if (connection != getCurrentInputConnection() || epoch != editorGeneration()
+                || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return false;
+        mInputLogic.mConnection.beginBatchEdit();
+        try {
+            mInputLogic.mConnection.commitText(text, 1);
+        } finally {
+            mInputLogic.mConnection.endBatchEdit();
+        }
+        setSuggestedWords(SuggestedWords.getEmptyInstance());
+        return true;
     }
 
     /** Only a deliberate tap in Clipboard may place an undelivered transcript. */

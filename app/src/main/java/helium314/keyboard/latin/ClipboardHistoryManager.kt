@@ -63,6 +63,14 @@ class ClipboardHistoryManager(
 
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: View? = null
+    private var extractionDialog: AlertDialog? = null
+    private val expireExtraction = Runnable { dismissExtraction() }
+    fun dismissExtraction() {
+        latinIME.mHandler.removeCallbacks(expireExtraction)
+        val dialog = extractionDialog
+        extractionDialog = null
+        dialog?.dismiss()
+    }
     private var cachedClipboardDao: ClipboardDao? = null
     // The IME can start before first unlock. Retry lazily after unlock instead of
     // permanently caching the expected locked-storage failure from onCreate().
@@ -109,6 +117,7 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
+        dismissExtraction()
         clipboardManager.removePrimaryClipChangedListener(this)
         unregisterScreenshotObserver()
     }
@@ -510,6 +519,7 @@ class ClipboardHistoryManager(
     }
 
     override fun onPrimaryClipChanged() {
+        dismissExtraction()
         if (isHistoryPrivate()) {
             suppressPrivateClipboardSuggestions()
             return // Do not even inspect the OS clipboard or ownership receipt in private mode.
@@ -585,7 +595,7 @@ class ClipboardHistoryManager(
             if (clipData.description?.hasMimeType("text/*") == false) return
             clipData.getItemAt(0)?.let { clipItem ->
                 val content = clipItem.coerceToText(latinIME)
-                if (TextUtils.isEmpty(content)) return
+                if (TextUtils.isEmpty(content) || ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return
                 clipboardDao?.addClip(timeStamp, false, content.toString())
             }
         } catch (e: Exception) {
@@ -649,6 +659,77 @@ class ClipboardHistoryManager(
             .digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it.toInt() and 0xff) }
         return OwnedClip(digest, timestamp.coerceAtLeast(0L))
+    }
+
+    /** Explicit extraction from the current OS plain-text clip; no URI dereference or history write. */
+    private fun extractionText(clip: android.content.ClipData): String? {
+        if (clip.itemCount != 1 || !clip.description.hasMimeType("text/plain") ||
+            ClipboardManagerCompat.getClipSensitivity(clip.description) == true) return null
+        val item = clip.getItemAt(0)
+        if (item.uri != null || item.intent != null || item.htmlText != null) return null
+        val text = item.text ?: return null
+        return text.takeIf { it.length in 1..ClipboardEntityExtractor.MAX_CHARS }?.toString()
+    }
+
+    fun requestExtractCurrentClip() {
+        dismissExtraction()
+        val values = latinIME.mSettings.current
+        if (isHistoryPrivate() || !latinIME.isInputViewShown ||
+            !latinIME.mayUseTransientCorrectionMemory(values)) return
+        val editor = latinIME.currentInputEditorInfo ?: return
+        val ic = latinIME.currentInputConnection ?: return
+        val epoch = latinIME.editorGeneration()
+        val selection = latinIME.mInputLogic.mConnection
+        val start = selection.expectedSelectionStart
+        val end = selection.expectedSelectionEnd
+        if (start < 0 || end < start) return
+        val clip = try { clipboardManager.primaryClip } catch (_: Exception) { null } ?: return
+        val source = extractionText(clip) ?: return
+        val receipt = clipReceipt(clip, requireReliableTimestamp = false) ?: return
+        val entities = ClipboardEntityExtractor.extract(source)
+        if (entities.isEmpty()) {
+            latinIME.mKeyboardSwitcher.showToast("No supported extractable items", false)
+            return
+        }
+        // Keep only kind/ranges, a digest receipt and masked labels in the dialog.
+        val labels = entities.mapIndexed { i, entity -> "${i + 1}. ${entity.kind.label} •••• (paste)" }.toTypedArray()
+        val created = android.os.SystemClock.elapsedRealtime()
+        try {
+            val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(latinIME))
+                .setTitle("Extract from current clipboard")
+                .setItems(labels) { _, index ->
+                    val age = android.os.SystemClock.elapsedRealtime() - created
+                    if (age !in 0L until 30_000L || isHistoryPrivate() || !latinIME.isInputViewShown ||
+                        epoch != latinIME.editorGeneration() || ic !== latinIME.currentInputConnection ||
+                        editor !== latinIME.currentInputEditorInfo ||
+                        selection.expectedSelectionStart != start || selection.expectedSelectionEnd != end ||
+                        !latinIME.mayUseTransientCorrectionMemory(latinIME.mSettings.current)) return@setItems
+                    val current = try { clipboardManager.primaryClip } catch (_: Exception) { null } ?: return@setItems
+                    if (clipReceipt(current, requireReliableTimestamp = false) != receipt) return@setItems
+                    val text = extractionText(current) ?: return@setItems
+                    val entity = entities[index]
+                    if (entity !in ClipboardEntityExtractor.extract(text)) return@setItems
+                    latinIME.insertExtractedClipboardText(text.substring(entity.start, entity.end), epoch, ic)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+            val window = dialog.window ?: return
+            val token = latinIME.window?.window?.attributes?.token ?: return
+            window.attributes = window.attributes.apply {
+                this.token = token
+                type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+            }
+            window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or WindowManager.LayoutParams.FLAG_SECURE)
+            dialog.setOnDismissListener {
+                if (extractionDialog === dialog) {
+                    extractionDialog = null
+                    latinIME.mHandler.removeCallbacks(expireExtraction)
+                }
+            }
+            extractionDialog = dialog
+            dialog.show()
+            latinIME.mHandler.postDelayed(expireExtraction, 30_000)
+        } catch (_: Exception) { dismissExtraction() }
     }
 
     /** Explicit Paste key. Private/sensitive text is never inserted before confirmation. */
@@ -864,6 +945,7 @@ class ClipboardHistoryManager(
         val timeStamp = ClipboardManagerCompat.getClipTimestamp(clip)
         if (System.currentTimeMillis() - timeStamp > RECENT_TIME_MILLIS) return null
         val content = clip.getItemAt(0).text?.toString()?.takeIf { it.isNotBlank() } ?: return null
+        if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return null
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
 

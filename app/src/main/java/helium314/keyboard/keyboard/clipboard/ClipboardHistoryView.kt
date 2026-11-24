@@ -265,6 +265,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
+        if (::clipboardHistoryManager.isInitialized) clipboardHistoryManager.dismissExtraction()
         cancelHeightMotion()
         super.onDetachedFromWindow()
     }
@@ -439,7 +440,12 @@ class ClipboardHistoryView @JvmOverloads constructor(
             android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD)
         )
         titleView.setTextColor(colors.get(ColorType.KEY_TEXT))
-        titleView.setOnClickListener { /* Consume clicks */ }
+        titleView.text = "Clipboard · Extract"
+        titleView.contentDescription = "Extract items from the current clipboard"
+        titleView.setOnClickListener {
+            if (!searchMode && ::clipboardHistoryManager.isInitialized)
+                clipboardHistoryManager.requestExtractCurrentClip()
+        }
         
         clearButton.setOnClickListener(this)
     }
@@ -604,6 +610,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     fun stopClipboardHistory() {
+        if (::clipboardHistoryManager.isInitialized) clipboardHistoryManager.dismissExtraction()
         cancelHeightMotion()
         if (searchMode) closeSearch(animate = false)
         hideUndoBar()
