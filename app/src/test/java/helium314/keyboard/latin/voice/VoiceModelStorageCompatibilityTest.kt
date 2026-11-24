@@ -43,9 +43,10 @@ class VoiceModelStorageCompatibilityTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val legacy = VoiceModelPack("test-legacy-retire","unused",listOf(VoiceModelAsset("encoder.onnx",4L,"unused")))
         val ultra = VoiceModelPack("test-ultra-retire","unused",listOf(VoiceModelAsset("encoder.onnx",4L,"unused")))
-        val oldDirs = listOf(File(context.createCredentialProtectedStorageContext().noBackupFilesDir,legacy.modelDir),
+        val oldDirs = listOf(File(context.applicationContext.noBackupFilesDir,legacy.modelDir),
             File(context.createDeviceProtectedStorageContext().noBackupFilesDir,legacy.modelDir)).distinct()
-        val replacement = File(context.createCredentialProtectedStorageContext().noBackupFilesDir,ultra.modelDir)
+        val replacement = File(context.applicationContext.noBackupFilesDir,ultra.modelDir)
+        assertFalse(context.applicationContext.isDeviceProtectedStorage)
         fun stage(dir: File,pack: VoiceModelPack) {
             dir.mkdirs()
             File(dir,".verified-${pack.id}").writeText("verified v1")

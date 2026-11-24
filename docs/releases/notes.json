@@ -17,6 +17,10 @@
     {
       "title": "Retire compact model controls",
       "detail": "Removes the obsolete 110M model picker and prevents isolated speech processes from racing Ultra installation."
+    },
+    {
+      "title": "Voice model migration compatibility",
+      "detail": "Use the supported Android private-storage contexts and remove only known retired model files after verified Ultra recognition."
     }
   ]
 }

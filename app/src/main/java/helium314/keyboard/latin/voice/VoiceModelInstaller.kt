@@ -53,8 +53,11 @@ internal object VoiceModelInstaller {
         val directories = mutableListOf(File(deviceContext.noBackupFilesDir, pack.modelDir))
         val userManager = context.getSystemService(UserManager::class.java)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || userManager?.isUserUnlocked == true) {
-            val credential = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) context.createCredentialProtectedStorageContext() else context
-            directories += File(credential.noBackupFilesDir, pack.modelDir)
+            // Android's public SDK has no createCredentialProtectedStorageContext().
+            // The manifest's application context is now CE. Refuse any DE alias.
+            val credential = context.applicationContext ?: context
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || !credential.isDeviceProtectedStorage)
+                directories += File(credential.noBackupFilesDir, pack.modelDir)
         }
         return directories.distinctBy { it.absolutePath }
     }
@@ -69,12 +72,23 @@ internal object VoiceModelInstaller {
         val user = context.getSystemService(UserManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && user?.isUserUnlocked != true) return false
         return runCatching {
+            val app = context.applicationContext ?: context
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && app.isDeviceProtectedStorage) return false
             var complete = true
             for (dir in modelDirectories(context,legacy)) {
                 val parent = requireNotNull(dir.parentFile)
                 for (target in listOf(dir, File(parent, ".installing-${legacy.id}"))) {
                     check(target.canonicalFile == File(parent.canonicalFile,target.name))
-                    if (target.exists() && !target.deleteRecursively()) complete = false
+                    if (target.exists()) {
+                        if (!target.isDirectory) { complete = false; continue }
+                        // Delete only pinned model assets and the verified marker.
+                        // An unrecognized file or nested directory is never traversed.
+                        for (name in legacy.assets.map { it.name } + ".verified-${legacy.id}") {
+                            val file = File(target,name)
+                            if (file.exists() && (!file.isFile || !file.delete())) complete = false
+                        }
+                        if (!target.delete()) complete = false
+                    }
                 }
             }
             complete
