@@ -13,6 +13,10 @@
     {
       "title": "Live protected-session state",
       "detail": "The hidden settings hub now observes current authorization even when Android retains its navigation graph, and expired or restored locked routes return to the ordinary Settings screen."
+    },
+    {
+      "title": "Private details available throughout the unlocked session",
+      "detail": "Ordinary BR Brain shows a details link only while the hidden secret-code session is authorized. Locked Settings does not advertise it."
     }
   ]
 }

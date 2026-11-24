@@ -57,6 +57,7 @@ fun BrainDashboardScreen(
     onClickBack: () -> Unit,
     onOpenCorrection: () -> Unit,
     showDetailedStats: Boolean = false,
+    onOpenDetails: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     if (!showDetailedStats) {
@@ -109,6 +110,13 @@ fun BrainDashboardScreen(
                 EditingGestureControls()
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
+                }
+                // A verified foreground session can use the ordinary dashboard.
+                // Locked users see neither an unlock prompt nor a protected link.
+                if (onOpenDetails != null) {
+                    OutlinedButton(onClick = onOpenDetails, modifier = Modifier.fillMaxWidth()) {
+                        Text("BR Brain details")
+                    }
                 }
             }
         }

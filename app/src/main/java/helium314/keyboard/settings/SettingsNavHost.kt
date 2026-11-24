@@ -193,6 +193,9 @@ fun SettingsNavHost(
             BrainDashboardScreen(
                 onClickBack = ::goBack,
                 onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
+                onOpenDetails = if (currentAuthorization) {
+                    { navController.navigate(SettingsDestination.ProtectedBrain) }
+                } else null,
             )
         }
         composable(SettingsDestination.ProtectedBrain) {
