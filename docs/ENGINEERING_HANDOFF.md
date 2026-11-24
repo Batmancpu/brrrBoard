@@ -435,3 +435,8 @@ Owner asked for four actions across and three visible rows in the full Toolbar, 
 # 2026-11-22 — owner GO: private hold-to-talk shipped
 
 Shipped in original-signed v1.0.251 from source `2f2e7424883fab5f597e4f2c3889ec6bfb00ee29`. Debug/full suite passed on feature run `45057840833` and exact main run `45058407501`; original-signer release run `45058407505` passed. Download is in the GitHub Release; APK is 63,511,404 bytes, SHA-256 `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. No speech-model weights were added. Exact behavior, tests, and physical-device limitations are in `docs/VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`.
+
+
+## 2026-11-24 — Capture-first release verified
+
+Exact source `c2d68aa0a815599ee5e3531606bb470e60a6e398`: debug/full unit tests `45333533721` and original-signed release `45333533691` completed successfully, including same-commit gate, signing verification and publication. Non-draft v1.0.267 published 2026-11-24T05:36:01Z; uploaded APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.267/brrBoard.apk, 75,472,461 bytes, GitHub asset SHA-256 `4eafb395f2ec24db53329467737ee9f41aa3f3ef288062a566646a729609730c`. This verifies the capture-first checkpoint, not later concurrent features. No physical phone test or measured latency; verify cold/warm first syllables, quiet speech and continuous two-minute dictation on Oppo. Large optional ASR bundling skipped. No source repair needed.
