@@ -7,6 +7,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FrostAccentRolesTest {
+    @Test fun accentDefaultMigrationOnlyEnablesOnce() {
+        assertTrue(FrostAccentRoles.actionTintAfterMigration(false,false))
+        assertTrue(FrostAccentRoles.actionTintAfterMigration(false,true))
+        assertFalse(FrostAccentRoles.actionTintAfterMigration(true,false))
+        assertTrue(FrostAccentRoles.actionTintAfterMigration(true,true))
+    }
+
     @Test fun ordinaryAndModifierKeysStayNeutralInTintedGlass() {
         val colors = FrostAccentRoles.palette(true, 0xFF111111.toInt(),
             0xFF222222.toInt(), 0xFF007AFF.toInt())

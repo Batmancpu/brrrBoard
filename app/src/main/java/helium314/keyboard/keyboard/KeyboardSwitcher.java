@@ -78,6 +78,53 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private static final float RESIZE_MODE_FROSTED_WASH_AMOUNT = 0.50f;
 
     private InputView mCurrentInputView;
+    private Runnable mPanelWarmup;
+    private InputView mPanelWarmupOwner;
+
+    /** Only immutable layout data, never clipboard records, editor content or panel pixels. */
+    public void cancelPanelWarmup() {
+        if (mPanelWarmup != null && mPanelWarmupOwner != null)
+            mPanelWarmupOwner.removeCallbacks(mPanelWarmup);
+        mPanelWarmup = null;
+        mPanelWarmupOwner = null;
+    }
+
+    private void schedulePanelWarmup(final EditorInfo editorInfo) {
+        cancelPanelWarmup();
+        if (editorInfo == null || mCurrentInputView == null || mLatinIME == null
+                || mKeyboardLayoutSet == null) return;
+        final InputView owner = mCurrentInputView;
+        final KeyboardLayoutSet activeLayout = mKeyboardLayoutSet;
+        final long epoch = mLatinIME.editorGeneration();
+        mPanelWarmupOwner = owner;
+        mPanelWarmup = new Runnable() {
+            private int next = 0;
+            private KeyboardLayoutSet panels;
+            @Override public void run() {
+                if (mPanelWarmup != this || owner != mCurrentInputView
+                        || activeLayout != mKeyboardLayoutSet || epoch != mLatinIME.editorGeneration()
+                        || editorInfo != mLatinIME.getCurrentInputEditorInfo()
+                        || !owner.isAttachedToWindow() || !owner.isShown()
+                        || !mLatinIME.isInputViewShown() || mKeyboardView == null || !mKeyboardView.isShown()
+                        || getVisibleKeyboardView() != mKeyboardView
+                        || !mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues())) {
+                    if (mPanelWarmup == this) cancelPanelWarmup();
+                    return;
+                }
+                try {
+                    // At most one layout per idle slot; no retained panel/view or history data.
+                    if (panels == null)
+                        panels = KeyboardLayoutSet.Builder.buildEmojiClipBottomRow(mThemeContext, editorInfo);
+                    panels.getKeyboard(next++ == 0 ? KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW
+                            : KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW);
+                    if (next < 2) owner.postDelayed(this, 200);
+                    else cancelPanelWarmup();
+                } catch (RuntimeException ignored) { cancelPanelWarmup(); }
+            }
+        };
+        // First visible frame and immediate typing win over speculative layout work.
+        owner.postDelayed(mPanelWarmup, 450);
+    }
     private KeyboardWrapperView mKeyboardViewWrapper;
     private View mMainKeyboardFrame;
     private MainKeyboardView mKeyboardView;
@@ -226,6 +273,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     public void loadKeyboard(final EditorInfo editorInfo, final SettingsValues settingsValues,
             final int currentAutoCapsState, @Nullable final RecapitalizeMode currentRecapitalizeState,
             KeyboardLayoutSet.InternalAction internalAction) {
+        cancelPanelWarmup();
         clearCachedPersistentEmojis();
         final KeyboardLayoutSet.Builder builder = new KeyboardLayoutSet.Builder(
                 mThemeContext, editorInfo);
@@ -269,6 +317,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 Log.e(TAG, "even fallback to defaults failed: " + e2.mKeyboardId, e2.getCause());
             }
         }
+        if (internalAction == null) schedulePanelWarmup(editorInfo);
     }
 
     public void saveKeyboardState() {
@@ -278,6 +327,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void onHideWindow() {
+        cancelPanelWarmup();
         EmojiPanelKeyMorph.cancel();
         exitResizeMode();
         clearTransitions();
@@ -322,6 +372,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return;
         }
         // Invalidate the prior end action before cancel(), since cancel may deliver it.
+        cancelPanelWarmup();
         final long transitionGeneration = mPanelTransitionGuard.start();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
@@ -371,6 +422,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
      * Invalidates delayed panel animation cleanup when the input view/editor/window changes owner.
      */
     public void cancelPanelTransition() {
+        cancelPanelWarmup();
         mPanelTransitionGuard.invalidate();
         EmojiPanelKeyMorph.cancel();
         if (mRunningAnimator != null) {
@@ -541,6 +593,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void onPressKey(final int code, final boolean isSinglePointer,
             final int currentAutoCapsState, @Nullable final RecapitalizeMode currentRecapitalizeState) {
+        cancelPanelWarmup();
         if (isShowingKlipyPalettes() || isShowingEmojiPalettes() || isShowingClipboardHistory()
                 || isShowingAiWritingTools()) {
             return;
@@ -1933,6 +1986,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void deallocateMemory() {
+        cancelPanelWarmup();
         if (mKeyboardView != null) {
             mKeyboardView.cancelAllOngoingEvents();
             mKeyboardView.deallocateMemory();
@@ -1957,6 +2011,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void trimMemory() {
+        cancelPanelWarmup();
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.clearKeyboardCache();
         }
@@ -1964,6 +2019,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     @SuppressLint("InflateParams")
     public View onCreateInputView(@NonNull Context displayContext, final boolean isHardwareAcceleratedDrawingEnabled) {
+        cancelPanelWarmup();
         EmojiPanelKeyMorph.cancel();
         if (mKeyboardView != null) {
             mKeyboardView.closing();

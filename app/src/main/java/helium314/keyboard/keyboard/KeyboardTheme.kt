@@ -110,7 +110,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         private const val PREF_FROSTED_KEYCAP_CONTRAST_MIGRATED = "frosted_keycap_contrast_migrated_v1"
 
         private val boardThemes = listOf(THEME_FROSTED_GLASS)
-        private val legacyTintedBoardThemes = setOf(THEME_OG_FROST_TINTED, THEME_IOS_TINTED)
+        private const val PREF_ACTION_ACCENT_DEFAULT_MIGRATED = "board_action_accent_enabled_v2"
 
         fun getAvailableDefaultColors() = boardThemes
 
@@ -118,13 +118,10 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
             if (themeName != null && themeName in boardThemes) themeName else THEME_FROSTED_GLASS
 
         private fun migrateBoardThemePreferences(prefs: SharedPreferences) {
-            val migrateLegacyTheme = !prefs.contains(Settings.PREF_THEME_ACTION_TINT)
+            val migrateActionAccent = !prefs.getBoolean(PREF_ACTION_ACCENT_DEFAULT_MIGRATED, false)
             val migrateNeutralDefaults = !prefs.getBoolean(PREF_FROSTED_NEUTRAL_DEFAULTS_MIGRATED, false)
             val migrateKeycapContrast = !prefs.getBoolean(PREF_FROSTED_KEYCAP_CONTRAST_MIGRATED, false)
-            if (!migrateLegacyTheme && !migrateNeutralDefaults && !migrateKeycapContrast) return
-
-            val lightTheme = prefs.getString(Settings.PREF_THEME_COLORS, null)
-            val darkTheme = prefs.getString(Settings.PREF_THEME_COLORS_NIGHT, null)
+            if (!migrateActionAccent && !migrateNeutralDefaults && !migrateKeycapContrast) return
             val legacyColorDefaults = listOf(
                 Triple(Settings.PREF_FROSTED_SATURATION, 250, Defaults.PREF_FROSTED_SATURATION),
                 Triple(Settings.PREF_FROSTED_SPECIAL_VIBRANCY, 398, Defaults.PREF_FROSTED_SPECIAL_VIBRANCY),
@@ -134,11 +131,12 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                 Triple(Settings.PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT, 72, Defaults.PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT),
             )
             prefs.edit {
-                if (migrateLegacyTheme) {
-                    putBoolean(
-                        Settings.PREF_THEME_ACTION_TINT,
-                        lightTheme in legacyTintedBoardThemes || darkTheme in legacyTintedBoardThemes
-                    )
+                if (migrateActionAccent) {
+                    // Enable once on upgrade per owner request; later explicit off remains valid.
+                    putBoolean(Settings.PREF_THEME_ACTION_TINT,
+                        FrostAccentRoles.actionTintAfterMigration(false,
+                            prefs.getBoolean(Settings.PREF_THEME_ACTION_TINT, Defaults.PREF_THEME_ACTION_TINT)))
+                    putBoolean(PREF_ACTION_ACCENT_DEFAULT_MIGRATED, true)
                 }
                 if (migrateKeycapContrast) {
                     // Change only the previously shipped *default* keycap opacity.
@@ -409,7 +407,7 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             val finalBlendRatio = (colorBlendVal * 0.6f * specialVibrancyVal).coerceIn(0f, 1f)
                             ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         }
-                        // Keep every base key role unchanged, including ordinary Return.
+                        // Keep neutral base roles unchanged; only actual action keys select the accent.
                         val scopedRoles = FrostAccentRoles.palette(false,
                             neutralFunctionalBase, neutralSpecialBase, appleActionAccent)
                         val functionalKey = ColorUtils.setAlphaComponent(scopedRoles.functional, actionAlpha)

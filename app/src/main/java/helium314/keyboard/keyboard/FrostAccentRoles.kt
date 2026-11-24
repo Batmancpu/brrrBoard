@@ -3,6 +3,10 @@ package helium314.keyboard.keyboard
 
 /** Apple-style action accent, plus owner's explicit plain Return preference. Other keys stay neutral. */
 object FrostAccentRoles {
+    /** A single versioned default update; never re-enable a later deliberate opt-out. */
+    fun actionTintAfterMigration(alreadyMigrated: Boolean, stored: Boolean): Boolean =
+        !alreadyMigrated || stored
+
     const val PREF_APPLE_PALETTE = "pref_board_apple_accent_palette"
     const val DEFAULT_PALETTE = "wallpaper"
     const val PREF_ROUNDED_KEYCAPS = "pref_board_rounded_keycaps"

@@ -146,6 +146,7 @@ public final class InputView extends FrameLayout {
     @Override
     public boolean dispatchTouchEvent(final MotionEvent event) {
         final int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) KeyboardSwitcher.getInstance().cancelPanelWarmup();
         // The initial DOWN is the only opportunity to claim a private stroke.
         // Once claimed, no event (including an invalid/cancelled tail) reaches keys.
         if (mVaultStroke != null && mFooter != null) {

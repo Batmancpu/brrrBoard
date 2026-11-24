@@ -856,7 +856,7 @@ New dictionary:
     <!-- Option for choosing colors for night mode -->
     <string name="theme_colors_night">Color theme (Dark mode)</string>
     <string name="theme_action_tint">Apple key accents</string>
-    <string name="theme_action_tint_summary">Tint contextual Go, Search, Send, Next and Done keys only, preserving key transparency.</string>
+    <string name="theme_action_tint_summary">Tint Return, contextual actions and panel Search while preserving key transparency.</string>
     <string name="theme_apple_palette">Apple accent palette</string>
     <string name="theme_apple_palette_summary">Choose a fixed Apple-inspired color or follow the wallpaper.</string>
     <string name="theme_rounded_board_keycaps">Rounded rectangle keycaps</string>

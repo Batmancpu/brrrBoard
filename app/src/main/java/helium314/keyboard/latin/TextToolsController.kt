@@ -11,6 +11,8 @@ import helium314.keyboard.latin.utils.getPlatformDialogThemeContext
 import java.security.MessageDigest
 import helium314.keyboard.latin.inputlogic.DynamicTextTemplate
 import helium314.keyboard.latin.settings.TextTemplateStore
+import helium314.keyboard.latin.settings.TextReplacementStore
+import helium314.keyboard.latin.inputlogic.LiteralTextReplacement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -107,6 +109,58 @@ class TextToolsController(private val ime: LatinIME) {
         }
     }
 
+    private fun requestReplacementRules(ic: InputConnection, editor: android.view.inputmethod.EditorInfo,
+                                        epoch: Long, start: Int, end: Int, fingerprint: ByteArray,
+                                        created: Long) {
+        dismiss()
+        val generation = requestGeneration
+        selectionStart = start; selectionEnd = end
+        fun current(): Boolean = generation == requestGeneration &&
+            SystemClock.elapsedRealtime()-created in 0L until 30_000L &&
+            ime.isInputViewShown && epoch == ime.editorGeneration() &&
+            ic === ime.currentInputConnection && editor === ime.currentInputEditorInfo &&
+            ime.mInputLogic.mConnection.expectedSelectionStart == start &&
+            ime.mInputLogic.mConnection.expectedSelectionEnd == end &&
+            ime.mayUseTransientCorrectionMemory(ime.mSettings.current)
+        loadJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+            val saved = withContext(Dispatchers.IO) { TextReplacementStore.load(ime) }
+            if (!current()) { if (generation == requestGeneration) dismiss(); return@launch }
+            if (saved == null || saved.rules.isEmpty()) {
+                ime.mKeyboardSwitcher.showToast("Add replacement rules in BR Brain settings",false)
+                dismiss(); return@launch
+            }
+            try {
+                val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(ime))
+                    .setTitle("Find & replace in selection")
+                    .setItems(saved.rules.map { it.name }.toTypedArray()) { _, index ->
+                        if (!current() || TextReplacementStore.revision() != saved.revision) return@setItems
+                        val before = readPlainSelection(ic) ?: return@setItems
+                        if (!MessageDigest.isEqual(fingerprint,digest(before))) return@setItems
+                        val rule = saved.rules[index]
+                        val result = LiteralTextReplacement.replace(before,rule.find,rule.replacement,
+                            rule.matchCase,rule.wholeWord,rule.all)
+                        if (result == null) {
+                            ime.mKeyboardSwitcher.showToast("No safe matching replacement",false)
+                            return@setItems
+                        }
+                        if (current() && ime.mInputLogic.commitVerifiedSelectionEdit(before,result.text,start,end,epoch,ic))
+                            ime.mKeyboardSwitcher.showToast("Replacement applied",false)
+                    }.setNegativeButton(android.R.string.cancel,null).create()
+                val window = dialog.window ?: run { dismiss(); return@launch }
+                val token = ime.window?.window?.attributes?.token ?: run { dismiss(); return@launch }
+                window.attributes = window.attributes.apply {
+                    this.token = token
+                    type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+                }
+                window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or WindowManager.LayoutParams.FLAG_SECURE)
+                dialog.setOnDismissListener { if (active === dialog) dismiss() }
+                active = dialog
+                dialog.show()
+                ime.mHandler.postDelayed(expire,(30_000L-(SystemClock.elapsedRealtime()-created)).coerceAtLeast(0L))
+            } catch (_: RuntimeException) { dismiss() }
+        }
+    }
+
     fun request() {
         dismiss()
         val values = ime.mSettings.current
@@ -134,7 +188,7 @@ class TextToolsController(private val ime: LatinIME) {
         try {
             val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(ime))
                 .setTitle("Edit selected text")
-                .setItems(actions.map { it.label }.toTypedArray()) { _, index ->
+                .setItems((actions.map { it.label } + "Find & replace").toTypedArray()) { _, index ->
                     if (SystemClock.elapsedRealtime()-now !in 0L until 30_000L ||
                         !ime.isInputViewShown || epoch != ime.editorGeneration() ||
                         ic !== ime.currentInputConnection || editor !== ime.currentInputEditorInfo ||
@@ -142,6 +196,10 @@ class TextToolsController(private val ime: LatinIME) {
                         !ime.mayUseTransientCorrectionMemory(ime.mSettings.current)) return@setItems
                     val before = readPlainSelection(ic) ?: return@setItems
                     if (!MessageDigest.isEqual(fingerprint,digest(before))) return@setItems
+                    if (index == actions.size) {
+                        requestReplacementRules(ic,editor,epoch,start,end,fingerprint,now)
+                        return@setItems
+                    }
                     val after = ContextualTextActions.transform(before,actions[index],locale) ?: return@setItems
                     ime.mInputLogic.commitVerifiedSelectionEdit(before,after,start,end,epoch,ic)
                 }.setNegativeButton(android.R.string.cancel,null).create()

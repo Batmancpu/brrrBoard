@@ -1,26 +1,22 @@
 {
   "schema": 1,
-  "summary": "Return tint and shared Emoji key morph improvements, private templates and profile controls.",
+  "summary": "Apple action accents enabled on upgrade, private find and replace rules, and guarded layout prewarm.",
   "changes": [
     {
-      "title": "Return accent",
-      "detail": "Plain Return and contextual actions use the chosen accent even on neutral-background layouts. Other keys and transparency retain existing styling."
+      "title": "Apple key accents enabled",
+      "detail": "One-time upgrade activates Return and contextual action accents; later manual opt-out is respected. Glass transparency is unchanged."
     },
     {
-      "title": "Shared Emoji key transitions",
-      "detail": "Return/Search, Delete and Space morph using their actual geometry; immediate native ownership, transparent-buffer cleanup and a less aggressive frame-gap fallback reduce flicker."
+      "title": "Find & replace rules",
+      "detail": "Create encrypted reusable literal rules in BR Brain and apply to selected text with case, whole-word and first/all controls."
     },
     {
-      "title": "Dynamic text templates",
-      "detail": "User-created encrypted snippets with date, time and cursor placeholders."
+      "title": "Panel layout prewarm",
+      "detail": "Bounded idle warming of Emoji and Clipboard layout data only, canceled on touch or editor changes; no background clipboard reads."
     },
     {
-      "title": "Per-app typing controls",
-      "detail": "Auto-capitalization and double-space period overrides."
-    },
-    {
-      "title": "Clipboard search",
-      "detail": "Interruptible clear-icon motion and no repetitive full-list reveal."
+      "title": "Accent setting",
+      "detail": "Description now includes Return and contextual actions."
     }
   ]
 }
