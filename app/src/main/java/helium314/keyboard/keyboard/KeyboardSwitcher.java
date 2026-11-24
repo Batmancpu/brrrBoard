@@ -290,6 +290,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                 .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                 .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                .setEditingGestureKeyEnabled(internalAction == null && settingsValues.mEditingGestureConfig.getEnabled()
+                        && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                 .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)
                 .setOneHandedModeEnabled(oneHandedModeEnabled)
                 .setInternalAction(internalAction)
@@ -308,6 +310,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                         .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                         .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                        .setEditingGestureKeyEnabled(internalAction == null && settingsValues.mEditingGestureConfig.getEnabled()
+                        && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                         .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)
                         .setOneHandedModeEnabled(oneHandedModeEnabled)
                         .build();
@@ -1100,6 +1104,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                 .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                 .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                .setEditingGestureKeyEnabled(settingsValues.mEditingGestureConfig.getEnabled()
+                        && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                 .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)
                 .setOneHandedModeEnabled(settingsValues.mOneHandedModeEnabled)
                 .build();

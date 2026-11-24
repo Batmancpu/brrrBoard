@@ -27,6 +27,10 @@ public interface KeyboardActionListener {
 
     void onLongPressKey(int primaryCode);
 
+    /** Only a live host typing listener can issue a session token for the optional Edit key. */
+    default long editingGestureSession() { return -1L; }
+    default boolean dispatchEditingGesture(long session, int code) { return false; }
+
     /**
      * Called when the user releases a key. This is sent after the {@link #onCodeInput} is called.
      * For keys that repeat, this is only called once.

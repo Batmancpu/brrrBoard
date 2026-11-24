@@ -301,7 +301,11 @@ class KeyboardParser(private val params: KeyboardParams, private val context: Co
             val contextual = mode == KeyboardId.MODE_EMAIL || mode == KeyboardId.MODE_URL
             val row = mutableListOf(TextKeyData(label = "123", code = KeyCode.SYMBOL_ALPHA, type = KeyType.FUNCTION, width = if (contextual) 0.18f else 0.24f))
             if (contextual) row.add(TextKeyData(label = if (mode == KeyboardId.MODE_EMAIL) "@" else "/", width = 0.10f))
-            row.add(TextKeyData(label = KeyLabel.SPACE, width = if (contextual) 0.44f else 0.52f))
+            val edit = !contextual && params.mId.mEditingGestureKeyEnabled &&
+                !params.mId.mIsSplitLayout && !params.mId.mOneHandedModeEnabled
+            if (edit) row.add(TextKeyData(label = "Edit", code = KeyCode.TEXT_TOOLS,
+                type = KeyType.FUNCTION, width = 0.12f, labelFlags = Key.LABEL_FLAGS_AUTO_X_SCALE or Key.LABEL_FLAGS_PRESERVE_CASE))
+            row.add(TextKeyData(label = KeyLabel.SPACE, width = if (contextual) 0.44f else if (edit) 0.40f else 0.52f))
             if (contextual) row.add(TextKeyData(label = KeyLabel.PERIOD, width = 0.10f))
             row.add(TextKeyData(label = KeyLabel.ACTION, width = if (contextual) 0.18f else 0.24f))
             functionalKeysBottom.clear()

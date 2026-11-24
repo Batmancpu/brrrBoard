@@ -46,12 +46,15 @@ object EmojiPanelKeyMorph {
     // does it hand off to/from the compact panel Search role.
     internal fun pairedCodes(source: List<Int>, target: List<Int>): List<Pair<Int,Int>> {
         val pairs = source.filter { it in target }.map { it to it }.toMutableList()
-        val enter = Constants.CODE_ENTER
+        val fromReturn = source.firstOrNull(FrostAccentRoles::isReturnRole)
+        val toReturn = target.firstOrNull(FrostAccentRoles::isReturnRole)
         val search = KeyCode.EMOJI_SEARCH
-        if (enter in source && enter !in target && search in target && search !in source)
-            pairs.add(enter to search)
-        if (search in source && search !in target && enter in target && enter !in source)
-            pairs.add(search to enter)
+        if (fromReturn != null && toReturn != null && fromReturn != toReturn)
+            pairs.add(fromReturn to toReturn)
+        else if (fromReturn != null && toReturn == null && search in target && search !in source)
+            pairs.add(fromReturn to search)
+        else if (fromReturn == null && toReturn != null && search in source && search !in target)
+            pairs.add(search to toReturn)
         return pairs
     }
 
@@ -64,7 +67,7 @@ object EmojiPanelKeyMorph {
         if (!KeyboardMotionSpec.enabled() || root == null || view == null || !view.isShown || !supported(view)) return null
         val origin = IntArray(2)
         root.getLocationOnScreen(origin)
-        val keys = listOf(Constants.CODE_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
+        val keys = listOf(Constants.CODE_ENTER, KeyCode.SHIFT_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
             val bounds = Rect()
             if (!view.getEmojiMorphArtworkBoundsOnScreen(code,bounds)) return@mapNotNull null
             bounds.offset(-origin[0],-origin[1])

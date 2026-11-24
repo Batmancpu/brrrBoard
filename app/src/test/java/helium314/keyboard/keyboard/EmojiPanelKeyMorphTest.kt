@@ -35,6 +35,7 @@ class EmojiPanelKeyMorphTest {
         val search = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.EMOJI_SEARCH
         val delete = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.DELETE
         val space = helium314.keyboard.latin.common.Constants.CODE_SPACE
+        val shifted = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.SHIFT_ENTER
         val normal = listOf(enter,delete,space)
         val compact = listOf(search,delete,space)
         val withReturn = listOf(search,delete,space,enter)
@@ -44,6 +45,10 @@ class EmojiPanelKeyMorphTest {
             EmojiPanelKeyMorph.pairedCodes(compact,normal).toSet())
         assertEquals(setOf(enter to enter,delete to delete,space to space),
             EmojiPanelKeyMorph.pairedCodes(normal,withReturn).toSet())
+        assertEquals(setOf(shifted to search,delete to delete,space to space),
+            EmojiPanelKeyMorph.pairedCodes(listOf(shifted,delete,space),compact).toSet())
+        assertEquals(setOf(enter to shifted,delete to delete,space to space),
+            EmojiPanelKeyMorph.pairedCodes(normal,listOf(shifted,delete,space)).toSet())
     }
 
     @Test fun motionClampsWithoutOvershoot() {

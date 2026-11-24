@@ -80,6 +80,7 @@ public class SettingsValues {
     public final boolean mVarToolbarDirection;
     public final boolean mUsePersonalizedDicts;
     public final boolean mAdaptiveTouchEnabled;
+    public final helium314.keyboard.keyboard.EditingGestureConfig mEditingGestureConfig;
     public final long mAppProfileRevision;
     public final boolean mUseDoubleSpacePeriod;
     public final boolean mBlockPotentiallyOffensive;
@@ -231,6 +232,7 @@ public class SettingsValues {
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION);
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS);
         mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false);
+        mEditingGestureConfig = helium314.keyboard.keyboard.EditingGestureConfig.read(prefs);
         mUseDoubleSpacePeriod = !mInputAttributes.mVaultPrivateEditor && profile.doubleSpacePeriod(prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD))
                 && inputAttributes.mIsGeneralTextInput;
         mBlockPotentiallyOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE);

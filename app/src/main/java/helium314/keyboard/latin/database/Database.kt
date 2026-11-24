@@ -87,26 +87,30 @@ class Database private constructor(context: Context, name: String = NAME) : SQLi
             }
         }
 
-        // needs to be in sync with db version
+        /** Legacy portable SQLite backup. Read and validate all text before touching live history. */
         fun copyFromDb(file: File, context: Context) {
-            if (!file.exists())
-                return
-            val otherDb = Database(context, file.name) // this upgrades the DB if necessary
-            val clipDao = ClipboardDao.getInstance(context) // insert to dao because of cache
-            if (clipDao == null) {
-                Log.e(TAG, "can't transfer clipboard data because ClipboardDao is null")
-            } else {
-                otherDb.readableDatabase.rawQuery("SELECT TIMESTAMP, PINNED, TEXT FROM CLIPBOARD", null)
-                    .use {
-                        clipDao.clear()
-                        while (it.moveToNext())
-                            clipDao.addClip(it.getLong(0), it.getInt(1) != 0, it.getString(2))
+            if (!file.exists()) return
+            try {
+                val rows = SQLiteDatabase.openDatabase(file.path,null,SQLiteDatabase.OPEN_READONLY).use { source ->
+                    val key = if (ClipboardTextVault.enabled(source)) ClipboardTextVault.key(context,false) else null
+                    source.rawQuery("SELECT ID,TIMESTAMP,PINNED,TEXT FROM CLIPBOARD ORDER BY ID",null).use { c ->
+                        buildList {
+                            var chars = 0L
+                            while (c.moveToNext()) {
+                                val text = ClipboardTextVault.read(c,3,c.getLong(0),key)
+                                // Old backup formats never carried the actual image bytes.
+                                if (helium314.keyboard.latin.ClipboardImageHistoryClip.hasImageHistoryPrefix(text)) continue
+                                chars += text.length
+                                require(size < 10_000 && chars <= 8*1024*1024)
+                                add(ClipboardPortableBackup.Entry(c.getLong(1),c.getInt(2)!=0,text))
+                            }
+                        }
                     }
-            }
-            // Do not import sensitive swipe coordinates/typed words from backups.
-            getInstance(context).writableDatabase.execSQL("DELETE FROM GESTURE_DATA")
-            otherDb.close()
-            file.delete()
+                }
+                require(ClipboardPortableBackup.valid(rows))
+                checkNotNull(ClipboardDao.getInstance(context)).mergePortableText(rows)
+                // Never import gesture data.
+            } finally { file.delete() }
         }
     }
 }

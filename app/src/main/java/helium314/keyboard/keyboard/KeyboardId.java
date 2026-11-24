@@ -80,6 +80,7 @@ public final class KeyboardId {
     public final boolean mNumberRowInSymbols;
     public final boolean mLanguageSwitchKeyEnabled;
     public final boolean mEmojiKeyEnabled;
+    public final boolean mEditingGestureKeyEnabled;
     public final String mCustomActionLabel;
     public final boolean mHasShortcutKey;
     public final boolean mIsSplitLayout;
@@ -101,6 +102,7 @@ public final class KeyboardId {
         mNumberRowInSymbols = params.mNumberRowInSymbols;
         mLanguageSwitchKeyEnabled = params.mLanguageSwitchKeyEnabled;
         mEmojiKeyEnabled = params.mEmojiKeyEnabled;
+        mEditingGestureKeyEnabled = params.mEditingGestureKeyEnabled;
         mCustomActionLabel = (mEditorInfo.actionLabel != null)
                 ? mEditorInfo.actionLabel.toString() : null;
         mHasShortcutKey = params.mVoiceInputKeyEnabled;
@@ -127,6 +129,7 @@ public final class KeyboardId {
                 id.mEmojiSearchAvailable,
                 id.mLanguageSwitchKeyEnabled,
                 id.mEmojiKeyEnabled,
+                id.mEditingGestureKeyEnabled,
                 id.isMultiLine(),
                 id.imeAction(),
                 id.mCustomActionLabel,
@@ -154,6 +157,7 @@ public final class KeyboardId {
                 && other.mEmojiSearchAvailable == mEmojiSearchAvailable
                 && other.mLanguageSwitchKeyEnabled == mLanguageSwitchKeyEnabled
                 && other.mEmojiKeyEnabled == mEmojiKeyEnabled
+                && other.mEditingGestureKeyEnabled == mEditingGestureKeyEnabled
                 && other.isMultiLine() == isMultiLine()
                 && other.imeAction() == imeAction()
                 && TextUtils.equals(other.mCustomActionLabel, mCustomActionLabel)

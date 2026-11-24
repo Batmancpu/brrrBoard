@@ -18,6 +18,14 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import helium314.keyboard.latin.database.ClipboardDao
+import helium314.keyboard.latin.database.ClipboardPortableBackup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,14 +76,24 @@ fun BackupRestorePreference(setting: Setting) {
     var showRestoreSlide by rememberSaveable { mutableStateOf(false) }
     val ctx = LocalContext.current
     var error: String? by rememberSaveable { mutableStateOf(null) }
-    val backupLauncher = backupLauncher { error = it }
+    var includeClipboard by rememberSaveable { mutableStateOf(false) }
+    val backupLauncher = backupLauncher(includeClipboard) { error = it }
     val restoreLauncher = restoreLauncher { error = it }
-    Preference(name = setting.title, onClick = { showDialog = true })
+    Preference(name = setting.title, onClick = { includeClipboard = false; showDialog = true })
     if (showDialog) {
         ConfirmationDialog(
             onDismissRequest = { showDialog = false },
             title = { Text(stringResource(R.string.backup_restore_title)) },
-            content = { Text(stringResource(R.string.backup_restore_message)) },
+            content = {
+                Column {
+                    Text(stringResource(R.string.backup_restore_message))
+                    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                        Checkbox(includeClipboard,{ includeClipboard=it })
+                        Text("Include clipboard text (unencrypted portable export)")
+                    }
+                    Text("Clipboard images and encrypted templates/rules are not exported. Restoring text merges clips and preserves local pins.")
+                }
+            },
             confirmButtonText = stringResource(R.string.button_backup),
             neutralButtonText = stringResource(R.string.button_restore),
             onNeutral = {
@@ -85,7 +103,7 @@ fun BackupRestorePreference(setting: Setting) {
             onConfirmed = {
                 // Local Downloads export: no cloud picker, network or background upload.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    backupToLocalDownloads(ctx) { error = it }
+                    backupToLocalDownloads(ctx,includeClipboard) { error = it }
                 } else {
                     val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
                         .format(Calendar.getInstance().time)
@@ -122,12 +140,12 @@ fun BackupRestorePreference(setting: Setting) {
 }
 
 @Composable
-private fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
+private fun backupLauncher(includeClipboard: Boolean,onError: (String) -> Unit): ManagedActivityResultLauncher<Intent, ActivityResult> {
     val ctx = LocalContext.current
     return filePicker { uri ->
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
-                writeBackupArchive(ctx, uri)
+                writeBackupArchive(ctx, uri, includeClipboard)
                 Handler(Looper.getMainLooper()).post {
                     Toast.makeText(ctx, R.string.backup_saved_local, Toast.LENGTH_LONG).show()
                 }
@@ -145,7 +163,7 @@ private fun backupLauncher(onError: (String) -> Unit): ManagedActivityResultLaun
  * ZIP; brrBoard never transfers it to a server.
  */
 @android.annotation.SuppressLint("NewApi")
-private fun backupToLocalDownloads(ctx: Context, onError: (String) -> Unit) {
+private fun backupToLocalDownloads(ctx: Context, includeClipboard: Boolean, onError: (String) -> Unit) {
     ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
         val resolver = ctx.contentResolver
         var uri: Uri? = null
@@ -160,7 +178,7 @@ private fun backupToLocalDownloads(ctx: Context, onError: (String) -> Unit) {
             }
             uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, details)
                 ?: throw IOException("Could not create local Downloads backup")
-            writeBackupArchive(ctx, uri)
+            writeBackupArchive(ctx, uri, includeClipboard)
             val published = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
             resolver.update(uri, published, null, null)
             Handler(Looper.getMainLooper()).post {
@@ -174,7 +192,7 @@ private fun backupToLocalDownloads(ctx: Context, onError: (String) -> Unit) {
     }
 }
 
-private fun writeBackupArchive(ctx: Context, uri: Uri) {
+private fun writeBackupArchive(ctx: Context, uri: Uri, includeClipboard: Boolean) {
     val filesDir = ctx.filesDir ?: throw IOException("App data directory unavailable")
     val filesPath = filesDir.absolutePath + File.separator
     val files = filesDir.walkTopDown().filter { file ->
@@ -201,11 +219,15 @@ private fun writeBackupArchive(ctx: Context, uri: Uri) {
             file.inputStream().buffered().use { it.copyTo(zip, 8192) }
             zip.closeEntry()
         }
-        val dbFile = ctx.getDatabasePath(Database.NAME)
-        if (dbFile.exists()) {
-            zip.putNextEntry(ZipEntry(Database.NAME))
-            dbFile.inputStream().buffered().use { it.copyTo(zip, 8192) }
-            zip.closeEntry()
+        // Never copy live SQLite pages, WAL or device-bound ciphertext to an archive.
+        if (includeClipboard) {
+            val dao = checkNotNull(ClipboardDao.getInstance(ctx)) { "Clipboard unavailable" }
+            val bytes = ClipboardPortableBackup.encode(dao.portableText())
+            try {
+                zip.putNextEntry(ZipEntry(ClipboardPortableBackup.ENTRY_NAME))
+                zip.write(bytes)
+                zip.closeEntry()
+            } finally { bytes.fill(0) }
         }
         zip.putNextEntry(ZipEntry(PREFS_FILE_NAME))
         settingsToJsonStream(ctx.prefs().all, zip)
@@ -224,6 +246,8 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
         val restoredDb = ctx.getDatabasePath(Database.NAME + "_restored")
         ExecutorUtils.getBackgroundExecutor(ExecutorUtils.KEYBOARD).execute {
             try {
+                restoredDb.delete()
+                var importedText: List<ClipboardPortableBackup.Entry>? = null
                 val input = ctx.contentResolver.openInputStream(uri)
                     ?: throw IOException("Could not open backup file")
                 input.use { inputStream ->
@@ -247,8 +271,12 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
                                 if (!restoreEntryToDir(zip, filesDir, entry.name)) {
                                     Log.w("AdvancedScreen", "skipping unsafe backup entry ${entry.name}")
                                 }
+                            } else if (entry.name == ClipboardPortableBackup.ENTRY_NAME) {
+                                check(importedText == null && !restoredDb.exists())
+                                importedText = ClipboardPortableBackup.decode(zip)
                             } else if (entry.name == Database.NAME) {
-                                FileUtils.copyStreamToNewFile(zip, restoredDb)
+                                check(importedText == null && !restoredDb.exists())
+                                copyLegacyClipboardDatabase(zip, restoredDb)
                             } else if (entry.name == PREFS_FILE_NAME) {
                                 val prefLines = String(zip.readBytes()).split("\n")
                                 val prefs = ctx.prefs()
@@ -266,6 +294,7 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
                     }
                 }
 
+                importedText?.let { checkNotNull(ClipboardDao.getInstance(ctx)).mergePortableText(it) }
                 if (restoredDb.exists()) Database.copyFromDb(restoredDb, ctx)
                 Looper.prepare()
                 Toast.makeText(ctx, ctx.getString(R.string.backup_restored), Toast.LENGTH_LONG).show()
@@ -273,6 +302,7 @@ private fun restoreLauncher(onError: (String) -> Unit): ManagedActivityResultLau
                 onError("r" + t.message)
                 Log.w("AdvancedScreen", "error during restore", t)
             } finally {
+                restoredDb.delete()
                 wait.countDown()
             }
         }
@@ -385,6 +415,8 @@ private val backupFilePatterns by lazy { listOf(
 fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
     val restoredDb = ctx.getDatabasePath(Database.NAME + "_restored")
     try {
+        restoredDb.delete()
+        var importedText: List<ClipboardPortableBackup.Entry>? = null
         ZipInputStream(inputStream).use { zip ->
             var entry: ZipEntry? = zip.nextEntry
             val filesDir = ctx.filesDir ?: return false
@@ -407,8 +439,12 @@ fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
                     if (!restoreEntryToDir(zip, filesDir, entry.name)) {
                         Log.w("BackupRestorePreference", "skipping unsafe backup entry ${entry.name}")
                     }
+                } else if (entry.name == ClipboardPortableBackup.ENTRY_NAME) {
+                    check(importedText == null && !restoredDb.exists())
+                    importedText = ClipboardPortableBackup.decode(zip)
                 } else if (entry.name == Database.NAME) {
-                    FileUtils.copyStreamToNewFile(zip, restoredDb)
+                    check(importedText == null && !restoredDb.exists())
+                    copyLegacyClipboardDatabase(zip, restoredDb)
                 } else if (entry.name == PREFS_FILE_NAME) {
                     val prefLines = String(zip.readBytes()).split("\n")
                     val prefs = ctx.prefs()
@@ -423,6 +459,7 @@ fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
             }
         }
         
+        importedText?.let { checkNotNull(ClipboardDao.getInstance(ctx)).mergePortableText(it) }
         if (restoredDb.exists()) Database.copyFromDb(restoredDb, ctx)
         runCatching { transferOldPinnedClips(ctx) }
         runCatching { Settings.getInstance().startListener() }
@@ -437,7 +474,22 @@ fun restoreSilently(ctx: Context, inputStream: InputStream): Boolean {
         runCatching { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
         return true
     } catch (t: Throwable) {
-        Log.w("BackupRestorePreference", "error during silent restore", t)
+        Log.w("BackupRestorePreference", "error during silent restore (${t.javaClass.simpleName})")
         return false
+    } finally { restoredDb.delete() }
+}
+
+private fun copyLegacyClipboardDatabase(input: InputStream,file: File) {
+    file.parentFile?.mkdirs()
+    file.outputStream().use { out ->
+        val buffer = ByteArray(8192)
+        var total = 0L
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            total += n
+            require(total <= 64L*1024*1024) { "Clipboard backup too large" }
+            out.write(buffer,0,n)
+        }
     }
 }

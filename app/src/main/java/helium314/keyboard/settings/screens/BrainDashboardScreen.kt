@@ -109,6 +109,8 @@ fun BrainDashboardScreen(
                 AppProfileControls()
                 TextTemplateControls()
                 TextReplacementControls()
+                ClipboardTextVaultControls()
+                EditingGestureControls()
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
                 }

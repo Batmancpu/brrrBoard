@@ -42,6 +42,18 @@ class FrostAccentRolesTest {
         assertFalse(FrostAccentRoles.tintIosAction(false, true, true, false, 3))
         assertFalse(FrostAccentRoles.tintIosAction(false, false, true, true, 3))
     }
+    @Test fun shiftedReturnAndExplicitActionVariantsAreEligible() {
+        val k = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
+        assertTrue(FrostAccentRoles.isActionRole(helium314.keyboard.latin.common.Constants.CODE_ENTER,false))
+        assertTrue(FrostAccentRoles.isActionRole(k.SHIFT_ENTER,false))
+        assertTrue(FrostAccentRoles.isActionRole(k.INLINE_EMOJI_SEARCH_DONE,true))
+        assertTrue(FrostAccentRoles.isActionRole(k.ACTION_NEXT,true))
+        assertTrue(FrostAccentRoles.isActionRole(k.ACTION_PREVIOUS,true))
+        assertFalse(FrostAccentRoles.isActionRole(k.ACTION_NEXT,false))
+        assertFalse(FrostAccentRoles.isActionRole(k.DELETE,true))
+        assertFalse(FrostAccentRoles.isActionRole(k.SHIFT,true))
+        assertFalse(FrostAccentRoles.isActionRole('a'.code,true))
+    }
     @Test fun panelSearchIsExplicitlyEligibleWithoutHostImeAction() {
         assertTrue(FrostAccentRoles.tintPanelSearch(false, false, true, true))
         assertFalse(FrostAccentRoles.tintPanelSearch(true, false, true, true))

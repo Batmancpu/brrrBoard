@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.keyboard
 
+import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
+import helium314.keyboard.latin.common.Constants
+
 /** Apple-style action accent, plus owner's explicit plain Return preference. Other keys stay neutral. */
 object FrostAccentRoles {
     /** A single versioned default update; never re-enable a later deliberate opt-out. */
@@ -12,6 +15,15 @@ object FrostAccentRoles {
     const val PREF_ROUNDED_KEYCAPS = "pref_board_rounded_keycaps"
     const val DEFAULT_ROUNDED_KEYCAPS = true
     val applePaletteIds = listOf("blue", "red", "orange", "yellow", "green", "mint", "teal", "cyan", "indigo", "purple", "pink", "brown")
+
+    /** Multiline manual shift uses a different Android code for the same visible Return.
+     * Explicit Next/Previous and inline-search Done are eligible only when rendered as an action. */
+    @JvmStatic fun isReturnRole(code: Int): Boolean =
+        code == Constants.CODE_ENTER || code == KeyCode.SHIFT_ENTER
+
+    @JvmStatic fun isActionRole(code: Int, actionBackground: Boolean): Boolean =
+        isReturnRole(code) || (actionBackground && (code == KeyCode.ACTION_NEXT ||
+            code == KeyCode.ACTION_PREVIOUS || code == KeyCode.INLINE_EMOJI_SEARCH_DONE))
 
     /** The actual Return key is eligible even when the layout uses a neutral background flag.
      * Plain Return is intentionally included at the owner's request; custom labels remain neutral. */

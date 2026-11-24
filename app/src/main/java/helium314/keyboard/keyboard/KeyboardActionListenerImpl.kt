@@ -58,6 +58,19 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var initialSubtype: InputMethodSubtype? = null
     private var subtypeSwitchCount = 0
 
+    override fun editingGestureSession(): Long =
+        if (metaState == 0 && settings.current.mEditingGestureConfig.enabled &&
+            !TouchpadHandler.isTouchpadModeRequested() && latinIME.isInputViewShown &&
+            keyboardSwitcher.visibleKeyboardView === keyboardSwitcher.mainKeyboardView &&
+            latinIME.mayUseTransientCorrectionMemory(settings.current)) latinIME.editorGeneration() else -1L
+
+    override fun dispatchEditingGesture(session: Long, code: Int): Boolean {
+        if (session < 0 || session != editingGestureSession() || !EditingGestureConfig.allowedCode(code)) return false
+        latinIME.hapticAndAudioFeedback(KeyCode.TEXT_TOOLS,0,HapticEvent.KEY_PRESS)
+        onCodeInput(code,Constants.NOT_A_COORDINATE,Constants.NOT_A_COORDINATE,false)
+        return true
+    }
+
     override fun onPressKey(primaryCode: Int, repeatCount: Int, isSinglePointer: Boolean, hapticEvent: HapticEvent) {
         if (TouchpadHandler.isTouchpadModeRequested()) return
         metaOnPressKey(primaryCode)

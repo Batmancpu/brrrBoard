@@ -380,7 +380,8 @@ public class KeyboardView extends View {
     }
 
     public boolean isMorphSearchHidden() {
-        return isEmojiMorphHidden(KeyCode.EMOJI_SEARCH) || isEmojiMorphHidden(Constants.CODE_ENTER);
+        return isEmojiMorphHidden(KeyCode.EMOJI_SEARCH) || isEmojiMorphHidden(Constants.CODE_ENTER)
+                || isEmojiMorphHidden(KeyCode.SHIFT_ENTER);
     }
     public boolean isMorphDeleteHidden() { return isEmojiMorphHidden(KeyCode.DELETE); }
 
@@ -409,7 +410,7 @@ public class KeyboardView extends View {
         final Key key = keyboard == null ? null : keyboard.getKey(code);
         if (key == null || key.isSpacer() || key.getDrawWidth() <= 0 || key.getHeight() <= 0) return null;
         if (code != KeyCode.EMOJI_SEARCH && code != KeyCode.DELETE
-                && code != Constants.CODE_ENTER && code != Constants.CODE_SPACE) return null;
+                && !FrostAccentRoles.isReturnRole(code) && code != Constants.CODE_SPACE) return null;
         if (key.hasCustomActionLabel()) return null;
         return key;
     }
@@ -486,7 +487,7 @@ public class KeyboardView extends View {
                 frostedColorType = ColorType.SPACE_BAR_BACKGROUND;
             } else if (isOgFrostTintedControlKey(key)) {
                 frostedColorType = ColorType.OG_FROST_ACCENT_BACKGROUND;
-            } else if (key.getCode() == Constants.CODE_ENTER || key.hasActionKeyBackground()) {
+            } else if (FrostAccentRoles.isReturnRole(key.getCode()) || key.hasActionKeyBackground()) {
                 frostedColorType = ColorType.ENTER_KEY_BACKGROUND;
             } else if (isSpecialKey(key)) {
                 frostedColorType = ColorType.SPECIAL_KEY_BACKGROUND;
@@ -1188,7 +1189,7 @@ public class KeyboardView extends View {
                 keyboard.mId.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW ||
                 keyboard.mId.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW)) return true;
         return FrostAccentRoles.tintIosAction(isPopupKeysView(), key.isSpacer(),
-                        key.getCode() == Constants.CODE_ENTER,
+                        FrostAccentRoles.isActionRole(key.getCode(),key.hasActionKeyBackground()),
                         key.hasCustomActionLabel(), keyboard.mId.imeAction());
     }
 

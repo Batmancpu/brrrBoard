@@ -68,6 +68,7 @@ import helium314.keyboard.latin.define.DebugFlags;
 import helium314.keyboard.latin.settings.DebugSettings;
 import helium314.keyboard.latin.settings.Defaults;
 import helium314.keyboard.latin.settings.Settings;
+import helium314.keyboard.latin.settings.SettingsValues;
 import helium314.keyboard.latin.utils.KtxKt;
 import helium314.keyboard.latin.utils.LanguageOnSpacebarUtils;
 import helium314.keyboard.latin.utils.Log;
@@ -457,6 +458,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     private void setKeyboardInternal(@NonNull final Keyboard keyboard, final boolean requestLayout) {
+        if (mEditGestureOwned) cancelEditGesture();
         mKeyPressMotions.clear();
         // Cursor moves trigger keyboard/case rebuilds. Preserve the unlabelled
         // trackpad surface until the actual spacebar gesture ends, not until the
@@ -720,6 +722,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     @Override
     protected void onDetachedFromWindow() {
+        resetEditGesture();
         super.onDetachedFromWindow();
         final ViewGroup parent = (ViewGroup) mDrawingPreviewPlacerView.getParent();
         if (parent != null) {
@@ -898,9 +901,97 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         return mTimerHandler.isInDoubleTapShiftKeyTimeout();
     }
 
+    // Optional dedicated modifier owns only streams beginning on its own key.
+    // Ordinary letters, Shift, 123, space/trackpad, delete and the footer never enter this path.
+    private boolean mEditGestureOwned;
+    private boolean mEditGestureCanceled;
+    private int mEditGesturePointer;
+    private float mEditGestureX, mEditGestureY, mEditGestureTravel;
+    private long mEditGestureDown, mEditGestureEpoch;
+    private Key mEditGestureKey;
+    private Keyboard mEditGestureKeyboard;
+    private KeyboardActionListener mEditGestureListener;
+    private EditingGestureConfig mEditGestureConfig;
+
+    private void releaseEditGestureKey() {
+        if (mEditGestureKey != null) {
+            mEditGestureKey.onReleased();
+            invalidateKey(mEditGestureKey);
+        }
+        mEditGestureKey = null;
+    }
+
+    private void cancelEditGesture() {
+        mEditGestureCanceled = true;
+        releaseEditGestureKey();
+    }
+
+    private void resetEditGesture() {
+        releaseEditGestureKey();
+        mEditGestureOwned = false;
+        mEditGestureCanceled = false;
+        mEditGestureKeyboard = null;
+        mEditGestureListener = null;
+        mEditGestureConfig = null;
+    }
+
+    private boolean handleEditGesture(final MotionEvent e) {
+        final int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            resetEditGesture();
+            final Keyboard keyboard = getKeyboard();
+            if (keyboard == null || !keyboard.mId.mEditingGestureKeyEnabled
+                    || !keyboard.mId.isAlphabetKeyboard() || isShowingPopupKeysPanel()
+                    || PointerTracker.getActivePointerTrackerCount() != 0
+                    || TouchpadHandler.isTouchpadModeRequested()
+                    || AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()) return false;
+            final Key key = mKeyDetector.detectHitKey((int)e.getX(),(int)e.getY());
+            if (key == null || key.getCode() != KeyCode.TEXT_TOOLS) return false;
+            final SettingsValues settings = Settings.getValues();
+            if (settings == null || !settings.mEditingGestureConfig.getEnabled()) return false;
+            final long epoch = mKeyboardActionListener.editingGestureSession();
+            mEditGestureOwned = true;
+            if (epoch < 0) { mEditGestureCanceled = true; return true; }
+            mEditGestureEpoch = epoch;
+            mEditGesturePointer = e.getPointerId(0);
+            mEditGestureX = e.getX(); mEditGestureY = e.getY(); mEditGestureTravel = 0f;
+            mEditGestureDown = e.getEventTime();
+            mEditGestureKeyboard = keyboard;
+            mEditGestureListener = mKeyboardActionListener;
+            mEditGestureConfig = settings.mEditingGestureConfig;
+            mEditGestureKey = key;
+            key.onPressed(); invalidateKey(key);
+            return true;
+        }
+        if (!mEditGestureOwned) return false;
+        if (action == MotionEvent.ACTION_CANCEL) { resetEditGesture(); return true; }
+        if (action == MotionEvent.ACTION_POINTER_DOWN || action == MotionEvent.ACTION_POINTER_UP
+                || e.getPointerCount() != 1 || e.getPointerId(0) != mEditGesturePointer
+                || getKeyboard() != mEditGestureKeyboard || mKeyboardActionListener != mEditGestureListener
+                || !isShown()) cancelEditGesture();
+        if (!mEditGestureCanceled) {
+            final float dx = e.getX() - mEditGestureX, dy = e.getY() - mEditGestureY;
+            mEditGestureTravel = Math.max(mEditGestureTravel,(float)Math.hypot(dx,dy));
+            if (action == MotionEvent.ACTION_UP) {
+                final Key target = mKeyDetector.detectHitKey((int)e.getX(),(int)e.getY());
+                final int code = mEditGestureConfig.resolve(dx,dy,mEditGestureTravel,
+                        mEditGestureKey.getWidth(),mEditGestureKey.getHeight(),e.getEventTime()-mEditGestureDown,
+                        target == null ? KeyCode.NOT_SPECIFIED : target.getCode());
+                final long epoch = mEditGestureEpoch;
+                final KeyboardActionListener listener = mEditGestureListener;
+                resetEditGesture(); // release ownership before dispatch can switch editor/panel
+                if (code != KeyCode.NOT_SPECIFIED) listener.dispatchEditingGesture(epoch,code);
+                return true;
+            }
+        }
+        if (action == MotionEvent.ACTION_UP) resetEditGesture();
+        return true;
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
+        if (handleEditGesture(event)) return true;
         if (getKeyboard() == null) {
             return false;
         }
@@ -931,6 +1022,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     public void cancelAllOngoingEvents() {
+        resetEditGesture();
         mTimerHandler.cancelAllMessages();
         PointerTracker.setReleasedKeyGraphicsToAllKeys();
         mGestureFloatingTextDrawingPreview.dismissGestureFloatingPreviewText();
@@ -945,6 +1037,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     public void onHideWindow() {
+        resetEditGesture();
         onDismissPopupKeysPanel();
         final MainKeyboardAccessibilityDelegate accessibilityDelegate = mAccessibilityDelegate;
         if (accessibilityDelegate != null

@@ -1,22 +1,26 @@
 {
   "schema": 1,
-  "summary": "Apple action accents enabled on upgrade, private find and replace rules, and guarded layout prewarm.",
+  "summary": "Optional clipboard text encryption and safer portable backup.",
   "changes": [
     {
-      "title": "Apple key accents enabled",
-      "detail": "One-time upgrade activates Return and contextual action accents; later manual opt-out is respected. Glass transparency is unchanged."
+      "title": "Clipboard text vault",
+      "detail": "Opt in to per-record device-bound AES-GCM encryption; migrate saved text and image references without removing pins. Image bytes are not encrypted yet."
     },
     {
-      "title": "Find & replace rules",
-      "detail": "Create encrypted reusable literal rules in BR Brain and apply to selected text with case, whole-word and first/all controls."
+      "title": "Safer clipboard backup",
+      "detail": "Clipboard text export is explicit and plaintext; validated imports merge instead of clearing current history. Images are excluded."
     },
     {
-      "title": "Panel layout prewarm",
-      "detail": "Bounded idle warming of Emoji and Clipboard layout data only, canceled on touch or editor changes; no background clipboard reads."
+      "title": "Database cleanup status",
+      "detail": "Retry SQLite cleanup separately; no guarantee of forensic erasure."
     },
     {
-      "title": "Accent setting",
-      "detail": "Description now includes Return and contextual actions."
+      "title": "Additional Return variants",
+      "detail": "Tint multiline shifted Return and explicit navigation/inline Done actions; include shifted Return in shared-key morphs."
+    },
+    {
+      "title": "Optional editing gestures",
+      "detail": "Enable a dedicated Edit key for letter-slide shortcuts or configurable directional flicks; off by default and separate from normal glide typing."
     }
   ]
 }
