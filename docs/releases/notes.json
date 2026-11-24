@@ -13,6 +13,10 @@
     {
       "title": "Learning controls",
       "detail": "BR Brain includes an experimental switch and an explicit reset for touch-offset models."
+    },
+    {
+      "title": "Storage compatibility",
+      "detail": "Use the existing app credential-protected no-backup context and reject device-protected storage; no plaintext fallback."
     }
   ]
 }

@@ -40,8 +40,10 @@ public final class AdaptiveTouchStore {
         return user != null && user.isUserUnlocked();
     }
     private AtomicFile file() {
-        return new AtomicFile(new File(context.createCredentialProtectedStorageContext()
-                .getNoBackupFilesDir(), "adaptive_touch_v1.enc"));
+        // The application context is CE by default; refuse a device-protected context.
+        // Android exposes createDeviceProtectedStorageContext(), not its inverse.
+        if (context.isDeviceProtectedStorage()) throw new IllegalStateException("CE storage required");
+        return new AtomicFile(new File(context.getNoBackupFilesDir(), "adaptive_touch_v1.enc"));
     }
     private void load(long token) {
         if (loaded || !unlocked() || token != generation.get()) return;
@@ -129,7 +131,7 @@ public final class AdaptiveTouchStore {
         worker.execute(() -> {
             if (saveTask != null) saveTask.cancel(false);
             saveTask = null; models.clear(); readOnly = false; loaded = true;
-            if (unlocked()) file().delete();
+            if (unlocked() && !context.isDeviceProtectedStorage()) file().delete();
         });
     }
 }
