@@ -108,6 +108,8 @@ jobs:
         run: bash tools/fetch-board-brrclean.sh
       - name: Fetch and verify adaptive voice models
         run: bash tools/fetch-board-voice-endpoints.sh
+      - name: Verify lightweight ASR packaging allowlist
+        run: python3 -m unittest discover -s tools -p 'test_voice_model_packaging.py' -v
       - name: Execute pinned speech endpoint models on CPU
         run: |
           python3 -m venv "$RUNNER_TEMP/voice-model-smoke"

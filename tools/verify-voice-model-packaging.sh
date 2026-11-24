@@ -30,11 +30,11 @@ case "$mode" in
     ;;
   unbundled)
     entries="$(unzip -Z1 "$apk")"
-    # Tiny pinned GTCRN is mandatory in every APK; larger Parakeet is optional.
-    # An independent APK verifier checks the exact approved GTCRN bytes.
+    # Only pinned auxiliary voice models are permitted in lightweight APKs.
+    # Dedicated APK verifiers check their exact SHA-256 bytes.
     if grep -Eq '^assets/voice-model/' <<< "$entries" ||
        grep -E '^assets/.*\.onnx$' <<< "$entries" |
-           grep -Fvx 'assets/voice/gtcrn_simple.onnx' >/dev/null; then
+           grep -Fvx -e 'assets/voice/gtcrn_simple.onnx' -e 'assets/voice/silero_vad_v6_2_3.onnx' -e 'assets/voice/smart-turn-v3.2-cpu.onnx' >/dev/null; then
       echo 'Refusing lightweight APK: speech model weights are embedded.' >&2
       exit 1
     fi
@@ -51,7 +51,7 @@ esac
 while IFS= read -r entry; do
   [[ "$entry" == assets/voice-model/* || "$entry" == assets/*.onnx ]] || continue
   case "$entry" in
-    assets/voice/gtcrn_simple.onnx) ;;
+    assets/voice/gtcrn_simple.onnx|assets/voice/silero_vad_v6_2_3.onnx|assets/voice/smart-turn-v3.2-cpu.onnx) ;;
     assets/voice-model/parakeet-tdt-110m-en/encoder.onnx|\
     assets/voice-model/parakeet-tdt-110m-en/decoder.onnx|\
     assets/voice-model/parakeet-tdt-110m-en/joiner.onnx|\

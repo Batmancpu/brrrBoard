@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Release guard: lightweight APKs must contain no model payloads."""
+"""Release guard: lightweight APKs allow only named auxiliary models, never ASR weights."""
 from pathlib import Path
 import subprocess
 import tempfile
@@ -25,6 +25,15 @@ class VoiceModelPackagingTest(unittest.TestCase):
     def test_only_runtime_and_attribution_are_allowed(self):
         self.check_apk({"assets/voice-model-attribution.txt": b"attribution",
                         "lib/arm64-v8a/libsherpa-onnx-jni.so": b"native-runtime"}, 0)
+
+    def test_only_exact_auxiliary_model_paths_are_allowed(self):
+        self.check_apk({
+            "assets/voice/gtcrn_simple.onnx": b"test",
+            "assets/voice/silero_vad_v6_2_3.onnx": b"test",
+            "assets/voice/smart-turn-v3.2-cpu.onnx": b"test",
+        }, 0)
+        self.check_apk({"assets/voice/smart-turn-v3.2-cpu-copy.onnx": b"test"}, 1)
+        self.check_apk({"assets/other/silero_vad_v6_2_3.onnx": b"test"}, 1)
 
     def test_accidental_weight_file_is_rejected(self):
         self.check_apk({"assets/voice-model/parakeet-tdt-110m-en/encoder.onnx": b"weights"}, 1)

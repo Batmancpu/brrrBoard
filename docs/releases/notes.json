@@ -8,7 +8,7 @@
     },
     {
       "title": "Keep lightweight GTCRN noise reduction",
-      "detail": "Retain the existing compact native denoiser and installed Parakeet models. Reuse the current ONNX runtime, execute neural inference on a dedicated voice worker, and verify both model graphs and APK assets in CI. Retain PCM frame bounds validation and use a host test wheel compatible with the CI runner."
+      "detail": "Retain the existing compact native denoiser and installed Parakeet models. Reuse the current ONNX runtime, execute neural inference on a dedicated voice worker, and verify both model graphs and APK assets in CI. Retain PCM frame bounds validation and use a host test wheel compatible with the CI runner. Permit only the exact two new auxiliary ONNX asset paths in lightweight packages, with independent SHA-256 checks; continue rejecting arbitrary ONNX and bundled Parakeet weights."
     }
   ]
 }

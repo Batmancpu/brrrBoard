@@ -13,3 +13,5 @@ Dedicated session-local voice worker owns the models, their state and audio buff
 Host CPU model graph smoke test, JUnit chunk continuity/fallback/semantic delay, existing full debug tests, and signed release packaging verification are required. Candidate pending CI and device acceptance; do not infer phone latency or actual WER improvement from host tests. Test English and Hindi, faint speech, noisy fan/traffic, natural pauses, a two-minute session, cancellation, and voice settings off/on on Reno10. Compare paired WER and latency before changing denoising or aggressively removing silence.
 
 CI repair: GitHub's runner Python did not offer ONNX Runtime 1.23.2 wheels. Pin available 1.28.0 for the host graph test (Android runtime remains pinned separately), and preserve recorder frame bounds validation.
+
+Packaging repair: APK compilation succeeded. The existing lightweight ASR guard correctly rejected unfamiliar ONNX files; extend only the exact auxiliary model paths in both allowlists, retain independent mandatory hash verification and add positive/negative path regression tests.
