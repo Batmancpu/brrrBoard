@@ -441,6 +441,28 @@ public class KeyboardView extends View {
             return;
         }
 
+        if (isExtendedAccentKey(key)) {
+            int fill = extendedAccentColor();
+            if (key.isPressed() || key.isLocked()) {
+                final int shade = extendedAccentForeground() == Color.WHITE ? Color.BLACK : Color.WHITE;
+                fill = ColorUtils.blendARGB(fill, shade, 0.12f);
+            }
+            mBackgroundPaint.setColor(fill);
+            final float radius = FrostAccentRoles.keyCornerRadius(bgWidth, bgHeight, getResources().getDisplayMetrics().density);
+            canvas.drawRoundRect(bgX, bgY, bgX + bgWidth, bgY + bgHeight, radius, radius, mBackgroundPaint);
+            return;
+        }
+
+        if (mColors.getRoundedBoardKeycaps() && mColors.isFrosted() && mColors.getHasKeyBorders()
+                && this instanceof MainKeyboardView && !key.isSpacer() && !isPopupKeysView()
+                && !isIosHighlightedSearchKey(key, getKeyboard())) {
+            // Match the illustrated rounded-rectangle keycaps without changing hit targets or the glass background.
+            mBackgroundPaint.setColor(KeyBackgroundUtils.fillColorFor(mColors, frostedColorType, key.isPressed() || key.isLocked()));
+            final float radius = FrostAccentRoles.keyCornerRadius(bgWidth, bgHeight, getResources().getDisplayMetrics().density);
+            canvas.drawRoundRect(bgX, bgY, bgX + bgWidth, bgY + bgHeight, radius, radius, mBackgroundPaint);
+            return;
+        }
+
         if (usesIosGlass() && !isPopupKeysView() && !key.isSpacer()) {
             final boolean pressed = key.isPressed() || key.isLocked();
             int fill;
@@ -772,6 +794,8 @@ public class KeyboardView extends View {
                     paint.setColor(mColors.get(isPopupKeySelected(key)
                             ? ColorType.ACTION_KEY_ICON
                             : ColorType.KEY_PREVIEW_TEXT));
+                else if (isExtendedAccentKey(key))
+                    paint.setColor(extendedAccentForeground());
                 else if (isOgFrostTintedControlKey(key))
                     paint.setColor(mColors.getOgFrostKeyAccentForeground());
                 else if (isIosHighlightedSearchKey(key, keyboard))
@@ -1080,6 +1104,24 @@ public class KeyboardView extends View {
         return mColors.getIosSearchKeyAccent() != 0;
     }
 
+    private int extendedAccentColor() {
+        return usesIosGlass() ? mColors.getIosSearchKeyAccent() : mColors.getOgFrostKeyAccent();
+    }
+
+    private int extendedAccentForeground() {
+        return usesIosGlass() ? mColors.getIosSearchKeyForeground() : mColors.getOgFrostKeyAccentForeground();
+    }
+
+    private boolean isExtendedAccentKey(@NonNull final Key key) {
+        final int code = key.getCode();
+        // Comma, period and ordinary letters are typing keys, even where a layout assigns a functional role.
+        final boolean control = code != Constants.CODE_COMMA && code != Constants.CODE_PERIOD
+                && (key.hasActionKeyBackground() || key.hasFunctionalBackground() || isSpecialKey(key));
+        return !(this instanceof EmojiPageKeyboardView) && !(this instanceof MoreSuggestionsView)
+                && FrostAccentRoles.tintExtended(mColors.getAccentExtendedKeys() && extendedAccentColor() != 0,
+                    isPopupKeysView(), key.isSpacer(), code == Constants.CODE_SPACE, control);
+    }
+
     private boolean isOgFrostTintedControlKey(@NonNull final Key key) {
         return FrostAccentRoles.tintControl(mColors.getOgFrostKeyAccent() != 0,
                 isPopupKeysView(), key.isSpacer(), key.hasActionKeyBackground());
@@ -1097,6 +1139,8 @@ public class KeyboardView extends View {
             mColors.setColor(icon, isPopupKeySelected(key)
                     ? ColorType.ACTION_KEY_ICON
                     : ColorType.KEY_PREVIEW_TEXT);
+        } else if (isExtendedAccentKey(key)) {
+            icon.setColorFilter(extendedAccentForeground(), PorterDuff.Mode.SRC_IN);
         } else if (isOgFrostTintedControlKey(key)) {
             icon.setColorFilter(mColors.getOgFrostKeyAccentForeground(), PorterDuff.Mode.SRC_IN);
         } else if (isIosHighlightedSearchKey(key, keyboard)) {

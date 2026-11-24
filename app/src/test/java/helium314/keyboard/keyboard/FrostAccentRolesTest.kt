@@ -27,6 +27,16 @@ class FrostAccentRolesTest {
         assertFalse(FrostAccentRoles.tintControl(false, false, false, true))
     }
 
+    @Test fun extendedAccentDoesNotTintSpaceLettersPopupsOrSpacers() {
+        assertTrue(FrostAccentRoles.tintExtended(true, false, false, false, true))
+        assertFalse(FrostAccentRoles.tintExtended(true, false, false, true, true))
+        assertFalse(FrostAccentRoles.tintExtended(true, false, false, false, false))
+        assertFalse(FrostAccentRoles.tintExtended(true, true, false, false, true))
+        assertFalse(FrostAccentRoles.tintExtended(true, false, true, false, true))
+        assertFalse(FrostAccentRoles.tintExtended(false, false, false, false, true))
+        assertEquals(12, FrostAccentRoles.applePaletteIds.distinct().size)
+    }
+
     @Test fun cornerRadiusFitsSmallLandscapeOrResizedKeys() {
         assertEquals(16f, FrostAccentRoles.keyCornerRadius(50f, 60f, 2f), 0.001f)
         assertEquals(6f, FrostAccentRoles.keyCornerRadius(12f, 60f, 2f), 0.001f)

@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.keyboard.FrostAccentRoles
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.utils.Log
@@ -54,6 +55,9 @@ fun AppearanceScreen(
         R.string.brr_category_visual_material,
         Settings.PREF_MOTION_PROFILE,
         Settings.PREF_THEME_ACTION_TINT,
+        FrostAccentRoles.PREF_APPLE_PALETTE,
+        FrostAccentRoles.PREF_EXTENDED_ACCENT,
+        FrostAccentRoles.PREF_ROUNDED_KEYCAPS,
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
@@ -122,6 +126,20 @@ fun createAppearanceSettings(context: Context) = listOf(
     },
     Setting(context, Settings.PREF_THEME_ACTION_TINT, R.string.theme_action_tint, R.string.theme_action_tint_summary) {
         SwitchPreference(it, Defaults.PREF_THEME_ACTION_TINT) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, FrostAccentRoles.PREF_APPLE_PALETTE, R.string.theme_apple_palette, R.string.theme_apple_palette_summary) { setting ->
+        val names = listOf("Blue", "Red", "Orange", "Yellow", "Green", "Mint", "Teal", "Cyan", "Indigo", "Purple", "Pink", "Brown")
+        ListPreference(setting, listOf("Wallpaper · automatic" to FrostAccentRoles.DEFAULT_PALETTE) +
+            names.zip(FrostAccentRoles.applePaletteIds), FrostAccentRoles.DEFAULT_PALETTE) {
+            context.prefs().edit().putBoolean(Settings.PREF_THEME_ACTION_TINT, true).apply()
+            KeyboardSwitcher.getInstance().setThemeNeedsReload()
+        }
+    },
+    Setting(context, FrostAccentRoles.PREF_EXTENDED_ACCENT, R.string.theme_extended_accent, R.string.theme_extended_accent_summary) {
+        SwitchPreference(it, FrostAccentRoles.DEFAULT_EXTENDED) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
+    },
+    Setting(context, FrostAccentRoles.PREF_ROUNDED_KEYCAPS, R.string.theme_rounded_board_keycaps, R.string.theme_rounded_board_keycaps_summary) {
+        SwitchPreference(it, FrostAccentRoles.DEFAULT_ROUNDED_KEYCAPS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
     Setting(context, Settings.PREF_THEME_KEY_BORDERS, R.string.key_borders) {
         SwitchPreference(it, Defaults.PREF_THEME_KEY_BORDERS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }

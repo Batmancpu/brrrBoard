@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Add an opt-in encrypted password gesture accessed from the Settings heading.",
+  "summary": "Expand the private gesture across the entire keyboard and offer Apple-inspired control accents.",
   "changes": [
     {
-      "title": "Hidden password vault setup",
-      "detail": "Hold the main Settings heading for three seconds and release, confirm the Android device credential, enter a password and enroll three consistent patterns in a practice footer."
+      "title": "Continuous keyboard password gesture",
+      "detail": "Only the initial touch must be below Space between Emoji and mic. The root captures the entire single-finger stroke across keys and does not forward cancelled or rejected tails to swipe typing. Full-keyboard practice enrollment and tests for stream ownership and trigger region."
     },
     {
-      "title": "Isolated password insertion",
-      "detail": "Draw in the dedicated center footer of a masked password editor. Direct commit bypasses swipe decoding, voice and clipboard. Reject stale editors, ordinary text, protected apps and accessibility touch exploration; no auto-submit."
+      "title": "Apple accent palette",
+      "detail": "Choose wallpaper automatic or any of 12 Apple-inspired colors in Appearance. Extend accent to Shift, Delete, 123, Return and other control keys; keep letters, punctuation, space and glass neutral. Preserve action-only option."
     },
     {
-      "title": "Encrypted local mapping",
-      "detail": "AES-256-GCM in no-backup storage with Android Keystore; Smart mode uses recent device credential authentication, explicit Instant mode requires an unlocked secure device. Five failed matches require reauthentication. Preserve legacy biometric note and all voice code. Physical device validation pending."
+      "title": "Illustrated rounded rectangles",
+      "detail": "Uniform rounded keycaps on the frosted keyboard preserve the existing key layout, opacity, press states and touch targets. Optional switch restores the old renderer. Physical Reno10 visual and security acceptance remain pending."
     }
   ]
 }

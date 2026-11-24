@@ -4,11 +4,11 @@ package helium314.keyboard.latin
 import kotlin.math.hypot
 import kotlin.math.sqrt
 
-/** Small deterministic normalizer for one-finger traces captured in the reserved footer strip. */
+/** Small deterministic normalizer for one-finger traces starting in the reserved footer strip and continuing across the keyboard. */
 internal object VaultGestureTrace {
     const val POINT_COUNT = 32
     private const val MIN_POINTS = 8
-    private const val MAX_RAW_POINTS = 256
+    private const val MAX_RAW_POINTS = 512
 
     fun normalize(xs: FloatArray, ys: FloatArray, count: Int, density: Float): FloatArray? {
         if (count !in MIN_POINTS..MAX_RAW_POINTS || xs.size < count || ys.size < count || !density.isFinite() || density <= 0f) return null

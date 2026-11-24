@@ -50,6 +50,8 @@ interface Colors {
     val iosSearchKeyForeground: Int get() = Color.BLACK
     val ogFrostKeyAccent: Int get() = 0
     val ogFrostKeyAccentForeground: Int get() = Color.WHITE
+    val accentExtendedKeys: Boolean get() = false
+    val roundedBoardKeycaps: Boolean get() = false
 
     /** use to check whether colors have changed, for colors (in)directly derived from context,
      *  e.g. night mode or potentially changing system colors */
@@ -429,6 +431,8 @@ class DefaultColors (
     override val ogFrostKeyAccentForeground: Int = if (ogFrostKeyAccent != 0 &&
         ColorUtils.calculateContrast(Color.WHITE, ogFrostKeyAccent) >= 4.5) Color.WHITE else Color.BLACK,
     private val ogFrostSystemAccent: Int? = null,
+    override val accentExtendedKeys: Boolean = false,
+    override val roundedBoardKeycaps: Boolean = false,
 ) : Colors {
     override val iosSearchKeyForeground = if (iosSearchKeyAccent != 0 &&
         ColorUtils.calculateContrast(Color.WHITE, iosSearchKeyAccent) >= 4.5) Color.WHITE else Color.BLACK
@@ -705,6 +709,7 @@ class DefaultColors (
 internal class OgFrostAccentColors(
     private val base: Colors,
     override val ogFrostKeyAccent: Int,
+    override val accentExtendedKeys: Boolean = false,
 ) : Colors {
     override val themeStyle get() = base.themeStyle
     override val hasKeyBorders get() = base.hasKeyBorders

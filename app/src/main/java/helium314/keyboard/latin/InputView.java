@@ -39,6 +39,7 @@ public final class InputView extends FrameLayout {
     private View mBoardFrame;
     private SuggestionStripView mSuggestionStrip;
     private BoardFooterView mFooter;
+    private VaultStrokeCapture mVaultStroke;
     private SlideConfirmationOverlay mSlideConfirmation;
     private MainKeyboardView mConfirmationKeyboard;
     private int mBoardAccessibilityBeforeConfirmation = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
@@ -66,6 +67,7 @@ public final class InputView extends FrameLayout {
         mBoardFrame = findViewById(R.id.main_keyboard_frame);
         mSuggestionStrip = suggestionStripView;
         mFooter = findViewById(R.id.board_footer);
+        mVaultStroke = new VaultStrokeCapture(getResources().getDisplayMetrics().density, mFooter::submitVaultGesture);
         mKeyboardTopPaddingForwarder = new KeyboardTopPaddingForwarder(
                 mMainKeyboardView, suggestionStripView);
         mMoreSuggestionsViewCanceler = new MoreSuggestionsViewCanceler(
@@ -88,6 +90,7 @@ public final class InputView extends FrameLayout {
     }
 
     public void resetBoardGesture() {
+        if (mVaultStroke != null) mVaultStroke.invalidateStroke();
         cancelSlideConfirmation();
         mMayDragToolbar = false;
         mDraggingToolbar = false;
@@ -138,6 +141,16 @@ public final class InputView extends FrameLayout {
     @Override
     public boolean dispatchTouchEvent(final MotionEvent event) {
         final int action = event.getActionMasked();
+        // The initial DOWN is the only opportunity to claim a private stroke.
+        // Once claimed, no event (including an invalid/cancelled tail) reaches keys.
+        if (mVaultStroke != null && mFooter != null) {
+            final boolean starts = action == MotionEvent.ACTION_DOWN
+                    && mFooter.canStartVaultGesture(event.getRawX(), event.getRawY());
+            if (starts || mVaultStroke.isOwning()) {
+                final boolean eligible = mFooter.vaultGestureEligible();
+                if (mVaultStroke.route(event, getWidth(), getHeight(), starts, eligible)) return true;
+            }
+        }
         if (action == MotionEvent.ACTION_DOWN) {
             releaseToolbarVelocity();
             mDraggingToolbar = false;

@@ -855,8 +855,14 @@ New dictionary:
     <string name="theme_colors">Color theme (Light mode)</string>
     <!-- Option for choosing colors for night mode -->
     <string name="theme_colors_night">Color theme (Dark mode)</string>
-    <string name="theme_action_tint">Apple accent on action keys</string>
-    <string name="theme_action_tint_summary">Use the closest wallpaper accent on action keys only.</string>
+    <string name="theme_action_tint">Apple key accents</string>
+    <string name="theme_action_tint_summary">Tint action keys and optionally extended controls, keeping ordinary keys and glass neutral.</string>
+    <string name="theme_apple_palette">Apple accent palette</string>
+    <string name="theme_apple_palette_summary">Choose a fixed Apple-inspired color or follow the wallpaper.</string>
+    <string name="theme_extended_accent">Accent extended keys</string>
+    <string name="theme_extended_accent_summary">Accent Shift, Delete, 123, Return and other function keys, not letters or space.</string>
+    <string name="theme_rounded_board_keycaps">Rounded rectangle keycaps</string>
+    <string name="theme_rounded_board_keycaps_summary">Uniform rounded key surfaces with the existing layout and glass transparency.</string>
     <!-- Option for choosing whether we use a theme that provides borders to keys -->
     <string name="key_borders">Key borders</string>
     <!-- Option for choosing auto day/night theme switch -->

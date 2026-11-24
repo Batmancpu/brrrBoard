@@ -2,104 +2,87 @@
 package helium314.keyboard.latin
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Color
 import android.view.MotionEvent
 import android.view.View
+import helium314.keyboard.latin.R
+import java.util.function.Consumer
 
-/** Dedicated touch zone between footer controls for the optional custom private gesture. */
+/** Non-typing enrollment preview. The live IME uses the same full-stroke capture at its root. */
 class VaultFooterGestureView(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
-    private val xs = FloatArray(MAX_POINTS)
-    private val ys = FloatArray(MAX_POINTS)
-    private var count = 0
-    private var startedAt = 0L
-    private var enabled = false
-    private var strokeRejected = false
-    // The live keyboard intentionally never draws the trace or a vault label.
-
+    private val footerHeight = resources.getDimensionPixelSize(R.dimen.config_board_footer_height)
+    private val capture = VaultStrokeCapture(density, Consumer { trace -> onTrace?.invoke(trace) })
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var captureEnabled = false
+    var practiceInk: Int = Color.DKGRAY
+        set(value) { field = value; invalidate() }
+    var practiceAccent: Int = 0xff007aff.toInt()
+        set(value) { field = value; invalidate() }
     var onTrace: ((FloatArray) -> Unit)? = null
 
     init {
         isClickable = true
         isFocusable = false
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-        visibility = GONE
-        setWillNotDraw(true)
     }
-
     fun setCaptureEnabled(value: Boolean) {
-        enabled = value
-        if (!value) { strokeRejected = true; resetStroke() }
-        visibility = if (value) VISIBLE else GONE
+        captureEnabled = value
+        if (!value) capture.invalidateStroke()
         invalidate()
     }
-
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!enabled) return false
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                resetStroke()
-                strokeRejected = false
-                startedAt = event.eventTime
-                parent?.requestDisallowInterceptTouchEvent(true)
-                addPoint(event.x, event.y)
-                return true
-            }
-            MotionEvent.ACTION_MOVE -> {
-                if (event.pointerCount != 1) {
-                    strokeRejected = true
-                    resetStroke()
-                    return true
-                }
-                for (history in 0 until event.historySize) {
-                    addPoint(event.getHistoricalX(0, history), event.getHistoricalY(0, history))
-                }
-                addPoint(event.x, event.y)
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                addPoint(event.x, event.y)
-                val trace = if (!strokeRejected && event.eventTime - startedAt in MIN_DURATION_MS..MAX_DURATION_MS)
-                    VaultGestureTrace.normalize(xs, ys, count, density) else null
-                resetStroke()
-                parent?.requestDisallowInterceptTouchEvent(false)
-                if (trace != null) {
-                    try { onTrace?.invoke(trace) } finally { trace.fill(0f) }
-                }
-                return true
-            }
-            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
-                strokeRejected = true
-                resetStroke()
-                parent?.requestDisallowInterceptTouchEvent(false)
-                return true
+        val starts = event.actionMasked == MotionEvent.ACTION_DOWN &&
+            VaultStrokeCapture.inStartRegion(event.x, event.y, width, height, (112 * density).toInt(), footerHeight)
+        val owned = capture.route(event, width, height, starts, captureEnabled)
+        if (owned && event.actionMasked == MotionEvent.ACTION_DOWN) parent?.requestDisallowInterceptTouchEvent(true)
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL)
+            parent?.requestDisallowInterceptTouchEvent(false)
+        return owned
+    }
+    override fun onDetachedFromWindow() {
+        capture.invalidateStroke()
+        super.onDetachedFromWindow()
+    }
+    override fun onDraw(canvas: Canvas) {
+        val w = width.toFloat()
+        val keyArea = (height - footerHeight).coerceAtLeast(0).toFloat()
+        val row = keyArea / 4f
+        val step = w / 10f
+        val gap = 3f * density
+        val radius = 5f * density
+        val rows = arrayOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM")
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = 14f * density
+        for (r in rows.indices) {
+            val letters = rows[r]
+            val left = (w - letters.length * step) / 2f
+            letters.forEachIndexed { i, char ->
+                val x = left + i * step
+                paint.color = (practiceInk and 0x00ffffff) or 0x22000000
+                canvas.drawRoundRect(x + gap, r * row + gap, x + step - gap, (r + 1) * row - gap, radius, radius, paint)
+                paint.color = practiceInk
+                canvas.drawText(char.toString(), x + step / 2, (r + .5f) * row - (paint.ascent() + paint.descent()) / 2f, paint)
             }
         }
-        return true
-    }
-
-    private fun addPoint(x: Float, y: Float) {
-        if (x < 0f || y < 0f || x > width.toFloat() || y > height.toFloat() || count >= MAX_POINTS) {
-            strokeRejected = true
-            resetStroke()
-            return
+        fun key(left: Float, right: Float, label: String, accent: Boolean) {
+            paint.color = if (accent) practiceAccent else (practiceInk and 0x00ffffff) or 0x22000000
+            canvas.drawRoundRect(left + gap, 3 * row + gap, right - gap, keyArea - gap, radius, radius, paint)
+            paint.color = if (accent) Color.WHITE else practiceInk
+            canvas.drawText(label, (left + right) / 2, 3.5f * row - (paint.ascent() + paint.descent()) / 2f, paint)
         }
-        if (strokeRejected) return
-        if (count > 0 && kotlin.math.hypot(x - xs[count - 1], y - ys[count - 1]) < density * 0.65f) return
-        xs[count] = x
-        ys[count] = y
-        count++
-    }
-
-    private fun resetStroke() {
-        xs.fill(0f, 0, count.coerceAtMost(xs.size))
-        ys.fill(0f, 0, count.coerceAtMost(ys.size))
-        count = 0
-        startedAt = 0L
-    }
-
-    companion object {
-        private const val MAX_POINTS = 256
-        private const val MIN_DURATION_MS = 250L
-        private const val MAX_DURATION_MS = 5_000L
+        key(0f, w * .15f, "123", false)
+        key(w * .15f, w * .85f, "space", false)
+        key(w * .85f, w, "Go", true)
+        val half = minOf(w, 112 * density) / 2f
+        paint.color = practiceAccent
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = density * 1.5f
+        canvas.drawRoundRect(w / 2f - half, keyArea + density, w / 2f + half, height - density, radius, radius, paint)
+        paint.style = Paint.Style.FILL
+        paint.textSize = 10f * density
+        canvas.drawText("Start here", w / 2f, keyArea + footerHeight / 2f - (paint.ascent() + paint.descent()) / 2f, paint)
     }
 }

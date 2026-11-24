@@ -17,8 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.dimensionResource
-import helium314.keyboard.latin.R
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -107,7 +106,7 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
             if (!authorized) {
                 Button(onClick = { authenticate() }, enabled = !pendingAuth && !busy) { Text("Unlock with device credential") }
             } else {
-                Text("Draw only in the center footer below the space bar. The gesture works in masked password fields outside protected apps. Never in ordinary text or swipe typing. Use brrBoard as your active keyboard when entering your password here.", style = MaterialTheme.typography.bodyMedium)
+                Text("Start in the center footer below the space bar, then draw across the keyboard without lifting your finger. The gesture works in masked password fields outside protected apps. Never in ordinary text or swipe typing. Use brrBoard as your active keyboard when entering your password here.", style = MaterialTheme.typography.bodyMedium)
                 Text("Smart mode requires recent Android screen-lock authentication (five minutes). Instant mode is less secure: anyone who knows your gesture can use it on your unlocked device.", style = MaterialTheme.typography.bodySmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Allow instant gesture on unlocked phone", Modifier.weight(1f))
@@ -123,18 +122,19 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                     Button(onClick = {
                         focus.clearFocus(); keyboard?.hide()
                         samples.forEach { it.fill(0f) }; samples.clear()
-                        enrolling = true; status = "Draw the same custom pattern three times."
+                        enrolling = true; status = "Start below the space bar and draw the same continuous pattern three times."
                     }, enabled = password.length in 4..512 && !busy) { Text("Enroll keyboard pattern") }
                     if (configured) OutlinedButton(onClick = { confirmDelete = true }, enabled = !busy) { Text("Delete saved password and pattern") }
                 } else {
                     Text("Sample ${samples.size}/3", style = MaterialTheme.typography.titleMedium)
-                    Text("Practice footer · draw inside the center only", style = MaterialTheme.typography.bodySmall)
-                    Row(Modifier.fillMaxWidth().height(dimensionResource(R.dimen.config_board_footer_height)), horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Text("Emoji")
-                        AndroidView(factory = { VaultFooterGestureView(it).apply { setCaptureEnabled(true) } },
-                            modifier = Modifier.width(112.dp).fillMaxHeight().border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)),
+                    Text("Practice keyboard · start in the outlined footer, continue over any keys, lift once to finish.", style = MaterialTheme.typography.bodySmall)
+                    val practiceInk = MaterialTheme.colorScheme.onSurface.toArgb()
+                    val practiceAccent = MaterialTheme.colorScheme.primary.toArgb()
+                    AndroidView(factory = { VaultFooterGestureView(it).apply { setCaptureEnabled(true) } },
+                            modifier = Modifier.fillMaxWidth().height(240.dp).border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)),
                             update = { view ->
+                                view.practiceInk = practiceInk
+                                view.practiceAccent = practiceAccent
                                 view.setCaptureEnabled(!busy)
                                 view.onTrace = { sample ->
                                     if (!busy && authorized && samples.size < 3) {
@@ -162,8 +162,6 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                                     }
                                 }
                             })
-                        Text("Mic")
-                    }
                     OutlinedButton(onClick = { clearEnrollment(); status = "Enrollment cancelled." }, enabled = !busy) { Text("Cancel enrollment") }
                 }
             }
