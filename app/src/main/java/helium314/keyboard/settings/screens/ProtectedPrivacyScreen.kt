@@ -44,6 +44,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import helium314.keyboard.settings.SearchSettingsScreen
 import helium314.keyboard.latin.PrivateGestureSession
+import helium314.keyboard.latin.PrivateGestureVault
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.NoBackupStorageMigration
 import java.io.File

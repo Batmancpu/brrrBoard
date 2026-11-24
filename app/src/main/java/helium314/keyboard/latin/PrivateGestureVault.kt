@@ -31,7 +31,7 @@ internal object PrivateGestureVault {
 
     fun isConfigured(context: Context): Boolean = runCatching {
         val mapping = read(context) ?: return false
-        mapping.first.fill(0)
+        mapping.first.fill(0f)
         mapping.second.fill(0)
         true
     }.getOrDefault(false)
@@ -85,7 +85,7 @@ internal object PrivateGestureVault {
     fun matches(context: Context, candidate: FloatArray): Boolean = runCatching {
         val mapping = read(context) ?: return false
         try { PrivateGestureTrace.matches(mapping.first, candidate) }
-        finally { mapping.first.fill(0); mapping.second.fill(0) }
+        finally { mapping.first.fill(0f); mapping.second.fill(0) }
     }.getOrDefault(false)
 
     fun readSecret(context: Context): CharArray? = runCatching {
@@ -94,7 +94,7 @@ internal object PrivateGestureVault {
             val decoded = Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(mapping.second))
             CharArray(decoded.remaining()).also(decoded::get)
         }
-        finally { mapping.first.fill(0); mapping.second.fill(0) }
+        finally { mapping.first.fill(0f); mapping.second.fill(0) }
     }.getOrNull()
 
     fun clear(context: Context) {
