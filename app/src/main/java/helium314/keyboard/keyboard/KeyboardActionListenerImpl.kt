@@ -134,6 +134,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             KeyCode.TOGGLE_AUTOCORRECT -> return settings.toggleAutoCorrect()
             KeyCode.TOGGLE_INCOGNITO_MODE -> return settings.toggleAlwaysIncognitoMode()
             KeyCode.RESIZE_KEYBOARD -> return KeyboardSwitcher.getInstance().enterResizeMode()
+            KeyCode.TEXT_TOOLS -> return latinIME.requestContextualTextActions()
         }
         val mkv = keyboardSwitcher.mainKeyboardView
 

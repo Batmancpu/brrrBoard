@@ -183,6 +183,7 @@ object KeyCode {
     const val GIFS =                      -10053
     const val STICKERS =                  -10054
     const val RESIZE_KEYBOARD =           -10055
+    const val TEXT_TOOLS =                -10056
 
 
     // Intents
@@ -207,7 +208,7 @@ object KeyCode {
         MEDIA_PREVIOUS, VOL_UP, VOL_DOWN, MUTE, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, BACK,
         TIMESTAMP, CTRL_LEFT, CTRL_RIGHT, ALT_LEFT, ALT_RIGHT, META_LEFT, META_RIGHT, SEND_INTENT_ONE, SEND_INTENT_TWO,
         SEND_INTENT_THREE, EMOJI_SEARCH, INLINE_EMOJI_SEARCH_DONE, META_LOCK, GIFS, STICKERS,
-        RESIZE_KEYBOARD
+        RESIZE_KEYBOARD, TEXT_TOOLS
         -> this
 
         // conversion

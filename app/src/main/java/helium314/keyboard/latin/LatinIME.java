@@ -281,6 +281,8 @@ public class LatinIME extends InputMethodService implements
     private GestureConsumer mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
 
     private final ClipboardHistoryManager mClipboardHistoryManager = new ClipboardHistoryManager(this);
+    private final helium314.keyboard.latin.inputlogic.TextToolsController mTextTools = new helium314.keyboard.latin.inputlogic.TextToolsController(this);
+    public void requestContextualTextActions() { mTextTools.request(); }
     private final EditorSessionGeneration mEditorSessionGeneration = new EditorSessionGeneration();
 
     public static final class UIHandler extends LeakGuardHandlerWrapper<LatinIME> {
@@ -1294,6 +1296,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
@@ -1326,6 +1329,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
@@ -1345,6 +1349,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
@@ -1691,6 +1696,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
@@ -1769,6 +1775,7 @@ public class LatinIME extends InputMethodService implements
             final int newSelStart, final int newSelEnd,
             final int composingSpanStart, final int composingSpanEnd) {
         if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) mVaultSelectionEpoch++;
+        mTextTools.selectionChanged(newSelStart, newSelEnd);
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 composingSpanStart, composingSpanEnd);
         final SettingsValues selectionSettings = mSettings.getCurrent();
