@@ -157,15 +157,29 @@ public final class InputLogic {
     private long mAdaptiveEpoch, mAdaptiveAt, mPendingEpoch;
     private boolean mAdaptiveActive, mPendingValid;
     private final int[] mAdaptiveX = new int[32], mAdaptiveY = new int[32];
+    private final Runnable mExpireAdaptiveProof = this::clearAdaptiveTouchProof;
+    private SettingsValues mAdaptivePolicyValues;
+    private long mAdaptivePolicyEpoch = -1;
+    private boolean mAdaptivePolicyAllowed;
     private void clearAdaptiveTouchProof() {
+        if (mAdaptiveCount == 0 && mAdaptiveGeometry == null) return;
         mAdaptiveCount = 0; mAdaptiveGeometry = null;
         java.util.Arrays.fill(mAdaptiveX, 0); java.util.Arrays.fill(mAdaptiveY, 0);
+        mLatinIME.mHandler.removeCallbacks(mExpireAdaptiveProof);
     }
     public int beginAdaptiveTap(Keyboard keyboard, int code, int x, int y) {
         mAdaptiveActive = false; mPendingGeometry = null;
         final SettingsValues sv = Settings.getValues();
         if (!sv.mAdaptiveTouchEnabled || !sv.mUsePersonalizedDicts || sv.mIncognitoModeEnabled
-                || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return code;
+                || keyboard.mId.mDeviceLocked) return code;
+        final long currentEpoch = mLatinIME.editorGeneration();
+        // Resolve the expensive host/secure-app capability once per immutable settings/editor.
+        // Confirmation revalidates the live privacy policy before submitting any aggregate.
+        if (mAdaptivePolicyValues != sv || mAdaptivePolicyEpoch != currentEpoch) {
+            mAdaptivePolicyValues = sv; mAdaptivePolicyEpoch = currentEpoch;
+            mAdaptivePolicyAllowed = mLatinIME.mayUseTransientCorrectionMemory(sv);
+        }
+        if (!mAdaptivePolicyAllowed) return code;
         final helium314.keyboard.keyboard.AdaptiveTouchGeometry g =
                 helium314.keyboard.keyboard.AdaptiveTouchGeometry.of(keyboard);
         if (g == null || x < 0 || y < 0) return code;
@@ -183,6 +197,7 @@ public final class InputLogic {
     public void endAdaptiveTap(int code) {
         if (!mAdaptiveActive) return;
         mAdaptiveActive = false;
+        try {
         final String typed = mWordComposer.getTypedWord();
         if (!mPendingValid || mPendingEpoch != mLatinIME.editorGeneration()
                 || mAdaptiveBefore >= 32 || mWordComposer.isBatchMode() || mWordComposer.isResumed()
@@ -196,6 +211,9 @@ public final class InputLogic {
         mAdaptiveX[mAdaptiveBefore] = mPendingX; mAdaptiveY[mAdaptiveBefore] = mPendingY;
         mAdaptiveCount = mAdaptiveBefore + 1; mAdaptiveGeometry = mPendingGeometry;
         mAdaptiveEpoch = mPendingEpoch; mAdaptiveAt = SystemClock.elapsedRealtime();
+        mLatinIME.mHandler.removeCallbacks(mExpireAdaptiveProof);
+        mLatinIME.mHandler.postDelayed(mExpireAdaptiveProof, 30_000);
+        } finally { mPendingX = 0; mPendingY = 0; mPendingGeometry = null; }
     }
     private void confirmAdaptiveTouch(SettingsValues sv, String selected) {
         try {
@@ -496,7 +514,8 @@ public final class InputLogic {
 
         final SuggestedWords suggestedWords = mSuggestedWords;
         final String suggestion = suggestionInfo.mWord;
-        if (!isInlineEmojiSearchAction()) confirmAdaptiveTouch(settingsValues, suggestion);
+        if (!isInlineEmojiSearchAction() && !suggestionInfo.isKindOf(SuggestedWordInfo.KIND_APP_DEFINED))
+            confirmAdaptiveTouch(settingsValues, suggestion);
         else clearAdaptiveTouchProof();
         if (mWordComposer.isBatchMode() && mCurrentSwipeSkeleton != null
                 && !suggestion.equalsIgnoreCase(mWordComposer.getTypedWord())) {

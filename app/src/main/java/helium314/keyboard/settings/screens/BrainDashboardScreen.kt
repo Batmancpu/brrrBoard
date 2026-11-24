@@ -91,6 +91,7 @@ fun BrainDashboardScreen(
                             Switch(checked = adaptive, onCheckedChange = {
                                 adaptive = it
                                 context.prefs().edit().putBoolean(Settings.PREF_ADAPTIVE_TOUCH, it).apply()
+                                if (!it) helium314.keyboard.latin.brain.AdaptiveTouchStore.get(context).pause()
                             })
                         }
                         Text("Adjusts uncertain letter boundaries only after enough evidence. Encrypted local aggregates; never stores words or tap paths. Excludes private fields and swipe typing.", style = MaterialTheme.typography.bodySmall)

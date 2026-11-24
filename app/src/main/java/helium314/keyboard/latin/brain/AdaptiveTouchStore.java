@@ -30,6 +30,11 @@ public final class AdaptiveTouchStore {
         worker.execute(() -> load(generation.get()));
     }
     public AdaptiveTouchModel.Snapshot snapshot(long layout) { return snapshots.get(layout); }
+    private boolean enabled() {
+        android.content.SharedPreferences prefs = helium314.keyboard.latin.utils.KtxKt.prefs(context);
+        return prefs.getBoolean(helium314.keyboard.latin.settings.Settings.PREF_ADAPTIVE_TOUCH, false)
+                && prefs.getBoolean(helium314.keyboard.latin.settings.Settings.PREF_KEY_USE_PERSONALIZED_DICTS, true);
+    }
     private boolean unlocked() {
         UserManager user = context.getSystemService(UserManager.class);
         return user != null && user.isUserUnlocked();
@@ -76,7 +81,7 @@ public final class AdaptiveTouchStore {
         int[] n = counts.clone(); double[] x = xs.clone(), y = ys.clone();
         worker.execute(() -> {
             try {
-                if (token != generation.get() || !unlocked()) return;
+                if (token != generation.get() || !unlocked() || !enabled()) return;
                 load(token);
                 if (!loaded || readOnly) return;
                 AdaptiveTouchModel m = models.get(layout);
@@ -92,7 +97,7 @@ public final class AdaptiveTouchStore {
         });
     }
     private void save(long token) {
-        if (token != generation.get() || !unlocked() || readOnly) return;
+        if (token != generation.get() || !unlocked() || readOnly || !enabled()) return;
         byte[] plain = null;
         FileOutputStream out = null;
         AtomicFile f = null;
@@ -105,11 +110,19 @@ public final class AdaptiveTouchStore {
             }
             data.flush(); plain = bytes.toByteArray();
             byte[] encrypted = BrainLearningVault.seal(plain);
-            if (token != generation.get()) return;
+            if (token != generation.get() || !enabled()) return;
             f = file(); out = f.startWrite(); out.write(encrypted); f.finishWrite(out); out = null;
         } catch (Exception e) {
             if (out != null && f != null) f.failWrite(out);
         } finally { if (plain != null) Arrays.fill(plain, (byte) 0); }
+    }
+    /** Cancel pre-opt-out queued learning and writes; explicit Reset removes stored aggregates. */
+    public void pause() {
+        generation.incrementAndGet();
+        worker.execute(() -> {
+            if (saveTask != null) saveTask.cancel(false);
+            saveTask = null;
+        });
     }
     public void reset() {
         generation.incrementAndGet(); snapshots = Collections.emptyMap();
