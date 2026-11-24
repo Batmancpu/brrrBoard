@@ -1,18 +1,14 @@
 {
   "schema": 1,
-  "summary": "Bound decrypted clipboard payload retention",
+  "summary": "Instant alphabet and number switching; cold Emoji morph",
   "changes": [
     {
-      "title": "Bounded clipboard memory",
-      "detail": "History indexes retain metadata and process-local keyed fingerprints instead of the entire plaintext history. On-demand payload cache has fixed 30-second, 16-entry and character limits and clears at editor/panel privacy boundaries."
+      "title": "Instant ABC ↔ 123",
+      "detail": "Removed the recent elastic alphabet/symbol transition in both directions. Long-press popup animation remains."
     },
     {
-      "title": "Private recognition practice",
-      "detail": "Tap the sampled recognition map to see original and adapted decisions without training or retaining the sample."
-    },
-    {
-      "title": "Swipe correction inspection",
-      "detail": "Inspect all existing bounded encrypted correction pairs and forget individual pairs."
+      "title": "First-open Emoji morph",
+      "detail": "Wait for cold destination geometry with bounded pre-draw retries; keep the existing shared-key animation, no panel fade."
     }
   ]
 }

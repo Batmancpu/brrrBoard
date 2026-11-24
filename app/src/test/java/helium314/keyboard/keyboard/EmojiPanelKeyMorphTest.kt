@@ -51,6 +51,15 @@ class EmojiPanelKeyMorphTest {
             EmojiPanelKeyMorph.pairedCodes(normal,listOf(shifted,delete,space)).toSet())
     }
 
+    @Test fun coldLayoutWaitsOnceAndPendingLayoutIsBounded() {
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.deferTargetCapture(true, false, true, 0))
+        org.junit.Assert.assertFalse(EmojiPanelKeyMorph.deferTargetCapture(true, false, true, 1))
+        org.junit.Assert.assertFalse(EmojiPanelKeyMorph.deferTargetCapture(false, false, true, 0))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.deferTargetCapture(false, true, true, 1))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.deferTargetCapture(false, false, false, 0))
+        org.junit.Assert.assertFalse(EmojiPanelKeyMorph.deferTargetCapture(true, true, false, 2))
+    }
+
     @Test fun motionClampsWithoutOvershoot() {
         assertEquals(0f, EmojiPanelKeyMorph.position(0f, 100f, -1f), 0f)
         assertEquals(100f, EmojiPanelKeyMorph.position(0f, 100f, 2f), 0f)

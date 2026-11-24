@@ -30,6 +30,11 @@ object EmojiPanelKeyMorph {
     internal fun moves(fromX: Float, fromY: Float, toX: Float, toY: Float): Boolean =
         fromX != toX || fromY != toY
 
+    // The first layout can resize the bottom glass and request a second traversal.
+    // Retain the source across at most two pending traversals, never across a new editor.
+    internal fun deferTargetCapture(cold: Boolean, pendingLayout: Boolean, targetReady: Boolean,
+            retries: Int): Boolean = retries < 2 && ((cold && retries == 0) || pendingLayout || !targetReady)
+
     class KeyImage(val code: Int, val bounds: RectF, val artwork: Bitmap)
     class Snapshot(val keys: List<KeyImage>)
     private class Track(val from: KeyImage, val to: KeyImage)
@@ -108,6 +113,7 @@ object EmojiPanelKeyMorph {
     @JvmStatic fun start(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?) {
         cancel()
         if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled() || !supported(destination)) return
+        val cold = !destination.isLaidOut || destination.width <= 0 || destination.height <= 0
         val session = Session(root,destination,source)
         current = session
         val detach = object : View.OnAttachStateChangeListener {
@@ -117,12 +123,29 @@ object EmojiPanelKeyMorph {
         session.detach = detach
         root.addOnAttachStateChangeListener(detach)
         val listener = object : ViewTreeObserver.OnPreDrawListener {
+            private var retries = 0
             override fun onPreDraw(): Boolean {
                 if (current !== session) return true
+                if (!root.isShown || !destination.isShown || !KeyboardMotionSpec.enabled()) {
+                    cancel(); return true
+                }
+                val ready = destination.isLaidOut && destination.width > 0 && destination.height > 0
+                val pending = root.isLayoutRequested || destination.isLayoutRequested
+                if (deferTargetCapture(cold, pending, ready, retries)) {
+                    retries++
+                    // Do not present an unmorphed destination before the overlay owns its keys.
+                    root.postInvalidateOnAnimation()
+                    return false
+                }
+                val target = capture(root,destination)
+                if (target == null && deferTargetCapture(false, false, false, retries)) {
+                    retries++
+                    root.postInvalidateOnAnimation()
+                    return false
+                }
                 if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(this)
                 session.listener = null
-                val target = capture(root,destination)
-                if (target == null || !root.isShown) { cancel(); return true }
+                if (target == null) { cancel(); return true }
                 val tracks = pairedCodes(source.keys.map { it.code },target.keys.map { it.code }).mapNotNull { (a,b) ->
                     val from = source.keys.first { it.code == a }
                     val to = target.keys.first { it.code == b }
