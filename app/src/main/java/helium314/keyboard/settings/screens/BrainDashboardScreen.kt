@@ -57,7 +57,6 @@ fun BrainDashboardScreen(
     onClickBack: () -> Unit,
     onOpenCorrection: () -> Unit,
     showDetailedStats: Boolean = false,
-    onUnlockDetails: () -> Unit = {},
 ) {
     val context = LocalContext.current
     if (!showDetailedStats) {
@@ -74,9 +73,6 @@ fun BrainDashboardScreen(
                         Text(if (enabled) "Learning is enabled in eligible text fields."
                             else "Personal learning is paused by your settings.",
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("Detailed usage and learning statistics are protected.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 var adaptive by remember { mutableStateOf(context.prefs().getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false)) }
@@ -113,9 +109,6 @@ fun BrainDashboardScreen(
                 EditingGestureControls()
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
-                }
-                OutlinedButton(onClick = onUnlockDetails, modifier = Modifier.fillMaxWidth()) {
-                    Text("Unlock protected details with fingerprint")
                 }
             }
         }

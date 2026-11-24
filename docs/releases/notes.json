@@ -3,28 +3,12 @@
   "summary": "Optional clipboard text encryption and safer portable backup.",
   "changes": [
     {
-      "title": "Clipboard text vault",
-      "detail": "Opt in to per-record device-bound AES-GCM encryption; migrate saved text and image references without removing pins. Image bytes are not encrypted yet."
+      "title": "Hidden private settings",
+      "detail": "Hold the settings header and enter the existing secret code to access protected Brain details. Removed public fingerprint entry points; private session expires or locks when Settings leaves the foreground."
     },
     {
-      "title": "Safer clipboard backup",
-      "detail": "Clipboard text export is explicit and plaintext; validated imports merge instead of clearing current history. Images are excluded."
-    },
-    {
-      "title": "Database cleanup status",
-      "detail": "Retry SQLite cleanup separately; no guarantee of forensic erasure."
-    },
-    {
-      "title": "Additional Return variants",
-      "detail": "Tint multiline shifted Return and explicit navigation/inline Done actions; include shifted Return in shared-key morphs."
-    },
-    {
-      "title": "Optional editing gestures",
-      "detail": "Enable a dedicated Edit key for letter-slide shortcuts or configurable directional flicks; off by default and separate from normal glide typing."
-    },
-    {
-      "title": "Clipboard migration compatibility",
-      "detail": "Read and verify SQLite secure-delete PRAGMA through the result-returning query API before converting existing records."
+      "title": "Credential recovery",
+      "detail": "Recovery is visible only in the armed private search window. Existing device credential protection remains for changing the saved code."
     }
   ]
 }

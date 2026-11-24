@@ -4,7 +4,20 @@ package helium314.keyboard.settings
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import android.os.SystemClock
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import helium314.keyboard.latin.VaultGestureStore
+import helium314.keyboard.latin.utils.getActivity
+import helium314.keyboard.settings.screens.PrivateSettingsHub
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +54,6 @@ import helium314.keyboard.settings.screens.ClipboardSettingsScreen
 import helium314.keyboard.settings.screens.PrivacySettingsScreen
 import helium314.keyboard.settings.screens.BackupSettingsScreen
 import helium314.keyboard.settings.screens.VoiceSettingsScreen
-import helium314.keyboard.settings.screens.ProtectedPrivacyScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -56,6 +68,31 @@ fun SettingsNavHost(
     startDestination: String? = null,
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    var privateDeadline by remember { mutableStateOf(0L) }
+    val unlocked = PrivateSettingsSession.active(privateDeadline, SystemClock.elapsedRealtime()) &&
+        VaultGestureStore.isDeviceUnlocked(context)
+    // Not saveable: recreation or process death must never restore authorization.
+    DisposableEffect(owner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) privateDeadline = 0L
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer); privateDeadline = 0L }
+    }
+    LaunchedEffect(privateDeadline) {
+        if (privateDeadline != 0L) {
+            delay((privateDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
+            privateDeadline = 0L
+        }
+    }
+    DisposableEffect(unlocked) {
+        val window = if (unlocked) context.getActivity()?.window else null
+        val alreadySecure = window != null && window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
+        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { if (!alreadySecure) window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+    }
     val dir = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
     val target = SettingsDestination.navTarget.collectAsState()
 
@@ -93,8 +130,14 @@ fun SettingsNavHost(
                 onClickSound = { navController.navigate(SettingsDestination.Sound) },
                 onClickClipboard = { navController.navigate(SettingsDestination.Clipboard) },
                 onClickPrivacy = { navController.navigate(SettingsDestination.Privacy) },
-                onClickProtectedPrivacy = { navController.navigate(SettingsDestination.ProtectedPrivacy) },
-                onClickVault = { navController.navigate("private_vault_setup") },
+                // Called only after the masked header search verifies the enrolled code.
+                onClickVault = {
+                    if (VaultGestureStore.isDeviceUnlocked(context)) {
+                        privateDeadline = PrivateSettingsSession.deadline(SystemClock.elapsedRealtime())
+                        navController.navigate(SettingsDestination.ProtectedPrivacy)
+                    }
+                },
+                onRecoverVault = { navController.navigate("private_vault_setup") },
                 onClickBackup = { navController.navigate(SettingsDestination.Backup) },
                 onClickVoice = { navController.navigate(SettingsDestination.Voice) },
                 onClickBack = ::goBack,
@@ -120,11 +163,14 @@ fun SettingsNavHost(
             helium314.keyboard.settings.screens.VaultSetupScreen(onClickBack = ::goBack)
         }
         composable(SettingsDestination.ProtectedPrivacy) {
-            ProtectedPrivacyScreen(
+            if (unlocked) PrivateSettingsHub(
                 onClickBack = ::goBack,
                 onOpenBrainDetails = { navController.navigate(SettingsDestination.ProtectedBrain) },
-                onRecoverWhatsAppVault = { navController.navigate("private_vault_setup") },
-            )
+                onManageCode = { navController.navigate("private_vault_setup") },
+                onLock = { privateDeadline = 0L; goBack() },
+            ) else LaunchedEffect(Unit) {
+                navController.popBackStack(SettingsDestination.Settings, false)
+            }
         }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Voice) {
@@ -142,15 +188,16 @@ fun SettingsNavHost(
             BrainDashboardScreen(
                 onClickBack = ::goBack,
                 onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
-                onUnlockDetails = { navController.navigate(SettingsDestination.ProtectedPrivacy) },
             )
         }
         composable(SettingsDestination.ProtectedBrain) {
-            ProtectedPrivacyScreen(
+            if (unlocked) BrainDashboardScreen(
                 onClickBack = ::goBack,
-                showDashboardAfterAuth = true,
+                showDetailedStats = true,
                 onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
-            )
+            ) else LaunchedEffect(Unit) {
+                navController.popBackStack(SettingsDestination.Settings, false)
+            }
         }
 /*      will be added as part of passive data gathering
         composable(SettingsDestination.DataReview) {

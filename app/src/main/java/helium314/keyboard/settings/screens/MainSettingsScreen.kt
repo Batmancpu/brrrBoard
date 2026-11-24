@@ -150,8 +150,8 @@ fun MainSettingsScreen(
     onClickSound: () -> Unit,
     onClickClipboard: () -> Unit,
     onClickPrivacy: () -> Unit,
-    onClickProtectedPrivacy: () -> Unit = {},
     onClickVault: () -> Unit = {},
+    onRecoverVault: () -> Unit = {},
     onClickBackup: () -> Unit,
     onClickVoice: () -> Unit,
     onClickBack: () -> Unit,
@@ -162,6 +162,7 @@ fun MainSettingsScreen(
         settings = emptyList(),
         showBackButton = false,
         onTitleHold = onClickVault,
+        onTitleRecovery = onRecoverVault,
     ) {
         val ctx = LocalContext.current
         LaunchedEffect(ctx) {
@@ -293,8 +294,6 @@ fun MainSettingsScreen(
                 title = "Privacy & protected apps",
                 description = "Private apps, incognito and sensitive-field controls",
                 onClick = onClickPrivacy,
-                onLongClick = onClickProtectedPrivacy,
-                holdDurationMillis = 2500,
                 isFirst = true,
                 isLast = true
             )
@@ -460,7 +459,7 @@ fun Md3ePreference(
         val holdAction = requireNotNull(longClick)
         Modifier.semantics {
             semanticsOnClick { onClick(); true }
-            semanticsOnLongClick(label = "Open biometric protected area") {
+            semanticsOnLongClick(label = "Open options") {
                 holdAction()
                 true
             }

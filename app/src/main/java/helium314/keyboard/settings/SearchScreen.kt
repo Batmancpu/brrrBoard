@@ -145,6 +145,7 @@ fun SearchSettingsScreen(
     showBackButton: Boolean = true,
     filteredItems: ((String) -> List<Setting>)? = null,
     onTitleHold: (() -> Unit)? = null,
+    onTitleRecovery: (() -> Unit)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null, // overrides settings if not null
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
@@ -172,6 +173,7 @@ fun SearchSettingsScreen(
         showBackButton = showBackButton,
         vaultDeadline = if (onTitleHold != null) vaultDeadline else null,
         onVaultUnlock = onTitleHold,
+        onVaultRecovery = onTitleRecovery,
         title = { Text(title, modifier = holdModifier, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         content = {
             if (content == null) {
@@ -221,6 +223,7 @@ fun <T: Any?> SearchScreen(
     showBackButton: Boolean = true,
     vaultDeadline: MutableState<Long>? = null,
     onVaultUnlock: (() -> Unit)? = null,
+    onVaultRecovery: (() -> Unit)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf(TextFieldValue()) }
@@ -495,6 +498,17 @@ fun <T: Any?> SearchScreen(
                         if (!hideTopSearchBar) {
                             item(key = "search_field_item") {
                                 searchFieldContent()
+                            }
+                        }
+
+                        if (deadline != 0L && onVaultRecovery != null) {
+                            item(key = "private_recovery") {
+                                androidx.compose.material3.TextButton(onClick = {
+                                    disarm()
+                                    focusManager.clearFocus()
+                                    keyboard?.hide()
+                                    onVaultRecovery()
+                                }) { Text("Recover or change secret code") }
                             }
                         }
 
