@@ -322,7 +322,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             return;
         }
         // Invalidate the prior end action before cancel(), since cancel may deliver it.
-        mPanelTransitionGuard.start();
+        final long transitionGeneration = mPanelTransitionGuard.start();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
             mRunningAnimator = null;
@@ -346,10 +346,13 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final MainKeyboardView sourceKeys = !allowEmojiKeyMorph ? null
                 : toEmoji ? mKeyboardView
                 : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
-        // Cancel the previous owner before sampling a new transition.
+        // Sample the previous overlay's last presented geometry before canceling
+        // it. Its destination was logical, not necessarily where it was drawn.
+        final EmojiPanelKeyMorph.Snapshot source =
+                EmojiPanelKeyMorph.capturePresented(mCurrentInputView, sourceKeys);
         EmojiPanelKeyMorph.cancel();
-        final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(mCurrentInputView, sourceKeys);
         action.run();
+        if (!mPanelTransitionGuard.isCurrent(transitionGeneration)) return;
         helium314.keyboard.latin.utils.TransitionDiagnostics.event(
                 helium314.keyboard.latin.utils.TransitionDiagnostics.Event.PANEL_COMMITTED);
         if (source != null && mCurrentInputView != null) {
@@ -368,8 +371,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
      * Invalidates delayed panel animation cleanup when the input view/editor/window changes owner.
      */
     public void cancelPanelTransition() {
-        EmojiPanelKeyMorph.cancel();
         mPanelTransitionGuard.invalidate();
+        EmojiPanelKeyMorph.cancel();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
             mRunningAnimator = null;

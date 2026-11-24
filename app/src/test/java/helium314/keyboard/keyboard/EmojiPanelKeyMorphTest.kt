@@ -23,6 +23,13 @@ class EmojiPanelKeyMorphTest {
         org.junit.Assert.assertTrue(EmojiPanelKeyMorph.moves(40f, 60f, 80f, 60f))
     }
 
+    @Test fun reversingFromThePresentedPositionDoesNotJump() {
+        val rendered = EmojiPanelKeyMorph.position(300f, 40f, .4f)
+        assertEquals(196f, rendered, .001f)
+        assertEquals(rendered, EmojiPanelKeyMorph.position(rendered, 300f, 0f), 0f)
+        assertEquals(300f, EmojiPanelKeyMorph.position(rendered, 300f, 1f), 0f)
+    }
+
     @Test fun motionClampsWithoutOvershoot() {
         assertEquals(0f, EmojiPanelKeyMorph.position(0f, 100f, -1f), 0f)
         assertEquals(100f, EmojiPanelKeyMorph.position(0f, 100f, 2f), 0f)

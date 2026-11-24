@@ -31,10 +31,14 @@ object EmojiPanelKeyMorph {
     internal fun position(start: Float, end: Float, progress: Float): Float =
         start + (end - start) * progress.coerceIn(0f, 1f)
 
-    class KeyImage(val code: Int, val bounds: Rect)
+    class KeyImage(val code: Int, val bounds: Rect,
+        val centerX: Float = bounds.exactCenterX(), val centerY: Float = bounds.exactCenterY()) {
+        fun at(x: Float, y: Float) = KeyImage(code, bounds, x, y)
+    }
     class Snapshot(val search: KeyImage?, val delete: KeyImage?)
     private class Track(val from: KeyImage, val to: KeyImage, val artwork: Bitmap)
-    private class Session(val root: ViewGroup, val destination: MainKeyboardView) {
+    private class Session(val root: ViewGroup, val destination: MainKeyboardView,
+        val source: Snapshot) {
         var listener: ViewTreeObserver.OnPreDrawListener? = null
         var animator: ValueAnimator? = null
         var overlay: MovingKeys? = null
@@ -71,12 +75,34 @@ object EmojiPanelKeyMorph {
         return if (search == null && delete == null) null else Snapshot(search, delete)
     }
 
+    /**
+     * Capture the last actually drawn overlay, not the logical destination.
+     * A rapid return before its first draw starts from the previous source.
+     * The caller cancels the old owner immediately after sampling in the same
+     * UI transaction, so its cleanup cannot cause a positional jump.
+     */
+    @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
+        val native = capture(root, view) ?: return null
+        val session = current?.takeIf { it.root === root && it.destination === view }
+            ?: return native
+        fun presented(key: KeyImage?, source: KeyImage?): KeyImage? {
+            if (key == null) return null
+            val overlay = session.overlay
+            if (overlay != null && overlay.hasDrawn) {
+                return overlay.presented(key) ?: key
+            }
+            return if (source != null) key.at(source.centerX, source.centerY) else key
+        }
+        return Snapshot(presented(native.search, session.source.search),
+            presented(native.delete, session.source.delete))
+    }
+
     internal fun moves(fromX: Float, fromY: Float, toX: Float, toY: Float): Boolean =
         fromX != toX || fromY != toY
 
     private fun track(from: KeyImage?, to: KeyImage?, destination: MainKeyboardView): Track? {
-        if (from == null || to == null || !moves(from.bounds.exactCenterX(), from.bounds.exactCenterY(),
-                to.bounds.exactCenterX(), to.bounds.exactCenterY())) return null
+        if (from == null || to == null || !moves(from.centerX, from.centerY,
+                to.centerX, to.centerY)) return null
         val artwork = destination.renderEmojiMorphKey(to.code) ?: return null
         return Track(from, to, artwork)
     }
@@ -100,7 +126,7 @@ object EmojiPanelKeyMorph {
         if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled()) return
         val keyboard = destination.keyboard ?: return
         if (!keyboard.mId.isAlphabetKeyboard() && keyboard.mId.mElementId != KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW) return
-        val session = Session(root, destination)
+        val session = Session(root, destination, source)
         current = session
         // Leave real controls visible until a replacement overlay exists.
         // A canceled or unlaid-out transition must never leave an empty key.
@@ -133,12 +159,14 @@ object EmojiPanelKeyMorph {
                     tracks.firstOrNull { it.to.code != KeyCode.DELETE }?.to?.code ?: NONE,
                     tracks.any { it.to.code == KeyCode.DELETE })
                 val animator = ValueAnimator.ofFloat(0f, 1f)
+                val budget = MorphFrameBudget(root.display?.refreshRate ?: 60f)
                 session.animator = animator
                 animator.duration = DURATION
                 animator.interpolator = KeyboardMotionSpec.easing(root.context)
                 animator.addUpdateListener {
                     if (current !== session) return@addUpdateListener
-                    if (!destination.isShown) { cancel(); return@addUpdateListener }
+                    if (!destination.isShown || !KeyboardMotionSpec.enabled()
+                        || budget.shouldSnap(System.nanoTime())) { cancel(); return@addUpdateListener }
                     drawable.progress = it.animatedValue as Float
                     drawable.invalidateSelf()
                 }
@@ -165,11 +193,21 @@ object EmojiPanelKeyMorph {
     private class MovingKeys(val tracks: List<Track>) : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         var progress = 0f
+        var hasDrawn = false
+            private set
+        private var drawnProgress = 0f
+        fun presented(native: KeyImage): KeyImage? {
+            val track = tracks.firstOrNull { it.to.code == native.code } ?: return null
+            return native.at(position(track.from.centerX, track.to.centerX, drawnProgress),
+                position(track.from.centerY, track.to.centerY, drawnProgress))
+        }
         override fun draw(canvas: Canvas) {
             val p = progress.coerceIn(0f, 1f)
+            drawnProgress = p
+            hasDrawn = true
             for (track in tracks) {
-                val x = position(track.from.bounds.exactCenterX(), track.to.bounds.exactCenterX(), p)
-                val y = position(track.from.bounds.exactCenterY(), track.to.bounds.exactCenterY(), p)
+                val x = position(track.from.centerX, track.to.centerX, p)
+                val y = position(track.from.centerY, track.to.centerY, p)
                 val bitmap = track.artwork
                 canvas.drawBitmap(bitmap, x - bitmap.width / 2f, y - bitmap.height / 2f, paint)
             }
