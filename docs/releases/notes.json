@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Match iOS contextual action-key accents without overriding configured key opacity.",
+  "summary": "Match Emoji and Clipboard Search accents, morph the search capsule, and improve password-gesture usability.",
   "changes": [
     {
-      "title": "Correct Apple key accent scope",
-      "detail": "Manual Apple palette or wallpaper accent applies only to the actual contextual Go/Search/Send/Next/Done return key. Ordinary Return, Shift, Delete, 123, letters, punctuation, space, custom labels and other controls remain neutral. Remove the extended accent toggle."
+      "title": "Search accent across panels",
+      "detail": "Explicit Emoji and Clipboard Search launchers use the active contextual Apple palette, preserving configured transparency and neutral ordinary keys."
     },
     {
-      "title": "Preserve configured opacity",
-      "detail": "Copy the existing contextual key normal/pressed alpha when applying the palette, without changing shared toolbar, glass or other key colors. Verify every alpha value and contextual action allowlist in unit tests."
+      "title": "Fast Search morph",
+      "detail": "135 ms key-to-capsule and capsule-to-key transitions using measured screen coordinates, with cancellation and no full-panel fade or private query snapshots."
     },
     {
-      "title": "Keep full-keyboard vault gesture and rounded keycaps",
-      "detail": "Footer-start one-finger gesture, encrypted vault, practice keyboard and optional rounded rectangle keycaps remain intact. Device verification pending."
+      "title": "More forgiving vault recognition",
+      "detail": "Wider safe start area, start haptic, flexible speed and corner timing, bounded shape alignment, retained enrollment samples and helpful rejection feedback. Encryption, device credential, lockout and masked-field protections unchanged."
     }
   ]
 }

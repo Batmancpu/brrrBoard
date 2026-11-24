@@ -22,11 +22,14 @@ class VaultFooterGestureView(context: Context) : View(context) {
     var practiceAccent: Int = 0xff007aff.toInt()
         set(value) { field = value; invalidate() }
     var onTrace: ((FloatArray) -> Unit)? = null
+    var onRejected: (() -> Unit)? = null
+    private var tracking = false
 
     init {
         isClickable = true
         isFocusable = false
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+        capture.onRejected = { onRejected?.invoke() }
     }
     fun setCaptureEnabled(value: Boolean) {
         captureEnabled = value
@@ -35,11 +38,20 @@ class VaultFooterGestureView(context: Context) : View(context) {
     }
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val starts = event.actionMasked == MotionEvent.ACTION_DOWN &&
-            VaultStrokeCapture.inStartRegion(event.x, event.y, width, height, (112 * density).toInt(), footerHeight)
+            VaultStrokeCapture.inStartRegion(event.x, event.y, width, height, VaultStrokeCapture.safeCenterWidth(width, density), footerHeight)
         val owned = capture.route(event, width, height, starts, captureEnabled)
-        if (owned && event.actionMasked == MotionEvent.ACTION_DOWN) parent?.requestDisallowInterceptTouchEvent(true)
-        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL)
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            if (owned) {
+                tracking = true
+                performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                parent?.requestDisallowInterceptTouchEvent(true)
+            } else if (captureEnabled) onRejected?.invoke()
+        }
+        if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+            tracking = false
             parent?.requestDisallowInterceptTouchEvent(false)
+        }
+        invalidate()
         return owned
     }
     override fun onDetachedFromWindow() {
@@ -76,8 +88,13 @@ class VaultFooterGestureView(context: Context) : View(context) {
         key(0f, w * .15f, "123", false)
         key(w * .15f, w * .85f, "space", false)
         key(w * .85f, w, "Go", true)
-        val half = minOf(w, 112 * density) / 2f
+        val half = VaultStrokeCapture.safeCenterWidth(width, density) / 2f
         paint.color = practiceAccent
+        if (tracking) {
+            paint.color = (practiceAccent and 0x00ffffff) or 0x33000000
+            canvas.drawRoundRect(w / 2f - half, keyArea + density, w / 2f + half, height - density, radius, radius, paint)
+            paint.color = practiceAccent
+        }
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = density * 1.5f
         canvas.drawRoundRect(w / 2f - half, keyArea + density, w / 2f + half, height - density, radius, radius, paint)

@@ -148,7 +148,10 @@ public final class InputView extends FrameLayout {
                     && mFooter.canStartVaultGesture(event.getRawX(), event.getRawY());
             if (starts || mVaultStroke.isOwning()) {
                 final boolean eligible = mFooter.vaultGestureEligible();
-                if (mVaultStroke.route(event, getWidth(), getHeight(), starts, eligible)) return true;
+                if (mVaultStroke.route(event, getWidth(), getHeight(), starts, eligible)) {
+                    if (starts && eligible) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
+                    return true;
+                }
             }
         }
         if (action == MotionEvent.ACTION_DOWN) {

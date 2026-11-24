@@ -35,6 +35,13 @@ class FrostAccentRolesTest {
         assertFalse(FrostAccentRoles.tintIosAction(false, true, true, false, 3))
         assertFalse(FrostAccentRoles.tintIosAction(false, false, true, true, 3))
     }
+    @Test fun panelSearchIsExplicitlyEligibleWithoutHostImeAction() {
+        assertTrue(FrostAccentRoles.tintPanelSearch(false, false, true, true))
+        assertFalse(FrostAccentRoles.tintPanelSearch(true, false, true, true))
+        assertFalse(FrostAccentRoles.tintPanelSearch(false, true, true, true))
+        assertFalse(FrostAccentRoles.tintPanelSearch(false, false, false, true))
+        assertFalse(FrostAccentRoles.tintPanelSearch(false, false, true, false))
+    }
     @Test fun accentPreservesEveryConfiguredAlpha() {
         for (alpha in 0..255) {
             val base = (alpha shl 24) or 0x112233

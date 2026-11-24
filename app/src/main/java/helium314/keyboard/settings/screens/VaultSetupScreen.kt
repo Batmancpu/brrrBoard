@@ -136,9 +136,14 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                                 view.practiceInk = practiceInk
                                 view.practiceAccent = practiceAccent
                                 view.setCaptureEnabled(!busy)
+                                view.onRejected = { if (!busy && authorized) status = "Start inside the highlighted footer; draw one continuous shape with a clear turn." }
                                 view.onTrace = { sample ->
                                     if (!busy && authorized && samples.size < 3) {
+                                        if (samples.any { !VaultGestureTrace.matches(it, sample) }) {
+                                            status = "That stroke differs from the saved samples. Try again; accepted samples are kept."
+                                        } else {
                                         samples.add(sample.copyOf())
+                                        status = "Accepted ${samples.size}/3. Repeat at a comfortable speed."
                                         if (samples.size == 3) {
                                             val template = VaultGestureTrace.average(samples)
                                             if (template == null) {
@@ -159,9 +164,11 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                                                 }
                                             }
                                         }
+                                        }
                                     }
                                 }
                             })
+                    TextButton(onClick = { samples.forEach { it.fill(0f) }; samples.clear(); status = "Samples reset. Draw your new pattern." }, enabled = !busy) { Text("Reset samples") }
                     OutlinedButton(onClick = { clearEnrollment(); status = "Enrollment cancelled." }, enabled = !busy) { Text("Cancel enrollment") }
                 }
             }

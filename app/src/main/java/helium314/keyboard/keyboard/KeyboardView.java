@@ -372,8 +372,17 @@ public class KeyboardView extends View {
         }
     }
 
+    private boolean mPanelSearchMorphHidden;
+
+    public void setPanelSearchMorphHidden(final boolean hidden) {
+        if (mPanelSearchMorphHidden == hidden) return;
+        mPanelSearchMorphHidden = hidden;
+        invalidateAllKeys();
+    }
+
     private void onDrawKey(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint) {
+        if (mPanelSearchMorphHidden && key.getCode() == KeyCode.EMOJI_SEARCH) return;
         final int keyDrawX = key.getDrawX() + getPaddingLeft();
         final int keyDrawY = key.getY() + getPaddingTop();
         canvas.translate(keyDrawX, keyDrawY);
@@ -1098,8 +1107,13 @@ public class KeyboardView extends View {
     }
 
     private boolean isIosContextualAction(Key key, Keyboard keyboard) {
-        return this instanceof MainKeyboardView && keyboard != null &&
-                FrostAccentRoles.tintIosAction(isPopupKeysView(), key.isSpacer(),
+        if (!(this instanceof MainKeyboardView) || keyboard == null || isPopupKeysView() || key.isSpacer()) return false;
+        // Explicit panel search launchers are contextual actions, independent of the host editor's IME action.
+        if (FrostAccentRoles.tintPanelSearch(isPopupKeysView(), key.isSpacer(),
+                key.getCode() == KeyCode.EMOJI_SEARCH,
+                keyboard.mId.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW ||
+                keyboard.mId.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW)) return true;
+        return FrostAccentRoles.tintIosAction(isPopupKeysView(), key.isSpacer(),
                         key.hasActionKeyBackground() && key.getCode() == Constants.CODE_ENTER,
                         key.hasCustomActionLabel(), keyboard.mId.imeAction());
     }

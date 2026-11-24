@@ -7,7 +7,7 @@ import kotlin.math.sqrt
 /** Small deterministic normalizer for one-finger traces starting in the reserved footer strip and continuing across the keyboard. */
 internal object VaultGestureTrace {
     const val POINT_COUNT = 32
-    private const val MIN_POINTS = 8
+    private const val MIN_POINTS = 5
     private const val MAX_RAW_POINTS = 512
 
     fun normalize(xs: FloatArray, ys: FloatArray, count: Int, density: Float): FloatArray? {
@@ -24,8 +24,11 @@ internal object VaultGestureTrace {
         val height = maxY - minY
         val longSide = maxOf(width, height)
         val shortSide = minOf(width, height)
-        if (shortSide < MIN_SPAN_DP * density || longSide / shortSide.coerceAtLeast(1f) > MAX_ASPECT_RATIO) return null
+        if (longSide < 28f * density || shortSide < MIN_SPAN_DP * density || longSide / shortSide.coerceAtLeast(1f) > MAX_ASPECT_RATIO) return null
         if (length < longSide * MIN_PATH_RATIO) return null
+        // Reject nearly straight strokes: a wider trigger must not turn a casual drag into a credential.
+        val chord = hypot((xs[count - 1] - xs[0]).toDouble(), (ys[count - 1] - ys[0]).toDouble())
+        if (length < chord * 1.12) return null
 
         // Arc-length resampling avoids depending on touch event rate or drawing speed.
         val cumulative = DoubleArray(count)
@@ -65,19 +68,33 @@ internal object VaultGestureTrace {
 
     fun matches(template: FloatArray, candidate: FloatArray): Boolean {
         if (template.size != POINT_COUNT * 2 || candidate.size != template.size) return false
-        var squaredError = 0.0
-        for (i in template.indices step 2) {
-            val dx = template[i] - candidate[i]
-            val dy = template[i + 1] - candidate[i + 1]
-            squaredError += dx * dx + dy * dy
+        if (template.any { !it.isFinite() } || candidate.any { !it.isFinite() }) return false
+        fun distance(i: Int, j: Int): Double {
+            val dx = (template[i * 2] - candidate[j * 2]).toDouble()
+            val dy = (template[i * 2 + 1] - candidate[j * 2 + 1]).toDouble()
+            return dx * dx + dy * dy
         }
-        val meanPointError = sqrt(squaredError / POINT_COUNT)
-        return meanPointError <= MAX_MEAN_POINT_ERROR
+        // Preserve stroke direction and endpoints; limited monotonic warping permits
+        // different corner timing without accepting a reversed or reordered pattern.
+        if (distance(0, 0) > .18 * .18 || distance(POINT_COUNT - 1, POINT_COUNT - 1) > .18 * .18) return false
+        val rms = sqrt((0 until POINT_COUNT).sumOf { distance(it, it) } / POINT_COUNT)
+        if (rms > .19) return false
+        var previous = DoubleArray(POINT_COUNT + 1) { Double.POSITIVE_INFINITY }
+        var current = DoubleArray(POINT_COUNT + 1) { Double.POSITIVE_INFINITY }
+        previous[0] = 0.0
+        for (i in 1..POINT_COUNT) {
+            current.fill(Double.POSITIVE_INFINITY)
+            for (j in maxOf(1, i - 3)..minOf(POINT_COUNT, i + 3)) {
+                current[j] = distance(i - 1, j - 1) + minOf(previous[j - 1], previous[j] + .003, current[j - 1] + .003)
+            }
+            val swap = previous; previous = current; current = swap
+        }
+        return sqrt(previous[POINT_COUNT] / POINT_COUNT) <= MAX_MEAN_POINT_ERROR
     }
 
     const val ENROLLMENT_SAMPLES = 3
-    private const val MIN_SPAN_DP = 12f
-    private const val MAX_ASPECT_RATIO = 4.5f
+    private const val MIN_SPAN_DP = 8f
+    private const val MAX_ASPECT_RATIO = 7f
     private const val MIN_PATH_RATIO = 1.08f
-    private const val MAX_MEAN_POINT_ERROR = 0.095
+    private const val MAX_MEAN_POINT_ERROR = 0.125
 }

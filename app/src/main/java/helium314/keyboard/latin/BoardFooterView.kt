@@ -297,7 +297,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         getLocationOnScreen(vaultFooterLocation)
         val x = rawX - vaultFooterLocation[0]
         val y = rawY - vaultFooterLocation[1]
-        return VaultStrokeCapture.inStartRegion(x, y, width, height, dp(112), height) && vaultGestureEligible()
+        return VaultStrokeCapture.inStartRegion(x, y, width, height, VaultStrokeCapture.safeCenterWidth(width, resources.displayMetrics.density), height) && vaultGestureEligible()
     }
 
     private val vaultFooterLocation = IntArray(2)

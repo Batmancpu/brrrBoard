@@ -26,6 +26,15 @@ class VaultStrokeOwnershipTest {
         assertTrue(stream.finish())
         assertFalse(stream.finish())
     }
+    @Test fun widerFooterStillExcludesBothControlsAndSpace() {
+        val safe = VaultStrokeCapture.safeCenterWidth(360, 1f)
+        assertEquals(224, safe)
+        assertTrue(VaultStrokeCapture.inStartRegion(80f, 220f, 360, 240, safe, 40))
+        assertTrue(VaultStrokeCapture.inStartRegion(280f, 220f, 360, 240, safe, 40))
+        assertFalse(VaultStrokeCapture.inStartRegion(60f, 220f, 360, 240, safe, 40))
+        assertFalse(VaultStrokeCapture.inStartRegion(300f, 220f, 360, 240, safe, 40))
+        assertFalse(VaultStrokeCapture.inStartRegion(180f, 199f, 360, 240, safe, 40))
+    }
     @Test fun onlyCenterFooterCanStart() {
         assertTrue(VaultStrokeCapture.inStartRegion(180f, 239f, 360, 240, 112, 40))
         assertFalse(VaultStrokeCapture.inStartRegion(180f, 190f, 360, 240, 112, 40))

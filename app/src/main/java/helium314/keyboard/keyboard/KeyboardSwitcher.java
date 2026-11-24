@@ -325,7 +325,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         }
         final View outgoingPanel = getVisibleKeyboardView();
         action.run();
-        if (targetPanel == mEmojiPalettesView
+        if (targetPanel == mEmojiPalettesView || targetPanel == mClipboardHistoryView
                 || (targetPanel == mKeyboardView
                 && (outgoingPanel == mEmojiPalettesView
                     || outgoingPanel == mClipboardHistoryView))) {

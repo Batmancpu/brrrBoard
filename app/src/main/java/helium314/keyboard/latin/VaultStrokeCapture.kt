@@ -14,6 +14,7 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
     private var startWidth = 0
     private var startHeight = 0
     private val ownership = VaultStrokeOwnership()
+    var onRejected: (() -> Unit)? = null
 
     fun isOwning(): Boolean = ownership.owns
 
@@ -45,10 +46,11 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
             MotionEvent.ACTION_UP -> {
                 if (ownership.valid) add(event.x, event.y)
                 val valid = ownership.finish()
-                val trace = if (valid && event.eventTime - startedAt in 250L..5_000L)
+                val trace = if (valid && event.eventTime - startedAt in 120L..8_000L)
                     VaultGestureTrace.normalize(xs, ys, count, density) else null
                 wipe()
                 if (trace != null) try { onTrace.accept(trace) } finally { trace.fill(0f) }
+                else onRejected?.invoke()
             }
             MotionEvent.ACTION_CANCEL -> { ownership.invalidate(); ownership.finish(); wipe() }
         }
@@ -57,10 +59,18 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
 
     private fun add(x: Float, y: Float) {
         if (!ownership.valid) return
-        if (!x.isFinite() || !y.isFinite() || x < 0f || y < 0f ||
-            x >= startWidth || y >= startHeight || count >= MAX_POINTS) { invalidateStroke(); return }
-        if (count > 0 && hypot(x - xs[count - 1], y - ys[count - 1]) < density * .65f) return
-        xs[count] = x; ys[count] = y; count++
+        val slack = 6f * density
+        if (!x.isFinite() || !y.isFinite() || x < -slack || y < -slack ||
+            x >= startWidth + slack || y >= startHeight + slack) { invalidateStroke(); return }
+        val px = x.coerceIn(0f, (startWidth - 1).coerceAtLeast(0).toFloat())
+        val py = y.coerceIn(0f, (startHeight - 1).coerceAtLeast(0).toFloat())
+        if (count > 0 && hypot(px - xs[count - 1], py - ys[count - 1]) < density * .65f) return
+        // Decimate in place instead of rejecting a long, high-refresh-rate stroke.
+        if (count == MAX_POINTS) {
+            for (i in 1 until MAX_POINTS / 2) { xs[i] = xs[i * 2]; ys[i] = ys[i * 2] }
+            xs.fill(0f, MAX_POINTS / 2); ys.fill(0f, MAX_POINTS / 2); count = MAX_POINTS / 2
+        }
+        xs[count] = px; ys[count] = py; count++
     }
 
     private fun wipe() {
@@ -70,6 +80,8 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
 
     companion object {
         private const val MAX_POINTS = 512
+        @JvmStatic fun safeCenterWidth(width: Int, density: Float): Int =
+            (width - (136f * density).toInt()).coerceAtLeast(0)
         @JvmStatic fun inStartRegion(x: Float, y: Float, width: Int, height: Int, centerWidth: Int, footerHeight: Int): Boolean {
             if (width <= 0 || height <= 0 || centerWidth <= 0 || footerHeight <= 0) return false
             val half = minOf(centerWidth, width) / 2f

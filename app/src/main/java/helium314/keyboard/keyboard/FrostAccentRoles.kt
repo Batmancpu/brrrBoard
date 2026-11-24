@@ -13,6 +13,10 @@ object FrostAccentRoles {
     @JvmStatic fun tintIosAction(popup: Boolean, spacer: Boolean, actionKey: Boolean, custom: Boolean, imeAction: Int): Boolean =
         !popup && !spacer && actionKey && !custom && imeAction in 2..6
 
+    /** Explicit local search launchers, not arbitrary search-looking keys or popup actions. */
+    @JvmStatic fun tintPanelSearch(popup: Boolean, spacer: Boolean, searchKey: Boolean, panelBottomRow: Boolean): Boolean =
+        !popup && !spacer && searchKey && panelBottomRow
+
     /** Replace RGB only; never overwrite the configured normal or pressed alpha. */
     @JvmStatic fun withBaseAlpha(accent: Int, base: Int): Int = (accent and 0x00ffffff) or (base and 0xff000000.toInt())
 

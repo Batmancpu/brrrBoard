@@ -266,6 +266,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         cancelHeightMotion()
+        helium314.keyboard.keyboard.PanelSearchMorph.cancel(findViewById(R.id.clipboard_search_field))
+        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(clipboardRowKeyboard)
         super.onDetachedFromWindow()
     }
 
@@ -604,8 +606,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     fun stopClipboardHistory() {
+        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(clipboardRowKeyboard)
         cancelHeightMotion()
-        if (searchMode) closeSearch()
+        if (searchMode) closeSearch(animate = false)
         hideUndoBar()
         removeCallbacks(hideUndoBarRunnable)
         undoBar?.removeCallbacks(hideUndoBarRunnable)
@@ -826,6 +829,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         searchGestureGeneration++
         val switcher = KeyboardSwitcher.getInstance()
         val typing = switcher.mainKeyboardView ?: return
+        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(clipboardRowKeyboard)
+        val searchOrigin = helium314.keyboard.keyboard.PanelSearchMorph.origin(clipboardRowKeyboard)
         prepareHeightMotion()
         searchMode = true
         recoveredSection.visibility = View.GONE
@@ -833,6 +838,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         applySearchTheme(Settings.getValues().mColors)
         applySearchResultsLayout(true)
         searchHeader.visibility = View.VISIBLE
+        helium314.keyboard.keyboard.PanelSearchMorph.enter(findViewById(R.id.clipboard_search_field), searchOrigin)
         titleView.visibility = View.INVISIBLE
         clipboardRowKeyboard?.visibility = View.GONE
         findViewById<View>(R.id.clipboard_bottom_glass).visibility = View.GONE
@@ -854,6 +860,9 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     private fun closeSearch(animate: Boolean = true) {
         if (!searchMode) return
+        val searchFrom = if (animate) helium314.keyboard.keyboard.PanelSearchMorph.bounds(findViewById(R.id.clipboard_search_field)) else null
+        helium314.keyboard.keyboard.PanelSearchMorph.cancel(findViewById(R.id.clipboard_search_field))
+        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(clipboardRowKeyboard)
         KeyboardMotionSpec.reset(clipboardRecyclerView)
         searchGestureGeneration++
         searchChromaticInput.showMatchedInk(false)
@@ -884,6 +893,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         findViewById<View>(R.id.clipboard_bottom_glass).visibility = View.VISIBLE
         searchInput.clearFocus()
         requestLayout()
+        if (animate) helium314.keyboard.keyboard.PanelSearchMorph.exit(clipboardRowKeyboard, searchFrom)
     }
 
     /** Called only from the separate ABC footer, never by Search typing keys. */

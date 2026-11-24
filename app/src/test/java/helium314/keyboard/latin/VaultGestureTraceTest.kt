@@ -17,6 +17,23 @@ class VaultGestureTraceTest {
         assertNotNull(VaultGestureTrace.average(listOf(a, a, a)))
         assertNull(VaultGestureTrace.average(listOf(a, b, a)))
     }
+    @Test fun acceptsNaturalCornerAndSpeedVariationButRejectsMirror() {
+        val a = shape()
+        val xs = FloatArray(25) { if (it < 11) it * 4.8f else (24 - it) * 3.5f }
+        val ys = FloatArray(25) { if (it < 11) it * 2.5f else 26f - (it - 10) * .9f }
+        val b = requireNotNull(VaultGestureTrace.normalize(xs, ys, xs.size, 1f))
+        assertTrue(VaultGestureTrace.matches(a, b))
+        assertNotNull(VaultGestureTrace.average(listOf(a, b, a)))
+        val mirrored = a.copyOf().also { for (i in 1 until it.size step 2) it[i] = -it[i] }
+        assertFalse(VaultGestureTrace.matches(a, mirrored))
+        val invalid = a.copyOf().also { it[0] = Float.NaN }
+        assertFalse(VaultGestureTrace.matches(a, invalid))
+    }
+    @Test fun diagonalDragIsNotASecretPattern() {
+        val x = FloatArray(20) { it * 4f }
+        val y = FloatArray(20) { it * 3f }
+        assertNull(VaultGestureTrace.normalize(x, y, x.size, 1f))
+    }
     @Test fun rejectsFlatAndNonFiniteInput() {
         assertNull(VaultGestureTrace.normalize(FloatArray(20) { it.toFloat() }, FloatArray(20), 20, 1f))
         assertNull(VaultGestureTrace.normalize(FloatArray(20) { Float.NaN }, FloatArray(20), 20, 1f))

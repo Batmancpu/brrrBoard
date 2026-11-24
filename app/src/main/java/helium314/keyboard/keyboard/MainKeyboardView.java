@@ -171,6 +171,19 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         mConfirmationLabelAnimator.start();
     }
 
+    /** Actual rendered key bounds, including the one-handed keyboard offset. */
+    public boolean getKeyBoundsOnScreen(final int code, @NonNull final android.graphics.Rect out) {
+        final Keyboard keyboard = getKeyboard();
+        final Key key = keyboard == null ? null : keyboard.getKey(code);
+        if (key == null || getWidth() <= 0 || !isShown()) return false;
+        final int[] location = new int[2];
+        getLocationOnScreen(location);
+        final int x = location[0] + getPaddingLeft() + key.getDrawX();
+        final int y = location[1] + getPaddingTop() + key.getY();
+        out.set(x, y, x + key.getDrawWidth(), y + key.getHeight());
+        return !out.isEmpty();
+    }
+
     /** Exact rendered spacebar slot in screen coordinates, including one-handed offsets. */
     public boolean getSpacebarBoundsOnScreen(@NonNull final android.graphics.Rect out) {
         if (mSpaceKey == null || getWidth() <= 0 || !isShown()) return false;
