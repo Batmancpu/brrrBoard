@@ -9,127 +9,104 @@ import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.PixelFormat
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
-import android.view.inputmethod.EditorInfo
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.KeyboardMotionSpec
 import helium314.keyboard.latin.common.Constants
+import helium314.keyboard.latin.utils.TransitionDiagnostics
 
-/**
- * Shared-element handoff for exactly two real keys between typing and compact Emoji.
- * No layout modifications, text snapshots, scaling or whole-panel animation.
- */
+/** One visual owner for shared public controls, with native layout and touch targets unchanged. */
 object EmojiPanelKeyMorph {
-    private const val NONE = Int.MIN_VALUE
-    private const val DURATION = 150L
-
-    // Pure geometry shared with unit tests. Native image dimensions never change.
+    private const val DURATION = 180L
     internal fun position(start: Float, end: Float, progress: Float): Float =
         start + (end - start) * progress.coerceIn(0f, 1f)
+    internal fun moves(fromX: Float, fromY: Float, toX: Float, toY: Float): Boolean =
+        fromX != toX || fromY != toY
 
-    class KeyImage(val code: Int, val bounds: Rect,
-        val centerX: Float = bounds.exactCenterX(), val centerY: Float = bounds.exactCenterY()) {
-        fun at(x: Float, y: Float) = KeyImage(code, bounds, x, y)
-    }
-    class Snapshot(val search: KeyImage?, val delete: KeyImage?)
-    private class Track(val from: KeyImage, val to: KeyImage, val artwork: Bitmap)
-    private class Session(val root: ViewGroup, val destination: MainKeyboardView,
-        val source: Snapshot) {
+    class KeyImage(val code: Int, val bounds: RectF, val artwork: Bitmap)
+    class Snapshot(val keys: List<KeyImage>)
+    private class Track(val from: KeyImage, val to: KeyImage)
+    private class Session(val root: ViewGroup, val destination: MainKeyboardView, val source: Snapshot) {
         var listener: ViewTreeObserver.OnPreDrawListener? = null
         var animator: ValueAnimator? = null
         var overlay: MovingKeys? = null
         var detach: View.OnAttachStateChangeListener? = null
+        var layout: View.OnLayoutChangeListener? = null
     }
     private var current: Session? = null
 
-    private fun searchCode(view: MainKeyboardView): Int {
-        val keyboard = view.keyboard ?: return NONE
-        return when {
-            keyboard.mId.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW -> KeyCode.EMOJI_SEARCH
-            keyboard.mId.isAlphabetKeyboard() && keyboard.mId.imeAction() == EditorInfo.IME_ACTION_SEARCH -> Constants.CODE_ENTER
-            else -> NONE
-        }
+    // Actual shared codes always win. Only if a Return key disappears or appears
+    // does it hand off to/from the compact panel Search role.
+    internal fun pairedCodes(source: List<Int>, target: List<Int>): List<Pair<Int,Int>> {
+        val pairs = source.filter { it in target }.map { it to it }.toMutableList()
+        val enter = Constants.CODE_ENTER
+        val search = KeyCode.EMOJI_SEARCH
+        if (enter in source && enter !in target && search in target && search !in source)
+            pairs.add(enter to search)
+        if (search in source && search !in target && enter in target && enter !in source)
+            pairs.add(search to enter)
+        return pairs
     }
 
-    private fun geometry(view: MainKeyboardView, code: Int, rootX: Int, rootY: Int): KeyImage? {
-        if (code == NONE) return null
-        val rect = Rect()
-        if (!view.getKeyBoundsOnScreen(code, rect)) return null
-        rect.offset(-rootX, -rootY)
-        return KeyImage(code, rect)
+    private fun supported(view: MainKeyboardView): Boolean {
+        val id = view.keyboard?.mId ?: return false
+        return id.isAlphaOrSymbolKeyboard || id.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW
     }
 
-    /** Capture only source geometry. The destination is the single visual owner. */
     @JvmStatic fun capture(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
-        if (!KeyboardMotionSpec.enabled() || root == null || view == null || !view.isShown) return null
-        val keyboard = view.keyboard ?: return null
-        if (!keyboard.mId.isAlphabetKeyboard() && keyboard.mId.mElementId != KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW) return null
+        if (!KeyboardMotionSpec.enabled() || root == null || view == null || !view.isShown || !supported(view)) return null
         val origin = IntArray(2)
         root.getLocationOnScreen(origin)
-        val search = geometry(view, searchCode(view), origin[0], origin[1])
-        val delete = geometry(view, KeyCode.DELETE, origin[0], origin[1])
-        return if (search == null && delete == null) null else Snapshot(search, delete)
-    }
-
-    /**
-     * Capture the last actually drawn overlay, not the logical destination.
-     * A rapid return before its first draw starts from the previous source.
-     * The caller cancels the old owner immediately after sampling in the same
-     * UI transaction, so its cleanup cannot cause a positional jump.
-     */
-    @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
-        val native = capture(root, view) ?: return null
-        val session = current?.takeIf { it.root === root && it.destination === view }
-            ?: return native
-        fun presented(key: KeyImage?, source: KeyImage?): KeyImage? {
-            if (key == null) return null
-            val overlay = session.overlay
-            if (overlay != null && overlay.hasDrawn) {
-                return overlay.presented(key) ?: key
-            }
-            return if (source != null) key.at(source.centerX, source.centerY) else key
+        val keys = listOf(Constants.CODE_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
+            val bounds = Rect()
+            if (!view.getEmojiMorphArtworkBoundsOnScreen(code,bounds)) return@mapNotNull null
+            bounds.offset(-origin[0],-origin[1])
+            val artwork = view.renderEmojiMorphKey(code) ?: return@mapNotNull null
+            KeyImage(code,RectF(bounds),artwork)
         }
-        return Snapshot(presented(native.search, session.source.search),
-            presented(native.delete, session.source.delete))
+        return if (keys.isEmpty()) null else Snapshot(keys)
     }
 
-    internal fun moves(fromX: Float, fromY: Float, toX: Float, toY: Float): Boolean =
-        fromX != toX || fromY != toY
-
-    private fun track(from: KeyImage?, to: KeyImage?, destination: MainKeyboardView): Track? {
-        if (from == null || to == null || !moves(from.centerX, from.centerY,
-                to.centerX, to.centerY)) return null
-        val artwork = destination.renderEmojiMorphKey(to.code) ?: return null
-        return Track(from, to, artwork)
+    @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
+        val native = capture(root,view) ?: return null
+        val session = current?.takeIf { it.root === root && it.destination === view } ?: return native
+        val overlay = session.overlay
+        if (overlay != null) return Snapshot(native.keys.map { overlay.presented(it) ?: it })
+        val pairs = pairedCodes(session.source.keys.map { it.code },native.keys.map { it.code })
+        return Snapshot(native.keys.map { key ->
+            val from = pairs.firstOrNull { it.second == key.code }?.first
+                ?.let { code -> session.source.keys.firstOrNull { it.code == code } }
+            if (from == null) key else KeyImage(key.code,RectF(from.bounds),from.artwork)
+        })
     }
 
     @JvmStatic fun overlayActive(): Boolean = current?.overlay != null
 
     @JvmStatic fun cancel() {
         val session = current ?: return
-        helium314.keyboard.latin.utils.TransitionDiagnostics.event(
-            helium314.keyboard.latin.utils.TransitionDiagnostics.Event.MORPH_RELEASE)
+        TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_RELEASE)
         current = null
         session.listener?.let { if (session.root.viewTreeObserver.isAlive) session.root.viewTreeObserver.removeOnPreDrawListener(it) }
         session.detach?.let { session.root.removeOnAttachStateChangeListener(it) }
+        session.layout?.let { session.destination.removeOnLayoutChangeListener(it) }
         session.animator?.cancel()
+        session.destination.setEmojiMorphHiddenCodes(intArrayOf())
         session.overlay?.let { session.root.overlay.remove(it) }
-        session.destination.setEmojiMorphHidden(NONE, false)
+        session.root.invalidate()
     }
 
     @JvmStatic fun start(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?) {
         cancel()
-        if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled()) return
-        val keyboard = destination.keyboard ?: return
-        if (!keyboard.mId.isAlphabetKeyboard() && keyboard.mId.mElementId != KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW) return
-        val session = Session(root, destination, source)
+        if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled() || !supported(destination)) return
+        val session = Session(root,destination,source)
         current = session
-        // Leave real controls visible until a replacement overlay exists.
-        // A canceled or unlaid-out transition must never leave an empty key.
         val detach = object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {}
             override fun onViewDetachedFromWindow(v: View) { if (current === session) cancel() }
@@ -141,41 +118,41 @@ object EmojiPanelKeyMorph {
                 if (current !== session) return true
                 if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(this)
                 session.listener = null
-                val target = capture(root, destination)
+                val target = capture(root,destination)
                 if (target == null || !root.isShown) { cancel(); return true }
-                val tracks = listOfNotNull(
-                    track(source.search, target.search, destination),
-                    track(source.delete, target.delete, destination)
-                )
+                val tracks = pairedCodes(source.keys.map { it.code },target.keys.map { it.code }).mapNotNull { (a,b) ->
+                    val from = source.keys.first { it.code == a }
+                    val to = target.keys.first { it.code == b }
+                    if (a == b && from.bounds == to.bounds) null else Track(from,to)
+                }
                 if (tracks.isEmpty()) { cancel(); return true }
                 val drawable = MovingKeys(tracks)
-                drawable.setBounds(0, 0, root.width, root.height)
+                drawable.setBounds(0,0,root.width,root.height)
                 session.overlay = drawable
                 root.overlay.add(drawable)
-                helium314.keyboard.latin.utils.TransitionDiagnostics.event(
-                    helium314.keyboard.latin.utils.TransitionDiagnostics.Event.MORPH_OVERLAY)
-                // Both ownership changes happen before the same draw.
-                destination.setEmojiMorphHidden(
-                    tracks.firstOrNull { it.to.code != KeyCode.DELETE }?.to?.code ?: NONE,
-                    tracks.any { it.to.code == KeyCode.DELETE })
-                val animator = ValueAnimator.ofFloat(0f, 1f)
+                TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_OVERLAY)
+                destination.setEmojiMorphHiddenCodes(tracks.map { it.to.code }.toIntArray())
+                val layout = View.OnLayoutChangeListener { _,l,t,r,b,ol,ot,orr,ob ->
+                    if (current === session && (l!=ol || t!=ot || r!=orr || b!=ob)) cancel()
+                }
+                session.layout = layout
+                destination.addOnLayoutChangeListener(layout)
+                val keyboard = destination.keyboard
+                val animator = ValueAnimator.ofFloat(0f,1f)
                 val budget = MorphFrameBudget(root.display?.refreshRate ?: 60f)
                 session.animator = animator
                 animator.duration = DURATION
                 animator.interpolator = KeyboardMotionSpec.easing(root.context)
                 animator.addUpdateListener {
                     if (current !== session) return@addUpdateListener
-                    if (!destination.isShown || !KeyboardMotionSpec.enabled()
+                    if (!destination.isShown || destination.keyboard !== keyboard || !KeyboardMotionSpec.enabled()
                         || budget.shouldSnap(System.nanoTime())) { cancel(); return@addUpdateListener }
                     drawable.progress = it.animatedValue as Float
                     drawable.invalidateSelf()
                 }
                 animator.addListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
-                        if (current === session) {
-                            session.animator = null
-                            cancel()
-                        }
+                        if (current === session) { session.animator = null; cancel() }
                     }
                 })
                 animator.start()
@@ -187,29 +164,53 @@ object EmojiPanelKeyMorph {
         root.invalidate()
     }
 
-    /** Move one unscaled destination artwork at full original opacity.
-     * Two overlapping translucent bitmaps cause an opacity dip or double ink
-     * during the old crossfade. Root-local coordinates also follow IME resize. */
     private class MovingKeys(val tracks: List<Track>) : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        private val add = PorterDuffXfermode(PorterDuff.Mode.ADD)
+        private val rect = RectF()
         var progress = 0f
-        var hasDrawn = false
-            private set
         private var drawnProgress = 0f
+
+        private fun bounds(track: Track, p: Float, out: RectF) {
+            val a = track.from.bounds; val b = track.to.bounds
+            out.set(position(a.left,b.left,p),position(a.top,b.top,p),
+                position(a.right,b.right,p),position(a.bottom,b.bottom,p))
+        }
+
         fun presented(native: KeyImage): KeyImage? {
             val track = tracks.firstOrNull { it.to.code == native.code } ?: return null
-            return native.at(position(track.from.centerX, track.to.centerX, drawnProgress),
-                position(track.from.centerY, track.to.centerY, drawnProgress))
+            val visible = RectF()
+            bounds(track,drawnProgress,visible)
+            // Sample geometry and the dominant artwork, not the logical destination position.
+            return KeyImage(native.code,visible,if (drawnProgress < .5f) track.from.artwork else track.to.artwork)
         }
+
         override fun draw(canvas: Canvas) {
-            val p = progress.coerceIn(0f, 1f)
+            val p = progress.coerceIn(0f,1f)
             drawnProgress = p
-            hasDrawn = true
             for (track in tracks) {
-                val x = position(track.from.centerX, track.to.centerX, p)
-                val y = position(track.from.centerY, track.to.centerY, p)
-                val bitmap = track.artwork
-                canvas.drawBitmap(bitmap, x - bitmap.width / 2f, y - bitmap.height / 2f, paint)
+                bounds(track,p,rect)
+                paint.alpha = 255
+                paint.xfermode = null
+                if (p <= 0f) {
+                    canvas.drawBitmap(track.from.artwork,null,rect,paint)
+                } else if (p >= 1f || track.from.code == track.to.code) {
+                    // Same-role controls have one artwork, never two translucent keycaps.
+                    canvas.drawBitmap(track.to.artwork,null,rect,paint)
+                } else {
+                    // Isolated additive interpolation of premultiplied pixels,
+                    // then composite once onto the glass. No source-over alpha dip.
+                    val layer = canvas.saveLayer(rect,null)
+                    val alpha = Math.round(255*p)
+                    paint.alpha = 255-alpha
+                    canvas.drawBitmap(track.from.artwork,null,rect,paint)
+                    paint.alpha = alpha
+                    paint.xfermode = add
+                    canvas.drawBitmap(track.to.artwork,null,rect,paint)
+                    paint.alpha = 255
+                    paint.xfermode = null
+                    canvas.restoreToCount(layer)
+                }
             }
         }
         override fun setAlpha(alpha: Int) {}

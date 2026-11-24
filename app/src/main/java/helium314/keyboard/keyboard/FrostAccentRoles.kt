@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.keyboard
 
-/** Apple-style contextual return action only; modifier and normal keys remain neutral. */
+/** Apple-style action accent, plus owner's explicit plain Return preference. Other keys stay neutral. */
 object FrostAccentRoles {
     const val PREF_APPLE_PALETTE = "pref_board_apple_accent_palette"
     const val DEFAULT_PALETTE = "wallpaper"
@@ -9,9 +9,11 @@ object FrostAccentRoles {
     const val DEFAULT_ROUNDED_KEYCAPS = true
     val applePaletteIds = listOf("blue", "red", "orange", "yellow", "green", "mint", "teal", "cyan", "indigo", "purple", "pink", "brown")
 
-    /** Android IME actions Go, Search, Send, Next and Done map to iOS contextual return actions. */
-    @JvmStatic fun tintIosAction(popup: Boolean, spacer: Boolean, actionKey: Boolean, custom: Boolean, imeAction: Int): Boolean =
-        !popup && !spacer && actionKey && !custom && imeAction in 2..6
+    /** The actual Return key is eligible even when the layout uses a neutral background flag.
+     * Plain Return is intentionally included at the owner's request; custom labels remain neutral. */
+    @JvmStatic @Suppress("UNUSED_PARAMETER")
+    fun tintIosAction(popup: Boolean, spacer: Boolean, actionKey: Boolean, custom: Boolean, imeAction: Int): Boolean =
+        !popup && !spacer && actionKey && !custom
 
     /** Explicit local search launchers, not arbitrary search-looking keys or popup actions. */
     @JvmStatic fun tintPanelSearch(popup: Boolean, spacer: Boolean, searchKey: Boolean, panelBottomRow: Boolean): Boolean =

@@ -8,8 +8,13 @@ class MorphFrameBudgetTest {
     @Test fun skipsOptionalMorphAfterRepeatedLargeCallbackGaps() {
         val budget = MorphFrameBudget(120f)
         assertFalse(budget.shouldSnap(0))
-        assertFalse(budget.shouldSnap(25_000_000))
-        assertTrue(budget.shouldSnap(50_000_000))
+        assertFalse(budget.shouldSnap(45_000_000))
+        assertTrue(budget.shouldSnap(90_000_000))
+    }
+
+    @Test fun sixtyFpsAnimationOnHighRefreshDisplayDoesNotSnap() {
+        val budget = MorphFrameBudget(120f)
+        repeat(10) { assertFalse(budget.shouldSnap(it * 25_000_000L)) }
     }
 
     @Test fun isolatedDelayDoesNotDisableMotion() {

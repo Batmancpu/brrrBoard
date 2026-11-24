@@ -75,6 +75,8 @@ internal fun AppProfileControls() {
                     Text(pkg, style = MaterialTheme.typography.bodySmall)
                     ProfileChoice("Autocorrect",profile.autocorrect) { profile = profile.copy(autocorrect = it) }
                     ProfileChoice("Suggestions",profile.suggestions) { profile = profile.copy(suggestions = it) }
+                    ProfileChoice("Auto-capitalization",profile.autoCap) { profile = profile.copy(autoCap = it) }
+                    ProfileChoice("Double-space period",profile.doubleSpacePeriod) { profile = profile.copy(doubleSpacePeriod = it) }
                     ProfileChoice("Number row",profile.numberRow) { profile = profile.copy(numberRow = it) }
                     ProfileChoice("Sound",profile.sound) { profile = profile.copy(sound = it) }
                     ProfileChoice("Haptics",profile.haptics) { profile = profile.copy(haptics = it) }

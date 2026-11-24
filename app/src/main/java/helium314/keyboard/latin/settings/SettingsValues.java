@@ -199,7 +199,7 @@ public class SettingsValues {
         mPersistentToolbarKey = ToolbarUtilsKt.getPersistentToolbarKey(prefs);
         mToolbarSwipeDownToHide = prefs.getBoolean(Settings.PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE, Defaults.PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE);
         mToolbarHidingGlobal = isLocked || prefs.getBoolean(Settings.PREF_TOOLBAR_HIDING_GLOBAL, Defaults.PREF_TOOLBAR_HIDING_GLOBAL);
-        mAutoCap = prefs.getBoolean(Settings.PREF_AUTO_CAP, Defaults.PREF_AUTO_CAP) && ScriptUtils.scriptSupportsUppercase(mLocale);
+        mAutoCap = profile.autoCap(prefs.getBoolean(Settings.PREF_AUTO_CAP, Defaults.PREF_AUTO_CAP)) && ScriptUtils.scriptSupportsUppercase(mLocale);
         mVibrateOn = profile.haptics(Settings.readVibrationEnabled(prefs));
         mImportantHapticsInDndMode = prefs.getBoolean(Settings.PREF_IMPORTANT_HAPTICS_IN_DND,
                 Defaults.PREF_IMPORTANT_HAPTICS_IN_DND);
@@ -231,7 +231,7 @@ public class SettingsValues {
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION);
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS);
         mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false);
-        mUseDoubleSpacePeriod = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD)
+        mUseDoubleSpacePeriod = !mInputAttributes.mVaultPrivateEditor && profile.doubleSpacePeriod(prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD))
                 && inputAttributes.mIsGeneralTextInput;
         mBlockPotentiallyOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE);
         mUrlDetectionEnabled = prefs.getBoolean(Settings.PREF_URL_DETECTION, Defaults.PREF_URL_DETECTION);

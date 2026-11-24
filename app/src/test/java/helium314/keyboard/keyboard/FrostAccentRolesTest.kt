@@ -27,9 +27,9 @@ class FrostAccentRolesTest {
         assertFalse(FrostAccentRoles.tintControl(false, false, false, true))
     }
 
-    @Test fun onlyContextualReturnActionsReceiveAccent() {
-        for (action in 2..6) assertTrue(FrostAccentRoles.tintIosAction(false, false, true, false, action))
-        for (action in listOf(0, 1, 7, 8, 255)) assertFalse(FrostAccentRoles.tintIosAction(false, false, true, false, action))
+    @Test fun actualReturnReceivesAccentEvenWithoutContextualImeAction() {
+        for (action in listOf(0,1,2,3,4,5,6,7,8,255))
+            assertTrue(FrostAccentRoles.tintIosAction(false, false, true, false, action))
         assertFalse(FrostAccentRoles.tintIosAction(false, false, false, false, 3))
         assertFalse(FrostAccentRoles.tintIosAction(true, false, true, false, 3))
         assertFalse(FrostAccentRoles.tintIosAction(false, true, true, false, 3))

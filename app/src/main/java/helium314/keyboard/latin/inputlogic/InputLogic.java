@@ -400,6 +400,46 @@ public final class InputLogic {
             return true;
         } catch (RuntimeException ignored) { clearVerifiedEdits(); return attempted; }
     }
+    /** Explicit template insertion at a verified collapsed cursor, never a typing/learning event. */
+    public boolean commitVerifiedTemplate(String text, int offset, int start, long epoch,
+            android.view.inputmethod.InputConnection ic, String prefix, String suffix) {
+        final SettingsValues sv=Settings.getValues();
+        if (text==null || text.isEmpty() || text.length()>512 || offset<0 || offset>text.length()
+                || start<0 || start>Integer.MAX_VALUE-text.length() || prefix==null || suffix==null
+                || prefix.length()>EditorEditJournal.CONTEXT || suffix.length()>EditorEditJournal.CONTEXT
+                || ic==null || ic!=mLatinIME.getCurrentInputConnection() || epoch!=mLatinIME.editorGeneration()
+                || !mLatinIME.isInputViewShown() || !mLatinIME.mayUseTransientCorrectionMemory(sv)
+                || mWordComposer.isComposingWord() || mConnection.getExpectedSelectionStart()!=start
+                || mConnection.getExpectedSelectionEnd()!=start) return false;
+        boolean attempted=false;
+        try {
+            if (!editContextMatches(ic,prefix,"",suffix) || epoch!=mLatinIME.editorGeneration()
+                    || ic!=mLatinIME.getCurrentInputConnection()
+                    || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return false;
+            clearCorrectionRecall();
+            clearTransientCorrectionMemory();
+            invalidateSuggestionRequests();
+            mConnection.beginBatchEdit();
+            try {
+                attempted=true;
+                mConnection.commitText(text,1);
+                mSpaceState=SpaceState.NONE;
+                if (epoch==mLatinIME.editorGeneration() && ic==mLatinIME.getCurrentInputConnection()
+                        && mLatinIME.mayUseTransientCorrectionMemory(sv) && editContextMatches(ic,prefix,text,suffix)) {
+                    if (offset==text.length()) {
+                        long now=SystemClock.elapsedRealtime();
+                        if (mEditJournal.remember(start,"",text,prefix,suffix,now,epoch,ic)) scheduleVerifiedEditExpiry(now);
+                    } else {
+                        // Host may not support moving the cursor; never retry insertion.
+                        clearVerifiedEdits();
+                        mConnection.setSelection(start+offset,start+offset);
+                    }
+                } else clearVerifiedEdits();
+            } finally { mConnection.endBatchEdit(); }
+            mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+            return true;
+        } catch (RuntimeException ignored) { clearVerifiedEdits(); return attempted; }
+    }
     private boolean applyVerifiedEdit(boolean redo, InputTransaction tx) {
         if (mEditJournal.isEmpty()) return false;
         final long epoch=mLatinIME.editorGeneration();

@@ -30,6 +30,22 @@ class EmojiPanelKeyMorphTest {
         assertEquals(300f, EmojiPanelKeyMorph.position(rendered, 300f, 1f), 0f)
     }
 
+    @Test fun returnSearchMappingPreservesRealReturnAndAllSharedControls() {
+        val enter = helium314.keyboard.latin.common.Constants.CODE_ENTER
+        val search = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.EMOJI_SEARCH
+        val delete = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.DELETE
+        val space = helium314.keyboard.latin.common.Constants.CODE_SPACE
+        val normal = listOf(enter,delete,space)
+        val compact = listOf(search,delete,space)
+        val withReturn = listOf(search,delete,space,enter)
+        assertEquals(setOf(enter to search,delete to delete,space to space),
+            EmojiPanelKeyMorph.pairedCodes(normal,compact).toSet())
+        assertEquals(setOf(search to enter,delete to delete,space to space),
+            EmojiPanelKeyMorph.pairedCodes(compact,normal).toSet())
+        assertEquals(setOf(enter to enter,delete to delete,space to space),
+            EmojiPanelKeyMorph.pairedCodes(normal,withReturn).toSet())
+    }
+
     @Test fun motionClampsWithoutOvershoot() {
         assertEquals(0f, EmojiPanelKeyMorph.position(0f, 100f, -1f), 0f)
         assertEquals(100f, EmojiPanelKeyMorph.position(0f, 100f, 2f), 0f)

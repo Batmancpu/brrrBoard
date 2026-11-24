@@ -21,7 +21,7 @@ internal class MorphFrameBudget(refreshRate: Float) {
             return false
         }
         val gap = nowNanos - previous
-        consecutiveLate = if (gap > intervalNanos * 5 / 2) consecutiveLate + 1 else 0
+        consecutiveLate = if (gap > maxOf(40_000_000L, intervalNanos * 5 / 2)) consecutiveLate + 1 else 0
         return consecutiveLate >= 2
     }
 }

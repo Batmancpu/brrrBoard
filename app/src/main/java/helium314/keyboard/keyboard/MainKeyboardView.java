@@ -220,6 +220,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     private float keyPressScale(final Key key) {
+        if (isRenderingMorphArtwork()) return 1f;
         final KeyPressMotion motion = mKeyPressMotions.get(key);
         if (motion == null) return 1f;
         return 1f - .018f * motion.value(SystemClock.uptimeMillis());

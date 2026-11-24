@@ -336,10 +336,10 @@ public class KeyboardView extends View {
             // invalidation rebuilds the list. Keep the old full-draw behavior for hardware
             // canvases, and reserve partial redraws for the software offscreen buffer path.
             if (drawAllKeys || isHardwareAccelerated) {
-                if (!isHardwareAccelerated && background != null) {
-                    // Need to draw keyboard background on {@link #mOffscreenBuffer}.
-                    canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR);
-                    background.draw(canvas);
+                if (!isHardwareAccelerated) {
+                    // Transparent keyboard views still need to erase the old pixels.
+                    canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                    if (background != null) background.draw(canvas);
                 }
                 // Draw all keys.
                 for (final Key key : keyboard.getSortedKeys()) {
@@ -350,15 +350,15 @@ public class KeyboardView extends View {
                     if (!keyboard.hasKey(key)) {
                         continue;
                     }
-                    if (!isHardwareAccelerated && background != null) {
-                        // Need to redraw key's background on {@link #mOffscreenBuffer}.
+                    if (!isHardwareAccelerated) {
+                        // Clear old translucent key pixels even without a background drawable.
                         final int x = key.getX() + getPaddingLeft();
                         final int y = key.getY() + getPaddingTop();
                         mClipRect.set(x, y, x + key.getWidth(), y + key.getHeight());
                         canvas.save();
                         canvas.clipRect(mClipRect);
                         canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR);
-                        background.draw(canvas);
+                        if (background != null) background.draw(canvas);
                         canvas.restore();
                     }
                     onDrawKey(key, canvas, paint);
@@ -372,39 +372,86 @@ public class KeyboardView extends View {
         }
     }
 
-    private int mEmojiMorphHiddenSearch = Integer.MIN_VALUE;
-    private boolean mEmojiMorphHiddenDelete;
+    private int[] mEmojiMorphHiddenCodes = new int[0];
 
-    public boolean isMorphSearchHidden() { return mEmojiMorphHiddenSearch != Integer.MIN_VALUE; }
-    public boolean isMorphDeleteHidden() { return mEmojiMorphHiddenDelete; }
-
-    public void setEmojiMorphHidden(final int searchCode, final boolean delete) {
-        if (mEmojiMorphHiddenSearch == searchCode && mEmojiMorphHiddenDelete == delete) return;
-        mEmojiMorphHiddenSearch = searchCode;
-        mEmojiMorphHiddenDelete = delete;
-        invalidateAllKeys();
+    private boolean isEmojiMorphHidden(final int code) {
+        for (final int hidden : mEmojiMorphHiddenCodes) if (hidden == code) return true;
+        return false;
     }
 
-    /** Render just one public control key, not the keyboard, host screen or user text. */
-    public Bitmap renderEmojiMorphKey(final int code) {
+    public boolean isMorphSearchHidden() {
+        return isEmojiMorphHidden(KeyCode.EMOJI_SEARCH) || isEmojiMorphHidden(Constants.CODE_ENTER);
+    }
+    public boolean isMorphDeleteHidden() { return isEmojiMorphHidden(KeyCode.DELETE); }
+
+    public void setEmojiMorphHidden(final int searchCode, final boolean delete) {
+        if (searchCode == Integer.MIN_VALUE) {
+            setEmojiMorphHiddenCodes(delete ? new int[]{KeyCode.DELETE} : new int[0]);
+        } else {
+            setEmojiMorphHiddenCodes(delete ? new int[]{searchCode, KeyCode.DELETE} : new int[]{searchCode});
+        }
+    }
+
+    public void setEmojiMorphHiddenCodes(final int[] codes) {
+        if (java.util.Arrays.equals(mEmojiMorphHiddenCodes, codes)) return;
+        mEmojiMorphHiddenCodes = codes.clone();
+        invalidateAllKeys();
+        // The overlay and native display list must change in the same traversal,
+        // not one Choreographer frame apart.
+        invalidate();
+    }
+
+    private boolean mRenderingMorphArtwork;
+    protected final boolean isRenderingMorphArtwork() { return mRenderingMorphArtwork; }
+
+    private Key publicMorphKey(final int code) {
         final Keyboard keyboard = getKeyboard();
         final Key key = keyboard == null ? null : keyboard.getKey(code);
         if (key == null || key.isSpacer() || key.getDrawWidth() <= 0 || key.getHeight() <= 0) return null;
-        if (code != KeyCode.EMOJI_SEARCH && code != KeyCode.DELETE && code != Constants.CODE_ENTER) return null;
-        if (code == Constants.CODE_ENTER && keyboard.mId.imeAction() != android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) return null;
-        final Bitmap bitmap = Bitmap.createBitmap(key.getDrawWidth(), key.getHeight(), Bitmap.Config.ARGB_8888);
+        if (code != KeyCode.EMOJI_SEARCH && code != KeyCode.DELETE
+                && code != Constants.CODE_ENTER && code != Constants.CODE_SPACE) return null;
+        if (key.hasCustomActionLabel()) return null;
+        return key;
+    }
+
+    /** Artwork and geometry include the exact renderer padding, never a screenshot. */
+    public boolean getEmojiMorphArtworkBoundsOnScreen(final int code, @NonNull final Rect out) {
+        final Key key = publicMorphKey(code);
+        if (key == null || getWidth() <= 0 || !isShown()) return false;
+        final int[] location = new int[2];
+        getLocationOnScreen(location);
+        final int x = location[0] + getPaddingLeft() + key.getDrawX();
+        final int y = location[1] + getPaddingTop() + key.getY();
+        out.set(x - mKeyBackgroundPadding.left, y - mKeyBackgroundPadding.top,
+                x + key.getDrawWidth() + mKeyBackgroundPadding.right,
+                y + key.getHeight() + mKeyBackgroundPadding.bottom);
+        return !out.isEmpty();
+    }
+
+    /** Render only public key artwork, at rest, never host text or panel pixels. */
+    public Bitmap renderEmojiMorphKey(final int code) {
+        final Key key = publicMorphKey(code);
+        if (key == null) return null;
+        final int w = key.getDrawWidth() + mKeyBackgroundPadding.left + mKeyBackgroundPadding.right;
+        final int h = key.getHeight() + mKeyBackgroundPadding.top + mKeyBackgroundPadding.bottom;
+        if (w <= 0 || h <= 0 || (long) w * h > 1_000_000L) return null;
+        final Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         bitmap.setDensity(Bitmap.DENSITY_NONE);
         final float scale = Settings.getValues().mKeyboardHeightScale;
         mIconScaleFactor = scale < 0.8f ? scale + 0.2f : 1f;
         final Canvas canvas = new Canvas(bitmap);
-        canvas.translate(-key.getDrawX() - getPaddingLeft(), -key.getY() - getPaddingTop());
-        drawKeyVisual(key, canvas, new Paint(Paint.ANTI_ALIAS_FLAG));
+        canvas.translate(mKeyBackgroundPadding.left - key.getDrawX() - getPaddingLeft(),
+                mKeyBackgroundPadding.top - key.getY() - getPaddingTop());
+        mRenderingMorphArtwork = true;
+        try {
+            drawKeyVisual(key, canvas, new Paint(Paint.ANTI_ALIAS_FLAG));
+        } finally { mRenderingMorphArtwork = false; }
         return bitmap;
     }
 
     private void onDrawKey(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint) {
-        if (key.getCode() == mEmojiMorphHiddenSearch || (mEmojiMorphHiddenDelete && key.getCode() == KeyCode.DELETE)) return;
+        if (isEmojiMorphHidden(key.getCode())) return;
         drawKeyVisual(key, canvas, paint);
     }
 
@@ -439,7 +486,7 @@ public class KeyboardView extends View {
                 frostedColorType = ColorType.SPACE_BAR_BACKGROUND;
             } else if (isOgFrostTintedControlKey(key)) {
                 frostedColorType = ColorType.OG_FROST_ACCENT_BACKGROUND;
-            } else if (key.hasActionKeyBackground()) {
+            } else if (key.getCode() == Constants.CODE_ENTER || key.hasActionKeyBackground()) {
                 frostedColorType = ColorType.ENTER_KEY_BACKGROUND;
             } else if (isSpecialKey(key)) {
                 frostedColorType = ColorType.SPECIAL_KEY_BACKGROUND;
@@ -1141,7 +1188,7 @@ public class KeyboardView extends View {
                 keyboard.mId.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW ||
                 keyboard.mId.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW)) return true;
         return FrostAccentRoles.tintIosAction(isPopupKeysView(), key.isSpacer(),
-                        key.hasActionKeyBackground() && key.getCode() == Constants.CODE_ENTER,
+                        key.getCode() == Constants.CODE_ENTER,
                         key.hasCustomActionLabel(), keyboard.mId.imeAction());
     }
 

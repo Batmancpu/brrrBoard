@@ -12,6 +12,14 @@ class AppProfilePolicyTest {
         assertTrue(b.autocorrect(true))
         assertFalse(b.numberRow(false))
     }
+    @Test fun optionalTypingOverridesInheritIndependently() {
+        val p = AppProfileStore.Profile(autoCap = false, doubleSpacePeriod = true)
+        assertFalse(p.autoCap(true))
+        assertTrue(p.doubleSpacePeriod(false))
+        assertTrue(AppProfileStore.Profile().autoCap(true))
+        assertFalse(AppProfileStore.Profile().doubleSpacePeriod(false))
+        assertTrue(p.privateMode(true))
+    }
     @Test fun privacyCanOnlyTighten() {
         assertTrue(AppProfileStore.Profile().privateMode(true))
         assertFalse(AppProfileStore.Profile().privateMode(false))

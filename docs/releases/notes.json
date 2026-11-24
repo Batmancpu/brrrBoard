@@ -1,18 +1,26 @@
 {
   "schema": 1,
-  "summary": "Stricter private clipboard handling and credential exclusion.",
+  "summary": "Return tint and shared Emoji key morph improvements, private templates and profile controls.",
   "changes": [
     {
-      "title": "Private clipboard cleanup",
-      "detail": "Private and locked cleanup hides clipboard suggestions without reading the current system clip."
+      "title": "Return accent",
+      "detail": "Plain Return and contextual actions use the chosen accent even on neutral-background layouts. Other keys and transparency retain existing styling."
     },
     {
-      "title": "Bounded plain-text history",
-      "detail": "Automatic text history and previews accept only a single direct plain-text item, not provider URI, intent or HTML coercion. Explicit paste and image support remain unchanged."
+      "title": "Shared Emoji key transitions",
+      "detail": "Return/Search, Delete and Space morph using their actual geometry; immediate native ownership, transparent-buffer cleanup and a less aggressive frame-gap fallback reduce flicker."
     },
     {
-      "title": "Credential protection",
-      "detail": "Credential-bearing links, bearer tokens and private-key headers are excluded from automatic history and smart extraction."
+      "title": "Dynamic text templates",
+      "detail": "User-created encrypted snippets with date, time and cursor placeholders."
+    },
+    {
+      "title": "Per-app typing controls",
+      "detail": "Auto-capitalization and double-space period overrides."
+    },
+    {
+      "title": "Clipboard search",
+      "detail": "Interruptible clear-icon motion and no repetitive full-list reveal."
     }
   ]
 }

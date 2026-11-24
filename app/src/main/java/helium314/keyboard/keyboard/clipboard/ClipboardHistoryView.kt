@@ -725,8 +725,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
                     clipboardAdapter.setSearchQuery(query)
                     clipboardRecyclerView.scrollToPosition(0)
                     showSearchMatch(query.isNotBlank())
-                    if (query.isNotBlank() && clipboardAdapter.itemCount > 0)
-                        KeyboardMotionSpec.revealSearchResults(clipboardRecyclerView)
+                    // Results are already current; never restart a full-list animation per keystroke.
                 }
             }
         })
@@ -739,28 +738,32 @@ class ClipboardHistoryView @JvmOverloads constructor(
     /** The X comes from the same pill, with only compositor properties moving. */
     private fun morphSearchClear(show: Boolean) {
         if (show == searchClearRevealed) return
+        val wasVisible = searchClearButton.visibility == View.VISIBLE
         searchClearRevealed = show
         searchClearButton.animate().cancel()
         searchClearButton.isEnabled = show
+        val offset = 8.dpToPx(resources).toFloat()
+        if (!KeyboardMotionSpec.enabled() || !isShown) {
+            searchClearButton.alpha = if (show) 1f else 0f
+            searchClearButton.scaleX = if (show) 1f else 0.55f
+            searchClearButton.scaleY = searchClearButton.scaleX
+            searchClearButton.translationX = if (show) 0f else offset
+            searchClearButton.visibility = if (show) View.VISIBLE else View.INVISIBLE
+            return
+        }
         if (show) {
-            searchClearButton.visibility = View.VISIBLE
-            if (!KeyboardMotionSpec.enabled()) {
-                searchClearButton.alpha = 1f
-                searchClearButton.scaleX = 1f
-                searchClearButton.scaleY = 1f
-            } else {
-                searchClearButton.translationX = 8.dpToPx(resources).toFloat()
-                searchClearButton.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                    .translationX(0f).setDuration(170).start()
+            if (!wasVisible) {
+                searchClearButton.alpha = 0f
+                searchClearButton.scaleX = 0.55f
+                searchClearButton.scaleY = 0.55f
+                searchClearButton.translationX = offset
             }
-        } else if (!KeyboardMotionSpec.enabled()) {
-            searchClearButton.visibility = View.INVISIBLE
-            searchClearButton.alpha = 0f
-            searchClearButton.scaleX = 0.55f
-            searchClearButton.scaleY = 0.55f
+            searchClearButton.visibility = View.VISIBLE
+            searchClearButton.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .translationX(0f).setDuration(170).start()
         } else {
             searchClearButton.animate().alpha(0f).scaleX(0.55f).scaleY(0.55f)
-                .translationX(8.dpToPx(resources).toFloat()).setDuration(140)
+                .translationX(offset).setDuration(140)
                 .withEndAction {
                     if (!searchClearRevealed) searchClearButton.visibility = View.INVISIBLE
                 }.start()

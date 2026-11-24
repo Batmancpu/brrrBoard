@@ -9,21 +9,32 @@ import android.view.inputmethod.InputConnection
 import helium314.keyboard.latin.inputlogic.ContextualTextActions
 import helium314.keyboard.latin.utils.getPlatformDialogThemeContext
 import java.security.MessageDigest
+import helium314.keyboard.latin.inputlogic.DynamicTextTemplate
+import helium314.keyboard.latin.settings.TextTemplateStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Dialog keeps a range and digest, never a selected-text preview. */
 class TextToolsController(private val ime: LatinIME) {
     private var active: AlertDialog? = null
+    private var loadJob: Job? = null
+    private var requestGeneration = 0L
     private var selectionStart = -1
     private var selectionEnd = -1
     private val expire = Runnable { dismiss() }
     fun dismiss() {
+        requestGeneration++
+        loadJob?.cancel(); loadJob = null
         ime.mHandler.removeCallbacks(expire)
         val dialog = active
         active = null; selectionStart = -1; selectionEnd = -1
         dialog?.dismiss()
     }
     fun selectionChanged(start: Int,end: Int) {
-        if (active != null && (start != selectionStart || end != selectionEnd)) dismiss()
+        if (selectionStart >= 0 && (start != selectionStart || end != selectionEnd)) dismiss()
     }
     private fun readPlainSelection(ic: InputConnection): String? {
         val text = try { ic.getSelectedText(InputConnection.GET_TEXT_WITH_STYLES) }
@@ -33,6 +44,69 @@ class TextToolsController(private val ime: LatinIME) {
         return text.toString()
     }
     private fun digest(text: String) = MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+    private fun cursorContext(ic: InputConnection): Pair<String,String>? = try {
+        val before = ic.getTextBeforeCursor(8,0)
+        val after = ic.getTextAfterCursor(8,0)
+        if (before == null || after == null || before.length > 8 || after.length > 8) null
+        else before.toString() to after.toString()
+    } catch (_: RuntimeException) { null }
+    private fun requestTemplates(ic: InputConnection, editor: android.view.inputmethod.EditorInfo,
+                                 epoch: Long, start: Int, locale: java.util.Locale) {
+        val original = cursorContext(ic) ?: return
+        val beforeDigest = digest(original.first)
+        val afterDigest = digest(original.second)
+        val created = SystemClock.elapsedRealtime()
+        val generation = requestGeneration
+        selectionStart = start; selectionEnd = start
+        fun current(): Boolean = generation == requestGeneration &&
+            SystemClock.elapsedRealtime()-created in 0L until 30_000L &&
+            ime.isInputViewShown && epoch == ime.editorGeneration() &&
+            ic === ime.currentInputConnection && editor === ime.currentInputEditorInfo &&
+            ime.mInputLogic.mConnection.expectedSelectionStart == start &&
+            ime.mInputLogic.mConnection.expectedSelectionEnd == start &&
+            ime.mayUseTransientCorrectionMemory(ime.mSettings.current)
+        loadJob = CoroutineScope(Dispatchers.Main.immediate).launch {
+            val saved = withContext(Dispatchers.IO) { TextTemplateStore.load(ime) }
+            if (!current()) { if (generation == requestGeneration) dismiss(); return@launch }
+            if (saved == null || saved.templates.isEmpty()) {
+                ime.mKeyboardSwitcher.showToast("Select text or add templates in BR Brain",false)
+                dismiss()
+                return@launch
+            }
+            try {
+                val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(ime))
+                    .setTitle("Insert text template")
+                    .setItems(saved.templates.map { it.name }.toTypedArray()) { _, index ->
+                        if (!current() || TextTemplateStore.revision() != saved.revision) return@setItems
+                        val live = cursorContext(ic) ?: return@setItems
+                        if (!MessageDigest.isEqual(beforeDigest,digest(live.first)) ||
+                            !MessageDigest.isEqual(afterDigest,digest(live.second))) return@setItems
+                        val rendered = DynamicTextTemplate.renderNow(saved.templates[index],locale) ?: return@setItems
+                        if (!ime.mInputLogic.commitVerifiedTemplate(rendered.text,rendered.cursor,start,
+                                epoch,ic,live.first,live.second))
+                            ime.mKeyboardSwitcher.showToast("Finish the current word and try again",false)
+                    }.setNegativeButton(android.R.string.cancel,null).create()
+                val window = dialog.window ?: run { dismiss(); return@launch }
+                val token = ime.window?.window?.attributes?.token ?: run { dismiss(); return@launch }
+                window.attributes = window.attributes.apply {
+                    this.token = token
+                    type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
+                }
+                window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or WindowManager.LayoutParams.FLAG_SECURE)
+                dialog.setOnDismissListener {
+                    if (active === dialog) {
+                        active = null; selectionStart = -1; selectionEnd = -1
+                        ime.mHandler.removeCallbacks(expire)
+                        requestGeneration++
+                    }
+                }
+                active = dialog
+                dialog.show()
+                ime.mHandler.postDelayed(expire,(30_000L-(SystemClock.elapsedRealtime()-created)).coerceAtLeast(0L))
+            } catch (_: RuntimeException) { dismiss() }
+        }
+    }
+
     fun request() {
         dismiss()
         val values = ime.mSettings.current
@@ -43,6 +117,10 @@ class TextToolsController(private val ime: LatinIME) {
         val connection = ime.mInputLogic.mConnection
         val start = connection.expectedSelectionStart
         val end = connection.expectedSelectionEnd
+        if (start >= 0 && end == start) {
+            requestTemplates(ic,editor,epoch,start,values.mLocale)
+            return
+        }
         if (start < 0 || end <= start || end-start > ContextualTextActions.MAX_CHARS) {
             ime.mKeyboardSwitcher.showToast("Select plain text first",false)
             return

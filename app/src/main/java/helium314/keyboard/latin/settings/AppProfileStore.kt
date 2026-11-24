@@ -16,7 +16,9 @@ object AppProfileStore {
         val numberRow: Boolean? = null,
         val sound: Boolean? = null,
         val haptics: Boolean? = null,
-        val privateMode: Boolean = false
+        val privateMode: Boolean = false,
+        val autoCap: Boolean? = null,
+        val doubleSpacePeriod: Boolean? = null
     ) {
         fun autocorrect(global: Boolean) = autocorrect ?: global
         fun suggestions(global: Boolean) = suggestions ?: global
@@ -24,6 +26,8 @@ object AppProfileStore {
         fun sound(global: Boolean) = sound ?: global
         fun haptics(global: Boolean) = haptics ?: global
         fun privateMode(global: Boolean) = global || privateMode
+        fun autoCap(global: Boolean) = autoCap ?: global
+        fun doubleSpacePeriod(global: Boolean) = doubleSpacePeriod ?: global
     }
     private const val MAX_PROFILES = 32
     private const val MAX_BYTES = 16_384
@@ -56,7 +60,7 @@ object AppProfileStore {
                     fun optional(key: String): Boolean? = if (row.has(key)) row.getBoolean(key) else null
                     result[pkg] = Profile(optional("autocorrect"), optional("suggestions"),
                         optional("numberRow"), optional("sound"), optional("haptics"),
-                        row.optBoolean("privateMode", false))
+                        row.optBoolean("privateMode", false), optional("autoCap"), optional("doubleSpacePeriod"))
                 }
             }
         } catch (_: Exception) {
@@ -92,6 +96,8 @@ object AppProfileStore {
             p.sound?.let { row.put("sound", it) }
             p.haptics?.let { row.put("haptics", it) }
             if (p.privateMode) row.put("privateMode", true)
+            p.autoCap?.let { row.put("autoCap", it) }
+            p.doubleSpacePeriod?.let { row.put("doubleSpacePeriod", it) }
             rows.put(pkg, row)
         }
         val bytes = JSONObject().put("schema", 1).put("profiles", rows).toString().toByteArray(Charsets.UTF_8)
