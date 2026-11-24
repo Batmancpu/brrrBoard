@@ -370,6 +370,16 @@ f""", // no newline at the end
         }
     }
 
+    @Test fun placeholderOnlyPopupIsNotALongPressTarget() {
+        val keyParams = LayoutParser.parseJsonString("""[[{ "label": "ক", "popup": {
+            "relevant": [{ "type": "placeholder" }]
+        } }]]""").flatMap { row -> row.mapNotNull { it.compute(params)?.toKeyParams(params) } }.single()
+        assertEquals(null, keyParams.mPopupKeys)
+        keyParams.mAbsoluteWidth = 1f
+        keyParams.mAbsoluteHeight = 1f
+        assertEquals(false, keyParams.createKey().isLongPressEnabled)
+    }
+
     @Test fun popupWithCodeAndLabel() {
         val key = LayoutParser.parseJsonString("""[[{ "label": "w", "popup": {
           "main": { "code":   55, "label": "!" }

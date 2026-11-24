@@ -32,6 +32,7 @@ import androidx.core.view.isGone
 import coil.load
 import coil.request.CachePolicy
 import helium314.keyboard.compat.ClipboardManagerCompat
+import helium314.keyboard.compat.isDeviceLocked
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.keyboard.internal.KeyboardIconsSet
@@ -121,7 +122,7 @@ class ClipboardHistoryManager(
         val settings = latinIME.mSettings.current
         return settings.mClipboardHistoryEnabled
                 && settings.mShowScreenshotsInClipboard
-                && !ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo, settings.mIncognitoModeEnabled)
+                && !isHistoryPrivate()
                 && (hasScreenshotFolderAccess() || hasScreenshotReadPermission())
     }
 
@@ -652,6 +653,7 @@ class ClipboardHistoryManager(
 
     /** Explicit Paste key. Private/sensitive text is never inserted before confirmation. */
     fun requestPrimaryPaste() {
+        if (isDeviceLocked(latinIME)) return
         val editor = latinIME.currentInputEditorInfo
         val connection = latinIME.currentInputConnection
         // Android may deny clipboard reads as focus changes; a denial is a no-op.
@@ -684,7 +686,7 @@ class ClipboardHistoryManager(
                 .setMessage(R.string.board_private_paste_explanation)
                 .setNegativeButton(R.string.board_private_paste_cancel, null)
                 .setPositiveButton(R.string.board_private_paste_confirm) { _, _ ->
-                    if (latinIME.editorGeneration() != expectedEpoch ||
+                    if (isDeviceLocked(latinIME) || latinIME.editorGeneration() != expectedEpoch ||
                         latinIME.currentInputConnection !== connection ||
                         latinIME.currentInputEditorInfo !== editor) return@setPositiveButton
                     // Read one OS ClipData snapshot. Comparing and inserting from
@@ -760,8 +762,9 @@ class ClipboardHistoryManager(
 
     fun getHistoryEntryContent(id: Long) = if (isHistoryPrivate()) null else clipboardDao?.get(id)
 
-    private fun isHistoryPrivate(): Boolean = ClipboardPrivacyPolicy.isPrivateEditor(
-        latinIME.currentInputEditorInfo, latinIME.mSettings.current.mIncognitoModeEnabled)
+    private fun isHistoryPrivate(): Boolean = isDeviceLocked(latinIME) ||
+        ClipboardPrivacyPolicy.isPrivateEditor(
+            latinIME.currentInputEditorInfo, latinIME.mSettings.current.mIncognitoModeEnabled)
 
     fun setHistoryChangeListener(listener: ClipboardDao.Listener?) {
         clipboardDao?.listener = listener
@@ -905,7 +908,7 @@ class ClipboardHistoryManager(
         clipboardSuggestionView = null
 
         // get the content, or return null
-        if (!latinIME.mSettings.current.mSuggestClipboardContent) return null
+        if (isHistoryPrivate() || !latinIME.mSettings.current.mSuggestClipboardContent) return null
         if (dontShowCurrentSuggestion) return null
         if (parent == null) return null
         val screenshot = recentScreenshotPaste(editorInfo)
@@ -944,7 +947,7 @@ class ClipboardHistoryManager(
         )
         textView.setCompoundDrawablesRelativeWithIntrinsicBounds(if (isImageChip) null else clipIcon, null, null, null)
         textView.setOnClickListener {
-            if (latinIME.editorGeneration() != editorEpoch ||
+            if (isDeviceLocked(latinIME) || latinIME.editorGeneration() != editorEpoch ||
                 ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo,
                     latinIME.mSettings.current.mIncognitoModeEnabled) ||
                 latinIME.currentInputConnection !== connection ||

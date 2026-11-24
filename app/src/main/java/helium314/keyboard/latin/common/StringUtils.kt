@@ -204,8 +204,25 @@ fun CharSequence.isValidNumber(): Boolean {
 }
 
 fun String.decapitalize(locale: Locale): String {
-    if (isEmpty() || !this[0].isUpperCase()) return this
-    return replaceFirstChar { it.lowercase(locale) }
+    if (isEmpty()) return this
+    val first = Character.codePointAt(this, 0)
+    if (!Character.isUpperCase(first)) return this
+    val count = Character.charCount(first)
+    return substring(0, count).lowercase(locale) + substring(count)
+}
+
+/** Remove only trailing punctuation from learning, never the committed text. */
+fun stripTrailingSeparatorsAndConnectors(word: String, spacing: SpacingAndPunctuations): String =
+    trimTrailingCodePoints(word) { spacing.isWordSeparator(it) || spacing.isWordConnector(it) }
+
+internal fun trimTrailingCodePoints(word: String, shouldTrim: (Int) -> Boolean): String {
+    var end = word.length
+    loopOverCodePointsBackwards(word) { cp, count ->
+        if (!shouldTrim(cp)) return@loopOverCodePointsBackwards true
+        end -= count
+        false
+    }
+    return word.substring(0, end)
 }
 
 fun encodeBase36(string: String): String = BigInteger(string.toByteArray()).toString(36)

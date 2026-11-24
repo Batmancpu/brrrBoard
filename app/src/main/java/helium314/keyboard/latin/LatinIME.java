@@ -2180,6 +2180,8 @@ public class LatinIME extends InputMethodService implements
     // should
     // completely replace #onCodeInput.
     public void onEvent(@NonNull final Event event) {
+        if (LockedKeyboardActionPolicy.isRestricted(event.getKeyCode())
+                && helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) return;
         ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // Keep only the time value: never retain the entered character, editor,
         // package, or language. Private/protected fields are excluded.
@@ -2233,6 +2235,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     public void onTextInput(final String rawText) {
+        if (rawText == null) return;
         ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // TODO: have the keyboard pass the correct key code when we need it.
         final Event event = Event.createSoftwareTextEvent(rawText, KeyCode.MULTIPLE_CODE_POINTS, null);
@@ -2717,12 +2720,13 @@ public class LatinIME extends InputMethodService implements
      * returns whether a clipboard suggestion has been set.
      */
     public boolean tryShowClipboardSuggestion() {
+        if (!hasSuggestionStripView() || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) return false;
         if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())) return false;
         if (!AccessoryPriorityPolicy.canReplaceVisible(mInlineProviderViewActive,
                 AccessoryPriorityPolicy.Incoming.CLIPBOARD)) return false;
         final View clipboardView = mClipboardHistoryManager.getClipboardSuggestionView(getCurrentInputEditorInfo(),
                 mSuggestionStripView);
-        if (clipboardView != null && hasSuggestionStripView()) {
+        if (clipboardView != null) {
             mSuggestionStripView.setExternalSuggestionView(clipboardView, false);
             return true;
         }
@@ -2963,6 +2967,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void launchSettings() {
+        if (helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) return;
         mInputLogic.commitTyped(mSettings.getCurrent(), LastComposedWord.NOT_A_SEPARATOR);
         requestHideSelf(0);
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();

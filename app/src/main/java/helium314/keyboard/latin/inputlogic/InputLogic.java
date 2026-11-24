@@ -48,6 +48,7 @@ import helium314.keyboard.latin.Suggest.OnGetSuggestedWordsCallback;
 import helium314.keyboard.latin.SuggestedWords;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
 import helium314.keyboard.latin.WordComposer;
+import helium314.keyboard.latin.UpstreamTypingPolicy;
 import helium314.keyboard.latin.common.Constants;
 import helium314.keyboard.latin.common.InputPointers;
 import helium314.keyboard.latin.common.StringUtils;
@@ -774,8 +775,8 @@ public final class InputLogic {
         final int codePointBeforeCursor = mConnection.getCodePointBeforeCursor();
         if (Character.isLetterOrDigit(codePointBeforeCursor)
                 || settingsValues.isUsuallyFollowedBySpace(codePointBeforeCursor)) {
-            final boolean autoShiftHasBeenOverriden = keyboardSwitcher
-                    .getKeyboardShiftMode() != getCurrentAutoCapsState(settingsValues);
+            final boolean autoShiftHasBeenOverriden = UpstreamTypingPolicy.preserveSwipeShift(
+                    keyboardSwitcher.getKeyboardShiftMode(), getCurrentAutoCapsState(settingsValues));
             if (settingsValues.mAutospaceBeforeGestureTyping)
                 mSpaceState = SpaceState.PHANTOM;
             if (!autoShiftHasBeenOverriden) {
@@ -2093,7 +2094,10 @@ public final class InputLogic {
         if (!settingsValues.isSuggestionsEnabledPerUserSettings() || TextUtils.isEmpty(suggestion))
             return;
         final boolean wasAutoCapitalized = mWordComposer.wasAutoCapitalized() && !mWordComposer.isMostlyCaps();
-        final String word = stripWordSeparatorsFromEnd(suggestion, settingsValues);
+        final String word = helium314.keyboard.latin.common.StringUtilsKt.stripTrailingSeparatorsAndConnectors(
+                suggestion, settingsValues.mSpacingAndPunctuations);
+        if (word.isEmpty() || !UpstreamTypingPolicy.mayLearnCapitalization(
+                wasAutoCapitalized, ngramContext.isBeginningOfSentenceContext())) return;
         if (settingsValues.mIncognitoModeEnabled) {
             // Strict no-trace semantics: not even transient language-confidence
             // adaptation may leak back to the next non-private editor.
@@ -2115,22 +2119,6 @@ public final class InputLogic {
         if (mSuggest != null) {
             mSuggest.clearNextWordSuggestionsCache();
         }
-    }
-
-    // strip word separators from end (may be necessary for urls, e.g. when the user
-    // has typed
-    // "go to example.com, and" -> we don't want the ",")
-    private String stripWordSeparatorsFromEnd(final String word, final SettingsValues settingsValues) {
-        final String result;
-        if (settingsValues.mSpacingAndPunctuations.isWordSeparator(word.codePointBefore(word.length()))) {
-            int endIndex = word.length() - 1;
-            while (endIndex != 0
-                    && settingsValues.mSpacingAndPunctuations.isWordSeparator(word.codePointBefore(endIndex)))
-                --endIndex;
-            result = (endIndex > 0) ? word.substring(0, endIndex) : word;
-        } else
-            result = word;
-        return result;
     }
 
     /** Called on the UI thread when any newer input invalidates pending decoder results. */

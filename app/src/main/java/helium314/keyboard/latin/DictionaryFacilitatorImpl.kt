@@ -306,6 +306,8 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         suggestion: String, wasAutoCapitalized: Boolean, ngramContext: NgramContext,
         timeStampInSeconds: Long, blockPotentiallyOffensive: Boolean
     ) {
+        if (suggestion.isBlank() || !UpstreamTypingPolicy.mayLearnCapitalization(
+                wasAutoCapitalized, ngramContext.isBeginningOfSentenceContext)) return
         // Update the spelling cache before learning. Words that are not yet added to user history
         // and appear in no other language model are not considered valid.
         putWordIntoValidSpellingWordCache("addToUserHistory", suggestion)

@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "summary": "Stabilize icons throughout Emoji panel transitions.",
+  "summary": "Selected HeliBoard security, typing and stability improvements.",
   "changes": [
     {
-      "title": "Flicker-free icon handoff",
-      "detail": "Use one moving key artwork at native opacity, transfer ownership at pre-draw, and stop repeated footer icon resets during layout."
+      "title": "Privacy and stability",
+      "detail": "Restrict clipboard and settings actions while locked; ignore null text and empty popup layouts."
+    },
+    {
+      "title": "Faster typing and better learning",
+      "detail": "Remove delete-swipe delay, preserve manual glide shift, handle Unicode casing, and exclude unwanted trailing punctuation and forced capitalization from history."
+    },
+    {
+      "title": "Clipboard efficiency",
+      "detail": "Skip clipboard suggestion preparation while the suggestion strip is unavailable."
     }
   ]
 }
