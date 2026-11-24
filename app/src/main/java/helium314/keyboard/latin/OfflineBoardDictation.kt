@@ -42,6 +42,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private var originalSelectionEnd = -1
     private var autoSendOnComplete = false
     private var composingVoiceDraft = ""
+    private var liveDraftRejected = false
     private var generation = 0L
 
     fun toggle(root: View?) {
@@ -96,6 +97,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             !Settings.getValues().mIncognitoModeEnabled
         footer = currentFooter
         composingVoiceDraft = ""
+        liveDraftRejected = false
         val pipeline = PrivateVoiceStreamingPipeline(ime, selectedEngine,
             VoiceNoiseChoice.selected(ime), onDone = { result ->
             if (generation == id) {
@@ -226,6 +228,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             }
         }
         composingVoiceDraft = ""
+        liveDraftRejected = false
         generation++
         phase = Phase.IDLE
         streaming?.cancel()
@@ -282,7 +285,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     }
 
     private fun updateComposingDraft(connection: InputConnection, text: String) {
-        if (phase != Phase.CAPTURING || text == composingVoiceDraft || !sameEditor(connection)) return
+        if (phase != Phase.CAPTURING || liveDraftRejected ||
+            text == composingVoiceDraft || !sameEditor(connection)) return
         val destinationSafe = if (composingVoiceDraft.isEmpty()) destinationUnchanged()
             else composingDraftStillAtOriginalCursor()
         if (!destinationSafe) {
@@ -297,8 +301,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         rich.beginBatchEdit()
         try {
             if (composingVoiceDraft.isEmpty()) ime.mInputLogic.preparePrivateVoiceDraft()
-            if (rich.setVoiceComposingText(originalSelectionStart, composingVoiceDraft, text))
+            if (rich.setVoiceComposingText(originalSelectionStart, composingVoiceDraft, text)) {
                 composingVoiceDraft = text
+            } else {
+                // Editors can reject composing spans. Keep recording and defer delivery
+                // to Stop, rather than repeatedly attempting an unsupported live write.
+                liveDraftRejected = true
+            }
         } finally {
             rich.endBatchEdit()
         }
