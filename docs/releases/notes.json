@@ -1,126 +1,14 @@
 {
   "schema": 1,
-  "summary": "Fix biometric protected access, legacy toolbar actions and offline model detection; preserve the complete product-plan behavior.",
+  "summary": "Prepare opt-in custom footer gesture candidate for verification (unreleased WIP).",
   "changes": [
     {
-      "title": "Add private hold-to-talk with live text and swipe cancel",
-      "detail": "Hold the mic to dictate and release to finish. Processed 16 kHz audio batches use a bounded local amplitude pause gate that scans consecutive 100 ms windows (three-second minimum speech plus 600 ms quiet) and the existing hard cap. Outside Incognito, batches appear as a guarded composing draft verified against the original editor, caret and exact interim text; Incognito receives only the final text. Hold-to-talk auto-send is enabled by default only for fields marked Send and can be disabled in Offline voice settings. Swipe to Cancel for the mic-to-bin animation and configured important-action haptic. Audio and interim text are discarded on cancel or failure, and no recovery transcript is saved. Cancel feedback is visual and haptic only; it does not speak."
+      "title": "Add an explicit custom gesture enrollment candidate",
+      "detail": "Introduce a default-off private footer drawing area, encrypted gesture and secret mapping, and guarded private-screen interactions. This work remains experimental and should not be released or used to replace strong biometric access without separate physical-device and security acceptance."
     },
     {
-      "title": "Refresh in-app symbols in light and dark appearances",
-      "detail": "Apply the reviewed 219-resource icon set across keyboard and Settings surfaces, preserving the existing light/dark state wrappers and leaving launcher and MangoLoads identity art untouched. Restore the prior smiley-key artwork. Attribution and the full mapping are included with the source. Artwork is independently authored iOS-inspired artwork, not Apple SF Symbols."
-    },
-    {
-      "title": "Harden exact update and animation checks",
-      "detail": "Correct the prefix-length regression assertion and make the voice-package test verify that Ultra stays opt-in by default while remaining available for explicit future updates."
-    },
-    {
-      "title": "Keep related suggestion updates visually anchored",
-      "detail": "For simple Latin words that share a prefix, the outgoing suffix clips back toward the unchanged prefix while the next suggestion is already active and tappable. Unrelated words use a short whole-label settle. Outgoing labels remain visual-only and bounded during fast typing."
-    },
-    {
-      "title": "Make Settings search contextual and add Type preview",
-      "detail": "Use a shorter Search field with on-device natural-language aliases, and add a sapphire-and-gold Type card that opens a private keyboard preview without learning the entered sample."
-    },
-    {
-      "title": "Simplify incognito footer indicators",
-      "detail": "Use a familiar smile and mic with matching compact gold shield-lock indicators, keeping the mic visible and the privacy state synchronized."
-    },
-    {
-      "title": "Remove the recurring Device Checkup",
-      "detail": "Remove the guided checkup and its geometry report now that the Emoji layout issue has been traced and fixed."
-    },
-    {
-      "title": "Reuse unchanged panel glass recordings",
-      "detail": "The Emoji, Clipboard, and Toolbar frosted overlays now retain their GPU RenderNode recording between unchanged frames and refresh it on scrolling, layout, sizing, and explicit surface updates. This removes repeated source-tree recording while preserving the same live in-panel content and blur."
-    },
-    {
-      "title": "Keep Emoji Browse free of the stale Search row",
-      "detail": "Emoji Search results and the no-results panel remain hidden whenever Search mode is off, including when an asynchronous refresh arrives after leaving Search. This prevents the fixed 56dp row from taking height above the category tabs and emoji grid. The temporary geometry-report action and logger are removed now that the supplied device trace identified the cause."
-    },
-    {
-      "title": "Select and preserve installed offline voice models",
-      "detail": "Everyday tools → Offline voice selects the verified installed Parakeet Ultra 0.6B model for keyboard dictation when available and exposes the brrClean toggle. The compact 110M fallback selector is under Advanced controls. The side-by-side comparison screen and oversized test APK workflow are removed. No speech model weights are bundled in this update; verified installed model files remain in private app storage. The compact Parakeet 110M fallback is available under Advanced controls. Model discovery checks both credential-protected and device-protected private storage so an app storage-default change does not make a previously installed pack disappear; it never duplicates or deletes a pack during detection. Parakeet 110M selection is now tucked under Advanced controls as the lower-memory fallback. Ultra remains the everyday model choice when installed; reset does not change the model files, and no speech model weights are added by this change."
-    },
-    {
-      "title": "Keep only important confirmations in Do Not Disturb",
-      "detail": "Key taps and gesture haptics remain quiet during DND. The optional important-only setting allows brief confirmations when changing privacy mode or confirming a clipboard/history clear. If Android cannot provide the current DND state, the keyboard safely suppresses ordinary haptics until it can. The preference is located only in Everyday tools → Sound & haptics."
-    },
-    {
-      "title": "Focus BR Brain on suggestions and local learning",
-      "detail": "Voice model selection, cleaning, and install availability live under Everyday tools → Offline voice. BR Brain no longer duplicates voice controls or exposes extra diagnostic-copy actions."
-    },
-    {
-      "title": "Make Settings calmer without removing controls",
-      "detail": "Everyday actions now sit in a shorter, grouped Settings home. Less-used controls remain available under an expandable Advanced controls section, with clearer descriptions and lighter icon treatment."
-    },
-    {
-      "title": "Add a reversible settings reset",
-      "detail": "A deliberate slide action at the end of Settings resets preferences while preserving dictionaries, clipboard history, recordings and installed voice models. A separate Undo changes action remains available for one hour. The slider gives continuous restrained haptics while held when haptics are enabled, including the important-actions-only Do Not Disturb mode, without needing the keyboard service to be running."
-    },
-    {
-      "title": "Bound offline update history",
-      "detail": "Settings displays at most the ten newest valid signed updates, and the release history generator also writes only those ten entries so bundled history data cannot grow without bound."
-    },
-    {
-      "title": "Keep suggestions steady during ChatGPT voice input",
-      "detail": "When ChatGPT streams speech into its text field without keyboard typing, brrBoard briefly holds changing prediction rows and shows the latest results after the transcript settles. BR Brain's in-memory performance counters record timing and update counts only; they never retain words, transcripts, audio or screenshots."
-    },
-    {
-      "title": "Move reset into Backup & restore",
-      "detail": "The slide-to-reset control and its one-hour Undo now live beside backup and restore. About brrBoard stays directly on the Settings home, outside Advanced controls."
-    },
-    {
-      "title": "Make protected-app choices easier to read",
-      "detail": "Installed app names and package IDs appear on separate lines with truncation, so long IDs no longer compete with app labels and selection controls."
-    },
-    {
-      "title": "Bring Correction & suggestions into BR Brain",
-      "detail": "BR Brain now links directly to the existing correction and prediction controls. A single restrained champagne-gold shimmer accents the Brain header once; it does not run continuously or recolor the rest of Settings."
-    },
-    {
-      "title": "Add an opt-in ContextLM test",
-      "detail": "Settings → BR Brain now includes a small experimental Hindi-English ContextLM toggle and live, content-free scoring and latency counters. It runs locally only in eligible text fields, reranks existing manual suggestions, and never changes automatic correction. The candidate did not pass the fixed public-corpus quality gate, so the test is off by default and clearly marked experimental. No Parakeet weights or voice A/B test are included."
-    },
-    {
-      "title": "Add biometric-only protected data",
-      "detail": "Hold Privacy & protected apps to open a separate strong-biometric-only area with an encrypted local note vault and detailed BR Brain counters. The vault uses an Android Keystore AES-GCM key per operation, is excluded from backup, locks when the app backgrounds, and suppresses screenshots while open. Device PIN/password fallback is not enabled."
-    },
-    {
-      "title": "Add a default-off one-use private gesture",
-      "detail": "After biometric access, the user may explicitly arm a circle gesture for 30 seconds. A visible footer cue appears only while the gesture can be used; the gesture is one-use, RAM-only, and rejects incognito, password/no-learning, protected-app, dictation, and accessibility touch-exploration contexts. It is not a biometric fallback, and the native learned-word dictionary remains unchanged."
-    },
-    {
-      "title": "Handle biometric availability and key loss safely",
-      "detail": "Before showing the protected-area prompt, Settings checks whether strong biometrics are available and distinguishes missing enrollment, missing hardware, and temporary sensor unavailability. The area stays locked in every failure case; device credentials are never substituted. If biometric enrollment changes invalidate the note key, the note can still be explicitly deleted after the protected area itself is opened with biometrics, removing both ciphertext and stale Keystore key."
-    },
-    {
-      "title": "Wire the one-use private gesture into keyboard input",
-      "detail": "The authenticated one-use gesture session now exposes its consume operation through a Java-compatible bridge used by the keyboard service. Its privacy exclusions, one-use lifetime, and disabled-by-default behavior are unchanged."
-    },
-    {
-      "title": "Route suggestion eligibility through BR Brain",
-      "detail": "A shared on-device policy boundary gates contextual Emoji ranking and learning, confirmed swipe-learning access, and the opt-in manual ContextLM reranker. Native candidates and automatic correction remain authoritative; ContextLM stays off by default after failing its fixed quality gate. The reranked list preserves the native presentation contract and automatic-correction behavior."
-    },
-    {
-      "title": "Move learned history into credential-protected storage",
-      "detail": "After first unlock, the app atomically copies native user-history dictionary files from the legacy device-protected files directory into credential-protected storage, verifies each copy by SHA-256, and deletes a source only after verification. Android's public Context API does not expose a credential-storage context while the app defaults to device-protected storage, so the candidate changes the app default to credential-encrypted storage and explicitly keeps settings, installed voice models, and user gesture libraries on their original device-protected paths. The native dictionary is Android-encrypted at rest, not app-layer AES-GCM encrypted."
-    },
-    {
-      "title": "Make private one-use secret insertion usable and time bounded",
-      "detail": "Arming the footer-circle secret now requires a fresh strong-biometric prompt. The secret stays in a volatile character buffer, expires and is wiped after 30 seconds, and is consumed once. It is never put in preferences, backups, clipboard, logs, or a transcript store."
-    },
-    {
-      "title": "Migrate clipboard history behind first unlock",
-      "detail": "The plaintext clipboard-history SQLite database is now stored in Android credential-encrypted storage. An upgrade moves the existing database from device-protected storage only after the user unlocks Android, and never overwrites an existing credential database. The clipboard panel retries initialization after unlock; before unlock it returns no history. Existing settings, Parakeet model files, and user-installed gesture libraries keep their explicit device-protected paths."
-    },
-    {
-      "title": "Keep private learning records and notes available across storage migration",
-      "detail": "Encrypted Emoji/swipe learning records and the biometric note migrate from the old device-protected no-backup directory into credential-encrypted no-backup storage after unlock. Copies are atomically written, SHA-256 verified, bounded, and preserve the source on conflict or failure. Legacy recovered-transcript files are purged from both storage areas; speech transcripts have no persistence path."
-    },
-    {
-      "title": "Fix protected access, toolbar cleanup and update diagnostics",
-      "detail": "Declare the Android USE_BIOMETRIC permission and fail closed if biometric availability cannot be queried; the protected route no longer crashes on permission failure. Long-press navigation now finishes the touch sequence before changing screens, the Privacy row no longer advertises the hidden hold gesture, and BR Brain uses a clear fingerprint-unlock action. Production startup removes legacy Settings, Clipboard, Emoji and AI-tools toolbar entries from saved preferences, while Language & layouts moves into Advanced controls. The voice installer discovers verified models in both Android storage areas without copying large files; the mic error now directs users to local model status instead of claiming an update erased the model. Advanced controls adds one-copy safe crash reporting with stack frames and model/toolbar status only; exception messages, typed text, audio and transcripts are excluded. Robolectric runtime artifacts now use the public GCS Maven Central mirror after the original endpoint rate-limited CI (HTTP 429), so the full Android test suite can execute reliably."
+      "title": "Repair candidate compile errors and add trace safety tests",
+      "detail": "Use Float zero-fill for gesture templates, restore the protected-screen vault import, and test malformed, straight-line, matching, and nonmatching gesture traces. This candidate does not alter the production release or model packaging."
     }
   ]
 }
