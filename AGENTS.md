@@ -460,3 +460,8 @@ This is the CURRENT voice source candidate following signed v1.0.203, pending ex
 - Keep the private note vault in `noBackupFilesDir` and encrypt with Android Keystore AES-GCM keys that require strong biometric authorization per operation. If biometric support/key validity is unavailable, fail closed; do not add an app PIN or device credential fallback.
 - Normal BR Brain navigation must not show personal counters or usage details. Detailed diagnostics stay behind the protected route. Do not claim all learned-word files are encrypted until the native user-history dictionary has a crash-safe encrypted open/close migration.
 - The proposed keyboard secret gesture remains inactive until its input region can be isolated from microphone, voice-cancel, trackpad, swipe, and accessibility routes.
+
+
+## 2026-11-24 — Capture-first release verified
+
+Exact source `c2d68aa0a815599ee5e3531606bb470e60a6e398`: debug/full unit tests `45333533721` and original-signed release `45333533691` completed successfully, including same-commit gate, signing verification and publication. Non-draft v1.0.267 published 2026-11-24T05:36:01Z; uploaded APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.267/brrBoard.apk, 75,472,461 bytes, GitHub asset SHA-256 `4eafb395f2ec24db53329467737ee9f41aa3f3ef288062a566646a729609730c`. This verifies the capture-first checkpoint, not later concurrent features. No physical phone test or measured latency; verify cold/warm first syllables, quiet speech and continuous two-minute dictation on Oppo. Large optional ASR bundling skipped. No source repair needed.
