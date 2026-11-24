@@ -36,6 +36,7 @@ class BrrCleanVoiceService : Service() {
         Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND)
         var weights: ByteArray? = null
         var enhanced: ByteArray? = null
+        var rawSpeechEvidence = false
         try {
             if (caller != null && pcm != null && VoiceNoiseChoice.eligible(pcm.size)) {
                 val model = assets.open("voice/brrclean_gtcrn.weights").use { it.readBytes() }
@@ -48,7 +49,9 @@ class BrrCleanVoiceService : Service() {
                     if (output != null) {
                         try {
                             if (output.size == pcm.size && plausibleSpeechEnergy(pcm, output)) {
-                                enhanced = BrrCleanSpeechProtection.apply(assets, pcm, output)
+                                val result = BrrCleanSpeechProtection.apply(assets, pcm, output)
+                                enhanced = result?.pcm
+                                rawSpeechEvidence = result?.rawSpeechEvidence == true
                             }
                         } finally { output.fill(0) }
                     }
@@ -62,7 +65,10 @@ class BrrCleanVoiceService : Service() {
             try {
                 if (caller != null) {
                     caller.send(Message.obtain(null, BrrCleanWire.RESULT).apply {
-                        data = Bundle().apply { enhanced?.let { putByteArray(BrrCleanWire.PCM, it) } }
+                        data = Bundle().apply {
+                            enhanced?.let { putByteArray(BrrCleanWire.PCM, it) }
+                            putBoolean(BrrCleanWire.RAW_SPEECH, rawSpeechEvidence)
+                        }
                     })
                 }
             } catch (_: Exception) {
@@ -98,6 +104,7 @@ internal object BrrCleanWire {
     const val RESULT = 2
     const val CANCEL = 3
     const val PCM = "pcm"
+    const val RAW_SPEECH = "raw_speech"
     const val CHILD_TIMEOUT_MS = 8_000L
     const val PARENT_TIMEOUT_MS = 9_000L
 }

@@ -44,6 +44,7 @@ internal class PrivateVoiceStreamingPipeline(
     private var ended = false
     private var busy = false
     private var activeRaw: ByteArray? = null
+    private var activeRecovery: ByteArray? = null
     private var activeBridge: BrrCleanVoiceBridge? = null
     private var activeDecode: VoiceDecodeRequest? = null
     private var activeStarted = 0L
@@ -139,12 +140,17 @@ internal class PrivateVoiceStreamingPipeline(
                 val raw = activeRaw
                 activeRaw = null
                 if (raw == null || cancelled.get()) {
-                    enhanced?.fill(0)
+                    enhanced?.pcm?.fill(0)
                     raw?.fill(0)
                 } else {
-                    val accepted = enhanced?.takeIf { it.size == raw.size }
-                    if (accepted != null) raw.fill(0) else enhanced?.fill(0)
-                    decode(accepted ?: raw)
+                    val accepted = enhanced?.takeIf { it.pcm.size == raw.size }
+                    if (accepted != null) {
+                        // Keep original until the protected decode is safely accepted.
+                        decode(accepted.pcm, raw, accepted.rawSpeechEvidence)
+                    } else {
+                        enhanced?.pcm?.fill(0)
+                        decode(raw)
+                    }
                 }
             }
             activeBridge = bridge
@@ -159,11 +165,21 @@ internal class PrivateVoiceStreamingPipeline(
         }
     }
 
-    private fun decode(pcm: ByteArray) {
-        if (cancelled.get()) { pcm.fill(0); return }
+    private fun decode(pcm: ByteArray, recovery: ByteArray? = null, retryBlank: Boolean = false) {
+        if (cancelled.get()) { pcm.fill(0); recovery?.fill(0); return }
+        activeRecovery = recovery
         activeDecode = engine.transcribe(pcm, formatTranscript = false) { result ->
             activeDecode = null
-            if (cancelled.get()) return@transcribe
+            val original = activeRecovery
+            activeRecovery = null
+            if (cancelled.get()) { original?.fill(0); return@transcribe }
+            // One bounded retry only for failure or unexpectedly empty speech.
+            // No routine second ASR pass, and no premature editor insertion.
+            if (original != null && (result.isFailure || (retryBlank && result.getOrNull().isNullOrBlank()))) {
+                decode(original)
+                return@transcribe
+            }
+            original?.fill(0)
             if (result.isFailure) {
                 complete(Result.failure(IllegalStateException("Offline chunk transcription failed")))
             } else {
@@ -191,6 +207,8 @@ internal class PrivateVoiceStreamingPipeline(
         activeBridge = null
         activeRaw?.fill(0)
         activeRaw = null
+        activeRecovery?.fill(0)
+        activeRecovery = null
         activeDecode?.cancel()
         activeDecode = null
         while (pending.isNotEmpty()) pending.removeFirst().pcm.fill(0)

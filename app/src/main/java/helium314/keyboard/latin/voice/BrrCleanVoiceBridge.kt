@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** One bounded request; native failure can never crash LatinIME or lose its raw PCM. */
 internal class BrrCleanVoiceBridge(
     private val context: Context,
-    private val onDone: (ByteArray?) -> Unit,
+    private val onDone: (BrrCleanResult?) -> Unit,
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private val finished = AtomicBoolean(false)
@@ -50,7 +50,9 @@ internal class BrrCleanVoiceBridge(
         pending = pcm.copyOf()
         reply = Messenger(Handler(Looper.getMainLooper()) { message ->
             if (message.what == BrrCleanWire.RESULT) {
-                complete(message.data.getByteArray(BrrCleanWire.PCM))
+                complete(message.data.getByteArray(BrrCleanWire.PCM)?.let {
+                    BrrCleanResult(it, message.data.getBoolean(BrrCleanWire.RAW_SPEECH))
+                })
             }
             true
         })
@@ -65,7 +67,8 @@ internal class BrrCleanVoiceBridge(
 
     fun cancel() { complete(null, notify = false) }
 
-    private fun complete(bytes: ByteArray?, notify: Boolean = true) {
+    private fun complete(result: BrrCleanResult?, notify: Boolean = true) {
+        val bytes = result?.pcm
         if (!finished.compareAndSet(false, true)) {
             bytes?.fill(0)
             return
@@ -85,7 +88,7 @@ internal class BrrCleanVoiceBridge(
         if (notify) {
             if (bytes == null) VoiceDenoiseMetrics.fallback()
             else VoiceDenoiseMetrics.enhanced(SystemClock.elapsedRealtime() - started)
-            onDone(bytes)
+            onDone(result)
         } else bytes?.fill(0)
     }
 }

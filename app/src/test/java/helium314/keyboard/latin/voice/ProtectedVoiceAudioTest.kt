@@ -34,6 +34,11 @@ class ProtectedVoiceAudioTest {
         val out = ProtectedVoiceAudio.protect(raw,clean,FloatArray(20){.1f},FloatArray(20){.95f})
         assertTrue(ProtectedVoiceAudio.sample(out,h/2) in 2000..2600)
     }
+    @Test fun recoveryRequiresSustainedRawSpeechEvidence() {
+        assertFalse(ProtectedVoiceAudio.hasSpeechEvidence(floatArrayOf(.1f,.9f,.1f)))
+        assertTrue(ProtectedVoiceAudio.hasSpeechEvidence(floatArrayOf(.1f,.9f,.6f,.1f)))
+        assertFalse(ProtectedVoiceAudio.hasSpeechEvidence(floatArrayOf()))
+    }
     @Test fun scoreWindowsIncludeRealPreviousContextAndTailPadding() {
         val audio = pcm(2) { if(it==0) 512 else 1024 }.copyOf(2*h*2-2)
         var calls = 0

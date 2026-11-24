@@ -13,6 +13,10 @@
     {
       "title": "Verify bundled neural endpoint models",
       "detail": "Extend the existing GTCRN contract test to require the exact new auxiliary ONNX allowlist and mandatory endpoint hash verifiers. Preserve the opt-in-only Parakeet policy."
+    },
+    {
+      "title": "Keep original audio through successful transcription",
+      "detail": "Retain raw PCM in RAM until protected decode returns. Retry original once on decoder failure or empty output with sustained raw speech evidence, and wipe it on success/cancellation. Preserve exact auxiliary model allowlist and existing security gates."
     }
   ]
 }

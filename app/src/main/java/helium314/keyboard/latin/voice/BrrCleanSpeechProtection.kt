@@ -8,8 +8,10 @@ import com.k2fsa.sherpa.onnx.VadModelConfig
 import java.security.MessageDigest
 
 /** Only called inside the expendable denoiser process, never on the IME/UI. */
+internal data class BrrCleanResult(val pcm: ByteArray, val rawSpeechEvidence: Boolean)
+
 internal object BrrCleanSpeechProtection {
-    fun apply(assets: AssetManager, raw: ByteArray, clean: ByteArray): ByteArray? {
+    fun apply(assets: AssetManager, raw: ByteArray, clean: ByteArray): BrrCleanResult? {
         var vad: Vad? = null
         return try {
             val bytes = assets.open(PATH).use { it.readBytes() }
@@ -26,7 +28,8 @@ internal object BrrCleanSpeechProtection {
             // Independent recurrent history, one set of loaded weights.
             model.reset()
             val cleanScores = ProtectedVoiceAudio.scores(clean, model::compute)
-            ProtectedVoiceAudio.protect(raw, clean, rawScores, cleanScores)
+            BrrCleanResult(ProtectedVoiceAudio.protect(raw, clean, rawScores, cleanScores),
+                ProtectedVoiceAudio.hasSpeechEvidence(rawScores))
         } catch (_: Throwable) {
             null // fail closed to original PCM, never unprotected denoising
         } finally { vad?.let { runCatching { it.release() } } }

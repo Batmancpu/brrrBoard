@@ -41,6 +41,12 @@ internal object ProtectedVoiceAudio {
         } finally { window.fill(0f) }
     }
 
+    /** A short run of strong raw speech scores, not isolated noise spikes. */
+    fun hasSpeechEvidence(scores: FloatArray): Boolean {
+        for (i in 1 until scores.size) if (scores[i-1] >= STRONG && scores[i] >= STRONG) return true
+        return false
+    }
+
     fun protect(raw: ByteArray, clean: ByteArray, rawScore: FloatArray, cleanScore: FloatArray): ByteArray {
         require(raw.size == clean.size && raw.size % 2 == 0)
         val n = frames(raw)

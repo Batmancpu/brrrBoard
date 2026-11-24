@@ -1,3 +1,7 @@
+## 2026-11-24 — Protected decode recovery and CI contract repair
+
+Keep the raw batch in RAM until the protected ASR result is accepted; one raw retry only after decoder error or blank output with at least two consecutive strong raw VAD scores. Cancellation wipes the retained original; the decoder retains ownership of its own active buffer. No ordinary double decode. Prior debug run 45331790857 failed on obsolete exact-string packaging test (single GTCRN allowlist); concurrent main commit ecd20653e015e62c9ef3b5064b4dd6dde0cc1b62 fixed the contract, so retained it unchanged. Added sustained-score regression. The prior protected commit is e34c72cfc57eb68dd7b1c7725a1102aee20a2ea6. Device WER/CPU and full pre-batching stateful stream are still unverified/not implemented. Exact-SHA debug and signed release must pass before claiming APK success.
+
 ## 2026-11-24 — BR Brain dual-path speech protection
 
 User approved full quiet-speech protection plan: do not remove low-level speech before or after noise suppression; preserve continuous dictation, privacy and responsiveness. This batch implements the protection stage on the current main branch (already containing Silero 6.2.3 and Smart Turn 3.2).
