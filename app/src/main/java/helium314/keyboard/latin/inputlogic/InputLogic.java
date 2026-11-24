@@ -2852,6 +2852,14 @@ public final class InputLogic {
         // predictions.
         clearTransientCorrectionMemory();
         if (mLatinIME.mayUseTransientCorrectionMemory(inputTransaction.getSettingsValues())) {
+            final SettingsValues profileValues = inputTransaction.getSettingsValues();
+            final EditorInfo profileEditor = mLatinIME.getCurrentInputEditorInfo();
+            if (profileEditor != null && profileEditor.packageName != null
+                    && profileEditor.packageName.equals(profileValues.mInputAttributes.mTargetApplicationPackageName)
+                    && !originallyTypedWord.toString().equals(committedWordString)) {
+                helium314.keyboard.latin.settings.AppProfileStore.noteRejection(mLatinIME,
+                        profileEditor.packageName, mLatinIME.editorGeneration(), SystemClock.elapsedRealtime(), profileValues);
+            }
             mCorrectionRejection.reject(originallyTypedWord.toString(), committedWordString,
                     mLatinIME.getCurrentInputEditorInfo(), mLatinIME.getCurrentInputConnection(),
                     SystemClock.elapsedRealtime());

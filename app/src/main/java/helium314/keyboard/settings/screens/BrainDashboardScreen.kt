@@ -103,7 +103,7 @@ fun BrainDashboardScreen(
                         eraseAdaptive = false
                     }) { Text("Reset") } },
                     dismissButton = { OutlinedButton(onClick = { eraseAdaptive = false }) { Text("Cancel") } })
-                AppProfileControls()
+                Text("Per-app profile details are available in the protected BR Brain dashboard.", style = MaterialTheme.typography.bodySmall)
                 TextTemplateControls()
                 TextReplacementControls()
                 ClipboardTextVaultControls()
@@ -202,6 +202,7 @@ fun BrainDashboardScreen(
             }
 
             AdaptiveTouchDatabasePanel(refresh)
+            AppProfileControls()
 
             Text("Real-time processing speed",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

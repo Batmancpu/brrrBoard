@@ -41,17 +41,24 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                     Text("Layout ${index+1}/${layouts.size}",Modifier.weight(1f).padding(horizontal=8.dp))
                     OutlinedButton(onClick={selectedLayout=layouts[(index+1)%layouts.size].layout},enabled=layouts.size>1) { Text("Next") }
                 }
-                Text("Letter selector (not the physical keyboard layout)",style=MaterialTheme.typography.bodySmall)
+                Text("Keyboard evidence overview (QWERTY reference, not physical key geometry)",style=MaterialTheme.typography.bodySmall)
+                val allPeak=(0 until 26).maxOf { active.count(it) }.coerceAtLeast(1)
                 for (keys in listOf("qwertyuiop","asdfghjkl","zxcvbnm")) {
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(3.dp)) {
                         for (key in keys) {
                             val i=key-'a'
                             Box(Modifier.weight(1f).height(34.dp)
-                                .background(if(i==letter) palette.primaryContainer else palette.surfaceVariant,RoundedCornerShape(6.dp))
-                                .clickable { letter=i },contentAlignment=Alignment.Center) { Text(key.uppercase()) }
+                                .background(lerp(palette.surfaceVariant,palette.primary,active.count(i).toFloat()/allPeak*.70f),RoundedCornerShape(6.dp))
+                                .clickable { letter=i },contentAlignment=Alignment.Center) {
+                                Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                                    Text(key.uppercase(),fontWeight=if(i==letter) FontWeight.Bold else FontWeight.Normal)
+                                    Text(active.count(i).toString(),style=MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
                     }
                 }
+                Text("Each key shows retained samples; tap it for the detailed heatmap below.",style=MaterialTheme.typography.bodySmall)
                 val total=active.count(letter)
                 val peak=(0 until 25).maxOf { active.countAt(letter,it) }.coerceAtLeast(1)
                 Text("Intended letter ${('A'+letter)} · ${total} retained samples",fontWeight=FontWeight.SemiBold)

@@ -28,11 +28,11 @@ internal fun AppProfileControls() {
     Card {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Per-app profiles", style = MaterialTheme.typography.titleMedium)
-            Text("$count configured. Profiles apply at the next editor session. They cannot relax private-field restrictions.",
+            Text("$count configured. Encrypted locally. After six verified autocorrection reversals within one 30-second editor window, BR Brain can disable automatic correction for that app at the next editor session. Explicit overrides win. No typed words or event history are stored.",
                 style = MaterialTheme.typography.bodySmall)
             Button(onClick = { query = ""; picking = true }, modifier = Modifier.fillMaxWidth()) { Text("Choose an app") }
-            if (count > 0 || error) OutlinedButton(onClick = { reset = true }) { Text("Reset all profiles") }
-            if (error) Text("Profile storage unavailable.", color = MaterialTheme.colorScheme.error)
+            if (count > 0 || error || !remember(revision) { AppProfileStore.storageAvailable(context) }) OutlinedButton(onClick = { reset = true }) { Text("Reset all profiles") }
+            if (error || !remember(revision) { AppProfileStore.storageAvailable(context) }) Text("Profile storage unavailable. Reset to recover if necessary.", color = MaterialTheme.colorScheme.error)
         }
     }
     if (reset) AlertDialog(onDismissRequest = { reset = false },
@@ -74,6 +74,10 @@ internal fun AppProfileControls() {
                 Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(pkg, style = MaterialTheme.typography.bodySmall)
                     ProfileChoice("Autocorrect",profile.autocorrect) { profile = profile.copy(autocorrect = it) }
+                    if (profile.automaticAutocorrectOff) {
+                        Text("Learned: autocorrection off when inheriting", style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = { profile = profile.copy(automaticAutocorrectOff = false) }) { Text("Forget learned preference") }
+                    }
                     ProfileChoice("Suggestions",profile.suggestions) { profile = profile.copy(suggestions = it) }
                     ProfileChoice("Auto-capitalization",profile.autoCap) { profile = profile.copy(autoCap = it) }
                     ProfileChoice("Double-space period",profile.doubleSpacePeriod) { profile = profile.copy(doubleSpacePeriod = it) }

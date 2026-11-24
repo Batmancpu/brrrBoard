@@ -5,6 +5,7 @@ import android.animation.ValueAnimator
 import android.animation.TimeInterpolator
 import android.content.Context
 import android.os.Build
+import android.os.PowerManager
 import android.view.View
 import android.view.animation.PathInterpolator
 import helium314.keyboard.latin.settings.Defaults
@@ -42,8 +43,8 @@ object KeyboardMotionSpec {
     @JvmStatic fun easing(context: Context): TimeInterpolator? =
         if (isIos27(context)) iosEase else null
 
-    @JvmStatic fun keyPreviewEnterMillis(context: Context): Long = if (isIos27(context)) 85L else 0L
-    @JvmStatic fun keyPreviewExitMillis(context: Context): Long = if (isIos27(context)) 90L else 0L
+    @JvmStatic fun keyPreviewEnterMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 85L else 0L
+    @JvmStatic fun keyPreviewExitMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 90L else 0L
     @JvmStatic fun keyDownMillis(context: Context): Long = if (isIos27(context)) 50L else 0L
     @JvmStatic fun keyUpMillis(context: Context): Long = if (isIos27(context)) 110L else 0L
     @JvmStatic fun panelTransitionMillis(context: Context): Long = if (isIos27(context)) 180L else 160L
@@ -51,6 +52,10 @@ object KeyboardMotionSpec {
     @JvmStatic fun emojiHeightMillis(context: Context): Long = if (isIos27(context)) 225L else 260L
     @JvmStatic fun searchResultMillis(context: Context): Long = if (isIos27(context)) 185L else SEARCH_RESULT_MS
     @JvmStatic fun searchPendingMillis(context: Context): Long = if (isIos27(context)) 95L else SEARCH_PENDING_MS
+
+    /** Power saver suppresses optional result/preview choreography, never input dispatch. */
+    @JvmStatic fun optionalMotion(context: Context): Boolean = enabled() &&
+        context.getSystemService(PowerManager::class.java)?.isPowerSaveMode != true
 
     @JvmStatic fun enabled(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
@@ -63,7 +68,7 @@ object KeyboardMotionSpec {
     /** Transitions presentation only; content and its real touch targets are current. */
     @JvmStatic fun revealSearchResults(view: View) {
         view.animate().cancel()
-        if (!enabled() || !view.isShown) {
+        if (!optionalMotion(view.context) || !view.isShown) {
             reset(view)
             return
         }
@@ -79,7 +84,7 @@ object KeyboardMotionSpec {
     @JvmStatic fun pendingSearchResults(view: View) {
         view.animate().cancel()
         val pendingAlpha = if (isIos27(view.context)) 0.86f else 0.72f
-        if (!enabled()) {
+        if (!optionalMotion(view.context)) {
             view.alpha = pendingAlpha
             return
         }

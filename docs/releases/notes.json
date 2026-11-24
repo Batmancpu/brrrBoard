@@ -1,14 +1,18 @@
 {
   "schema": 1,
-  "summary": "Optional clipboard text encryption and safer portable backup.",
+  "summary": "Private adaptive profiles and touch evidence overview",
   "changes": [
     {
-      "title": "Adaptive Touch database",
-      "detail": "Review per-letter touch heatmaps, retained evidence and learned regional offsets inside the secret-authorized BR Brain dashboard. Existing encrypted touch learning is preserved."
+      "title": "Encrypted per-app profiles",
+      "detail": "Existing profiles migrate to a separate authenticated local file. Repeated confirmed autocorrection reversals can create a narrow learned preference; explicit overrides win. Profile details require secret authorization."
     },
     {
-      "title": "Unified touch learning",
-      "detail": "Adaptive Touch defaults on for unset preferences, respects personalization controls, and shares BR Brain's privacy gate. No word or tap history is retained."
+      "title": "Adaptive Touch overview",
+      "detail": "See retained sample counts across the alphabet, then inspect each letter's heatmap. No typed content or raw tap history is saved."
+    },
+    {
+      "title": "Battery-aware optional motion",
+      "detail": "Power saver reduces optional key-preview and search-result effects without changing input dispatch or the accepted Emoji morph."
     }
   ]
 }
