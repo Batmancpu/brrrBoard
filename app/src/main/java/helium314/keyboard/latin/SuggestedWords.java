@@ -260,6 +260,7 @@ public class SuggestedWords {
         final int previousSize = previousSuggestions.size();
         for (int index = 1; index < previousSize; index++) {
             final SuggestedWordInfo prevWordInfo = previousSuggestions.getInfo(index);
+            if (prevWordInfo.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)) continue;
             final String prevWord = prevWordInfo.mWord;
             // Filter out duplicate suggestions.
             if (!alreadySeen.contains(prevWord)) {
@@ -296,6 +297,7 @@ public class SuggestedWords {
         // in java for re-correction)
         public static final int KIND_RESUMED = 9;
         public static final int KIND_OOV_CORRECTION = 10; // Most probable string correction
+        public static final int KIND_SESSION_RECALL = 11; // Expiring editor-local recall, manual only
 
         public static final int KIND_FLAG_POSSIBLY_OFFENSIVE = 0x80000000;
         public static final int KIND_FLAG_EXACT_MATCH = 0x40000000;

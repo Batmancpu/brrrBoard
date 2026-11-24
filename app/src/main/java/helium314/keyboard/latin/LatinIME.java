@@ -1294,6 +1294,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         mInlineProviderViewActive = false;
@@ -1322,6 +1323,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mVaultSelectionEpoch++;
         mInlineProviderViewActive = false;
@@ -1337,6 +1339,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mEditorFocusEpoch++;
         mVaultSelectionEpoch++;
@@ -1678,6 +1681,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         SecureAppTemporaryOptOut.clear();
         if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
@@ -2602,6 +2606,14 @@ public class LatinIME extends InputMethodService implements
     public void setSuggestions(final SuggestedWords suggestedWords) {
         if (mIsDestroyed) {
             return;
+        }
+        for (int i=0; i<suggestedWords.size(); i++) {
+            final SuggestedWordInfo info = suggestedWords.getInfo(i);
+            if (info.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)
+                    && !mInputLogic.isCorrectionRecallCurrent(info)) {
+                // A deferred or asynchronous result must never resurrect an expired receipt.
+                return;
+            }
         }
         if (ChatGptVoiceSuggestionStability.shouldHold(getCurrentInputEditorInfo(),
                 android.os.SystemClock.uptimeMillis())) {

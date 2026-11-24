@@ -34,7 +34,8 @@ fun getTextWithSuggestionSpan(context: Context, pickedWord: String, suggestedWor
             break
         }
         val info = suggestedWords.getInfo(i)
-        if (info.isKindOf(SuggestedWords.SuggestedWordInfo.KIND_PREDICTION)) {
+        if (info.isKindOf(SuggestedWords.SuggestedWordInfo.KIND_PREDICTION) ||
+            info.isKindOf(SuggestedWords.SuggestedWordInfo.KIND_SESSION_RECALL)) {
             continue
         }
         if (pickedWord != info.mWord) {

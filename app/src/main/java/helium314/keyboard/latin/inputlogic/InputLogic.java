@@ -231,6 +231,124 @@ public final class InputLogic {
         } finally { clearAdaptiveTouchProof(); }
     }
 
+    // Separate recall receipts from ordinary dictionaries, spans and rejection suppression.
+    private final CorrectionSessionMemory mRecallMemory = new CorrectionSessionMemory();
+    private CorrectionSessionMemory.Receipt mRecallDisplayed;
+    private SuggestedWordInfo mRecallCandidate;
+    private final Runnable mExpireRecall = this::expireCorrectionRecall;
+    public void clearCorrectionRecall() {
+        mRecallMemory.clear();
+        mLatinIME.mHandler.removeCallbacks(mExpireRecall);
+        clearRecallDisplay();
+    }
+    private void clearRecallDisplay() {
+        if (mRecallCandidate == null) return;
+        mRecallCandidate = null; mRecallDisplayed = null;
+        boolean containsRecall = false;
+        for (int i=0;i<mSuggestedWords.size();i++)
+            if (mSuggestedWords.getInfo(i).isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL))
+                containsRecall = true;
+        if (containsRecall) {
+            mSuggestedWords = SuggestedWords.getEmptyInstance();
+            mLatinIME.mHandler.cancelResumeSuggestions();
+            mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+        }
+    }
+    private void expireCorrectionRecall() {
+        final long now = SystemClock.elapsedRealtime();
+        if (!mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues())) { clearCorrectionRecall(); return; }
+        mRecallMemory.prune(now, mLatinIME.editorGeneration(), mLatinIME.getCurrentInputConnection());
+        if (mRecallDisplayed != null && !mRecallMemory.contains(mRecallDisplayed, now,
+                mLatinIME.editorGeneration(), mLatinIME.getCurrentInputConnection())) clearRecallDisplay();
+        scheduleRecallExpiry(now);
+    }
+    private void scheduleRecallExpiry(long now) {
+        mLatinIME.mHandler.removeCallbacks(mExpireRecall);
+        final long delay = mRecallMemory.nextExpiry(now);
+        if (delay != Long.MAX_VALUE) mLatinIME.mHandler.postDelayed(mExpireRecall, delay);
+    }
+    private void invalidateRecallForEdit() {
+        invalidateRecallForEdit(false);
+    }
+    private void invalidateRecallForEdit(boolean mayDeleteBeforeCursor) {
+        if (mRecallMemory.isEmpty() && mRecallCandidate == null) return;
+        clearRecallDisplay();
+        final int cursor = mConnection.getExpectedSelectionStart();
+        if (cursor < 0) { clearCorrectionRecall(); return; }
+        // Ordinary forward typing must not erase a correction one space behind
+        // the cursor. Backspace/weak-space operations conservatively reach back.
+        final int start = Math.max(0, cursor - mWordComposer.getTypedWord().length()
+                - (mayDeleteBeforeCursor ? 2 : 0));
+        mRecallMemory.invalidateFrom(start);
+    }
+    public boolean isCorrectionRecallCurrent(SuggestedWordInfo info) {
+        return info == mRecallCandidate && mRecallDisplayed != null
+                && mRecallMemory.contains(mRecallDisplayed,SystemClock.elapsedRealtime(),
+                        mLatinIME.editorGeneration(),mLatinIME.getCurrentInputConnection())
+                && mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues());
+    }
+    private void recordCorrectionRecall(SettingsValues sv, String typed, String corrected) {
+        if (!CorrectionSessionMemory.isWord(typed) || !CorrectionSessionMemory.isWord(corrected)
+                || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return;
+        final android.view.inputmethod.InputConnection ic = mLatinIME.getCurrentInputConnection();
+        final int end = mConnection.getExpectedSelectionEnd();
+        if (ic == null || end < corrected.length()) return;
+        // Confirm the actual post-commit suffix, not merely the IME's optimistic cache.
+        try {
+            if (!TextUtils.equals(corrected, ic.getTextBeforeCursor(corrected.length(), 0))) return;
+        } catch (RuntimeException e) { return; }
+        final long now = SystemClock.elapsedRealtime();
+        if (mRecallMemory.remember(typed, corrected, end-corrected.length(), now,
+                mLatinIME.editorGeneration(), ic)) scheduleRecallExpiry(now);
+    }
+    private InputTransaction pickCorrectionRecall(SettingsValues sv, SuggestedWordInfo info,
+            int shift, String script, LatinIME.UIHandler handler) {
+        final InputTransaction tx = new InputTransaction(sv, Event.createSuggestionPickedEvent(info),
+                SystemClock.uptimeMillis(), mSpaceState, shift);
+        final CorrectionSessionMemory.Receipt r = mRecallDisplayed;
+        final android.view.inputmethod.InputConnection ic = mLatinIME.getCurrentInputConnection();
+        final long epoch = mLatinIME.editorGeneration();
+        final int cursor = mConnection.getExpectedSelectionStart();
+        try {
+            if (info != mRecallCandidate || r == null || !r.originalEquals(info.mWord)
+                    || !mRecallMemory.contains(r,SystemClock.elapsedRealtime(),epoch,ic)
+                    || !mLatinIME.mayUseTransientCorrectionMemory(sv) || mConnection.hasSelection()) return tx;
+            final TextRange range = mConnection.getWordRangeAtCursor(sv.mSpacingAndPunctuations, script);
+            if (range == null || range.mHasUrlSpans || !r.correctedEquals(range.mWord)
+                    || cursor-range.getNumberOfCharsInWordBeforeCursor()!=r.start
+                    || cursor+range.getNumberOfCharsInWordAfterCursor()!=r.end) return tx;
+            mConnection.beginBatchEdit();
+            try {
+                mConnection.finishComposingText();
+                resetComposingState(true);
+                if (!mConnection.setSelection(r.start,r.end)) {
+                    if (epoch==mLatinIME.editorGeneration() && ic==mLatinIME.getCurrentInputConnection())
+                        mConnection.setSelection(cursor,cursor);
+                    return tx;
+                }
+                if (!r.correctedEquals(mConnection.getSelectedText(0))
+                        || !mRecallMemory.contains(r,SystemClock.elapsedRealtime(),epoch,ic)
+                        || ic != mLatinIME.getCurrentInputConnection()
+                        || epoch != mLatinIME.editorGeneration()
+                        || !mLatinIME.mayUseTransientCorrectionMemory(sv)) {
+                    if (epoch==mLatinIME.editorGeneration() && ic==mLatinIME.getCurrentInputConnection())
+                        mConnection.setSelection(cursor,cursor);
+                    return tx;
+                }
+                // Plain commit only. No dictionary/history or persistent suggestion-span injection.
+                mConnection.commitText(r.original(),1);
+                mRecallMemory.invalidateFrom(r.start);
+                mSpaceState = SpaceState.NONE;
+                tx.setDidAffectContents();
+                tx.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+                tx.setRequiresUpdateSuggestions();
+            } finally { mConnection.endBatchEdit(); }
+            return tx;
+        } finally {
+            clearRecallDisplay();
+        }
+    }
+
     // RAM-only direct-correction receipt; no touch coordinates are persisted.
     private String mCurrentSwipeSkeleton;
     private String mRejectedSwipeSkeleton;
@@ -253,6 +371,7 @@ public final class InputLogic {
 
     /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
     public void clearPendingPrivateLearning() {
+        clearCorrectionRecall();
         clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
@@ -311,6 +430,7 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        clearCorrectionRecall();
         invalidateSuggestionRequests();
         clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
@@ -380,6 +500,7 @@ public final class InputLogic {
      * Clean up the input logic after input is finished.
      */
     public void finishInput() {
+        clearCorrectionRecall();
         invalidateSuggestionRequests();
         clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
@@ -447,6 +568,7 @@ public final class InputLogic {
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice,
             final boolean replaceVoiceDraft) {
+        invalidateRecallForEdit();
         clearTransientCorrectionMemory();
         // Dictated text must not confirm an unrelated swipe-correction candidate.
         mRejectedSwipeSkeleton = null;
@@ -508,6 +630,9 @@ public final class InputLogic {
     public InputTransaction onPickSuggestionManually(final SettingsValues settingsValues,
             final SuggestedWordInfo suggestionInfo, final int keyboardShiftState,
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
+        if (suggestionInfo.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL))
+            return pickCorrectionRecall(settingsValues,suggestionInfo,keyboardShiftState,currentKeyboardScript,handler);
+        invalidateRecallForEdit();
         if (isInlineEmojiSearchAction()) {
             deleteTextReplacedByEmoji();
         }
@@ -606,6 +731,7 @@ public final class InputLogic {
      */
     public InputTransaction onInsertEmojiSuggestion(final SettingsValues settingsValues,
             final String emoji, final int keyboardShiftState, final LatinIME.UIHandler handler) {
+        invalidateRecallForEdit();
         clearAdaptiveTouchProof();
         final Event event = Event.createSoftwareTextEvent(emoji, KeyCode.MULTIPLE_CODE_POINTS, null);
         final InputTransaction transaction = new InputTransaction(settingsValues, event,
@@ -662,6 +788,9 @@ public final class InputLogic {
             return false;
         }
         clearTransientCorrectionMemory();
+        clearRecallDisplay();
+        if (newSelStart != newSelEnd || (oldSelStart == newSelStart && oldSelEnd == newSelEnd))
+            clearCorrectionRecall();
         // TODO: the following is probably better done in resetEntireInputState().
         // it should only happen when the cursor moved, and the very purpose of the
         // test below is to narrow down whether this happened or not. Likewise with
@@ -763,6 +892,12 @@ public final class InputLogic {
     public InputTransaction onCodeInput(final SettingsValues settingsValues,
             @NonNull final Event event, final int keyboardShiftMode,
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
+        if (!mRecallMemory.isEmpty() || mRecallCandidate != null) {
+            if (event.isFunctionalKeyEvent() && event.getKeyCode() != KeyCode.DELETE) {
+                // Unknown functional operations may replace or delete an unbounded range.
+                clearCorrectionRecall();
+            } else invalidateRecallForEdit(event.getKeyCode() == KeyCode.DELETE);
+        }
         if (!mAdaptiveActive) clearAdaptiveTouchProof();
         mWordBeingCorrectedByCursor = null;
         mJustRevertedACommit = false;
@@ -828,6 +963,7 @@ public final class InputLogic {
         mRejectedSwipeSkeleton = null;
         mWordBeingCorrectedByCursor = null;
         clearAdaptiveTouchProof();
+        invalidateRecallForEdit();
         mInputLogicHandler.onStartBatchInput();
         handler.showGesturePreviewAndSetSuggestions(SuggestedWords.getEmptyBatchInstance(), false);
         handler.cancelUpdateSuggestionStrip();
@@ -2430,11 +2566,26 @@ public final class InputLogic {
                 SuggestedWordInfo.NOT_AN_INDEX /* indexOfTouchPointOfSecondWord */,
                 SuggestedWordInfo.NOT_A_CONFIDENCE /* autoCommitFirstWordConfidence */);
         suggestions.add(typedWordInfo);
+        clearRecallDisplay();
+        if (!mRecallMemory.isEmpty() && mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues()) && !range.mHasUrlSpans) {
+            final CorrectionSessionMemory.Receipt recall = mRecallMemory.find(
+                    expectedCursorPosition-numberOfCharsInWordBeforeCursor,
+                    expectedCursorPosition+range.getNumberOfCharsInWordAfterCursor(), range.mWord,
+                    SystemClock.elapsedRealtime(),mLatinIME.editorGeneration(),mLatinIME.getCurrentInputConnection());
+            if (recall != null) {
+                mRecallDisplayed = recall;
+                mRecallCandidate = new SuggestedWordInfo(recall.original(),"",SuggestedWords.MAX_SUGGESTIONS,
+                        SuggestedWordInfo.KIND_SESSION_RECALL,Dictionary.DICTIONARY_RESUMED,
+                        SuggestedWordInfo.NOT_AN_INDEX,SuggestedWordInfo.NOT_A_CONFIDENCE);
+                suggestions.add(mRecallCandidate);
+            }
+        }
         int i = 0;
         for (final SuggestionSpan span : range.getSuggestionSpansAtWord()) {
             for (final String s : span.getSuggestions()) {
                 ++i;
-                if (!TextUtils.equals(s, typedWordString)) {
+                if (!TextUtils.equals(s, typedWordString)
+                        && (mRecallDisplayed == null || !mRecallDisplayed.originalEquals(s))) {
                     suggestions.add(new SuggestedWordInfo(s,
                             "" /* prevWordsContext */, SuggestedWords.MAX_SUGGESTIONS - i,
                             SuggestedWordInfo.KIND_RESUMED, Dictionary.DICTIONARY_RESUMED,
@@ -3081,8 +3232,11 @@ public final class InputLogic {
         final String stringToCommit = rejectRepeatedCorrection ? typedWord : proposedCorrection;
         if (stringToCommit != null) {
             final boolean isBatchMode = mWordComposer.isBatchMode();
+            final boolean canRecall = !isBatchMode && !mWordComposer.isResumed() && separator != null
+                    && separator.length()==1 && (Character.isWhitespace(separator.charAt(0)) || ".,!?;:".indexOf(separator.charAt(0))>=0);
             commitChosenWord(settingsValues, stringToCommit, LastComposedWord.COMMIT_TYPE_DECIDED_WORD, separator);
             if (!typedWord.equals(stringToCommit)) {
+                if (canRecall) recordCorrectionRecall(settingsValues,typedWord,stringToCommit);
                 // This will make the correction flash for a short while as a visual clue
                 // to the user that auto-correction happened. It has no other effect; in
                 // particular
@@ -3548,6 +3702,7 @@ public final class InputLogic {
     }
 
     public void onDestroy() {
+        clearCorrectionRecall();
         finishInput();
         mInputLogicHandler.onDestroy();
         closeEmojiDictionary();
