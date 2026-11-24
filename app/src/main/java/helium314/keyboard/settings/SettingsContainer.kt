@@ -258,6 +258,7 @@ object SettingsWithoutKey {
     const val REPORT_ISSUE = "report_issue"
     const val INLINE_VOICE = "inline_voice"
     const val VOICE_SERVICE = "voice_service"
+    const val COPY_DIAGNOSTIC_REPORT = "copy_diagnostic_report"
     const val SAVE_LOG = "save_log"
     const val BACKUP_RESTORE = "backup_restore"
     const val DEBUG_SETTINGS = "screen_debug"

@@ -65,6 +65,7 @@ fun AboutScreen(
         SettingsWithoutKey.HIDDEN_FEATURES,
         SettingsWithoutKey.INLINE_VOICE,
         SettingsWithoutKey.VOICE_SERVICE,
+        SettingsWithoutKey.COPY_DIAGNOSTIC_REPORT,
         SettingsWithoutKey.SAVE_LOG,
     )
     SearchSettingsScreen(
@@ -233,6 +234,22 @@ fun createAboutSettings(context: Context) = listOf(
             description = it.description,
             onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Links.ISSUES.toUri())) },
             icon = R.drawable.ic_brr_issue
+        )
+    },
+    Setting(context, SettingsWithoutKey.COPY_DIAGNOSTIC_REPORT,
+        R.string.copy_diagnostic_report, R.string.copy_diagnostic_report_summary) {
+        val ctx = LocalContext.current
+        Preference(
+            name = it.title,
+            description = it.description,
+            onClick = {
+                val copied = runCatching {
+                    helium314.keyboard.latin.utils.TransitionDiagnostics.copyReport(ctx)
+                }.getOrDefault(false)
+                Toast.makeText(ctx, if (copied) R.string.diagnostic_report_copied
+                    else R.string.diagnostic_report_copy_failed, Toast.LENGTH_SHORT).show()
+            },
+            icon = R.drawable.ic_settings_about_log
         )
     },
     Setting(context, SettingsWithoutKey.SAVE_LOG, R.string.save_log) { setting ->

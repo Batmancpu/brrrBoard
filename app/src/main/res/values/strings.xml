@@ -1413,4 +1413,8 @@ New dictionary:
     <string name="brr_voice_page_summary">On-device English dictation and model status</string>
     <string name="brr_brain_page_title">BR Brain</string>
     <string name="brr_brain_page_summary">Your private typing, swipe and Smart Emoji learning</string>
+    <string name="copy_diagnostic_report">Copy diagnostic report</string>
+    <string name="copy_diagnostic_report_summary">Copy recent keyboard transition timings, icon visibility and safe crash details. No typed text or clipboard contents.</string>
+    <string name="diagnostic_report_copied">Diagnostic report copied</string>
+    <string name="diagnostic_report_copy_failed">Could not copy diagnostic report</string>
 </resources>

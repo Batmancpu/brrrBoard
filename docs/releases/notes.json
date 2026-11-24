@@ -1,18 +1,10 @@
 {
   "schema": 1,
-  "summary": "Selected HeliBoard security, typing and stability improvements.",
+  "summary": "One-tap privacy-safe keyboard diagnostic report.",
   "changes": [
     {
-      "title": "Privacy and stability",
-      "detail": "Restrict clipboard and settings actions while locked; ignore null text and empty popup layouts."
-    },
-    {
-      "title": "Faster typing and better learning",
-      "detail": "Remove delete-swipe delay, preserve manual glide shift, handle Unicode casing, and exclude unwanted trailing punctuation and forced capitalization from history."
-    },
-    {
-      "title": "Clipboard efficiency",
-      "detail": "Skip clipboard suggestion preparation while the suggestion strip is unavailable."
+      "title": "Copy diagnostic report",
+      "detail": "Settings → About now copies recent Emoji transition geometry, frame traversal timing, icon ownership and safe crash information in one tap."
     }
   ]
 }

@@ -257,7 +257,15 @@ public final class InputView extends FrameLayout {
     }
 
     @Override
+    protected void dispatchDraw(final android.graphics.Canvas canvas) {
+        // Sample actual traversal, not an artificial Choreographer animation.
+        helium314.keyboard.latin.utils.TransitionDiagnostics.frame(this);
+        super.dispatchDraw(canvas);
+    }
+
+    @Override
     protected void onMeasure(final int widthMeasureSpec, final int heightMeasureSpec) {
+        helium314.keyboard.latin.utils.TransitionDiagnostics.measure();
         if (mFooter != null && mMainKeyboardView != null) {
             final helium314.keyboard.keyboard.Keyboard keyboard = mMainKeyboardView.getKeyboard();
             final boolean typingFooter = keyboard != null && (keyboard.mId.isAlphaOrSymbolKeyboard()

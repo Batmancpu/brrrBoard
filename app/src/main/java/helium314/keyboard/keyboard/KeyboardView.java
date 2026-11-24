@@ -375,6 +375,9 @@ public class KeyboardView extends View {
     private int mEmojiMorphHiddenSearch = Integer.MIN_VALUE;
     private boolean mEmojiMorphHiddenDelete;
 
+    public boolean isMorphSearchHidden() { return mEmojiMorphHiddenSearch != Integer.MIN_VALUE; }
+    public boolean isMorphDeleteHidden() { return mEmojiMorphHiddenDelete; }
+
     public void setEmojiMorphHidden(final int searchCode, final boolean delete) {
         if (mEmojiMorphHiddenSearch == searchCode && mEmojiMorphHiddenDelete == delete) return;
         mEmojiMorphHiddenSearch = searchCode;

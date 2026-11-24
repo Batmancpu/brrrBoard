@@ -813,6 +813,8 @@ public final class EmojiPalettesView extends LinearLayout
             focusSearchField(true);
             return;
         }
+        helium314.keyboard.latin.utils.TransitionDiagnostics.begin(
+                helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_SEARCH);
         // Capture only eligible text from the HOST editor, before focusing the
         // keyboard's own Search EditText. Never persist or log that text.
         helium314.keyboard.keyboard.EmojiPanelKeyMorph.cancel();
@@ -913,6 +915,8 @@ public final class EmojiPalettesView extends LinearLayout
 
     public void exitSearchMode(final boolean clearQuery, final boolean restoreViews) {
 
+        if (mSearchMode) helium314.keyboard.latin.utils.TransitionDiagnostics.begin(
+                helium314.keyboard.latin.utils.TransitionDiagnostics.Event.EXIT_SEARCH);
         if (mSearchResultMorph != null) mSearchResultMorph.cancel();
 
         if (!mSearchMode && !clearQuery) {

@@ -81,8 +81,12 @@ object EmojiPanelKeyMorph {
         return Track(from, to, artwork)
     }
 
+    @JvmStatic fun overlayActive(): Boolean = current?.overlay != null
+
     @JvmStatic fun cancel() {
         val session = current ?: return
+        helium314.keyboard.latin.utils.TransitionDiagnostics.event(
+            helium314.keyboard.latin.utils.TransitionDiagnostics.Event.MORPH_RELEASE)
         current = null
         session.listener?.let { if (session.root.viewTreeObserver.isAlive) session.root.viewTreeObserver.removeOnPreDrawListener(it) }
         session.detach?.let { session.root.removeOnAttachStateChangeListener(it) }
@@ -122,6 +126,8 @@ object EmojiPanelKeyMorph {
                 drawable.setBounds(0, 0, root.width, root.height)
                 session.overlay = drawable
                 root.overlay.add(drawable)
+                helium314.keyboard.latin.utils.TransitionDiagnostics.event(
+                    helium314.keyboard.latin.utils.TransitionDiagnostics.Event.MORPH_OVERLAY)
                 // Both ownership changes happen before the same draw.
                 destination.setEmojiMorphHidden(
                     tracks.firstOrNull { it.to.code != KeyCode.DELETE }?.to?.code ?: NONE,

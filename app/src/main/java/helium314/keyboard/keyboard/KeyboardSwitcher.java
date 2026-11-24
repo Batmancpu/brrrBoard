@@ -331,6 +331,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mCurrentAnimatingPanel = null;
         }
         final View outgoingPanel = getVisibleKeyboardView();
+        if (outgoingPanel == mEmojiPalettesView || targetPanel == mEmojiPalettesView) {
+            helium314.keyboard.latin.utils.TransitionDiagnostics.begin(
+                    targetPanel == mEmojiPalettesView
+                    ? (allowEmojiKeyMorph
+                        ? helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_BROWSE
+                        : helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_SEARCH)
+                    : helium314.keyboard.latin.utils.TransitionDiagnostics.Event.EXIT_EMOJI);
+        }
         final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
         final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView
                 && !mEmojiPalettesView.isSearchMode();
@@ -341,6 +349,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         EmojiPanelKeyMorph.cancel();
         final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(mCurrentInputView, sourceKeys);
         action.run();
+        helium314.keyboard.latin.utils.TransitionDiagnostics.event(
+                helium314.keyboard.latin.utils.TransitionDiagnostics.Event.PANEL_COMMITTED);
         if (source != null && mCurrentInputView != null) {
             final MainKeyboardView destination = toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph()
                     : mKeyboardView;
