@@ -98,11 +98,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         composingVoiceDraft = ""
         val pipeline = PrivateVoiceStreamingPipeline(ime, selectedEngine,
             VoiceNoiseChoice.selected(ime), onDone = { result ->
-            if (generation == id && phase == Phase.DECODING) {
-                onTranscriptionCompleted(result, id, connection)
+            if (generation == id) {
+                if (phase == Phase.DECODING) onTranscriptionCompleted(result, id, connection)
+                else if (result.isFailure) fail(R.string.board_voice_offline_failed)
             }
         }, onPartialText = { partial ->
-            if (!Settings.getValues().mIncognitoModeEnabled) updateComposingDraft(connection, partial)
+            if (generation == id && !Settings.getValues().mIncognitoModeEnabled)
+                updateComposingDraft(connection, partial)
         })
         streaming = pipeline
         phase = Phase.STARTING
@@ -213,8 +215,14 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (clearDraft && composingVoiceDraft.isNotEmpty() && originalConnection != null &&
             sameEditor(originalConnection!!) && composingDraftStillAtOriginalCursor()) {
             runCatching {
-                originalConnection?.setComposingText("", 1)
-                originalConnection?.finishComposingText()
+                val rich = ime.mInputLogic.mConnection
+                rich.beginBatchEdit()
+                try {
+                    if (rich.setVoiceComposingText(originalSelectionStart, composingVoiceDraft, ""))
+                        rich.finishComposingText()
+                } finally {
+                    rich.endBatchEdit()
+                }
             }
         }
         composingVoiceDraft = ""
@@ -265,7 +273,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (composingVoiceDraft.isEmpty()) return false
         val rich = ime.mInputLogic.mConnection
         val expected = originalSelectionStart + composingVoiceDraft.length
-        if (rich.expectedSelectionStart != expected || rich.expectedSelectionEnd != expected) return false
+        if (rich.expectedSelectionStart != expected || rich.expectedSelectionEnd != expected ||
+            !rich.hasVoiceComposingText(originalSelectionStart, composingVoiceDraft)) return false
         // Revalidate the captured editor, selection, and exact composing text:
         // a same-length manual edit can leave the caret at the expected offset.
         return originalConnection?.getTextBeforeCursor(composingVoiceDraft.length, 0)?.toString() ==
@@ -280,8 +289,19 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             cancel()
             return
         }
-        val accepted = runCatching { connection.setComposingText(text, 1) }.getOrDefault(false)
-        if (accepted) composingVoiceDraft = text
+        // Bypassing RichInputConnection makes our own selection update look like a
+        // user cursor move. InputLogic then finishes the composition and the next
+        // batch cancels the whole microphone session. Keep the editor and cache in
+        // the same transaction, so an interim result never acts as Stop.
+        val rich = ime.mInputLogic.mConnection
+        rich.beginBatchEdit()
+        try {
+            if (composingVoiceDraft.isEmpty()) ime.mInputLogic.preparePrivateVoiceDraft()
+            if (rich.setVoiceComposingText(originalSelectionStart, composingVoiceDraft, text))
+                composingVoiceDraft = text
+        } finally {
+            rich.endBatchEdit()
+        }
     }
 
     private fun isAllowed(info: EditorInfo): Boolean =

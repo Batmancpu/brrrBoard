@@ -759,6 +759,38 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         }
     }
 
+    /**
+     * Voice drafts must participate in the same cursor/composition bookkeeping as
+     * ordinary IME edits. A raw InputConnection write makes the next selection
+     * callback appear external and can finish the composing span mid-dictation.
+     */
+    public boolean hasVoiceComposingText(final int anchor, final String previous) {
+        return mExpectedSelStart == anchor + previous.length()
+                && mExpectedSelEnd == mExpectedSelStart
+                && previous.contentEquals(mComposingText);
+    }
+
+    /** Caller holds a batch edit and has already validated the captured editor. */
+    public boolean setVoiceComposingText(final int anchor, final String previous, final String text) {
+        if (!isConnected() || !hasVoiceComposingText(anchor, previous)) return false;
+        // Set the expected selection before the platform reports the change.
+        mExpectedSelStart = anchor + text.length();
+        mExpectedSelEnd = mExpectedSelStart;
+        mComposingText.setLength(0);
+        mComposingText.append(text);
+        try {
+            if (mIC.setComposingText(text, 1)) return true;
+        } catch (Exception e) {
+            Log.w(TAG, "Voice composing update failed");
+        }
+        // A rejected write must not leave optimistic cursor or composing state.
+        mExpectedSelStart = anchor + previous.length();
+        mExpectedSelEnd = mExpectedSelStart;
+        mComposingText.setLength(0);
+        mComposingText.append(previous);
+        return false;
+    }
+
     // return whether the text was (probably) set correctly
     // unfortunately this is necessary in some cases
     public boolean setComposingText(final CharSequence text, final int newCursorPosition) {

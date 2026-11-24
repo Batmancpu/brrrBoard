@@ -7,6 +7,10 @@ This is the current owner-directed handoff. Read this file, then `AGENTS.md`,
 the app. If older notes conflict with this file, this file records the latest
 owner direction; retain older notes as historical release records.
 
+## 2026-11-24 — continuous voice typing hotfix
+
+Owner reports tap dictation stops after the first 5–7 s batch. See [continuous batch fix](VOICE_CONTINUOUS_BATCH_FIX_2026_11_24.md) for diagnosis, changed files, regression tests and device acceptance gates. This is a main-branch source repair; release and phone verification remain separate. Preserve the gesture WIP.
+
 ## Current verified release boundary
 
 - Latest confirmed public, original-signed release is

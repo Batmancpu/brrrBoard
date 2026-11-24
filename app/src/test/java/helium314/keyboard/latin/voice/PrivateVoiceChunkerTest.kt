@@ -70,4 +70,21 @@ class PrivateVoiceChunkerTest {
         chunker.discard()
         chunks.forEach { it.fill(0) }
     }
+    @Test fun continuousTwoMinuteRecordingEmitsRepeatedBatchesBeforeStop() {
+        val chunker = PrivateVoiceChunker()
+        val second = ByteArray(PrivateVoiceChunker.BYTES_PER_SECOND)
+        for (index in second.indices step 2) {
+            second[index] = 0x20
+            second[index + 1] = 0x03
+        }
+        val sizes = mutableListOf<Int>()
+        repeat(120) { chunker.append(second, second.size) { sizes += it.size } }
+        org.junit.Assert.assertTrue(sizes.size >= 20)
+        val beforeStop = sizes.size
+        chunker.finish { sizes += it.size }
+        org.junit.Assert.assertTrue(sizes.size >= beforeStop)
+        org.junit.Assert.assertEquals(120L * second.size,
+            sizes.sumOf { it.toLong() } - (sizes.size - 1L) * PrivateVoiceChunker.OVERLAP_BYTES)
+    }
+
 }

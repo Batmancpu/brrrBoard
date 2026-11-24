@@ -334,6 +334,19 @@ public final class InputLogic {
         return onTextInputWithOrigin(settingsValues, event, keyboardShiftMode, handler, true, replaceVoiceDraft);
     }
 
+    /** Finish an unrelated typed word without autocorrecting it before the first voice batch. */
+    public void preparePrivateVoiceDraft() {
+        mConnection.finishComposingText();
+        resetComposingState(true);
+        mCorrectionRejection.clear();
+        mCurrentSwipeSkeleton = null;
+        mRejectedSwipeSkeleton = null;
+        mWordBeingCorrectedByCursor = null;
+        mSpaceState = SpaceState.NONE;
+        mLatinIME.mHandler.cancelUpdateSuggestionStrip();
+        mLatinIME.mHandler.cancelResumeSuggestions();
+    }
+
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice,
             final boolean replaceVoiceDraft) {

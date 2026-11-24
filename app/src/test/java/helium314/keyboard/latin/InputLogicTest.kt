@@ -84,6 +84,40 @@ class InputLogicTest {
         assertEquals("", composingText)
     }
 
+    @Test fun liveVoiceBatchesKeepOneCompositionAndExpectedCursor() {
+        reset()
+        setText("Existing ")
+        val anchor = connection.expectedSelectionStart
+        var previous = ""
+        val batches = listOf("first batch", "first batch second batch",
+            "first batch second batch third batch", "first batch second batch third batch final")
+        for (batch in batches) {
+            connection.beginBatchEdit()
+            try {
+                if (previous.isEmpty()) inputLogic.preparePrivateVoiceDraft()
+                assertEquals(true, connection.setVoiceComposingText(anchor, previous, batch))
+            } finally {
+                connection.endBatchEdit()
+            }
+            val end = anchor + batch.length
+            assertEquals(false, inputLogic.onUpdateSelection(anchor + previous.length,
+                anchor + previous.length, end, end, anchor, end, settingsValues))
+            assertEquals("Existing " + batch, getText())
+            assertEquals(end, connection.expectedSelectionStart)
+            assertEquals(true, connection.hasVoiceComposingText(anchor, batch))
+            previous = batch
+        }
+        connection.beginBatchEdit()
+        try {
+            assertEquals(true, connection.setVoiceComposingText(anchor, previous, ""))
+            connection.finishComposingText()
+        } finally {
+            connection.endBatchEdit()
+        }
+        assertEquals("Existing ", getText())
+        assertEquals(anchor, connection.expectedSelectionStart)
+    }
+
     @Test fun delete() {
         reset()
         setText("hello there ")
