@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
+import android.content.ClipData
+import android.net.Uri
 import android.text.InputType
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import android.view.inputmethod.EditorInfo
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,6 +24,15 @@ class ClipboardPrivacyPolicyTest {
         assertTrue(ClipboardPrivacyPolicy.mayCollect(text, incognito = false, sensitiveClip = false))
         assertFalse(ClipboardPrivacyPolicy.mayCollect(text, incognito = false, sensitiveClip = true))
         assertFalse(ClipboardPrivacyPolicy.mayCollect(text, incognito = true, sensitiveClip = false))
+    }
+
+    @Test fun ambientTextNeverCoercesOrReadsCompoundClips() {
+        assertEquals("ordinary text", ClipboardPrivacyPolicy.boundedPlainText(ClipData.newPlainText("label", "ordinary text")))
+        assertNull(ClipboardPrivacyPolicy.boundedPlainText(ClipData.newPlainText("label", "x".repeat(4097))))
+        assertNull(ClipboardPrivacyPolicy.boundedPlainText(ClipData.newHtmlText("label", "text", "<b>text</b>")))
+        assertNull(ClipboardPrivacyPolicy.boundedPlainText(ClipData.newRawUri("label", Uri.parse("content://example/private"))))
+        val multi = ClipData.newPlainText("label", "first").apply { addItem(ClipData.Item("second")) }
+        assertNull(ClipboardPrivacyPolicy.boundedPlainText(multi))
     }
 
     @Test fun passwordAndNoLearningEditorsHideHistory() {

@@ -11,6 +11,17 @@ class ClipboardEntityExtractorTest {
         assertTrue(ClipboardEntityExtractor.excludeFromAutomaticHistory("123456"))
         assertFalse(ClipboardEntityExtractor.excludeFromAutomaticHistory("Meeting at 123456 Main Street"))
     }
+    @Test fun credentialBearingUrlsAndKeysNeverEnterAutomaticHistory() {
+        listOf("https://demo:secret@example.org/page",
+            "https://example.org/?access_token=opaque",
+            "https://example.org/?%74oken=opaque",
+            "Bearer abcdefghijk",
+            "-----BEGIN PRIVATE KEY-----").forEach {
+            assertTrue(ClipboardEntityExtractor.excludeFromAutomaticHistory(it))
+            assertTrue(ClipboardEntityExtractor.extract(it).isEmpty())
+        }
+        assertFalse(ClipboardEntityExtractor.excludeFromAutomaticHistory("https://example.org/?page=2"))
+    }
     @Test fun boundedAndNoCredentialUrls() {
         assertTrue(ClipboardEntityExtractor.extract("a".repeat(4097)).isEmpty())
         assertTrue(ClipboardEntityExtractor.extract("password: abc123").isEmpty())

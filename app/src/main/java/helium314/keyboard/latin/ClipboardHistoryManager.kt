@@ -19,7 +19,6 @@ import android.os.Looper
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.InputType
-import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.WindowManager
 import android.view.View
@@ -559,7 +558,7 @@ class ClipboardHistoryManager(
         ownedPrimaryClip = null
         latestImageSuggestion = null
         latestScreenshotSuggestion = null
-        removeClipboardSuggestion()
+        removeClipboardSuggestion(recordDismissal = false)
     }
 
     private fun fetchPrimaryClip(clipChanged: Boolean = false) {
@@ -592,12 +591,9 @@ class ClipboardHistoryManager(
             if (shouldReplaceLatestImageSuggestion(timeStamp, clipChanged)) {
                 latestImageSuggestion = null
             }
-            if (clipData.description?.hasMimeType("text/*") == false) return
-            clipData.getItemAt(0)?.let { clipItem ->
-                val content = clipItem.coerceToText(latinIME)
-                if (TextUtils.isEmpty(content) || ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return
-                clipboardDao?.addClip(timeStamp, false, content.toString())
-            }
+            val content = ClipboardPrivacyPolicy.boundedPlainText(clipData) ?: return
+            if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content) || isHistoryPrivate()) return
+            clipboardDao?.addClip(timeStamp, false, content)
         } catch (e: Exception) {
             Log.w("ClipboardHistoryManager", "Failed to fetch primary clip safely (${e.javaClass.simpleName})")
         }
@@ -663,12 +659,7 @@ class ClipboardHistoryManager(
 
     /** Explicit extraction from the current OS plain-text clip; no URI dereference or history write. */
     private fun extractionText(clip: android.content.ClipData): String? {
-        if (clip.itemCount != 1 || !clip.description.hasMimeType("text/plain") ||
-            ClipboardManagerCompat.getClipSensitivity(clip.description) == true) return null
-        val item = clip.getItemAt(0)
-        if (item.uri != null || item.intent != null || item.htmlText != null) return null
-        val text = item.text ?: return null
-        return text.takeIf { it.length in 1..ClipboardEntityExtractor.MAX_CHARS }?.toString()
+        return ClipboardPrivacyPolicy.boundedPlainText(clip)
     }
 
     fun requestExtractCurrentClip() {
@@ -935,17 +926,15 @@ class ClipboardHistoryManager(
     }
 
     private fun recentTextClip(editorInfo: EditorInfo?): RecentClip.Text? {
+        if (isHistoryPrivate()) return null
         val editor = editorInfo ?: return null
         val type = editor.inputType
         if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
             ClipboardPrivacyPolicy.isPrivateEditor(editor, latinIME.mSettings.current.mIncognitoModeEnabled)) return null
         val clip = clipboardManager.primaryClip ?: return null
-        val description = clip.description
-        if (clip.itemCount == 0 || ClipboardManagerCompat.getClipSensitivity(description) == true ||
-            !description.hasMimeType("text/plain")) return null
+        val content = ClipboardPrivacyPolicy.boundedPlainText(clip) ?: return null
         val timeStamp = ClipboardManagerCompat.getClipTimestamp(clip)
         if (System.currentTimeMillis() - timeStamp > RECENT_TIME_MILLIS) return null
-        val content = clip.getItemAt(0).text?.toString()?.takeIf { it.isNotBlank() } ?: return null
         if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return null
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
@@ -1148,8 +1137,8 @@ class ClipboardHistoryManager(
     private fun currentTextSuggestionChanged(clip: RecentClip.Text): Boolean =
         recentTextClip(latinIME.currentInputEditorInfo) != clip
 
-    private fun removeClipboardSuggestion() {
-        val clip = recentTextClip(latinIME.currentInputEditorInfo)
+    private fun removeClipboardSuggestion(recordDismissal: Boolean = true) {
+        val clip = if (recordDismissal && !isHistoryPrivate()) recentTextClip(latinIME.currentInputEditorInfo) else null
         if (clip != null) {
             markClipDismissed(clip)
         } else {

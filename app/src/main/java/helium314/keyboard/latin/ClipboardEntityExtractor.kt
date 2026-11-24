@@ -15,6 +15,17 @@ object ClipboardEntityExtractor {
     private val secret = Regex("(?i)\\b(?:password|passwd|passphrase|recovery (?:code|key|phrase)|private key|api[ _-]?key|access token|secret key|cvv|cvc|card pin)\\b[ \\t:=#-]{1,16}\\S{3,}")
     private val bareCode = Regex("\\s*\\d{4,8}\\s*")
     private val card = Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)")
+    private val pem = Regex("(?i)-----BEGIN [A-Z0-9 ]{0,48}PRIVATE KEY-----")
+    private val bearer = Regex("(?i)\\bbearer[ \\t]+[a-z0-9._~+/=-]{8,}")
+    private val credentialParameter = Regex("(?i)[?&#](?:access[_-]?token|refresh[_-]?token|id[_-]?token|token|api[_-]?key|password|passwd|secret|signature|auth|code|key)=")
+    private fun hasSecret(text: CharSequence): Boolean {
+        if (secret.containsMatchIn(text) || pem.containsMatchIn(text) || bearer.containsMatchIn(text)) return true
+        return link.findAll(text).any { match ->
+            val uri = try { java.net.URI(match.value) } catch (_: Exception) { null }
+            uri?.rawUserInfo != null || credentialParameter.containsMatchIn(match.value) ||
+                (uri != null && credentialParameter.containsMatchIn("?" + (uri.query ?: "") + "#" + (uri.fragment ?: "")))
+        }
+    }
     private fun luhn(digits: String): Boolean {
         if (digits.length !in 13..19) return false
         var sum = 0
@@ -30,11 +41,11 @@ object ClipboardEntityExtractor {
     /** Conservative auto-history gate, not a claim to identify every secret. */
     fun excludeFromAutomaticHistory(text: CharSequence): Boolean {
         if (text.length > MAX_CHARS) return true
-        return code.containsMatchIn(text) || reverseCode.containsMatchIn(text) || bareCode.matches(text) || secret.containsMatchIn(text) ||
+        return code.containsMatchIn(text) || reverseCode.containsMatchIn(text) || bareCode.matches(text) || hasSecret(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }
     }
     fun extract(text: CharSequence): List<Entity> {
-        if (text.isEmpty() || text.length > MAX_CHARS || secret.containsMatchIn(text)) return emptyList()
+        if (text.isEmpty() || text.length > MAX_CHARS || hasSecret(text)) return emptyList()
         val out = ArrayList<Entity>(MAX_ENTITIES)
         fun add(kind: Kind, start: Int, end: Int) {
             if (out.size < MAX_ENTITIES && start < end && out.none { start < it.end && end > it.start })

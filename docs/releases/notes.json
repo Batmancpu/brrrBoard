@@ -1,26 +1,18 @@
 {
   "schema": 1,
-  "summary": "Private productivity tools, app profiles, and steadier suggestions.",
+  "summary": "Stricter private clipboard handling and credential exclusion.",
   "changes": [
     {
-      "title": "Undo and redo verified edits",
-      "detail": "A short editor-local journal supports undo and redo of confirmed delete swipes and selected-text edits, with existing host fallback."
+      "title": "Private clipboard cleanup",
+      "detail": "Private and locked cleanup hides clipboard suggestions without reading the current system clip."
     },
     {
-      "title": "Smart clipboard extraction",
-      "detail": "Tap the Clipboard · Extract header to choose a masked link, email, phone or verification code from the current plain-text clip. Sensitive or oversized clips are excluded from automatic history and previews."
+      "title": "Bounded plain-text history",
+      "detail": "Automatic text history and previews accept only a single direct plain-text item, not provider URI, intent or HTML coercion. Explicit paste and image support remain unchanged."
     },
     {
-      "title": "Per-app profiles",
-      "detail": "BR Brain offers app-specific correction, suggestions, number row, sound, haptics and always-private settings."
-    },
-    {
-      "title": "Text tools",
-      "detail": "Select plain text, then open Text tools in the toolbar for local case, whitespace and line transformations."
-    },
-    {
-      "title": "Stable suggestions",
-      "detail": "Unrelated suggestion replacements no longer crossfade full words; session recall is never retained as outgoing artwork."
+      "title": "Credential protection",
+      "detail": "Credential-bearing links, bearer tokens and private-key headers are excluded from automatic history and smart extraction."
     }
   ]
 }
