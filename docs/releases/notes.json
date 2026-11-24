@@ -1,14 +1,18 @@
 {
   "schema": 1,
-  "summary": "First roadmap foundation: stable panel surfaces and bounded correction rejection.",
+  "summary": "Continuity improvements for interrupted Emoji key morphs.",
   "changes": [
     {
-      "title": "Stable panel handoff",
-      "detail": "The sole incoming panel no longer fades from zero after its outgoing panel is hidden; existing dedicated morphs remain."
+      "title": "Interruptible key motion",
+      "detail": "Rapid panel reversal begins at the last drawn key position, rather than snapping to the previous target."
     },
     {
-      "title": "Private correction receipt",
-      "detail": "The existing one-use correction rejection expires at 30 seconds and clears on hide, editor changes and private boundaries. Full original-word recall is still pending."
+      "title": "Rendering safety",
+      "detail": "Optional morph artwork restores native icons when repeated animator callback gaps are large. No full-panel fade."
+    },
+    {
+      "title": "Adaptive Touch groundwork",
+      "detail": "Added a bounded clustered Gaussian mathematical kernel and synthetic tests. Personalized touch is not enabled in the input path yet."
     }
   ]
 }
