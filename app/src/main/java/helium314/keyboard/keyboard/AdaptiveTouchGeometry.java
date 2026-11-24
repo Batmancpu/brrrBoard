@@ -3,6 +3,7 @@ package helium314.keyboard.keyboard;
 
 import android.graphics.Rect;
 import helium314.keyboard.latin.brain.AdaptiveTouchModel;
+import helium314.keyboard.latin.brain.AdaptiveTouchEvidence;
 import java.util.WeakHashMap;
 
 /** Actual alphabet geometry, isolated by layout and size; no editor metadata. */
@@ -65,14 +66,16 @@ public final class AdaptiveTouchGeometry {
         return best==i ? literal : codes[best];
     }
     /** Accept only aligned, explicitly selected short words; discard ambiguous edits entirely. */
-    public boolean aggregate(String typed,String selected,int[] xs,int[] ys,int[] n,double[] sx,double[] sy) {
+    public boolean aggregate(String typed,String selected,int[] xs,int[] ys,int[] literal,int[] n,double[] sx,double[] sy,AdaptiveTouchEvidence evidence) {
         int len=typed.length(), differences=0;
-        if(len<2 || len>32 || selected.length()!=len || xs.length<len || ys.length<len) return false;
+        if(len<2 || len>32 || selected.length()!=len || xs.length<len || ys.length<len || literal.length<len) return false;
         for(int p=0;p<len;p++) {
             int i=index(typed.charAt(p)),j=index(selected.charAt(p));
             if(i<0 || j<0 || (i!=j && (++differences>1 || !adjacent(i,j)))) return false;
             double x=rx(j,xs[p]),y=ry(j,ys[p]);
             if(Math.abs(x)>.8 || Math.abs(y)>.8) return false;
+            int raw=index(literal[p]);
+            if(raw<0 || !evidence.observe(j,groups[j],x,y,raw!=j)) return false;
             int group=groups[j]; n[group]++; sx[group]+=x; sy[group]+=y;
         }
         return true;

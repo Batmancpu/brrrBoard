@@ -76,7 +76,7 @@ fun BrainDashboardScreen(
                             style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                var adaptive by remember { mutableStateOf(context.prefs().getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false)) }
+                var adaptive by remember { mutableStateOf(context.prefs().getBoolean(Settings.PREF_ADAPTIVE_TOUCH, true)) }
                 var eraseAdaptive by remember { mutableStateOf(false) }
                 Card {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -200,6 +200,8 @@ fun BrainDashboardScreen(
                         color = MaterialTheme.colorScheme.onTertiaryContainer)
                 }
             }
+
+            AdaptiveTouchDatabasePanel(refresh)
 
             Text("Real-time processing speed",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

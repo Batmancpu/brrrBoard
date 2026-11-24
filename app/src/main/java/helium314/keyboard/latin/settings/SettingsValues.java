@@ -231,7 +231,7 @@ public class SettingsValues {
         mShowsEmojiKey = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_KEY, Defaults.PREF_SHOW_EMOJI_KEY);
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION);
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS);
-        mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false);
+        mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, true);
         mEditingGestureConfig = helium314.keyboard.keyboard.EditingGestureConfig.read(prefs);
         mUseDoubleSpacePeriod = !mInputAttributes.mVaultPrivateEditor && profile.doubleSpacePeriod(prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD))
                 && inputAttributes.mIsGeneralTextInput;

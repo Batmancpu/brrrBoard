@@ -3,24 +3,12 @@
   "summary": "Optional clipboard text encryption and safer portable backup.",
   "changes": [
     {
-      "title": "Ultra default and legacy cleanup",
-      "detail": "Prefer verified Ultra; remove unused 110M after successful Ultra recognition. Ultra-only explicit recovery builds."
+      "title": "Adaptive Touch database",
+      "detail": "Review per-letter touch heatmaps, retained evidence and learned regional offsets inside the secret-authorized BR Brain dashboard. Existing encrypted touch learning is preserved."
     },
     {
-      "title": "Voice Stop responsiveness",
-      "detail": "Continue delivering decoded batches while final audio drains, with existing editor and privacy safeguards."
-    },
-    {
-      "title": "Voice timing diagnostics",
-      "detail": "Copy report includes local Stop-stage and batch latency, never speech or typed text."
-    },
-    {
-      "title": "Retire compact model controls",
-      "detail": "Removes the obsolete 110M model picker and prevents isolated speech processes from racing Ultra installation."
-    },
-    {
-      "title": "Voice model migration compatibility",
-      "detail": "Use the supported Android private-storage contexts and remove only known retired model files after verified Ultra recognition."
+      "title": "Unified touch learning",
+      "detail": "Adaptive Touch defaults on for unset preferences, respects personalization controls, and shares BR Brain's privacy gate. No word or tap history is retained."
     }
   ]
 }

@@ -153,10 +153,10 @@ public final class InputLogic {
 
     // Proof is limited to the existing composing word. Raw tap positions never leave this UI thread.
     private helium314.keyboard.keyboard.AdaptiveTouchGeometry mAdaptiveGeometry, mPendingGeometry;
-    private int mAdaptiveCount, mAdaptiveBefore, mPendingX, mPendingY;
+    private int mAdaptiveCount, mAdaptiveBefore, mPendingX, mPendingY, mPendingLiteral;
     private long mAdaptiveEpoch, mAdaptiveAt, mPendingEpoch;
     private boolean mAdaptiveActive, mPendingValid;
-    private final int[] mAdaptiveX = new int[32], mAdaptiveY = new int[32];
+    private final int[] mAdaptiveX = new int[32], mAdaptiveY = new int[32], mAdaptiveLiteral = new int[32];
     private final Runnable mExpireAdaptiveProof = this::clearAdaptiveTouchProof;
     private SettingsValues mAdaptivePolicyValues;
     private long mAdaptivePolicyEpoch = -1;
@@ -164,7 +164,7 @@ public final class InputLogic {
     private void clearAdaptiveTouchProof() {
         if (mAdaptiveCount == 0 && mAdaptiveGeometry == null) return;
         mAdaptiveCount = 0; mAdaptiveGeometry = null;
-        java.util.Arrays.fill(mAdaptiveX, 0); java.util.Arrays.fill(mAdaptiveY, 0);
+        java.util.Arrays.fill(mAdaptiveX, 0); java.util.Arrays.fill(mAdaptiveY, 0); java.util.Arrays.fill(mAdaptiveLiteral, 0);
         mLatinIME.mHandler.removeCallbacks(mExpireAdaptiveProof);
     }
     public int beginAdaptiveTap(Keyboard keyboard, int code, int x, int y) {
@@ -177,7 +177,7 @@ public final class InputLogic {
         // Confirmation revalidates the live privacy policy before submitting any aggregate.
         if (mAdaptivePolicyValues != sv || mAdaptivePolicyEpoch != currentEpoch) {
             mAdaptivePolicyValues = sv; mAdaptivePolicyEpoch = currentEpoch;
-            mAdaptivePolicyAllowed = mLatinIME.mayUseTransientCorrectionMemory(sv);
+            mAdaptivePolicyAllowed = BrSuggestionBrain.adaptiveTouchAllowed(mLatinIME, sv);
         }
         if (!mAdaptivePolicyAllowed) return code;
         final helium314.keyboard.keyboard.AdaptiveTouchGeometry g =
@@ -190,7 +190,7 @@ public final class InputLogic {
                 && mAdaptiveGeometry.signature == g.signature && mAdaptiveEpoch == epoch
                 && now >= mAdaptiveAt && now - mAdaptiveAt < 30_000);
         mAdaptiveActive = true; mPendingGeometry = g; mAdaptiveBefore = before;
-        mPendingEpoch = epoch; mPendingX = x; mPendingY = y;
+        mPendingEpoch = epoch; mPendingX = x; mPendingY = y; mPendingLiteral = code;
         return g.choose(helium314.keyboard.latin.brain.AdaptiveTouchStore.get(mLatinIME)
                 .snapshot(g.signature), code, x, y);
     }
@@ -209,11 +209,12 @@ public final class InputLogic {
             clearAdaptiveTouchProof(); return;
         }
         mAdaptiveX[mAdaptiveBefore] = mPendingX; mAdaptiveY[mAdaptiveBefore] = mPendingY;
+        mAdaptiveLiteral[mAdaptiveBefore] = mPendingLiteral;
         mAdaptiveCount = mAdaptiveBefore + 1; mAdaptiveGeometry = mPendingGeometry;
         mAdaptiveEpoch = mPendingEpoch; mAdaptiveAt = SystemClock.elapsedRealtime();
         mLatinIME.mHandler.removeCallbacks(mExpireAdaptiveProof);
         mLatinIME.mHandler.postDelayed(mExpireAdaptiveProof, 30_000);
-        } finally { mPendingX = 0; mPendingY = 0; mPendingGeometry = null; }
+        } finally { mPendingX = 0; mPendingY = 0; mPendingLiteral = 0; mPendingGeometry = null; }
     }
     private void confirmAdaptiveTouch(SettingsValues sv, String selected) {
         try {
@@ -223,11 +224,12 @@ public final class InputLogic {
                     || mAdaptiveCount != typed.length() || mAdaptiveEpoch != mLatinIME.editorGeneration()
                     || now < mAdaptiveAt || now - mAdaptiveAt >= 30_000
                     || mWordComposer.isResumed() || mWordComposer.isBatchMode()
-                    || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return;
+                    || !BrSuggestionBrain.adaptiveTouchAllowed(mLatinIME, sv)) return;
             int[] n = new int[6]; double[] x = new double[6], y = new double[6];
-            if (mAdaptiveGeometry.aggregate(typed, selected, mAdaptiveX, mAdaptiveY, n, x, y))
-                helium314.keyboard.latin.brain.AdaptiveTouchStore.get(mLatinIME)
-                        .learn(mAdaptiveGeometry.signature, n, x, y);
+            helium314.keyboard.latin.brain.AdaptiveTouchEvidence evidence =
+                    new helium314.keyboard.latin.brain.AdaptiveTouchEvidence();
+            if (mAdaptiveGeometry.aggregate(typed, selected, mAdaptiveX, mAdaptiveY, mAdaptiveLiteral, n, x, y, evidence))
+                BrSuggestionBrain.learnAdaptiveTouch(mLatinIME, sv, mAdaptiveGeometry.signature, n, x, y, evidence);
         } finally { clearAdaptiveTouchProof(); }
     }
 

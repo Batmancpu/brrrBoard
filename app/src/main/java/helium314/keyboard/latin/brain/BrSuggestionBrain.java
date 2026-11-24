@@ -124,6 +124,19 @@ public final class BrSuggestionBrain {
         return SwipeCorrectionLearner.get(ime);
     }
 
+    /** Coordinate touch learning through the same privacy boundary as other Brain adapters. */
+    public static boolean adaptiveTouchAllowed(@NonNull LatinIME ime, @NonNull SettingsValues values) {
+        return values.mAdaptiveTouchEnabled && values.mUsePersonalizedDicts
+                && isEligible(ime,ime.getCurrentInputEditorInfo(),values)
+                && ime.mayUseTransientCorrectionMemory(values);
+    }
+
+    public static void learnAdaptiveTouch(@NonNull LatinIME ime, @NonNull SettingsValues values,
+            long layout, int[] n, double[] x, double[] y, AdaptiveTouchEvidence evidence) {
+        if (adaptiveTouchAllowed(ime,values))
+            AdaptiveTouchStore.get(ime).learn(layout,n,x,y,evidence);
+    }
+
     private static boolean userUnlocked(@NonNull final Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return true;
         final UserManager manager = context.getSystemService(UserManager.class);
