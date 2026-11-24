@@ -11,6 +11,10 @@ owner direction; retain older notes as historical release records.
 
 Owner reports tap dictation stops after the first 5–7 s batch. See [continuous batch fix](VOICE_CONTINUOUS_BATCH_FIX_2026_11_24.md) for diagnosis, changed files, regression tests and device acceptance gates. This is a main-branch source repair; release and phone verification remain separate. Preserve the gesture WIP.
 
+## 2026-11-24 — newest release and isolated candidate
+
+Current official production APK: [v1.0.260](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.260), source `30e86d2`, exact-SHA debug/full tests [45328763013](https://github.com/Batmancpu/brrrBoard/actions/runs/45328763013) and signer [45328762985](https://github.com/Batmancpu/brrrBoard/actions/runs/45328762985) successful. Asset SHA-256 `cb4a694da22e3ecd7e0bcf21ecc4be1f55d2851adccc1d1853b052f762576c04`; 63,544,172 bytes. v1.0.259's continuous dictation stays present; v1.0.260 adds explicit Cancel haptics and tested Send-only guards. The older release boundary below is historical. The private-gesture WIP compile repair `b1a4b9fe` and release-note follow-up `7cc17dba` remain on their own branch; neither is in production, and biometric device failure remains unresolved.
+
 ## Current verified release boundary
 
 - Latest confirmed public, original-signed release is

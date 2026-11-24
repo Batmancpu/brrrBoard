@@ -109,9 +109,9 @@ One blue keyboard. One mango. An identity carried through the launcher, first-ru
 
 See the [product-plan implementation status](docs/PRODUCT_PLAN_IMPLEMENTATION_STATUS_2026_11_23.md) for the shipped work, privacy boundaries, and the remaining owner-device checks.
 
-**Latest official APK:** [Download brrBoard v1.0.257](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.257/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.257) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
+**Latest official APK:** [Download brrBoard v1.0.260](https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.260/brrBoard.apk) · [Release notes and all assets](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.260) · [Always-current latest release](https://github.com/Batmancpu/brrrBoard/releases/latest).
 
-This is the original-signed production APK (`com.mangoloads.board`), 63,544,172 bytes (about 60.6 MiB). Its SHA-256 is `aae9aad384b8f70a3a30ae05c5f55ee66d50bbe7580c675fc25d5ea275b1e8a9`. It fixes protected biometric access, restores discovery of installed models across both private storage areas, and removes obsolete toolbar actions. This update does not bundle either large Parakeet speech model. The signed APK is the installable download; pull-request builds and GitHub Actions debug artifacts are for development and must not be installed over the production app.
+This is the original-signed production APK (`com.mangoloads.board`), 63,544,172 bytes (about 60.6 MiB). Its SHA-256 is `cb4a694da22e3ecd7e0bcf21ecc4be1f55d2851adccc1d1853b052f762576c04`. v1.0.259 added continuous offline dictation across successive 5–6 second batches, and v1.0.260 stabilizes explicit voice-cancellation haptics and Send-only auto-send safeguards. Protected biometric access still has an owner-reported device problem and remains on hold; it is not claimed fixed. This update does not bundle either large Parakeet speech model. The signed APK is the installable download; pull-request builds and GitHub Actions debug artifacts are for development and must not be installed over the production app.
 
 #### Update an existing current brrBoard installation
 

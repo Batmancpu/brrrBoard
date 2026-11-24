@@ -1,5 +1,10 @@
 Warning: truncated output (original token count: 85396)
 
+## 2026-11-24 — verified signed stabilization release v1.0.260
+
+Source `30e86d270a979945efda9da828e93fd6f39ee876` passed exact-SHA debug/full Android tests [45328763013](https://github.com/Batmancpu/brrrBoard/actions/runs/45328763013) and original-signer Obtainium release [45328762985](https://github.com/Batmancpu/brrrBoard/actions/runs/45328762985). Published [v1.0.260](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.260), APK 63,544,172 bytes, GitHub asset SHA-256 `cb4a694da22e3ecd7e0bcf21ecc4be1f55d2851adccc1d1853b052f762576c04`. Changes: consistent important-action haptic only on explicit offline Cancel, no redundant key-tick for the Cancel label; centralized, unit-tested Send-only hold-to-talk policy with private/invalid destination safeguards. v1.0.259 continuous voice fix is preserved. Installed private models, `com.mangoloads.board`, original signing identity and no-Internet permissions unchanged. Real Oppo 5G phone behavior is still unverified. Unreleased private-footer gesture work remains isolated on `wip/private-footer-gesture-20261123`; its candidate compiler fixes are not part of the signed APK.
+
+
 ## 2026-11-24 — First stabilization batch (candidate; pending CI)
 
 Starting from original-signed **v1.0.259**, main source `d7e4199cfe7e09fc4c0129adf538f258fcc58c9c`, whose debug/full unit and Obtainium release workflows passed. This candidate centralizes explicit offline-voice Cancel haptics in the session exit and adds a testable Send-only auto-send safety gate. No signing, package, model, learning, backup or permission changes. Do not claim Oppo physical haptic, Send-field or accessibility acceptance from code/CI. The WIP private-footer gesture branch remains separate, unverified and not released.
@@ -10,7 +15,7 @@ Total output lines: 1475
 
 ## Current owner handoff (2026-11-23)
 
-Read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md) first. Latest confirmed public APK is v1.0.257. Despite its release-note fix, the owner reports biometric access still does not work and has put it on hold; a custom enrolled footer gesture is now requested. The handoff records release evidence, the WIP gesture branch `wip/private-footer-gesture-20261123` (`75a4db30`), its unverified state, security limits, and next gates. Older entries are chronological history.
+Read [`docs/NEXT_AGENT_HANDOFF_2026_11_23.md`](docs/NEXT_AGENT_HANDOFF_2026_11_23.md) first. Latest confirmed public APK is v1.0.260; the older v1.0.257 context below is historical. Despite its release-note fix, the owner reports biometric access still does not work and has put it on hold; a custom enrolled footer gesture is now requested. The handoff records release evidence, the WIP gesture branch `wip/private-footer-gesture-20261123` (`75a4db30`), its unverified state, security limits, and next gates. Older entries are chronological history.
 
 ## 2026-11-23 — current release pointer and security follow-up
 
