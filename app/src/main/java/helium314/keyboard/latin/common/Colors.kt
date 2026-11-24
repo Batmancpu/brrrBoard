@@ -50,7 +50,6 @@ interface Colors {
     val iosSearchKeyForeground: Int get() = Color.BLACK
     val ogFrostKeyAccent: Int get() = 0
     val ogFrostKeyAccentForeground: Int get() = Color.WHITE
-    val accentExtendedKeys: Boolean get() = false
     val roundedBoardKeycaps: Boolean get() = false
 
     /** use to check whether colors have changed, for colors (in)directly derived from context,
@@ -431,7 +430,6 @@ class DefaultColors (
     override val ogFrostKeyAccentForeground: Int = if (ogFrostKeyAccent != 0 &&
         ColorUtils.calculateContrast(Color.WHITE, ogFrostKeyAccent) >= 4.5) Color.WHITE else Color.BLACK,
     private val ogFrostSystemAccent: Int? = null,
-    override val accentExtendedKeys: Boolean = false,
     override val roundedBoardKeycaps: Boolean = false,
 ) : Colors {
     override val iosSearchKeyForeground = if (iosSearchKeyAccent != 0 &&
@@ -555,7 +553,8 @@ class DefaultColors (
     }
 
     override fun get(color: ColorType): Int = when (color) {
-        OG_FROST_ACCENT_BACKGROUND -> if (ogFrostKeyAccent != 0) ogFrostKeyAccent else specialKeyBackground
+        OG_FROST_ACCENT_BACKGROUND -> if (ogFrostKeyAccent != 0)
+            helium314.keyboard.keyboard.FrostAccentRoles.withBaseAlpha(ogFrostKeyAccent, enterKeyBackground) else enterKeyBackground
         TOOL_BAR_KEY_ENABLED_BACKGROUND, EMOJI_CATEGORY_SELECTED, ACTION_KEY_BACKGROUND,
             CLIPBOARD_PIN, SHIFT_KEY_ICON -> accent
         SPECIAL_KEY_BACKGROUND -> specialKeyBackground
@@ -585,9 +584,9 @@ class DefaultColors (
     }
 
     override fun getPressed(color: ColorType): Int = when (color) {
-        OG_FROST_ACCENT_BACKGROUND -> brightenOrDarken(
-            if (ogFrostKeyAccent != 0) ogFrostKeyAccent else specialKeyBackground, true
-        )
+        OG_FROST_ACCENT_BACKGROUND -> if (ogFrostKeyAccent != 0)
+            helium314.keyboard.keyboard.FrostAccentRoles.withBaseAlpha(brightenOrDarken(ogFrostKeyAccent, true), getPressed(ENTER_KEY_BACKGROUND))
+            else getPressed(ENTER_KEY_BACKGROUND)
         MORE_SUGGESTIONS_WORD_BACKGROUND, MAIN_BACKGROUND -> brightenOrDarken(background, true)
         KEY_BACKGROUND -> if (hasKeyBorders) (if (themeStyle == STYLE_HOLO) keyBackground else brightenOrDarken(keyBackground, true)) else keyBackground
         FUNCTIONAL_KEY_BACKGROUND -> if (hasKeyBorders) brightenOrDarken(functionalKey, true) else keyBackground
@@ -709,7 +708,6 @@ class DefaultColors (
 internal class OgFrostAccentColors(
     private val base: Colors,
     override val ogFrostKeyAccent: Int,
-    override val accentExtendedKeys: Boolean = false,
 ) : Colors {
     override val themeStyle get() = base.themeStyle
     override val hasKeyBorders get() = base.hasKeyBorders
@@ -722,10 +720,10 @@ internal class OgFrostAccentColors(
     override fun haveColorsChanged(context: Context) = base.haveColorsChanged(context)
 
     override fun get(color: ColorType): Int = if (color == OG_FROST_ACCENT_BACKGROUND)
-        ogFrostKeyAccent else base.get(color)
+        helium314.keyboard.keyboard.FrostAccentRoles.withBaseAlpha(ogFrostKeyAccent, base.get(ENTER_KEY_BACKGROUND)) else base.get(color)
 
     override fun getPressed(color: ColorType): Int = if (color == OG_FROST_ACCENT_BACKGROUND)
-        brightenOrDarken(ogFrostKeyAccent, true) else base.getPressed(color)
+        helium314.keyboard.keyboard.FrostAccentRoles.withBaseAlpha(brightenOrDarken(ogFrostKeyAccent, true), base.getPressed(ENTER_KEY_BACKGROUND)) else base.getPressed(color)
 
     override fun setColor(drawable: Drawable, color: ColorType) {
         if (color != OG_FROST_ACCENT_BACKGROUND) {

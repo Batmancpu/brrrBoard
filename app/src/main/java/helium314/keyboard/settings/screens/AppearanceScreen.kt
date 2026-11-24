@@ -56,7 +56,6 @@ fun AppearanceScreen(
         Settings.PREF_MOTION_PROFILE,
         Settings.PREF_THEME_ACTION_TINT,
         FrostAccentRoles.PREF_APPLE_PALETTE,
-        FrostAccentRoles.PREF_EXTENDED_ACCENT,
         FrostAccentRoles.PREF_ROUNDED_KEYCAPS,
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
@@ -134,9 +133,6 @@ fun createAppearanceSettings(context: Context) = listOf(
             context.prefs().edit().putBoolean(Settings.PREF_THEME_ACTION_TINT, true).apply()
             KeyboardSwitcher.getInstance().setThemeNeedsReload()
         }
-    },
-    Setting(context, FrostAccentRoles.PREF_EXTENDED_ACCENT, R.string.theme_extended_accent, R.string.theme_extended_accent_summary) {
-        SwitchPreference(it, FrostAccentRoles.DEFAULT_EXTENDED) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }
     },
     Setting(context, FrostAccentRoles.PREF_ROUNDED_KEYCAPS, R.string.theme_rounded_board_keycaps, R.string.theme_rounded_board_keycaps_summary) {
         SwitchPreference(it, FrostAccentRoles.DEFAULT_ROUNDED_KEYCAPS) { KeyboardSwitcher.getInstance().setThemeNeedsReload() }

@@ -280,8 +280,6 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                 ContextCompat.getColor(context, android.R.color.system_accent1_500) else null
             val prefs = context.prefs()
             val searchAccent = chosenAppleAccent(prefs, systemAccent?.let(::nearestAppleAccent) ?: IOS_BLUE)
-            val extendedAccent = (tinted || prefs.getBoolean(Settings.PREF_THEME_ACTION_TINT, Defaults.PREF_THEME_ACTION_TINT)) &&
-                prefs.getBoolean(FrostAccentRoles.PREF_EXTENDED_ACCENT, FrostAccentRoles.DEFAULT_EXTENDED)
             // Keep the renderer's base tint white and the keycaps neutral in both presets.
             val whiteGlass = ColorUtils.setAlphaComponent(Color.WHITE, iosGlassAlpha(themeName))
             val background = if (hasNativeBlur) whiteGlass else 0xffeeeeef.toInt()
@@ -293,7 +291,6 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                 enterKeyBackground = 0xffdddddf.toInt(),
                 iosSearchKeyAccent = searchAccent,
                 iosSystemAccent = systemAccent,
-                accentExtendedKeys = extendedAccent,
                 roundedBoardKeycaps = prefs.getBoolean(FrostAccentRoles.PREF_ROUNDED_KEYCAPS, FrostAccentRoles.DEFAULT_ROUNDED_KEYCAPS),
             )
         }
@@ -370,8 +367,8 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                         val neutralActionColor = if (isNight)
                             ContextCompat.getColor(context, android.R.color.system_neutral1_700)
                         else ContextCompat.getColor(context, android.R.color.system_neutral1_100)
-                        val actionColor = if (ogTinted) appleActionAccent else neutralActionColor
-                        val accent = ColorUtils.setAlphaComponent(actionColor, actionAlpha)
+                        // Palette selection must not tint shared toolbar, shift, popup or glass roles.
+                        val accent = ColorUtils.setAlphaComponent(neutralActionColor, actionAlpha)
                         val bgBlendRatio = if (isNight) (colorBlendVal - 0.1f).coerceIn(0f, 1f)
                             else (colorBlendVal + 0.1f).coerceIn(0f, 1f)
                         val baseBg = if (isNight) {
@@ -412,16 +409,13 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             val finalBlendRatio = (colorBlendVal * 0.6f * specialVibrancyVal).coerceIn(0f, 1f)
                             ColorUtils.blendARGB(baseColor, neutralColor, finalBlendRatio)
                         }
-                        // Base surface roles remain neutral; opt-in extended controls are painted
-                        // explicitly by the renderer with contrast-correct text and icons.
-                        val scopedRoles = FrostAccentRoles.palette(ogTinted,
+                        // Keep every base key role unchanged, including ordinary Return.
+                        val scopedRoles = FrostAccentRoles.palette(false,
                             neutralFunctionalBase, neutralSpecialBase, appleActionAccent)
                         val functionalKey = ColorUtils.setAlphaComponent(scopedRoles.functional, actionAlpha)
                         val specialKeyBackground = boostSpecialSaturation(
                             ColorUtils.setAlphaComponent(scopedRoles.special, keyAlpha))
-                        val enterKeyBackground = if (ogTinted)
-                            ColorUtils.setAlphaComponent(scopedRoles.action, actionAlpha)
-                        else specialKeyBackground
+                        val enterKeyBackground = specialKeyBackground
                         val ogFrostKeyAccent = if (ogTinted) appleActionAccent else 0
 
                         val keyText = if (isNight) ContextCompat.getColor(context, android.R.color.system_neutral1_50)
@@ -448,15 +442,13 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
                             systemNeutral = systemNeutralColor,
                             ogFrostKeyAccent = ogFrostKeyAccent,
                             ogFrostSystemAccent = wallpaperAccent,
-                            accentExtendedKeys = ogTinted && prefs.getBoolean(FrostAccentRoles.PREF_EXTENDED_ACCENT, FrostAccentRoles.DEFAULT_EXTENDED),
                             roundedBoardKeycaps = prefs.getBoolean(FrostAccentRoles.PREF_ROUNDED_KEYCAPS, FrostAccentRoles.DEFAULT_ROUNDED_KEYCAPS)
                         )
                     } else {
                         val fallback = getThemeColors(
                             if (isNight) THEME_DARK else THEME_LIGHT, themeStyle, context, prefs, isNight
                         )
-                        if (ogTinted) OgFrostAccentColors(fallback, chosenAppleAccent(prefs, IOS_BLUE),
-                            prefs.getBoolean(FrostAccentRoles.PREF_EXTENDED_ACCENT, FrostAccentRoles.DEFAULT_EXTENDED)) else fallback
+                        if (ogTinted) OgFrostAccentColors(fallback, chosenAppleAccent(prefs, IOS_BLUE)) else fallback
                     }
                 }
                 THEME_LIGHT -> DefaultColors(

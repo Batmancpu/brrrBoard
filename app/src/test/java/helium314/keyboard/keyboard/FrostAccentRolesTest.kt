@@ -27,14 +27,19 @@ class FrostAccentRolesTest {
         assertFalse(FrostAccentRoles.tintControl(false, false, false, true))
     }
 
-    @Test fun extendedAccentDoesNotTintSpaceLettersPopupsOrSpacers() {
-        assertTrue(FrostAccentRoles.tintExtended(true, false, false, false, true))
-        assertFalse(FrostAccentRoles.tintExtended(true, false, false, true, true))
-        assertFalse(FrostAccentRoles.tintExtended(true, false, false, false, false))
-        assertFalse(FrostAccentRoles.tintExtended(true, true, false, false, true))
-        assertFalse(FrostAccentRoles.tintExtended(true, false, true, false, true))
-        assertFalse(FrostAccentRoles.tintExtended(false, false, false, false, true))
-        assertEquals(12, FrostAccentRoles.applePaletteIds.distinct().size)
+    @Test fun onlyContextualReturnActionsReceiveAccent() {
+        for (action in 2..6) assertTrue(FrostAccentRoles.tintIosAction(false, false, true, false, action))
+        for (action in listOf(0, 1, 7, 8, 255)) assertFalse(FrostAccentRoles.tintIosAction(false, false, true, false, action))
+        assertFalse(FrostAccentRoles.tintIosAction(false, false, false, false, 3))
+        assertFalse(FrostAccentRoles.tintIosAction(true, false, true, false, 3))
+        assertFalse(FrostAccentRoles.tintIosAction(false, true, true, false, 3))
+        assertFalse(FrostAccentRoles.tintIosAction(false, false, true, true, 3))
+    }
+    @Test fun accentPreservesEveryConfiguredAlpha() {
+        for (alpha in 0..255) {
+            val base = (alpha shl 24) or 0x112233
+            assertEquals((alpha shl 24) or 0x0088ff, FrostAccentRoles.withBaseAlpha(0xff0088ff.toInt(), base))
+        }
     }
 
     @Test fun cornerRadiusFitsSmallLandscapeOrResizedKeys() {

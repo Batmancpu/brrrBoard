@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Expand the private gesture across the entire keyboard and offer Apple-inspired control accents.",
+  "summary": "Match iOS contextual action-key accents without overriding configured key opacity.",
   "changes": [
     {
-      "title": "Continuous keyboard password gesture",
-      "detail": "Only the initial touch must be below Space between Emoji and mic. The root captures the entire single-finger stroke across keys and does not forward cancelled or rejected tails to swipe typing. Full-keyboard practice enrollment and tests for stream ownership and trigger region."
+      "title": "Correct Apple key accent scope",
+      "detail": "Manual Apple palette or wallpaper accent applies only to the actual contextual Go/Search/Send/Next/Done return key. Ordinary Return, Shift, Delete, 123, letters, punctuation, space, custom labels and other controls remain neutral. Remove the extended accent toggle."
     },
     {
-      "title": "Apple accent palette",
-      "detail": "Choose wallpaper automatic or any of 12 Apple-inspired colors in Appearance. Extend accent to Shift, Delete, 123, Return and other control keys; keep letters, punctuation, space and glass neutral. Preserve action-only option."
+      "title": "Preserve configured opacity",
+      "detail": "Copy the existing contextual key normal/pressed alpha when applying the palette, without changing shared toolbar, glass or other key colors. Verify every alpha value and contextual action allowlist in unit tests."
     },
     {
-      "title": "Illustrated rounded rectangles",
-      "detail": "Uniform rounded keycaps on the frosted keyboard preserve the existing key layout, opacity, press states and touch targets. Optional switch restores the old renderer. Physical Reno10 visual and security acceptance remain pending."
+      "title": "Keep full-keyboard vault gesture and rounded keycaps",
+      "detail": "Footer-start one-finger gesture, encrypted vault, practice keyboard and optional rounded rectangle keycaps remain intact. Device verification pending."
     }
   ]
 }
