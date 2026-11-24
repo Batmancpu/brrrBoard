@@ -31,6 +31,7 @@ import helium314.keyboard.latin.VaultGestureStore
 import helium314.keyboard.latin.VaultGestureTrace
 import helium314.keyboard.latin.utils.getActivity
 import helium314.keyboard.latin.utils.prefs
+import helium314.keyboard.latin.WhatsAppVaultPolicy
 import helium314.keyboard.settings.SearchSettingsScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,6 +55,10 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
     var enrolling by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var confirmClearPrivacy by remember { mutableStateOf(false) }
+    var searchOnly by remember { mutableStateOf(context.prefs().getBoolean(WhatsAppVaultPolicy.PREF_SEARCH_ONLY, false)) }
+    var rememberedFields by remember { mutableStateOf(WhatsAppVaultPolicy.hasRememberedFields(context.prefs())) }
+    var scoped by remember { mutableStateOf(context.prefs().getBoolean(WhatsAppVaultPolicy.PREF_CONFIRMED, false)) }
     var status by remember { mutableStateOf("Confirm your Android screen lock to continue.") }
     fun clearEnrollment() {
         samples.forEach { it.fill(0f) }; samples.clear()
@@ -89,6 +94,7 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                 authorized = false
                 clearEnrollment()
                 confirmDelete = false
+                confirmClearPrivacy = false
             }
         }
         owner.lifecycle.addObserver(observer)
@@ -99,22 +105,30 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
         }
     }
     LaunchedEffect(Unit) { authenticate() }
-    SearchSettingsScreen(onClickBack = onClickBack, title = "Private password vault",
+    SearchSettingsScreen(onClickBack = onClickBack, title = "WhatsApp Secret Code vault",
         settings = emptyList(), hideTopSearchBar = true) {
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(status, style = MaterialTheme.typography.bodyMedium)
             if (!authorized) {
                 Button(onClick = { authenticate() }, enabled = !pendingAuth && !busy) { Text("Unlock with device credential") }
             } else {
-                Text("Start in the center footer below the space bar, then draw across the keyboard without lifting your finger. The gesture works in masked password fields outside protected apps. Never in ordinary text or swipe typing. Use brrBoard as your active keyboard when entering your password here.", style = MaterialTheme.typography.bodyMedium)
+                Text("Start in the free footer below space and draw across the keyboard without lifting. Only WhatsApp text fields can receive your saved code. Open WhatsApp Search first; do not draw in a chat. The code is inserted but never submitted automatically.", style = MaterialTheme.typography.bodyMedium)
                 Text("Smart mode requires recent Android screen-lock authentication (five minutes). Instant mode is less secure: anyone who knows your gesture can use it on your unlocked device.", style = MaterialTheme.typography.bodySmall)
+                if (configured && !scoped) Text("Re-enroll your WhatsApp secret code to enable this new app-only vault. Your older encrypted mapping is not used automatically.", style = MaterialTheme.typography.bodySmall)
+                Text("Search and fields used by the vault are kept private, including after reopening. If WhatsApp does not expose a stable field ID, protection may cover its other text fields. No secret is stored in the privacy metadata.", style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Only fields reporting Search to Android", Modifier.weight(1f))
+                    Switch(checked = searchOnly, onCheckedChange = { next ->
+                        if (context.prefs().edit().putBoolean(WhatsAppVaultPolicy.PREF_SEARCH_ONLY, next).commit()) searchOnly = next
+                    }, enabled = !enrolling && !busy)
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Allow instant gesture on unlocked phone", Modifier.weight(1f))
                     Switch(checked = instant, onCheckedChange = { instant = it }, enabled = !enrolling && !busy)
                 }
                 if (!enrolling) {
                     OutlinedTextField(value = password, onValueChange = { if (it.length <= 512) password = it },
-                        label = { Text(if (configured) "New password (replace)" else "Password to insert") },
+                        label = { Text(if (configured) "New WhatsApp secret code (replace)" else "WhatsApp secret code") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
@@ -124,7 +138,8 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                         samples.forEach { it.fill(0f) }; samples.clear()
                         enrolling = true; status = "Start below the space bar and draw the same continuous pattern three times."
                     }, enabled = password.length in 4..512 && !busy) { Text("Enroll keyboard pattern") }
-                    if (configured) OutlinedButton(onClick = { confirmDelete = true }, enabled = !busy) { Text("Delete saved password and pattern") }
+                    if (configured) OutlinedButton(onClick = { confirmDelete = true }, enabled = !busy) { Text("Delete saved code and pattern") }
+                    if (rememberedFields) TextButton(onClick = { confirmClearPrivacy = true }, enabled = !busy) { Text("Reset WhatsApp field privacy") }
                 } else {
                     Text("Sample ${samples.size}/3", style = MaterialTheme.typography.titleMedium)
                     Text("Practice keyboard · start in the outlined footer, continue over any keys, lift once to finish.", style = MaterialTheme.typography.bodySmall)
@@ -153,14 +168,16 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                                                 busy = true
                                                 val value = password
                                                 val mode = instant
+                                                val enrolledSamples = samples.map { it.copyOf() }
                                                 scope.launch {
                                                     val ok = try {
-                                                        withContext(Dispatchers.IO) { VaultGestureStore.save(context, template, value, mode) }
+                                                        withContext(Dispatchers.IO) { VaultGestureStore.save(context, enrolledSamples, value, mode) }
                                                         true
                                                     } catch (_: Exception) { false }
-                                                    finally { template.fill(0f); clearEnrollment(); busy = false }
+                                                    finally { template.fill(0f); enrolledSamples.forEach { it.fill(0f) }; clearEnrollment(); busy = false }
                                                     configured = VaultGestureStore.configured(context)
-                                                    status = if (ok) "Saved encrypted. Draw the pattern in the keyboard footer of a password field." else "Could not save. Reauthenticate and try again."
+                                                    scoped = context.prefs().getBoolean(WhatsAppVaultPolicy.PREF_CONFIRMED, false)
+                                                    status = if (ok) "Saved encrypted. Open WhatsApp Search and draw from the keyboard footer." else "Could not save. Reauthenticate and try again."
                                                 }
                                             }
                                         }
@@ -174,6 +191,14 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
             }
         }
     }
+    if (confirmClearPrivacy) AlertDialog(onDismissRequest = { confirmClearPrivacy = false },
+        title = { Text("Reset WhatsApp field privacy?") },
+        text = { Text("First remove the secret code from every WhatsApp field where you inserted it. Resetting allows predictions and learning again in previously protected fields.") },
+        confirmButton = { TextButton(onClick = {
+            confirmClearPrivacy = false
+            if (authorized && WhatsAppVaultPolicy.clearRememberedFields(context.prefs())) { rememberedFields = false; status = "Field privacy reset." }
+        }) { Text("I removed the code; reset") } },
+        dismissButton = { TextButton(onClick = { confirmClearPrivacy = false }) { Text("Cancel") } })
     if (confirmDelete) AlertDialog(onDismissRequest = { confirmDelete = false },
         title = { Text("Delete saved credential?") }, text = { Text("This removes the encrypted mapping and its vault keys.") },
         confirmButton = { TextButton(onClick = {

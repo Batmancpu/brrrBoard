@@ -29,6 +29,12 @@ class VaultGestureTraceTest {
         val invalid = a.copyOf().also { it[0] = Float.NaN }
         assertFalse(VaultGestureTrace.matches(a, invalid))
     }
+    @Test fun majorityEnrollmentRejectsUnrelatedOrReversedTraces() {
+        val a = shape(); val b = shape(true)
+        assertTrue(VaultGestureTrace.matchesEnrollment(listOf(a, a, b), a))
+        assertFalse(VaultGestureTrace.matchesEnrollment(listOf(a, a, b), b))
+        assertFalse(VaultGestureTrace.matchesEnrollment(listOf(a, a), a))
+    }
     @Test fun diagonalDragIsNotASecretPattern() {
         val x = FloatArray(20) { it * 4f }
         val y = FloatArray(20) { it * 3f }

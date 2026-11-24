@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Match Emoji and Clipboard Search accents, morph the search capsule, and improve password-gesture usability.",
+  "summary": "Dedicated WhatsApp Secret Code vault with normal text fields, privacy isolation and adaptive pattern recognition.",
   "changes": [
     {
-      "title": "Search accent across panels",
-      "detail": "Explicit Emoji and Clipboard Search launchers use the active contextual Apple palette, preserving configured transparency and neutral ordinary keys."
+      "title": "WhatsApp-only secret code",
+      "detail": "Exact WhatsApp app and focused UID only; ordinary text fields supported. Optional Search metadata restriction; never auto-submit."
     },
     {
-      "title": "Fast Search morph",
-      "detail": "135 ms key-to-capsule and capsule-to-key transitions using measured screen coordinates, with cancellation and no full-panel fade or private query snapshots."
+      "title": "Persistent private field protection",
+      "detail": "Guard fields before insertion and on reopen; no suggestions, learning, swipe predictions, autocorrection, clipboard suggestions or voice in guarded fields. Unknown field IDs fail closed. Authenticated reset only after code removal."
     },
     {
-      "title": "More forgiving vault recognition",
-      "detail": "Wider safe start area, start haptic, flexible speed and corner timing, bounded shape alignment, retained enrollment samples and helpful rejection feedback. Encryption, device credential, lockout and masked-field protections unchanged."
+      "title": "Adaptive gesture enrollment",
+      "detail": "Three encrypted enrolled shapes with majority matching, start/success/rejection feedback, and editor/cursor cancellation. Re-enroll your WhatsApp secret code; older generic mappings are not silently reused."
     }
   ]
 }

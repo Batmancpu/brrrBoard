@@ -50,9 +50,10 @@ object VaultGestureStore {
     fun configured(context: Context): Boolean = file(context).baseFile.exists()
     fun resetFailures(context: Context) { check(context.prefs().edit().putInt(PREF_FAILURES, 0).commit()) }
 
-    @Synchronized fun save(context: Context, template: FloatArray, password: String, instant: Boolean) {
+    @Synchronized fun save(context: Context, samples: List<FloatArray>, password: String, instant: Boolean) {
         require(isDeviceUnlocked(context))
-        require(template.size == VaultGestureTrace.POINT_COUNT * 2 && template.all { it.isFinite() })
+        val average = requireNotNull(VaultGestureTrace.average(samples))
+        average.fill(0f)
         require(password.length in 4..512)
         val bytes = password.toByteArray(Charsets.UTF_8)
         var plain = ByteArray(0)
@@ -61,8 +62,10 @@ object VaultGestureStore {
         try {
             require(bytes.size <= 2048)
             val mode = if (instant) 2 else 1
-            plain = ByteBuffer.allocate(4 + template.size * 4 + bytes.size).apply {
-                putInt(bytes.size); template.forEach { putFloat(it) }; put(bytes)
+            // Negative size marks a new three-template payload. The encrypted file,
+            // AES key aliases and associated data are unchanged for safe in-place upgrades.
+            plain = ByteBuffer.allocate(4 + VaultGestureTrace.ENROLLMENT_SAMPLES * VaultGestureTrace.POINT_COUNT * 8 + bytes.size).apply {
+                putInt(-bytes.size); samples.forEach { sample -> sample.forEach { putFloat(it) } }; put(bytes)
             }.array()
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, key(mode, true))
@@ -77,14 +80,16 @@ object VaultGestureStore {
             val output = atomic.startWrite()
             try { output.write(encoded); atomic.finishWrite(output) }
             catch (e: Exception) { atomic.failWrite(output); throw e }
-            check(context.prefs().edit().putInt(PREF_FAILURES, 0).putBoolean(PREF_ENABLED, true).commit())
+            check(context.prefs().edit().putInt(PREF_FAILURES, 0).putBoolean(PREF_ENABLED, true)
+                .putBoolean(WhatsAppVaultPolicy.PREF_CONFIRMED, true).commit())
         } finally {
             bytes.fill(0); plain.fill(0); encrypted.fill(0); encoded.fill(0)
         }
     }
 
     @Synchronized fun delete(context: Context) {
-        check(context.prefs().edit().putBoolean(PREF_ENABLED, false).putInt(PREF_FAILURES, 0).commit())
+        check(context.prefs().edit().putBoolean(PREF_ENABLED, false).putInt(PREF_FAILURES, 0)
+            .putBoolean(WhatsAppVaultPolicy.PREF_CONFIRMED, false).commit())
         file(context).delete()
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         ks.deleteEntry(ALIAS + 1); ks.deleteEntry(ALIAS + 2)
@@ -105,7 +110,8 @@ object VaultGestureStore {
     }
 
     @Synchronized private fun match(context: Context, trace: FloatArray): CharArray? {
-        if (!isDeviceUnlocked(context) || !context.prefs().getBoolean(PREF_ENABLED, false)) return null
+        if (!isDeviceUnlocked(context) || !context.prefs().getBoolean(PREF_ENABLED, false) ||
+            !context.prefs().getBoolean(WhatsAppVaultPolicy.PREF_CONFIRMED, false)) return null
         val failures = context.prefs().getInt(PREF_FAILURES, 0)
         if (failures >= MAX_FAILURES) return null
         val atomic = file(context)
@@ -123,7 +129,7 @@ object VaultGestureStore {
             } finally { buffer.fill(0) }
         }
         var plain = ByteArray(0)
-        val template = FloatArray(VaultGestureTrace.POINT_COUNT * 2)
+        val templates = List(VaultGestureTrace.ENROLLMENT_SAMPLES) { FloatArray(VaultGestureTrace.POINT_COUNT * 2) }
         try {
             val mode = encoded[0].toInt()
             require(mode == 1 || mode == 2)
@@ -132,10 +138,14 @@ object VaultGestureStore {
             cipher.updateAAD(aad(mode))
             plain = cipher.doFinal(encoded, 13, encoded.size - 13)
             val input = ByteBuffer.wrap(plain)
-            val size = input.int
-            require(size in 1..2048 && input.remaining() == template.size * 4 + size)
-            for (i in template.indices) template[i] = input.float
-            if (!VaultGestureTrace.matches(template, trace)) {
+            val encodedSize = input.int
+            // Only explicitly re-enrolled WhatsApp mappings are eligible. A legacy
+            // generic password blob is never silently repurposed for normal fields.
+            require(encodedSize in -2048..-1)
+            val size = -encodedSize
+            require(input.remaining() == templates.size * templates[0].size * 4 + size)
+            templates.forEach { template -> for (i in template.indices) template[i] = input.float }
+            if (!VaultGestureTrace.matchesEnrollment(templates, trace)) {
                 context.prefs().edit().putInt(PREF_FAILURES, failures + 1).commit()
                 return null
             }
@@ -144,7 +154,7 @@ object VaultGestureStore {
                 if (!context.prefs().edit().putInt(PREF_FAILURES, 0).commit()) return null
                 return CharArray(chars.remaining()).also { chars.get(it) }
             } finally { if (chars.hasArray()) chars.array().fill('\u0000') }
-        } finally { encoded.fill(0); plain.fill(0); template.fill(0f) }
+        } finally { encoded.fill(0); plain.fill(0); templates.forEach { it.fill(0f) } }
     }
 
     private fun file(context: Context) = AtomicFile(File(context.noBackupFilesDir, FILE))

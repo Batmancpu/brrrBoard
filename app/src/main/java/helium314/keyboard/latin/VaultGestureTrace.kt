@@ -66,6 +66,10 @@ internal object VaultGestureTrace {
         return result
     }
 
+    /** Use the actual enrolled shapes, not only their averaged corners. Require a majority. */
+    fun matchesEnrollment(samples: List<FloatArray>, candidate: FloatArray): Boolean =
+        samples.size == ENROLLMENT_SAMPLES && samples.count { matches(it, candidate) } >= 2
+
     fun matches(template: FloatArray, candidate: FloatArray): Boolean {
         if (template.size != POINT_COUNT * 2 || candidate.size != template.size) return false
         if (template.any { !it.isFinite() } || candidate.any { !it.isFinite() }) return false

@@ -224,6 +224,10 @@ public class LatinIME extends InputMethodService implements
     };
     private long mEditorFocusEpoch;
     private long mVaultSelectionEpoch;
+    private long mVaultUidEditorEpoch = -1;
+    private int mVaultCheckedUid = -1;
+    private boolean mVaultUidVerified;
+    public long getVaultSelectionEpoch() { return mVaultSelectionEpoch; }
     private long mInlineRequestEpoch = -1;
 
     private RichInputMethodManager mRichImm;
@@ -991,7 +995,8 @@ public class LatinIME extends InputMethodService implements
         final Locale locale = mRichImm.getCurrentSubtypeLocale();
         final EditorInfo editorInfo = getCurrentInputEditorInfo();
         final InputAttributes inputAttributes = new InputAttributes(
-                editorInfo, isFullscreenMode(), getPackageName());
+                editorInfo, isFullscreenMode(), getPackageName(),
+                WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editorInfo));
         mSettings.loadSettings(this, locale, inputAttributes);
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         AudioAndHapticFeedbackManager.getInstance().onSettingsChanged(currentSettingsValues);
@@ -1286,12 +1291,14 @@ public class LatinIME extends InputMethodService implements
         helium314.keyboard.latin.brain.BrainPerformanceMetrics
                 .cancelPendingKeyToSuggestionPreDraw();
         mEditorFocusEpoch++;
+        mVaultSelectionEpoch++;
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
         // Entering a protected editor is a privacy boundary, not a recoverable
         // destination change. Do not keep an old audio decode running there.
-        if (ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editorInfo)
+                || ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
                 mSettings.getCurrent().mIncognitoModeEnabled)
                 || SecureAppsPolicy.isSecure(KtxKt.prefs(this),
                         editorInfo == null ? null : editorInfo.packageName))
@@ -1326,6 +1333,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onFinishInput() {
         mEditorFocusEpoch++;
+        mVaultSelectionEpoch++;
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
@@ -1453,7 +1461,9 @@ public class LatinIME extends InputMethodService implements
                         currentSettingsValues.mInputAttributes.mTargetApplicationPackageName,
                         editorInfo == null ? null : editorInfo.packageName);
         if (inputTypeChanged) mInputLogic.clearPendingPrivateLearning();
-        boolean isDifferentTextField = !restarting || inputTypeChanged || secureEditor;
+        boolean isDifferentTextField = !restarting || inputTypeChanged || secureEditor
+                || currentSettingsValues.mInputAttributes.mVaultPrivateEditor
+                    != WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editorInfo);
 
         // we want to reload the settings before calling updateKeyboardTheme, because
         // updateKeyboardTheme reads SettingsValues.mToolbarMode
@@ -1733,7 +1743,7 @@ public class LatinIME extends InputMethodService implements
     public void onUpdateSelection(final int oldSelStart, final int oldSelEnd,
             final int newSelStart, final int newSelEnd,
             final int composingSpanStart, final int composingSpanEnd) {
-        mVaultSelectionEpoch++;
+        if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) mVaultSelectionEpoch++;
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                 composingSpanStart, composingSpanEnd);
         final SettingsValues selectionSettings = mSettings.getCurrent();
@@ -1884,6 +1894,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDisplayCompletions(final CompletionInfo[] applicationSpecifiedCompletions) {
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())) return;
         if (DebugFlags.DEBUG_ENABLED) {
             Log.i(TAG, "Received completions:");
             if (applicationSpecifiedCompletions != null) {
@@ -2023,7 +2034,8 @@ public class LatinIME extends InputMethodService implements
     @RequiresApi(api = Build.VERSION_CODES.R)
     public InlineSuggestionsRequest onCreateInlineSuggestionsRequest(@NonNull Bundle uiExtras) {
         Log.d(TAG, "onCreateInlineSuggestionsRequest called");
-        if (Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())
+                || Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
             return null;
         }
         mInlineRequestEpoch = mEditorFocusEpoch;
@@ -2034,7 +2046,8 @@ public class LatinIME extends InputMethodService implements
     @RequiresApi(api = Build.VERSION_CODES.R)
     public boolean onInlineSuggestionsResponse(InlineSuggestionsResponse response) {
         Log.d(TAG, "onInlineSuggestionsResponse called");
-        if (Settings.getValues().mSuggestionStripHiddenPerUserSettings
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())
+                || Settings.getValues().mSuggestionStripHiddenPerUserSettings
                 || !AccessoryPriorityPolicy.responseBelongsToVisibleEditor(
                         mInlineRequestEpoch, mEditorFocusEpoch, isInputViewShown())) {
             return false;
@@ -2269,12 +2282,21 @@ public class LatinIME extends InputMethodService implements
     /** Credential insertion deliberately bypasses voice, gesture decoding and suggestion events. */
     public boolean isVaultPasswordTarget() {
         final EditorInfo editor = getCurrentInputEditorInfo();
-        final SettingsValues values = mSettings.getCurrent();
-        return editor != null && values != null && values.mInputAttributes.mIsPasswordField
-                && VaultGestureStore.isMaskedPassword(editor.inputType)
-                && editor.packageName != null && !getPackageName().equals(editor.packageName)
-                && !AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()
-                && !SecureAppsPolicy.isSecure(KtxKt.prefs(this), editor.packageName);
+        // Android validates EditorInfo.packageName against the focused IME client.
+        // Recheck the actual binding UID as defense in depth, never an app label or prefix.
+        final android.view.inputmethod.InputBinding binding = getCurrentInputBinding();
+        if (!WhatsAppVaultPolicy.eligible(KtxKt.prefs(this), editor) || binding == null
+                || AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled()) return false;
+        final int uid = binding.getUid();
+        if (mVaultUidEditorEpoch != mEditorFocusEpoch || mVaultCheckedUid != uid) {
+            mVaultUidEditorEpoch = mEditorFocusEpoch;
+            mVaultCheckedUid = uid;
+            mVaultUidVerified = false;
+            final String[] packages = getPackageManager().getPackagesForUid(uid);
+            if (packages != null) for (String pkg : packages)
+                if (WhatsAppVaultPolicy.PACKAGE.equals(pkg)) { mVaultUidVerified = true; break; }
+        }
+        return mVaultUidVerified;
     }
 
     public void insertVaultGesture(final float[] trace, final java.util.function.BooleanSupplier stillEligible) {
@@ -2286,8 +2308,10 @@ public class LatinIME extends InputMethodService implements
         final long selection = mVaultSelectionEpoch;
         VaultGestureStore.matchAsync(this, trace, secret -> {
             if (secret == null) {
-                if (editor == mEditorFocusEpoch && isInputViewShown() && isVaultPasswordTarget())
-                    android.widget.Toast.makeText(this, "Vault locked or gesture not recognized. Hold Settings title to unlock.", android.widget.Toast.LENGTH_SHORT).show();
+                if (editor == mEditorFocusEpoch && selection == mVaultSelectionEpoch && isInputViewShown() && isVaultPasswordTarget()) {
+                    AudioAndHapticFeedbackManager.getInstance().performSecureAppIncognitoWarning();
+                    android.widget.Toast.makeText(this, "Code vault locked or pattern not recognized. Hold Settings title to unlock.", android.widget.Toast.LENGTH_SHORT).show();
+                }
                 return;
             }
             try {
@@ -2296,8 +2320,27 @@ public class LatinIME extends InputMethodService implements
                         || connection != getCurrentInputConnection()
                         || !VaultGestureStore.isDeviceUnlocked(this)
                         || !KtxKt.prefs(this).getBoolean(VaultGestureStore.PREF_ENABLED, false)) return;
+                // Store only metadata guard, never the code. Guard survives restart/refocus,
+                // including the case where an ordinary WhatsApp editor has no stable ID.
+                if (!WhatsAppVaultPolicy.protectBeforeInsert(KtxKt.prefs(this), getCurrentInputEditorInfo())) return;
+                clearPendingPrivateLearning();
+                mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
+                mPendingChatGptVoiceSuggestions = null;
+                mInlineDictation.cancel();
+                mOfflineDictation.cancel();
+                mInlineProviderViewActive = false;
+                mInlineRequestEpoch = -1;
                 mInputLogic.preparePrivateCredential();
+                loadSettings();
+                if (!mSettings.getCurrent().mInputAttributes.mVaultPrivateEditor) return;
+                final MainKeyboardView mainKeyboard = mKeyboardSwitcher.getMainKeyboardView();
+                if (mainKeyboard != null) mainKeyboard.setGestureHandlingEnabledByUser(false, false, false);
+                if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
+                if (hasSuggestionStripView()) mSuggestionStripView.onNewEditorSession();
                 setSuggestedWords(SuggestedWords.getEmptyInstance());
+                // Recheck ownership after preparation; no Enter, Send, clipboard or paste path.
+                if (editor != mEditorFocusEpoch || selection != mVaultSelectionEpoch
+                        || connection != getCurrentInputConnection() || !isVaultPasswordTarget()) return;
                 if (connection.commitText(new String(secret), 1))
                     AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation();
             } finally {
@@ -2496,6 +2539,7 @@ public class LatinIME extends InputMethodService implements
         }
         cancelPendingEmptyPredictionClear();
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
+        if (currentSettingsValues.mInputAttributes.mVaultPrivateEditor && !suggestedWords.isEmpty()) return;
         mInputLogic.setSuggestedWords(suggestedWords);
         // Dictation-independent credentials come from the Android provider. A
         // delayed dictionary refresh must not evict an active autofill chip.
@@ -2669,6 +2713,7 @@ public class LatinIME extends InputMethodService implements
      * returns whether a clipboard suggestion has been set.
      */
     public boolean tryShowClipboardSuggestion() {
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())) return false;
         if (!AccessoryPriorityPolicy.canReplaceVisible(mInlineProviderViewActive,
                 AccessoryPriorityPolicy.Incoming.CLIPBOARD)) return false;
         final View clipboardView = mClipboardHistoryManager.getClipboardSuggestionView(getCurrentInputEditorInfo(),

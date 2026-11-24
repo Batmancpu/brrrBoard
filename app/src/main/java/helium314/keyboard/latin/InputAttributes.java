@@ -40,6 +40,7 @@ public final class InputAttributes {
     final public boolean mShouldInsertSpacesAutomatically;
     final public boolean mShouldShowVoiceInputKey;
     final public boolean mNoLearning;
+    final public boolean mVaultPrivateEditor;
     /**
      * Whether the floating gesture preview should be disabled. If true, this should override the
      * corresponding keyboard settings preference, always suppressing the floating preview text.
@@ -63,6 +64,12 @@ public final class InputAttributes {
 
     public InputAttributes(final EditorInfo editorInfo, final boolean isFullscreenMode,
             final String packageNameForPrivateImeOptions) {
+        this(editorInfo, isFullscreenMode, packageNameForPrivateImeOptions, false);
+    }
+
+    public InputAttributes(final EditorInfo editorInfo, final boolean isFullscreenMode,
+            final String packageNameForPrivateImeOptions, final boolean vaultPrivateEditor) {
+        mVaultPrivateEditor = vaultPrivateEditor;
         mEditorInfo = editorInfo;
         mPackageNameForPrivateImeOptions = packageNameForPrivateImeOptions;
         mOriginalInputType = editorInfo == null ? 0 : editorInfo.inputType;
@@ -75,7 +82,7 @@ public final class InputAttributes {
         mOriginalPrivateImeOptions = editorInfo == null ? null : editorInfo.privateImeOptions;
         mTargetApplicationPackageName = null != editorInfo ? editorInfo.packageName : null;
         mInputType = AppWorkarounds.INSTANCE.adjustInputType(null != editorInfo ? editorInfo.inputType : 0, mTargetApplicationPackageName);
-        mNoLearning = (editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        mNoLearning = vaultPrivateEditor || (editorInfo != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 && (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0)
                 || inPrivateImeOptions(mPackageNameForPrivateImeOptions,
                         NO_PERSONALIZED_LEARNING, editorInfo);
@@ -116,32 +123,32 @@ public final class InputAttributes {
 
         // TODO: Have a helper method in InputTypeUtils
         // Make sure that passwords are not displayed in {@link SuggestionStripView}.
-        mShouldShowSuggestions = !mIsPasswordField && !flagNoSuggestions;
-        mMayOverrideShowingSuggestions = !mIsPasswordField;
+        mShouldShowSuggestions = !vaultPrivateEditor && !mIsPasswordField && !flagNoSuggestions;
+        mMayOverrideShowingSuggestions = !vaultPrivateEditor && !mIsPasswordField;
 
-        mShouldInsertSpacesAutomatically = InputTypeUtils.isAutoSpaceFriendlyType(mInputType);
+        mShouldInsertSpacesAutomatically = !vaultPrivateEditor && InputTypeUtils.isAutoSpaceFriendlyType(mInputType);
 
-        final boolean noMicrophone = mIsPasswordField
+        final boolean noMicrophone = vaultPrivateEditor || mIsPasswordField
                 || InputTypeUtils.isEmailVariation(variation)
                 || hasNoMicrophoneKeyOption()
                 || !RichInputMethodManager.isInitialized(); // avoid crash when only using spell checker
         mShouldShowVoiceInputKey = !noMicrophone;
 
-        mDisableGestureFloatingPreviewText = InputAttributes.inPrivateImeOptions(
+        mDisableGestureFloatingPreviewText = vaultPrivateEditor || InputAttributes.inPrivateImeOptions(
                 mPackageNameForPrivateImeOptions, NO_FLOATING_GESTURE_PREVIEW, editorInfo);
 
         // autocorrect if explicitly wanted, but also for most multi-line input types (like AOSP keyboard)
         // originally, URI and email were always excluded from autocorrect (in Suggest.java), but this is
         //  and unexpected place, and if the input field explicitly requests autocorrect we should follow the flag
-        mInputTypeShouldAutoCorrect = flagAutoCorrect || (
+        mInputTypeShouldAutoCorrect = !vaultPrivateEditor && (flagAutoCorrect || (
                 flagMultiLine
                 && variation != InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
                 && variation != InputType.TYPE_TEXT_VARIATION_URI
                 && !InputTypeUtils.isEmailVariation(variation)
                 && !flagNoSuggestions
-        );
+        ));
 
-        mApplicationSpecifiedCompletionOn = flagAutoComplete && isFullscreenMode;
+        mApplicationSpecifiedCompletionOn = !vaultPrivateEditor && flagAutoComplete && isFullscreenMode;
 
         // If we come here, inputClass is always TYPE_CLASS_TEXT
         mIsGeneralTextInput = InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS != variation

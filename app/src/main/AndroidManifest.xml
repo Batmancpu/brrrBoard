@@ -153,6 +153,8 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     </application>
 
     <queries>
+        <!-- Verify the exact focused WhatsApp UID; no network or broad package permission. -->
+        <package android:name="com.whatsapp" />
         <!-- Optional launch shortcut in password-only footer. No credentials passed. -->
         <package android:name="proton.android.pass" />
         <package android:name="proton.android.pass.fdroid" />

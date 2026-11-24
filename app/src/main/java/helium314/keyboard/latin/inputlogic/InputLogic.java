@@ -336,6 +336,7 @@ public final class InputLogic {
 
     /** Clear composition and private learning state before a direct credential commit. */
     public void preparePrivateCredential() {
+        invalidateSuggestionRequests();
         preparePrivateVoiceDraft();
         clearPendingPrivateLearning();
     }
@@ -2572,7 +2573,7 @@ public final class InputLogic {
      */
     public NgramContext getNgramContextFromNthPreviousWordForSuggestion(
             final SpacingAndPunctuations spacingAndPunctuations, final int nthPreviousWord) {
-        if (mIgnoreOldContextUntilWordCommit) return NgramContext.BEGINNING_OF_SENTENCE;
+        if (mIgnoreOldContextUntilWordCommit || Settings.getValues().mInputAttributes.mVaultPrivateEditor) return NgramContext.BEGINNING_OF_SENTENCE;
         if (spacingAndPunctuations.mCurrentLanguageHasSpaces) {
             // If we are typing in a language with spaces we can just look up the previous
             // word information from textview.

@@ -40,6 +40,7 @@ public final class InputView extends FrameLayout {
     private SuggestionStripView mSuggestionStrip;
     private BoardFooterView mFooter;
     private VaultStrokeCapture mVaultStroke;
+    private long mVaultStrokeEpoch;
     private SlideConfirmationOverlay mSlideConfirmation;
     private MainKeyboardView mConfirmationKeyboard;
     private int mBoardAccessibilityBeforeConfirmation = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
@@ -68,6 +69,10 @@ public final class InputView extends FrameLayout {
         mSuggestionStrip = suggestionStripView;
         mFooter = findViewById(R.id.board_footer);
         mVaultStroke = new VaultStrokeCapture(getResources().getDisplayMetrics().density, mFooter::submitVaultGesture);
+        mVaultStroke.setOnRejected(() -> {
+            if (mFooter.vaultGestureEligible()) AudioAndHapticFeedbackManager.getInstance().performSecureAppIncognitoWarning();
+            return kotlin.Unit.INSTANCE;
+        });
         mKeyboardTopPaddingForwarder = new KeyboardTopPaddingForwarder(
                 mMainKeyboardView, suggestionStripView);
         mMoreSuggestionsViewCanceler = new MoreSuggestionsViewCanceler(
@@ -147,7 +152,9 @@ public final class InputView extends FrameLayout {
             final boolean starts = action == MotionEvent.ACTION_DOWN
                     && mFooter.canStartVaultGesture(event.getRawX(), event.getRawY());
             if (starts || mVaultStroke.isOwning()) {
-                final boolean eligible = mFooter.vaultGestureEligible();
+                if (starts && mOwner != null) mVaultStrokeEpoch = mOwner.getVaultSelectionEpoch();
+                final boolean eligible = mOwner != null && mFooter.vaultGestureEligible()
+                        && mVaultStrokeEpoch == mOwner.getVaultSelectionEpoch();
                 if (mVaultStroke.route(event, getWidth(), getHeight(), starts, eligible)) {
                     if (starts && eligible) performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK);
                     return true;
