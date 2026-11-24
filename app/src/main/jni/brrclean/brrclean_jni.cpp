@@ -95,3 +95,40 @@ Java_helium314_keyboard_latin_voice_BrrCleanNative_process(
     std::fill(enhanced.begin(), enhanced.end(), 0);
     return result;
 }
+
+#include "brrclean_stream.h"
+#include <new>
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_helium314_keyboard_latin_voice_BrrCleanStreamNative_create(JNIEnv *env,jclass,jbyteArray weights) {
+    if (!weights || env->GetArrayLength(weights) != 211220) return 0;
+    std::vector<jbyte> model(211220);
+    env->GetByteArrayRegion(weights,0,211220,model.data());
+    if (env->ExceptionCheck()) return 0;
+    auto *stream=new(std::nothrow) BrrCleanStream(model.data(),model.size());
+    std::fill(model.begin(),model.end(),0);
+    if (!stream || !stream->valid()) { delete stream; return 0; }
+    return reinterpret_cast<jlong>(stream);
+}
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_helium314_keyboard_latin_voice_BrrCleanStreamNative_step(JNIEnv *env,jclass,jlong handle,jbyteArray pcm) {
+    if (!handle || !pcm) return nullptr;
+    const jsize size=env->GetArrayLength(pcm);
+    if (size <= 0 || size > 65536 || size % BrrCleanStream::kHopBytes) return nullptr;
+    std::vector<uint8_t> input(size), output;
+    env->GetByteArrayRegion(pcm,0,size,reinterpret_cast<jbyte*>(input.data()));
+    if (env->ExceptionCheck()) return nullptr;
+    const bool ok=reinterpret_cast<BrrCleanStream*>(handle)->push(input.data(),input.size(),output);
+    std::fill(input.begin(),input.end(),0);
+    jbyteArray result=nullptr;
+    if (ok) {
+        result=env->NewByteArray(static_cast<jsize>(output.size()));
+        if (result && !output.empty()) env->SetByteArrayRegion(result,0,static_cast<jsize>(output.size()),reinterpret_cast<jbyte*>(output.data()));
+    }
+    std::fill(output.begin(),output.end(),0);
+    return result;
+}
+extern "C" JNIEXPORT void JNICALL
+Java_helium314_keyboard_latin_voice_BrrCleanStreamNative_release(JNIEnv*,jclass,jlong handle) {
+    delete reinterpret_cast<BrrCleanStream*>(handle);
+}

@@ -2,6 +2,7 @@
 // Host smoke: pinned weights + real C++ GTCRN/STFT, no Android device or mic.
 #include "gtcrn.h"
 #include "stft.h"
+#include "brrclean_stream.h"
 #include <cmath>
 #include <cstdio>
 #include <fstream>
@@ -49,6 +50,21 @@ int main(int argc, char **argv) {
         }
     }
     if (seen != 80 * hop || resultEnergy < inputEnergy * 0.0025) return 7;
+    // The same streaming kernel used by Android must be partition invariant.
+    std::vector<uint8_t> pcm(81 * 512, 0);
+    for (size_t i=0; i<80*256; ++i) {
+        int16_t value=static_cast<int16_t>(6000*std::sin(i*.11)+400*std::sin(i*.93));
+        pcm[i*2]=static_cast<uint8_t>(value); pcm[i*2+1]=static_cast<uint8_t>(value>>8);
+    }
+    BrrCleanStream all(bytes.data(),bytes.size()), split(bytes.data(),bytes.size());
+    std::vector<uint8_t> expected, actual, piece;
+    if (!all.push(pcm.data(),pcm.size(),expected) || expected.size()!=80*512) return 8;
+    for (size_t pos=0;pos<pcm.size();) {
+        size_t len=std::min<size_t>(17*512,pcm.size()-pos);
+        if (!split.push(pcm.data()+pos,len,piece)) return 9;
+        actual.insert(actual.end(),piece.begin(),piece.end()); pos+=len;
+    }
+    if (actual!=expected) return 10;
     std::printf("brrClean host smoke passed: %d finite samples, energy ratio %.3f\n",
                 seen, resultEnergy / inputEnergy);
     return 0;

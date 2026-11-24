@@ -69,6 +69,28 @@ class OfflineVoiceContractTest(unittest.TestCase):
             for forbidden in ("HttpURLConnection", "Socket(", "FileOutputStream", "AudioRecord("):
                 self.assertNotIn(forbidden, source)
 
+    def test_stateful_brain_stream_isolated_and_fail_safe(self):
+        stream = (SOURCE / "latin/voice/BrrBrainStreamService.kt").read_text()
+        bridge = (SOURCE / "latin/voice/BrrBrainStreamBridge.kt").read_text()
+        assembler = (SOURCE / "latin/voice/BrrBrainBlockAssembler.kt").read_text()
+        self.assertIn('android:process=":brr_brain_stream"', self.manifest)
+        self.assertIn('android:exported="false"', self.manifest)
+        self.assertIn("BrrBrainBlockAssembler(", self.pipeline)
+        self.assertIn("aligned?.activity(from, to)", self.pipeline)
+        self.assertIn("stream?.finish()", self.pipeline)
+        self.assertIn("decode(item.enhanced.pcm, pcm, item.enhanced.rawSpeechEvidence)", self.pipeline)
+        self.assertIn("BrrCleanStreamNative.step", stream)
+        self.assertIn("rawVad = detector()", stream)
+        self.assertIn("cleanVad = detector()", stream)
+        self.assertIn("Process.killProcess(Process.myPid())", stream)
+        self.assertIn("cancelled()", bridge)
+        self.assertIn("responses.poll(25", bridge)
+        self.assertIn("emit(raw.copyOf(actual),null)", assembler)
+        self.assertIn("compactDigitalSilence", assembler)
+        for source in (stream, bridge, assembler):
+            for forbidden in ("HttpURLConnection", "Socket(", "FileOutputStream", "AudioRecord("):
+                self.assertNotIn(forbidden, source)
+
     def test_removed_model_ab_test_has_no_live_app_entrypoint(self):
         self.assertFalse((SOURCE / "latin/voice/VoiceNoiseLab.kt").exists())
         self.assertFalse((SOURCE / "settings/screens/VoiceNoiseLabScreen.kt").exists())

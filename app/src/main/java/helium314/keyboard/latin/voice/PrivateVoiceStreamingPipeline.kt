@@ -15,8 +15,8 @@ import java.util.concurrent.RejectedExecutionException
  * chunks, while brrClean and the offline ASR process them sequentially in the
  * background. Optional provisional text is delivered only to the caller's guarded
  * composing-span callback; the pipeline itself never holds an editor connection.
- * All callbacks, IPC and ASR orchestration are serialized on the main looper;
- * no model ever runs there, and nothing is written to storage or sent online.
+ * Streaming inference/IPC waits are confined to the private capture worker;
+ * editor callbacks and ASR orchestration remain on main, with no model work there.
  */
 internal class PrivateVoiceStreamingPipeline(
     private val context: Context,
@@ -25,7 +25,7 @@ internal class PrivateVoiceStreamingPipeline(
     private val onDone: (Result<String>) -> Unit,
     private val onPartialText: (String) -> Unit = {},
 ) {
-    private data class Pending(val pcm: ByteArray, val enqueuedAtMs: Long)
+    private data class Pending(val pcm: ByteArray, val enhanced: BrrCleanResult?, val enqueuedAtMs: Long)
 
     // Model loading, VAD and semantic inference never block AudioRecord or UI.
     // The recording duration bounds the queued PCM.
@@ -36,10 +36,52 @@ internal class PrivateVoiceStreamingPipeline(
         }, "brrBoard-private-endpoint").apply { isDaemon = true }
     }
     private var modelsPrepared = false // capture worker only
-    private val endpoint = PrivateVoiceEndpointDetector(context)
-    private val chunker = PrivateVoiceChunker(endpoint::speech, endpoint::thoughtComplete)
+    private var streamThoughtPrepared = false
     private val handler = Handler(Looper.getMainLooper())
     private val cancelled = AtomicBoolean(false)
+    private val endpoint = PrivateVoiceEndpointDetector(context)
+    private val adaptive = VoiceEndpointPreference.enabled(context)
+    // Existing adaptive-batching toggle is a reversible escape hatch:
+    // disabled -> original batch denoiser, enabled -> isolated streaming path.
+    private val aligned = if (mode == VoiceNoiseMode.GTCRN && adaptive) AlignedVoiceBuffer() else null
+    private var streamBridge: BrrBrainStreamBridge? = null // capture worker only
+    private val stream = if (aligned != null) BrrBrainBlockAssembler(
+        infer = { raw, input ->
+            val bridge = streamBridge ?: BrrBrainStreamBridge(context, cancelled::get).also { streamBridge = it }
+            val started = SystemClock.elapsedRealtime()
+            bridge.process(raw, input).also { result ->
+                if (result != null) {
+                    VoiceDenoiseMetrics.enhanced(SystemClock.elapsedRealtime()-started)
+                    // The child's two VAD states are now ready. Avoid a third
+                    // VAD or competing thought-model startup before first PCM.
+                    if (!streamThoughtPrepared && !cancelled.get()) {
+                        streamThoughtPrepared = true
+                        endpoint.prepareThought()
+                    }
+                }
+            }
+        },
+        failed = {
+            VoiceDenoiseMetrics.fallback()
+            streamBridge?.close(true)
+            streamBridge = null
+        },
+        emit = ::appendAligned,
+    ) else null
+    private val chunker = PrivateVoiceChunker(
+        activity = { raw, from, to ->
+            if (!adaptive) null else aligned?.activity(from, to) ?: endpoint.speech(raw, from, to)
+        },
+        boundaryPenalty = { from, to -> aligned?.boundaryPenalty(from,to) ?: 0.0 },
+        thoughtComplete = { raw, count ->
+            if (aligned == null) endpoint.thoughtComplete(raw, count)
+            else {
+                val protectedPcm = aligned.copyPrefix(count)
+                try { endpoint.thoughtComplete(protectedPcm, count) }
+                finally { protectedPcm.fill(0) }
+            }
+        },
+    )
     private val pending = ArrayDeque<Pending>() // accessed only on main looper
     private val recognized = ArrayList<String>() // volatile memory only
     private var ended = false
@@ -62,14 +104,16 @@ internal class PrivateVoiceStreamingPipeline(
                     if (!cancelled.get()) {
                         if (!modelsPrepared) {
                             modelsPrepared = true
-                            // AudioRecord is already returning PCM. Prepare small activity model,
-                            // queue ASR warm-up on its own worker, then prepare Smart Turn.
-                            // Incoming frames remain ordered in the capture worker's RAM queue.
-                            endpoint.prepareActivity()
+                            // Preserve capture-first behavior from the concurrent
+                            // main update. Streaming owns VAD in its isolated child.
+                            if (stream == null) endpoint.prepareActivity()
                             if (!cancelled.get()) engine.warm()
-                            if (!cancelled.get()) endpoint.prepareThought()
+                            if (stream == null && !cancelled.get()) endpoint.prepareThought()
                         }
-                        if (!cancelled.get()) chunker.append(frame, frame.size, ::enqueueChunk)
+                        if (!cancelled.get()) {
+                            if (stream != null) stream.append(frame, frame.size)
+                            else chunker.append(frame, frame.size, ::enqueueChunk)
+                        }
                     }
                 } catch (_: Exception) {
                     handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
@@ -86,7 +130,10 @@ internal class PrivateVoiceStreamingPipeline(
         try {
             captureWorker.execute {
                 try {
-                    if (!cancelled.get()) chunker.finish(::enqueueChunk)
+                    if (!cancelled.get()) {
+                        stream?.finish()
+                        chunker.finish(::enqueueChunk)
+                    }
                     handler.post {
                         if (!cancelled.get()) {
                             ended = true
@@ -96,8 +143,7 @@ internal class PrivateVoiceStreamingPipeline(
                 } catch (_: Exception) {
                     handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
                 } finally {
-                    chunker.discard()
-                    endpoint.close()
+                    closeCapture()
                 }
             }
         } catch (_: RejectedExecutionException) { /* cancellation already owns cleanup */ }
@@ -110,11 +156,21 @@ internal class PrivateVoiceStreamingPipeline(
         if (Looper.myLooper() == Looper.getMainLooper()) dispose() else handler.post { dispose() }
     }
 
+    private fun appendAligned(raw: ByteArray, scored: BrrBrainScoredBlock?) {
+        try {
+            if (!cancelled.get()) {
+                checkNotNull(aligned).append(raw, scored)
+                chunker.append(raw, raw.size, ::enqueueChunk)
+            }
+        } finally { raw.fill(0); scored?.wipe() }
+    }
+
     private fun enqueueChunk(chunk: ByteArray) {
+        val enhanced = aligned?.take(chunk)
         handler.post {
-            if (cancelled.get()) chunk.fill(0)
+            if (cancelled.get()) { chunk.fill(0); enhanced?.pcm?.fill(0) }
             else {
-                pending.addLast(Pending(chunk, SystemClock.elapsedRealtime()))
+                pending.addLast(Pending(chunk, enhanced, SystemClock.elapsedRealtime()))
                 VoiceDenoiseMetrics.streamingBacklog(pending.size)
                 pump()
             }
@@ -126,11 +182,19 @@ internal class PrivateVoiceStreamingPipeline(
         // releases native state after the currently executing inference ends.
         try {
             captureWorker.execute {
-                chunker.discard()
-                endpoint.close()
+                closeCapture()
             }
         } catch (_: RejectedExecutionException) { /* finishCapture owns cleanup */ }
         captureWorker.shutdown()
+    }
+
+    private fun closeCapture() {
+        stream?.discard()
+        streamBridge?.close(cancelled.get())
+        streamBridge = null
+        aligned?.clear()
+        chunker.discard()
+        endpoint.close()
     }
 
     private fun pump() {
@@ -146,6 +210,18 @@ internal class PrivateVoiceStreamingPipeline(
         val pcm = item.pcm
         activeRaw = pcm
         activeStarted = item.enqueuedAtMs
+        if (item.enhanced != null) {
+            activeRaw = null
+            decode(item.enhanced.pcm, pcm, item.enhanced.rawSpeechEvidence)
+            return
+        }
+        if (stream != null) {
+            // A failed streaming child is disabled for this session. Never
+            // repeatedly respawn it or delay capture by a second denoiser.
+            activeRaw = null
+            decode(pcm)
+            return
+        }
         if (mode == VoiceNoiseMode.GTCRN && VoiceNoiseChoice.eligible(pcm.size)) {
             val bridge = BrrCleanVoiceBridge(context) { enhanced ->
                 activeBridge = null
@@ -223,7 +299,10 @@ internal class PrivateVoiceStreamingPipeline(
         activeRecovery = null
         activeDecode?.cancel()
         activeDecode = null
-        while (pending.isNotEmpty()) pending.removeFirst().pcm.fill(0)
+        while (pending.isNotEmpty()) {
+            val item = pending.removeFirst()
+            item.pcm.fill(0); item.enhanced?.pcm?.fill(0)
+        }
         recognized.clear()
         VoiceDenoiseMetrics.streamingBacklog(0)
     }

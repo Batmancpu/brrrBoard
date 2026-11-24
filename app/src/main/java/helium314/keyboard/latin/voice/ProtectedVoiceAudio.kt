@@ -47,7 +47,7 @@ internal object ProtectedVoiceAudio {
         return false
     }
 
-    fun protect(raw: ByteArray, clean: ByteArray, rawScore: FloatArray, cleanScore: FloatArray): ByteArray {
+    fun protect(raw: ByteArray, clean: ByteArray, rawScore: FloatArray, cleanScore: FloatArray, gainEnabled: Boolean = true): ByteArray {
         require(raw.size == clean.size && raw.size % 2 == 0)
         val n = frames(raw)
         require(rawScore.size == n && cleanScore.size == n)
@@ -83,6 +83,7 @@ internal object ProtectedVoiceAudio {
                 rawEvidence >= STRONG && cleanEvidence < WEAK && ratio < .25 -> 1f
                 rawEvidence >= STRONG && rawEvidence - cleanEvidence >= .20f && ratio < .5 -> .65f
                 speech[f] && rawEvidence >= WEAK && cleanEvidence < WEAK && ratio < .25 -> .60f
+                rawEvidence >= WEAK && rawEvidence - cleanEvidence >= .15f && ratio < .10 -> .35f
                 // Never sacrifice weak phonemes between recognized syllables.
                 cleanEvidence >= STRONG && rawEvidence < WEAK -> 0f
                 speech[f] && ratio < .10 -> .25f
@@ -90,19 +91,19 @@ internal object ProtectedVoiceAudio {
                 else -> 0f
             }
             // Measure only confidently speech-like frames for gain control.
-            if (maxOf(rawEvidence, cleanEvidence) >= STRONG) {
+            if (gainEnabled && maxOf(rawEvidence, cleanEvidence) >= STRONG) {
                 for (i in start until end) {
                     val v = sample(clean, i) * (1f - mix[f]) + sample(raw, i) * mix[f]
                     speechEnergy += v.toDouble() * v
                     speechSamples++
                 }
             }
-            for (i in start until end) peak = maxOf(peak, abs(sample(raw,i)), abs(sample(clean,i)))
+            if (gainEnabled) for (i in start until end) peak = maxOf(peak, abs(sample(raw,i)), abs(sample(clean,i)))
         }
         // Modest speech-aware, batch-constant gain. Never amplify a noise-only
         // batch; no gain on near-silent signals; no peak clipping.
         val rms = if (speechSamples > 0) sqrt(speechEnergy / speechSamples) else 0.0
-        val gain = if (speechSamples >= HOP * 3 && rms >= 32.0 && peak > 0)
+        val gain = if (gainEnabled && speechSamples >= HOP * 3 && rms >= 32.0 && peak > 0)
             minOf(1.6, maxOf(1.0, 1500.0 / rms), maxOf(1.0, 31000.0 / peak)).toFloat()
         else 1f
         val result = ByteArray(raw.size)

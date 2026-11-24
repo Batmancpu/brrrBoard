@@ -70,6 +70,11 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
                  android:process=":brr_clean_denoise"
                  android:exported="false" />
 
+        <!-- Stateful BR Brain audio worker. No microphone, storage or network work. -->
+        <service android:name="helium314.keyboard.latin.voice.BrrBrainStreamService"
+                 android:process=":brr_brain_stream"
+                 android:exported="false" />
+
         <!-- Activities -->
         <activity android:name="helium314.keyboard.settings.SettingsActivity"
                 android:theme="@style/platformActivityTheme"

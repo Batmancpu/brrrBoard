@@ -12,6 +12,7 @@ import kotlin.math.abs
 internal class PrivateVoiceChunker(
     private val activity: ((ByteArray, Int, Int) -> Boolean?)? = null,
     private val thoughtComplete: ((ByteArray, Int) -> Boolean?)? = null,
+    private val boundaryPenalty: ((Int, Int) -> Double)? = null,
 ) {
     private val pcm = ByteArray(MAX_BYTES)
     private var used = 0
@@ -126,7 +127,8 @@ internal class PrivateVoiceChunker(
                 energy += abs(sample).toLong()
             }
             val average = energy.toDouble() / ((to - from) / 2).coerceAtLeast(1)
-            val score = average + (at - TARGET_BYTES).toDouble() / BYTES_PER_SECOND * 8.0
+            val score = average + (at - TARGET_BYTES).toDouble() / BYTES_PER_SECOND * 8.0 +
+                (boundaryPenalty?.invoke(from, to) ?: 0.0)
             if (score < bestScore) {
                 best = at
                 bestScore = score
