@@ -69,6 +69,9 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
         authorized = result.resultCode == Activity.RESULT_OK && VaultGestureStore.isDeviceUnlocked(context)
         if (authorized) {
             authorized = runCatching { VaultGestureStore.resetFailures(context) }.isSuccess
+            if (authorized) scope.launch {
+                withContext(Dispatchers.IO) { runCatching { VaultGestureStore.prepareSettingsVerifier(context.applicationContext) } }
+            }
             status = if (!authorized) "Could not unlock vault." else if (configured) "Vault unlocked. Your saved password stays hidden." else "Enter a password and enroll your gesture."
         } else status = "Authentication cancelled or unavailable."
     }

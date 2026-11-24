@@ -39,7 +39,11 @@ object WhatsAppVaultPolicy {
             (tokens.isNotEmpty() && fieldId < 0x01000000)
 
     @JvmStatic fun isPrivateEditor(prefs: SharedPreferences, editor: EditorInfo?): Boolean {
-        if (editor == null || !isTextTarget(editor.packageName, editor.inputType)) return false
+        if (editor == null) return false
+        // Our own masked setup and armed Settings Search must use the same
+        // no-learning/no-preview guard without enabling any insertion route.
+        if (editor.packageName == "com.mangoloads.board" && VaultGestureStore.isMaskedPassword(editor.inputType)) return true
+        if (!isTextTarget(editor.packageName, editor.inputType)) return false
         if (eligible(prefs, editor) && reportsSearch(editor.inputType, editor.imeOptions)) return true
         return guarded(prefs.getStringSet(PREF_GUARDED_FIELDS, emptySet()).orEmpty(),
             editor.fieldId, editor.inputType, editor.imeOptions)

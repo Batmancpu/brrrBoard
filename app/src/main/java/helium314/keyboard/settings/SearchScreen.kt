@@ -52,6 +52,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.os.SystemClock
+import android.view.WindowManager
+import helium314.keyboard.latin.VaultGestureStore
+import helium314.keyboard.latin.utils.getActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +93,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.Font
@@ -135,7 +151,7 @@ fun SearchSettingsScreen(
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val titleView = LocalView.current
-    val titleHoldAction by androidx.compose.runtime.rememberUpdatedState(onTitleHold)
+    val vaultDeadline = remember { mutableStateOf(0L) }
     val holdModifier = if (onTitleHold == null) Modifier else Modifier.pointerInput(Unit) {
         while (true) {
             awaitPointerEventScope { awaitFirstDown(requireUnconsumed = true) }
@@ -144,7 +160,9 @@ fun SearchSettingsScreen(
             }
             if (released == null) {
                 titleView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-                if (awaitPointerEventScope { waitForUpOrCancellation() != null }) titleHoldAction?.invoke()
+                // Arm at the vibration, not on release. Never navigate from a hold.
+                vaultDeadline.value = VaultSearchWindow.deadline(SystemClock.elapsedRealtime())
+                awaitPointerEventScope { waitForUpOrCancellation() }
             }
         }
     }
@@ -152,6 +170,8 @@ fun SearchSettingsScreen(
         onClickBack = onClickBack,
         hideTopSearchBar = hideTopSearchBar,
         showBackButton = showBackButton,
+        vaultDeadline = if (onTitleHold != null) vaultDeadline else null,
+        onVaultUnlock = onTitleHold,
         title = { Text(title, modifier = holdModifier, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         content = {
             if (content == null) {
@@ -199,6 +219,8 @@ fun <T: Any?> SearchScreen(
     menu: List<Pair<String, () -> Unit>>? = null,
     hideTopSearchBar: Boolean = false,
     showBackButton: Boolean = true,
+    vaultDeadline: MutableState<Long>? = null,
+    onVaultUnlock: (() -> Unit)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf(TextFieldValue()) }
@@ -206,13 +228,77 @@ fun <T: Any?> SearchScreen(
     val hazeState = remember { HazeState() }
     val isBlurSupported = remember { android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S }
     val ctx = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val unlockAction by rememberUpdatedState(onVaultUnlock)
+    var secretInput by remember { mutableStateOf(TextFieldValue()) }
 
+    fun disarm() {
+        vaultDeadline?.value = 0L
+        secretInput = TextFieldValue()
+    }
+    fun routeSearch(value: TextFieldValue) {
+        val deadline = vaultDeadline?.value ?: 0L
+        if (deadline != 0L) {
+            // Never route a secret or an expired private edit to the normal filter.
+            if (VaultSearchWindow.active(deadline, SystemClock.elapsedRealtime())) {
+                if (value.text.length <= 512) secretInput = value
+            } else disarm()
+        } else searchText = value
+    }
     fun setShowSearch(value: Boolean) {
         showSearch = value
-        if (!value) searchText = TextFieldValue()
+        if (!value) { searchText = TextFieldValue(); disarm() }
+    }
+    val deadline = vaultDeadline?.value ?: 0L
+    LaunchedEffect(deadline) {
+        secretInput = TextFieldValue()
+        if (deadline != 0L) {
+            searchText = TextFieldValue()
+            delay((deadline - SystemClock.elapsedRealtime()).coerceAtLeast(0L))
+            if (vaultDeadline?.value == deadline) disarm()
+        }
+    }
+    // Private input never participates in settings search, saved state or history.
+    // Exact comparison runs off the UI thread; stale results cannot open a route.
+    LaunchedEffect(deadline, secretInput.text) {
+        val candidate = secretInput.text
+        if (!VaultSearchWindow.active(deadline, SystemClock.elapsedRealtime()) || candidate.length < 4)
+            return@LaunchedEffect
+        delay(120L)
+        if (!VaultSearchWindow.active(deadline, SystemClock.elapsedRealtime())) return@LaunchedEffect
+        val matched = withContext(Dispatchers.IO) {
+            VaultGestureStore.verifySettingsCode(ctx.applicationContext, candidate)
+        }
+        if (matched && vaultDeadline?.value == deadline && secretInput.text == candidate &&
+            VaultSearchWindow.active(deadline, SystemClock.elapsedRealtime())) {
+            disarm()
+            searchText = TextFieldValue()
+            focusManager.clearFocus()
+            keyboard?.hide()
+            unlockAction?.invoke()
+        }
+    }
+    DisposableEffect(owner, vaultDeadline) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) disarm()
+        }
+        if (vaultDeadline != null) owner.lifecycle.addObserver(observer)
+        onDispose {
+            if (vaultDeadline != null) owner.lifecycle.removeObserver(observer)
+            disarm()
+        }
+    }
+    DisposableEffect(deadline != 0L) {
+        val window = if (deadline != 0L) ctx.getActivity()?.window else null
+        val alreadySecure = window != null &&
+            window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
+        window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { if (!alreadySecure) window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
     }
     BackHandler {
-        if (showSearch || searchText.text.isNotEmpty()) setShowSearch(false)
+        if (deadline != 0L || showSearch || searchText.text.isNotEmpty()) setShowSearch(false)
         else onClickBack()
     }
     
@@ -225,8 +311,9 @@ fun <T: Any?> SearchScreen(
     val searchFieldContent = remember {
         movableContentOf {
             StaticSearchField(
-                search = searchText,
-                onSearchChange = { searchText = it },
+                search = if ((vaultDeadline?.value ?: 0L) != 0L) secretInput else searchText,
+                privateMode = (vaultDeadline?.value ?: 0L) != 0L,
+                onSearchChange = ::routeSearch,
                 onClearClick = { setShowSearch(false) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -246,7 +333,7 @@ fun <T: Any?> SearchScreen(
         SearchState(
             showSearch = showSearch,
             searchText = searchText,
-            onSearchChange = { searchText = it },
+            onSearchChange = ::routeSearch,
             setShowSearch = ::setShowSearch,
             searchField = searchFieldContent
         )
@@ -452,7 +539,8 @@ fun StaticSearchField(
     onSearchChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
     colors: TextFieldColors = TextFieldDefaults.colors(),
-    onClearClick: (() -> Unit)? = null
+    onClearClick: (() -> Unit)? = null,
+    privateMode: Boolean = false,
 ) {
     TextField(
         value = search,
@@ -499,6 +587,8 @@ fun StaticSearchField(
         singleLine = true,
         colors = colors,
         textStyle = contentTextDirectionStyle,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search)
+        visualTransformation = if (privateMode) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = if (privateMode) KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Search)
+            else KeyboardOptions(imeAction = ImeAction.Search)
     )
 }

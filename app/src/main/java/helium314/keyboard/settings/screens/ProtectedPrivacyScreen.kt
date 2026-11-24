@@ -192,6 +192,7 @@ fun ProtectedPrivacyScreen(
     onOpenBrainDetails: () -> Unit = {},
     showDashboardAfterAuth: Boolean = false,
     onOpenCorrection: () -> Unit = {},
+    onRecoverWhatsAppVault: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context.findActivity()
@@ -343,6 +344,11 @@ fun ProtectedPrivacyScreen(
                 if (!showDashboardAfterAuth) {
                     OutlinedButton(onClick = onOpenBrainDetails, enabled = !promptPending) {
                         Text("Open detailed BR Brain")
+                    }
+                }
+                if (onRecoverWhatsAppVault != null) {
+                    OutlinedButton(onClick = onRecoverWhatsAppVault, enabled = !promptPending) {
+                        Text("Set up or recover WhatsApp code vault")
                     }
                 }
                 Text("Private note vault", style = MaterialTheme.typography.titleLarge)

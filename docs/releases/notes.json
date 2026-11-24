@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Correct Search and Backspace movement between typing and Emoji without changing key sizes.",
+  "summary": "Private 60-second Settings Search unlock for the WhatsApp code vault; retain corrected Emoji key motion.",
   "changes": [
     {
       "title": "Shared Search and Backspace motion",
@@ -9,6 +9,14 @@
     {
       "title": "Remove incorrect key-to-field morph",
       "detail": "Search fields appear normally in Emoji and Clipboard. No X morph, no additional Clipboard entry animation or whole-panel fade."
+    },
+    {
+      "title": "Hidden vault unlock",
+      "detail": "Holding brrBoard Settings vibrates and arms the existing search bar for 60 seconds without navigating. Enter the enrolled WhatsApp secret code to open vault settings automatically."
+    },
+    {
+      "title": "Private code entry and recovery",
+      "detail": "Masked private input bypasses ordinary settings filtering and learning; no default password, clears on timeout or background. Local Keystore verifier and separately authenticated setup/recovery retain device-credential protection."
     }
   ]
 }

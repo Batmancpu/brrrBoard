@@ -123,6 +123,7 @@ fun SettingsNavHost(
             ProtectedPrivacyScreen(
                 onClickBack = ::goBack,
                 onOpenBrainDetails = { navController.navigate(SettingsDestination.ProtectedBrain) },
+                onRecoverWhatsAppVault = { navController.navigate("private_vault_setup") },
             )
         }
         composable(SettingsDestination.Backup) { BackupSettingsScreen(onClickBack = ::goBack) }
