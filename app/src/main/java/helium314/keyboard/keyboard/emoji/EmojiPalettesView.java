@@ -205,9 +205,8 @@ public final class EmojiPalettesView extends LinearLayout
 
     @Override
     protected void onDetachedFromWindow() {
+        helium314.keyboard.keyboard.EmojiPanelKeyMorph.cancel();
         if (mSearchResultMorph != null) mSearchResultMorph.cancel();
-        helium314.keyboard.keyboard.PanelSearchMorph.cancel(findViewById(R.id.emoji_search_box));
-        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(mBottomRowKeyboard);
         super.onDetachedFromWindow();
     }
 
@@ -801,6 +800,11 @@ public final class EmojiPalettesView extends LinearLayout
         return mSearchMode;
     }
 
+    /** Only the compact browse row participates in the typing/Emoji key handoff. */
+    public MainKeyboardView getBottomRowKeyboardForMorph() {
+        return !mSearchMode && !mExpandedMode ? mBottomRowKeyboard : null;
+    }
+
     public void enterSearchMode() {
         initialize();
 
@@ -810,8 +814,7 @@ public final class EmojiPalettesView extends LinearLayout
         }
         // Capture only eligible text from the HOST editor, before focusing the
         // keyboard's own Search EditText. Never persist or log that text.
-        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(mBottomRowKeyboard);
-        final android.graphics.Rect searchOrigin = helium314.keyboard.keyboard.PanelSearchMorph.origin(mBottomRowKeyboard);
+        helium314.keyboard.keyboard.EmojiPanelKeyMorph.cancel();
         final String hostContext = mSearchQuery.isBlank() ? prepareSearchIdleSuggestions() : "";
         mSearchMode = true;
         // This worker is allocated only on deliberate Emoji Search entry;
@@ -833,14 +836,13 @@ public final class EmojiPalettesView extends LinearLayout
             tabStripView.setVisibility(View.GONE);
         }
         revealWithoutFlash(mSearchBarContainer);
-        helium314.keyboard.keyboard.PanelSearchMorph.enter(findViewById(R.id.emoji_search_box), searchOrigin);
         if (mSearchResultsScrollView != null) {
             revealWithoutFlash(mSearchResultsScrollView);
         }
         if (mSearchEmptyView != null) mSearchEmptyView.setVisibility(View.GONE);
         mSearchResultsView.setVisibility(View.VISIBLE);
 
-        // The capsule itself moves; do not fade the entire alphabet or panel in parallel.
+        // Reveal the actual search UI directly; no key-to-search-field morph.
         swapKeyboardToEmojiSearch(true, false);
         updateSearchKeyboard();
         focusSearchField(true);
@@ -904,10 +906,6 @@ public final class EmojiPalettesView extends LinearLayout
     public void exitSearchMode(final boolean clearQuery, final boolean restoreViews) {
 
         if (mSearchResultMorph != null) mSearchResultMorph.cancel();
-        final android.graphics.Rect searchFrom = restoreViews && mSearchMode
-                ? helium314.keyboard.keyboard.PanelSearchMorph.bounds(findViewById(R.id.emoji_search_box)) : null;
-        helium314.keyboard.keyboard.PanelSearchMorph.cancel(findViewById(R.id.emoji_search_box));
-        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(mBottomRowKeyboard);
 
         if (!mSearchMode && !clearQuery) {
             return;
@@ -966,7 +964,6 @@ public final class EmojiPalettesView extends LinearLayout
         requestLayout();
         if (restoreViews) {
             post(this::restoreEmojiCategoryStrip);
-            helium314.keyboard.keyboard.PanelSearchMorph.exit(mBottomRowKeyboard, searchFrom);
         }
     }
 
@@ -2130,7 +2127,6 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     public void stopEmojiPalettes() {
-        helium314.keyboard.keyboard.PanelSearchMorph.cancelReverse(mBottomRowKeyboard);
         if (!initialized) return;
 
 

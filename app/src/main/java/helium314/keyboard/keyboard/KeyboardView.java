@@ -372,17 +372,41 @@ public class KeyboardView extends View {
         }
     }
 
-    private boolean mPanelSearchMorphHidden;
+    private int mEmojiMorphHiddenSearch = Integer.MIN_VALUE;
+    private boolean mEmojiMorphHiddenDelete;
 
-    public void setPanelSearchMorphHidden(final boolean hidden) {
-        if (mPanelSearchMorphHidden == hidden) return;
-        mPanelSearchMorphHidden = hidden;
+    public void setEmojiMorphHidden(final int searchCode, final boolean delete) {
+        if (mEmojiMorphHiddenSearch == searchCode && mEmojiMorphHiddenDelete == delete) return;
+        mEmojiMorphHiddenSearch = searchCode;
+        mEmojiMorphHiddenDelete = delete;
         invalidateAllKeys();
+    }
+
+    /** Render just one public control key, not the keyboard, host screen or user text. */
+    public Bitmap renderEmojiMorphKey(final int code) {
+        final Keyboard keyboard = getKeyboard();
+        final Key key = keyboard == null ? null : keyboard.getKey(code);
+        if (key == null || key.isSpacer() || key.getDrawWidth() <= 0 || key.getHeight() <= 0) return null;
+        if (code != KeyCode.EMOJI_SEARCH && code != KeyCode.DELETE && code != Constants.CODE_ENTER) return null;
+        if (code == Constants.CODE_ENTER && keyboard.mId.imeAction() != android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) return null;
+        final Bitmap bitmap = Bitmap.createBitmap(key.getDrawWidth(), key.getHeight(), Bitmap.Config.ARGB_8888);
+        bitmap.setDensity(Bitmap.DENSITY_NONE);
+        final float scale = Settings.getValues().mKeyboardHeightScale;
+        mIconScaleFactor = scale < 0.8f ? scale + 0.2f : 1f;
+        final Canvas canvas = new Canvas(bitmap);
+        canvas.translate(-key.getDrawX() - getPaddingLeft(), -key.getY() - getPaddingTop());
+        drawKeyVisual(key, canvas, new Paint(Paint.ANTI_ALIAS_FLAG));
+        return bitmap;
     }
 
     private void onDrawKey(@NonNull final Key key, @NonNull final Canvas canvas,
             @NonNull final Paint paint) {
-        if (mPanelSearchMorphHidden && key.getCode() == KeyCode.EMOJI_SEARCH) return;
+        if (key.getCode() == mEmojiMorphHiddenSearch || (mEmojiMorphHiddenDelete && key.getCode() == KeyCode.DELETE)) return;
+        drawKeyVisual(key, canvas, paint);
+    }
+
+    private void drawKeyVisual(@NonNull final Key key, @NonNull final Canvas canvas,
+            @NonNull final Paint paint) {
         final int keyDrawX = key.getDrawX() + getPaddingLeft();
         final int keyDrawY = key.getY() + getPaddingTop();
         canvas.translate(keyDrawX, keyDrawY);

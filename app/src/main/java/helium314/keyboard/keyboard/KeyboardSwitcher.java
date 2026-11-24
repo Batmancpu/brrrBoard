@@ -278,6 +278,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     public void onHideWindow() {
+        EmojiPanelKeyMorph.cancel();
         exitResizeMode();
         clearTransitions();
         if (mKeyboardView != null) {
@@ -286,6 +287,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     private void clearTransitions() {
+        EmojiPanelKeyMorph.cancel();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
             mRunningAnimator = null;
@@ -324,7 +326,19 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mCurrentAnimatingPanel = null;
         }
         final View outgoingPanel = getVisibleKeyboardView();
+        final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
+        final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView
+                && !mEmojiPalettesView.isSearchMode();
+        final MainKeyboardView sourceKeys = toEmoji ? mKeyboardView
+                : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
+        final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(sourceKeys);
+        EmojiPanelKeyMorph.cancel();
         action.run();
+        if (source != null && mCurrentInputView != null) {
+            final MainKeyboardView destination = toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph()
+                    : mKeyboardView;
+            EmojiPanelKeyMorph.start(mCurrentInputView, source, destination);
+        }
         if (targetPanel == mEmojiPalettesView || targetPanel == mClipboardHistoryView
                 || (targetPanel == mKeyboardView
                 && (outgoingPanel == mEmojiPalettesView
@@ -367,6 +381,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
      * Invalidates delayed panel animation cleanup when the input view/editor/window changes owner.
      */
     public void cancelPanelTransition() {
+        EmojiPanelKeyMorph.cancel();
         mPanelTransitionGuard.invalidate();
         if (mRunningAnimator != null) {
             mRunningAnimator.cancel();
@@ -1938,6 +1953,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     @SuppressLint("InflateParams")
     public View onCreateInputView(@NonNull Context displayContext, final boolean isHardwareAcceleratedDrawingEnabled) {
+        EmojiPanelKeyMorph.cancel();
         if (mKeyboardView != null) {
             mKeyboardView.closing();
         }

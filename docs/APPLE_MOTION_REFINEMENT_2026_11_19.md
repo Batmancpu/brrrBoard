@@ -1,3 +1,7 @@
+## 2026-11-24 — Correct typing ↔ Emoji shared-key motion (owner clarification)
+
+Owner explicitly corrected the prior misunderstanding: no Search key expanding into a search field, no X morph. From normal typing with Search IME action, move its existing bottom-right Search key horizontally into the Emoji bottom-left Search position, and move Backspace from above into bottom-right; reverse on return. Keep each key's existing layout and size, no clipboard entry morph (existing clipboard height/surface motion unchanged). Removed PanelSearchMorph entirely from Emoji/Clipboard Search entry and exit. New EmojiPanelKeyMorph captures only actual public Search/Delete key artwork using KeyboardView's own renderer; no host/user text or full panel screenshots. Pair by real key codes, capture outgoing geometry before panel switch and measure incoming on pre-draw; 150ms native-size translation, crossfade unscaled artworks for theme/size differences; only corresponding destination keys hidden until handoff; no keyboard height/spacing/tint changes. Honor system reduced motion, cancel on window/editor/view changes, and skip expanded Emoji or Search-mode surfaces; no Search morph for non-Search host action. Clipboard unchanged apart from removing erroneous key-to-field animation. No vault, signing, permissions or model changes. Test geometry and both directions; physical-device verification pending. Build and signed release CI pending. Work on main only.
+
 # brrBoard — Apple-like motion and active-only mic refinement (2026-11-19)
 
 ## Owner corrections after v1.0.146

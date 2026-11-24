@@ -1,18 +1,14 @@
 {
   "schema": 1,
-  "summary": "Dedicated WhatsApp Secret Code vault with normal text fields, privacy isolation and adaptive pattern recognition.",
+  "summary": "Correct Search and Backspace movement between typing and Emoji without changing key sizes.",
   "changes": [
     {
-      "title": "WhatsApp-only secret code",
-      "detail": "Exact WhatsApp app and focused UID only; ordinary text fields supported. Optional Search metadata restriction; never auto-submit."
+      "title": "Shared Search and Backspace motion",
+      "detail": "Search travels from bottom right to the Emoji Search position; Backspace moves into the bottom-right slot. Reverse on return. Existing key sizes, colors and layout retained."
     },
     {
-      "title": "Persistent private field protection",
-      "detail": "Guard fields before insertion and on reopen; no suggestions, learning, swipe predictions, autocorrection, clipboard suggestions or voice in guarded fields. Unknown field IDs fail closed. Authenticated reset only after code removal."
-    },
-    {
-      "title": "Adaptive gesture enrollment",
-      "detail": "Three encrypted enrolled shapes with majority matching, start/success/rejection feedback, and editor/cursor cancellation. Re-enroll your WhatsApp secret code; older generic mappings are not silently reused."
+      "title": "Remove incorrect key-to-field morph",
+      "detail": "Search fields appear normally in Emoji and Clipboard. No X morph, no additional Clipboard entry animation or whole-panel fade."
     }
   ]
 }
