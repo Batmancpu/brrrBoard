@@ -1292,6 +1292,9 @@ public class LatinIME extends InputMethodService implements
                 .cancelPendingKeyToSuggestionPreDraw();
         mEditorFocusEpoch++;
         mVaultSelectionEpoch++;
+        // Clear transient words at the actual editor boundary, even when
+        // settings are reused by a restart or delayed orientation handling.
+        mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();
@@ -1334,6 +1337,7 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInput() {
         mEditorFocusEpoch++;
         mVaultSelectionEpoch++;
+        mInputLogic.mSuggest.clearNextWordSuggestionsCache();
         mInlineProviderViewActive = false;
         mInlineRequestEpoch = -1;
         mInlineDictation.cancel();

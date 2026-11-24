@@ -122,6 +122,9 @@ public final class KeyboardId {
                 id.mDeviceLocked,
                 id.mHasShortcutKey,
                 id.mNumberRowEnabled,
+                id.mNumberRowInSymbols,
+                id.mOneHandedModeEnabled,
+                id.mEmojiSearchAvailable,
                 id.mLanguageSwitchKeyEnabled,
                 id.mEmojiKeyEnabled,
                 id.isMultiLine(),
@@ -146,6 +149,9 @@ public final class KeyboardId {
                 && other.mDeviceLocked == mDeviceLocked
                 && other.mHasShortcutKey == mHasShortcutKey
                 && other.mNumberRowEnabled == mNumberRowEnabled
+                && other.mNumberRowInSymbols == mNumberRowInSymbols
+                && other.mOneHandedModeEnabled == mOneHandedModeEnabled
+                && other.mEmojiSearchAvailable == mEmojiSearchAvailable
                 && other.mLanguageSwitchKeyEnabled == mLanguageSwitchKeyEnabled
                 && other.mEmojiKeyEnabled == mEmojiKeyEnabled
                 && other.isMultiLine() == isMultiLine()

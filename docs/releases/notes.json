@@ -1,22 +1,10 @@
 {
   "schema": 1,
-  "summary": "Bounded keyboard memory, glass lifecycle, private voice buffers and prediction/swipe efficiency.",
+  "summary": "Final layout-cache correctness and editor lifecycle polish.",
   "changes": [
     {
-      "title": "Bounded keyboard memory",
-      "detail": "Keep four recent alphabet layouts warm and bound soft layout entries; invalidate both tiers on geometry, locale or theme changes."
-    },
-    {
-      "title": "Glass lifecycle and redraws",
-      "detail": "Restore GPU blur on same-size reattachment, detach source observers, and coalesce repeated frame requests without changing glass styling."
-    },
-    {
-      "title": "Private voice buffer reuse",
-      "detail": "Reuse bounded zeroized capture-frame buffers without changing speech order, batch duration, model or cancellation policy."
-    },
-    {
-      "title": "Prediction and swipe efficiency",
-      "detail": "Reject stale cache writes and Emoji results, skip disabled reranking work, reuse swipe geometry and support denser touch samples; preserve native ranking."
+      "title": "Final layout and editor polish",
+      "detail": "Keep symbol number-row, one-handed and Emoji Search layout variants distinct, and clear transient predictions at editor boundaries."
     }
   ]
 }

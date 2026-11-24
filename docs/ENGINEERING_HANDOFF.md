@@ -482,3 +482,10 @@ Owner explicitly approved P1 and P2 after requesting careful code-level impact r
 
 
 Predecessor one-stroke update verified: v1.0.277, exact source 36febb58f7745f25c505f69ef8ebe6893b7a7934; debug 45355487458 and signed release 45355487552 SUCCESS; APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.277/brrBoard.apk, sha256:1eac458821c1b9e3804cce8f74a2defe602ab5c50b5e99d160a4194b76bee71e, 75570765 bytes. Physical first-attempt testing remains pending. P1/P2 release notes now contain only new changes after v1.0.277.
+
+
+## 2026-11-24 — final polish candidate
+Owner requests final polish after the P1/P2 pass. KeyboardId equality and hash previously omitted number-row-in-symbols, one-handed mode and Emoji Search availability, despite those flags being stored and used to build layouts; include them in cache identity and cover distinct variants with Robolectric. Clear next-word cache on real editor start/finish so transient contexts and in-flight results cannot survive reused settings or delayed orientation handling. No gesture thresholds, voice settings/models, ranking, themes, layout dimensions, signing identity, permissions or dependencies changed. Source candidate only until exact debug and original-signed release are verified. Device visual/latency/accuracy acceptance remains required; avoid speculative further tuning.
+
+
+P1/P2 predecessor verified: v1.0.278, exact source d40e8b0160ca64259703b739d521e812bc93ee4c; debug 45356640485 and original-signed release 45356640567 SUCCESS; APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.278/brrBoard.apk, sha256:a8f68052805070d5139d5e4cfba1af3acfb250c9ca53d7d6251dcb5858e6b772, 75570765 bytes. Physical Reno10 measurements remain pending. Final polish release notes now contain only new changes after v1.0.278.
