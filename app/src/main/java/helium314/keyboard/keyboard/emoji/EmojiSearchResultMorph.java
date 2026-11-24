@@ -38,7 +38,8 @@ final class EmojiSearchResultMorph {
         cancel();
         if (!KeyboardMotionSpec.enabled() || source == null || !source.isShown()
                 || source.getParent() != parent || source.getWidth() <= 0
-                || source.getHeight() <= 0) return;
+                || source.getHeight() <= 0 || !source.isLaidOut()
+                || source.isLayoutRequested() || parent.isLayoutRequested()) return;
         final int width = source.getWidth();
         final int height = source.getHeight();
         if ((long) width * height > MAX_SNAPSHOT_PIXELS) return;

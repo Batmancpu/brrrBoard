@@ -146,6 +146,7 @@ public final class EmojiPalettesView extends LinearLayout
     private float mSearchKeyWidth;
     private float mSearchKeyHeight;
     private boolean mSearchMode = false;
+    private boolean mSearchEntryInProgress;
     private boolean mExpandedMode = false;
     private boolean mUpdatingSearchText = false;
     private String mSearchQuery = "";
@@ -847,7 +848,14 @@ public final class EmojiPalettesView extends LinearLayout
         updateSearchKeyboard();
         focusSearchField(true);
         updateSearchQueryUi();
-        searchEmoji(mSearchQuery);
+        // The initial result row is part of the new layout, not a replacement
+        // of a previously presented row. Avoid a software snapshot during entry.
+        mSearchEntryInProgress = true;
+        try {
+            searchEmoji(mSearchQuery);
+        } finally {
+            mSearchEntryInProgress = false;
+        }
         if (!hostContext.isEmpty() && mSearchQuery.isBlank()) {
             final long idleGeneration = mSearchGeneration;
             EmojiDescribeEngine.get().suggestContext(getContext(), hostContext, 8,
@@ -1263,7 +1271,9 @@ public final class EmojiPalettesView extends LinearLayout
         final boolean noMatches = finalAnswer && text != null
                 && !text.isBlank() && visibleEmojis.isEmpty();
         final boolean resultsChanged = !mDisplayedSearchEmojis.equals(visibleEmojis);
-        if (mSearchResultMorph != null && resultsChanged && mSearchMode && finalAnswer) {
+        final boolean morphResults = EmojiSearchSurfacePolicy.shouldMorphResults(
+                mSearchMode, mSearchEntryInProgress, resultsChanged, finalAnswer);
+        if (mSearchResultMorph != null && morphResults) {
             final View oldSurface = mSearchEmptyView.getVisibility() == View.VISIBLE
                     ? mSearchEmptyView : mSearchResultsScrollView;
             mSearchResultMorph.capture(oldSurface);
@@ -1312,7 +1322,7 @@ public final class EmojiPalettesView extends LinearLayout
         setSearchResultsPending(false);
         if (!mSearchMode && mSearchResultMorph != null) {
             mSearchResultMorph.cancel();
-        } else if (resultsChanged && mSearchResultMorph != null && finalAnswer) {
+        } else if (morphResults && mSearchResultMorph != null) {
             mSearchResultMorph.reveal(noMatches ? mSearchEmptyView : mSearchResultsScrollView);
         }
         mSearchResultsView.invalidate();

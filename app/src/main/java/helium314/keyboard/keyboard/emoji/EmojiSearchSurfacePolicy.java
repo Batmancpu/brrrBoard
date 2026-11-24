@@ -12,4 +12,9 @@ final class EmojiSearchSurfacePolicy {
     static boolean emptyVisible(final boolean searchMode, final boolean noMatches) {
         return searchMode && noMatches;
     }
+
+    static boolean shouldMorphResults(final boolean searchMode, final boolean entering,
+            final boolean changed, final boolean finalAnswer) {
+        return searchMode && !entering && changed && finalAnswer;
+    }
 }

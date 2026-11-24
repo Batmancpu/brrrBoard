@@ -14,6 +14,14 @@ public class EmojiSearchSurfacePolicyTest {
         assertFalse(EmojiSearchSurfacePolicy.emptyVisible(false, true));
     }
 
+    @Test public void initialSearchLayoutNeverSnapshotsAnUnpresentedResultRow() {
+        assertFalse(EmojiSearchSurfacePolicy.shouldMorphResults(true, true, true, true));
+        assertFalse(EmojiSearchSurfacePolicy.shouldMorphResults(false, false, true, true));
+        assertFalse(EmojiSearchSurfacePolicy.shouldMorphResults(true, false, false, true));
+        assertFalse(EmojiSearchSurfacePolicy.shouldMorphResults(true, false, true, false));
+        assertTrue(EmojiSearchSurfacePolicy.shouldMorphResults(true, false, true, true));
+    }
+
     @Test public void searchShowsExactlyOneOfResultsOrEmptyState() {
         assertTrue(EmojiSearchSurfacePolicy.resultsVisible(true, false));
         assertFalse(EmojiSearchSurfacePolicy.emptyVisible(true, false));

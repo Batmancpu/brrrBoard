@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Final layout-cache correctness and editor lifecycle polish.",
+  "summary": "Smooth direct Emoji Search entry without the intermediate Browse transition.",
   "changes": [
     {
-      "title": "Final layout and editor polish",
-      "detail": "Keep symbol number-row, one-handed and Emoji Search layout variants distinct, and clear transient predictions at editor boundaries."
+      "title": "Emoji Search animation",
+      "detail": "Open the final Search layout in one transition instead of opening Browse and switching 50 ms later. Skip the initial result snapshot and avoid morphing while geometry is unsettled."
     }
   ]
 }

@@ -2980,18 +2980,7 @@ public class LatinIME extends InputMethodService implements
     private int mLastKeyboardHeight = 0;
 
     public void launchEmojiSearch() {
-        final EmojiPalettesView emojiPalettesView = mKeyboardSwitcher.getEmojiPalettesView();
-        if (emojiPalettesView != null && mKeyboardSwitcher.isShowingEmojiPalettes()) {
-            emojiPalettesView.enterSearchMode();
-            return;
-        }
-        mKeyboardSwitcher.setEmojiKeyboard();
-        mHandler.postDelayed(() -> {
-            final EmojiPalettesView view = mKeyboardSwitcher.getEmojiPalettesView();
-            if (view != null) {
-                view.enterSearchMode();
-            }
-        }, 50);
+        mKeyboardSwitcher.openEmojiSearch();
     }
 
     public boolean isEmojiSearch() {

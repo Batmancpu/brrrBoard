@@ -1,0 +1,7 @@
+# Emoji Search entry — 2026-11-24
+
+
+## 2026-11-24 — Emoji Search entry jitter fix
+Owner reports low-FPS/jittery animation from typing to Emoji Search. Verified predecessor v1.0.279 (99f473ca29b9648432651809faa30085a4f8cddb); debug 45357945310 and signed release 45357945345 succeeded. Source diagnosis: LatinIME.launchEmojiSearch previously opened Browse, captured the animated key morph, then posted Search entry 50 ms later, canceling the morph and resizing/reparenting in a second traversal. Direct entry now uses KeyboardSwitcher.openEmojiSearch and commits final Search in the same synchronous UI transaction, omitting the intermediate Browse key-morph snapshot; ordinary Browse/ABC retains existing choreography. Initial Search result installation skips the bitmap morph; subsequent morph capture requires stable laid-out geometry. Preserve Android-owned IME resize, search layout, privacy, normal result ranking, and accessibility/touch ownership. Added EmojiSearchSurfacePolicyTest coverage. Physical ColorOS frame pacing still requires on-device validation; no measured FPS claim. Regression test and exact-source original-signed APK gates required.
+
+Device checklist: tap typing-to-Search repeatedly, Search-to-ABC, Browse-to-Search, back to Browse, rapid tap/back, dark/light frosted themes, persistent emoji row, one-handed and landscape, verify no gap/flash, search query and result interactions. Keep normal Browse key morph and result-change animation. Compare before/after with high-frame-rate screen recording; CI cannot measure physical display FPS.

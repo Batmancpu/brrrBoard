@@ -311,6 +311,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     }
 
     private void transitionToPanel(final View targetPanel, final Runnable action) {
+        transitionToPanel(targetPanel, action, true);
+    }
+
+    private void transitionToPanel(final View targetPanel, final Runnable action,
+            final boolean allowEmojiKeyMorph) {
         if (mKeyboardView == null || targetPanel == null) {
             action.run();
             return;
@@ -329,7 +334,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
         final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView
                 && !mEmojiPalettesView.isSearchMode();
-        final MainKeyboardView sourceKeys = toEmoji ? mKeyboardView
+        final MainKeyboardView sourceKeys = !allowEmojiKeyMorph ? null
+                : toEmoji ? mKeyboardView
                 : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
         final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(sourceKeys);
         EmojiPanelKeyMorph.cancel();
@@ -1197,6 +1203,21 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     // Implements {@link KeyboardState.SwitchActions}.
     @Override
     public void setEmojiKeyboard() {
+        showEmojiPanel(false);
+    }
+
+    /** Direct entry is one UI transaction, never a timed Browse -> Search hop. */
+    public void openEmojiSearch() {
+        if (mEmojiPalettesView == null || mKeyboardView == null || mMainKeyboardFrame == null)
+            return;
+        if (isShowingEmojiPalettes()) {
+            mEmojiPalettesView.enterSearchMode();
+        } else {
+            showEmojiPanel(true);
+        }
+    }
+
+    private void showEmojiPanel(final boolean openSearch) {
         if (DEBUG_ACTION) {
             Log.d(TAG, "setEmojiKeyboard");
         }
@@ -1260,10 +1281,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     mSuggestionStripView.setAccessPointMenuOpen(false);
                 }
                 updatePersistentEmojiRow();
+                // Install Search, reparent its real keyboard, and request the
+                // final geometry before the same traversal. No Browse frame,
+                // bitmap key morph or delayed callback can race a newer editor.
+                if (openSearch) mEmojiPalettesView.enterSearchMode();
                 if (mCurrentInputView != null)
                     mCurrentInputView.requestLayout();
             }
-        });
+        }, !openSearch);
     }
 
     // Implements {@link KeyboardState.SwitchActions}.
