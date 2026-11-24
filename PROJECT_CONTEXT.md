@@ -455,3 +455,8 @@ Owner requests a two-row horizontally scrolling Toolbar, removal of Settings fro
 # Shipped owner GO (2026-11-22): private hold-to-talk v1.0.251
 
 Hold mic to record and release to finish, with live guarded provisional text outside Incognito, final-only Incognito, default-on hold-only auto-send limited to `IME_ACTION_SEND`, and swipe-to-Cancel with mic-to-bin visual plus configured haptic. No audio/transcript recovery or spoken announcement. The legacy recovery file is purged. Pause-aware 16 kHz chunking is amplitude-based (3 s minimum speech + 600 ms quiet; six-second hard cap; 320 ms overlap), not a bundled neural VAD. Original-signed v1.0.251 is published from exact source `2f2e7424883fab5f597e4f2c3889ec6bfb00ee29`, with both Parakeet speech models omitted. APK SHA-256: `9f0f4f609beadfede67a5e11b885d7cdc12cbb4e36e0b84f863fa55892f5bf17`. Physical device acceptance is not proven. See `docs/VOICE_HOLD_TO_TALK_FOLLOWUP_2026_11_22.md`.
+
+
+## 2026-11-24 — Capture-first release verified
+
+Exact source `c2d68aa0a815599ee5e3531606bb470e60a6e398`: debug/full unit tests `45333533721` and original-signed release `45333533691` completed successfully, including same-commit gate, signing verification and publication. Non-draft v1.0.267 published 2026-11-24T05:36:01Z; uploaded APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.267/brrBoard.apk, 75,472,461 bytes, GitHub asset SHA-256 `4eafb395f2ec24db53329467737ee9f41aa3f3ef288062a566646a729609730c`. This verifies the capture-first checkpoint, not later concurrent features. No physical phone test or measured latency; verify cold/warm first syllables, quiet speech and continuous two-minute dictation on Oppo. Large optional ASR bundling skipped. No source repair needed.
