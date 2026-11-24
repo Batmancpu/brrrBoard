@@ -9,6 +9,10 @@
     {
       "title": "Credential recovery",
       "detail": "Recovery is visible only in the armed private search window. Existing device credential protection remains for changing the saved code."
+    },
+    {
+      "title": "Live protected-session state",
+      "detail": "The hidden settings hub now observes current authorization even when Android retains its navigation graph, and expired or restored locked routes return to the ordinary Settings screen."
     }
   ]
 }
