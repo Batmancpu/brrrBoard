@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Fix continuous offline voice typing across successive transcription batches.",
+  "summary": "Stabilize offline voice cancellation feedback and guard Send-only delivery.",
   "changes": [
     {
-      "title": "Keep tap-to-dictate recording across batches",
-      "detail": "Synchronize live voice composition and expected editor cursor in one RichInputConnection batch edit. Own interim selection updates no longer reset the composing span. Capture and queued transcription continue until explicit Stop or the existing 170-second safety cap; Incognito, hold-to-talk and cancel rules remain unchanged. Regression tests cover multiple live batches and two minutes of continuous PCM."
+      "title": "Give every explicit offline voice cancellation the correct haptic",
+      "detail": "Fire the existing important-action, DND-aware confirmation from the private voice session exit for Cancel label, microphone, drag-and-release and TalkBack actions. Normal Stop, completion, editor loss and microphone errors never trigger this discard haptic; remove the duplicate ordinary key-tick from the offline Cancel label."
     },
     {
-      "title": "Keep recording if an editor rejects live composition",
-      "detail": "If an editor rejects an interim composing update, continue collecting and decoding audio and defer guarded transcript delivery until Stop. Preserve the installed offline model, privacy checks and signing identity."
+      "title": "Guard hold-to-talk auto-send with one tested policy",
+      "detail": "Dispatch Send only for an explicitly enabled hold-to-talk result in the unchanged editor and an IME_ACTION_SEND field, never when private mode is active. Add focused regressions for Send, Go, Done, Search, private mode, no request, and changed editor destination. Preserve continuous live batches, models, signing and data."
     }
   ]
 }

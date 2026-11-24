@@ -186,8 +186,12 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             VoiceSessionCrashTrail.note(ime, if (answer.isSuccess) "COMPLETE" else "FAILED")
             val statusFooter = footer
             val hadLiveDraft = composingVoiceDraft.isNotEmpty()
-            val shouldSend = autoSendOnComplete && validDestination &&
-                ((originalEditorInfo?.imeOptions ?: 0) and EditorInfo.IME_MASK_ACTION) == EditorInfo.IME_ACTION_SEND
+            val shouldSend = OfflineDictationAutoSendPolicy.shouldSend(
+                requested = autoSendOnComplete,
+                validDestination = validDestination,
+                privateMode = Settings.getValues().mIncognitoModeEnabled,
+                imeOptions = originalEditorInfo?.imeOptions ?: 0,
+            )
             finish(OfflineDictationExit.OTHER, clearDraft = outcome != VoiceTranscriptDeliveryPolicy.Outcome.INSERT)
             if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
                 ime.onPrivateVoiceTextInput(phrase, hadLiveDraft)
@@ -211,8 +215,13 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private fun finish(reason: OfflineDictationExit, clearDraft: Boolean = true) {
         val wasActive = phase != Phase.IDLE
         val wasProcessing = phase == Phase.DECODING
-        if (wasActive && reason == OfflineDictationExit.USER_CANCEL)
+        val explicitDiscard = OfflineDictationFeedbackPolicy.showDiscard(reason, wasActive)
+        if (explicitDiscard) {
             VoiceSessionCrashTrail.note(ime, "CANCELLED")
+            // One session-owned confirmation for tap, hold-release and TalkBack.
+            // A system/editor shutdown must never masquerade as a user discard.
+            AudioAndHapticFeedbackManager.getInstance().performImportantActionConfirmation()
+        }
         val statusFooter = footer
         if (clearDraft && composingVoiceDraft.isNotEmpty() && originalConnection != null &&
             sameEditor(originalConnection!!) && composingDraftStillAtOriginalCursor()) {
@@ -248,7 +257,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         // cancel. Clear it synchronously before the next editor can be shown.
         statusFooter?.clearDictationError()
         footer = null
-        if (OfflineDictationFeedbackPolicy.showDiscard(reason, wasActive)) {
+        if (explicitDiscard) {
             statusFooter?.showDictationDiscarded(wasProcessing)
         }
     }

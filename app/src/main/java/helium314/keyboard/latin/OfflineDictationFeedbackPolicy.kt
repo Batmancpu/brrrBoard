@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin
 
+import android.view.inputmethod.EditorInfo
+
 /** Presentation must follow the actual voice-session exit, not elapsed time or a stale label. */
 internal enum class OfflineDictationExit { USER_CANCEL, OTHER }
 
@@ -31,4 +33,15 @@ internal object FooterMicMorphPolicy {
     fun redMicAlpha(p: Float): Float = 1f - between(p, .45f, .68f)
     fun whiteMicAlpha(p: Float): Float = between(p, .77f, 1f)
     fun idleRevealFraction(p: Float): Float = between(p, .92f, 1f)
+}
+
+/** Host Send actions are only dispatched after an eligible explicit hold-to-talk result. */
+internal object OfflineDictationAutoSendPolicy {
+    fun shouldSend(
+        requested: Boolean,
+        validDestination: Boolean,
+        privateMode: Boolean,
+        imeOptions: Int,
+    ): Boolean = requested && validDestination && !privateMode &&
+        (imeOptions and EditorInfo.IME_MASK_ACTION) == EditorInfo.IME_ACTION_SEND
 }

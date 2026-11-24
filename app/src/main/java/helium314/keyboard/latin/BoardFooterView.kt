@@ -946,7 +946,9 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         val status = voiceError
         if (cancel && this::ime.isInitialized) {
             status.setOnClickListener { view ->
-                feedback(view)
+                // Offline Cancel has its own session-owned, DND-aware confirmation.
+                // Do not add an ordinary key-tick on top of that haptic.
+                if (!offline) feedback(view)
                 if (offline) ime.cancelBoardOfflineDictation() else ime.cancelBoardDictation()
             }
             status.contentDescription = resources.getString(R.string.board_cancel_dictation)

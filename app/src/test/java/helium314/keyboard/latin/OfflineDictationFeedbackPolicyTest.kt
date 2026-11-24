@@ -40,4 +40,20 @@ class OfflineDictationFeedbackPolicyTest {
                 FooterMicMorphPolicy.idleRevealFraction(p)).all { it in 0f..1f }
         })
     }
+
+    @Test fun autoSendRequiresExplicitHoldValidEditorAndSendAction() {
+        val send = android.view.inputmethod.EditorInfo.IME_ACTION_SEND
+        val go = android.view.inputmethod.EditorInfo.IME_ACTION_GO
+        val done = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+        val search = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+        val noEnterAction = android.view.inputmethod.EditorInfo.IME_FLAG_NO_ENTER_ACTION
+        assertTrue(OfflineDictationAutoSendPolicy.shouldSend(true, true, false, send))
+        assertTrue(OfflineDictationAutoSendPolicy.shouldSend(true, true, false, send or noEnterAction))
+        assertFalse(OfflineDictationAutoSendPolicy.shouldSend(false, true, false, send))
+        assertFalse(OfflineDictationAutoSendPolicy.shouldSend(true, false, false, send))
+        assertFalse(OfflineDictationAutoSendPolicy.shouldSend(true, true, true, send))
+        for (action in listOf(go, done, search, android.view.inputmethod.EditorInfo.IME_ACTION_NONE)) {
+            assertFalse(OfflineDictationAutoSendPolicy.shouldSend(true, true, false, action))
+        }
+    }
 }

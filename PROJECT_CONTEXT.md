@@ -1,4 +1,9 @@
 Warning: truncated output (original token count: 85396)
+
+## 2026-11-24 — First stabilization batch (candidate; pending CI)
+
+Starting from original-signed **v1.0.259**, main source `d7e4199cfe7e09fc4c0129adf538f258fcc58c9c`, whose debug/full unit and Obtainium release workflows passed. This candidate centralizes explicit offline-voice Cancel haptics in the session exit and adds a testable Send-only auto-send safety gate. No signing, package, model, learning, backup or permission changes. Do not claim Oppo physical haptic, Send-field or accessibility acceptance from code/CI. The WIP private-footer gesture branch remains separate, unverified and not released.
+
 Total output lines: 1475
 
 # brrBoard project context
