@@ -636,3 +636,12 @@ Candidate source review correction: use a distinct physical .vault ciphertext fi
 - Replace the history-wide decrypted text list with metadata and process-local HMAC fingerprints. Exact equality still checks the database. UI reads on demand through at most 16 entries / 262144 characters, fixed 30-second window; close/hide/editor changes clear the DAO payload references. Pinned entries remain persistent by design; explicitly exported backups remain user-controlled. JVM Strings and UI framework copies cannot be securely zeroed. Existing image/undo lifecycle remains unchanged. Test cache time and bounds. Exact workflow and device testing still required.
 
 - Clipboard search scans rows individually and returns IDs, rather than rebuilding a full plaintext history list. Added sampled-map practice, which is a diagnostic simulation only and does not learn or retain touches; full bounded swipe association inspection and per-pair removal use existing encrypted store. Native dictionary migration and physical device acceptance are separate work.
+
+
+### Verification checkpoint — signed v1.0.304
+All six workflow runs concluded success:
+- v1.0.302: fd1ad4fbcaaadf955892234917836da7a3911e0c — debug 45458915263, release 45458915431.
+- v1.0.303: 06d69dee2c9723054308efa5f58f068996a5f07c — debug 45460363904, release 45460363132.
+- v1.0.304: 9e939132897f6c0da10c349daf049184ebfb8563 — debug 45461937615, release 45461938151. Same-commit unit tests, signing verification and publication passed. APK SHA256 5f7394ce1b494c535d675c194d71081b7fceb7b2f275978a36f1ea5499e32bbb.
+- Only main advanced, via exact-parent fast-forward after prior workflows succeeded; no signing changes. Code-level plan and release notes retained. This checkpoint is documentation-only.
+- Not yet verified on Reno10: actual input latency/frame pacing, voice timing, gesture regressions, image paste compatibility and migration on real installed data. Automatic per-app learning currently changes inherited autocorrect only; manual overrides available. Native word-history dictionary encryption/migration and deeper Smart Emoji/context database inspection remain separate work. Clipboard text vault is still opt-in; pinned/saved content persists as intended. No claim of secure JVM String erasure or device-tested privacy. Sampled practice map is diagnostic, not live keyboard training.
