@@ -382,12 +382,14 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         return true
     }
 
-    // Own only the preview created by this gesture. Store positions, not text.
+    // Own only the preview created by this gesture. Text proof is held only in eligible editors.
     private var deleteAnchor = -1
     private var deleteHead = -1
     private var deleteEpoch = -1L
     private var deleteConnection: InputConnection? = null
     private var deleteStarted = 0L
+    private var deleteProof: String? = null
+    private var deleteCanJournal = false
     private val deleteTimeout = Runnable { onCancelDeletePointer() }
 
     private fun deleteOwnerValid(): Boolean = deleteAnchor >= 0 &&
@@ -405,6 +407,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             deleteAnchor = anchor; deleteHead = anchor
             deleteEpoch = latinIME.editorGeneration(); deleteConnection = ic
             deleteStarted = SystemClock.elapsedRealtime()
+            deleteCanJournal = latinIME.mayUseTransientCorrectionMemory(settings.current)
             latinIME.mHandler.postDelayed(deleteTimeout, 30_000)
         }
         if (!deleteOwnerValid() || SystemClock.elapsedRealtime() - deleteStarted >= 30_000) {
@@ -421,6 +424,11 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (next < (deleteAnchor - 2048).coerceAtLeast(0) || next > deleteAnchor || next == deleteHead) return
         if (connection.setSelection(next, deleteAnchor)) {
             deleteHead = next
+            if (deleteCanJournal) {
+                if (!latinIME.mayUseTransientCorrectionMemory(settings.current)) { onCancelDeletePointer(); return }
+                deleteProof = if (next == deleteAnchor) "" else deleteConnection?.getSelectedText(0)?.toString()
+                if (deleteProof?.length != deleteAnchor - next) { onCancelDeletePointer(); return }
+            }
             gestureMoveBackHaptics()
         } else onCancelDeletePointer()
     }
@@ -428,6 +436,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private fun clearDeletePreview() {
         latinIME.mHandler.removeCallbacks(deleteTimeout)
         deleteAnchor = -1; deleteHead = -1; deleteEpoch = -1L; deleteConnection = null
+        deleteProof = null; deleteCanJournal = false
     }
 
     override fun onCancelDeletePointer() {
@@ -440,14 +449,26 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             onCancelDeletePointer()
             return
         }
-        val selected = connection.getSelectedText(0)
-        if (selected == null || selected.length != deleteAnchor - deleteHead) {
-            onCancelDeletePointer()
-            return
+        if (deleteCanJournal) {
+            val proof = deleteProof
+            val ic = deleteConnection
+            if (proof == null || ic == null || !latinIME.mayUseTransientCorrectionMemory(settings.current) ||
+                proof != ic.getSelectedText(0)?.toString()) {
+                onCancelDeletePointer()
+                return
+            }
+            val start = deleteHead; val end = deleteAnchor; val epoch = deleteEpoch
+            clearDeletePreview()
+            if (!inputLogic.commitVerifiedSelectionEdit(proof, "", start, end, epoch, ic) &&
+                ic === latinIME.currentInputConnection && epoch == latinIME.editorGeneration() &&
+                connection.expectedSelectionStart == start && connection.expectedSelectionEnd == end)
+                connection.setSelection(end, end)
+        } else {
+            // No additional text capture/journal for a protected editor.
+            clearDeletePreview()
+            inputLogic.finishInput()
+            onCodeInput(KeyCode.DELETE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
         }
-        clearDeletePreview()
-        inputLogic.finishInput()
-        onCodeInput(KeyCode.DELETE, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, false)
     }
 
     override fun resetMetaState() {

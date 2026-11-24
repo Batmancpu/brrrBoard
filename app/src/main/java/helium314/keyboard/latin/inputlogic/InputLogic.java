@@ -349,6 +349,90 @@ public final class InputLogic {
         }
     }
 
+    private final EditorEditJournal mEditJournal = new EditorEditJournal();
+    private final Runnable mExpireEditJournal = this::clearVerifiedEdits;
+    public void clearVerifiedEdits() {
+        if (mEditJournal.isEmpty()) return;
+        mEditJournal.clear();
+        mLatinIME.mHandler.removeCallbacks(mExpireEditJournal);
+    }
+    private void scheduleVerifiedEditExpiry(long now) {
+        mLatinIME.mHandler.removeCallbacks(mExpireEditJournal);
+        long delay = mEditJournal.nextExpiry(now);
+        if (delay != Long.MAX_VALUE) mLatinIME.mHandler.postDelayed(mExpireEditJournal, delay);
+    }
+    private boolean editContextMatches(android.view.inputmethod.InputConnection ic, String prefix, String value, String suffix) {
+        try {
+            return TextUtils.equals(prefix + value, ic.getTextBeforeCursor(EditorEditJournal.CONTEXT + value.length(),0))
+                    && TextUtils.equals(suffix,ic.getTextAfterCursor(EditorEditJournal.CONTEXT,0));
+        } catch (RuntimeException ignored) { return false; }
+    }
+    /** Only explicit selected-text edits; never records typing, voice, clipboard or private fields. */
+    public boolean commitVerifiedSelectionEdit(String before, String after, int start, int end, long epoch,
+            android.view.inputmethod.InputConnection ic) {
+        final SettingsValues sv=Settings.getValues();
+        if (before==null || after==null || before.isEmpty() || before.equals(after)
+                || before.length()>2048 || after.length()>2048 || start<0 || end-start!=before.length()
+                || ic==null || ic!=mLatinIME.getCurrentInputConnection() || epoch!=mLatinIME.editorGeneration()
+                || !mLatinIME.mayUseTransientCorrectionMemory(sv) || mWordComposer.isComposingWord()
+                || mConnection.getExpectedSelectionStart()!=start || mConnection.getExpectedSelectionEnd()!=end) return false;
+        boolean attempted=false;
+        try {
+            if (!TextUtils.equals(before,ic.getSelectedText(0))) return false;
+            CharSequence pre=ic.getTextBeforeCursor(EditorEditJournal.CONTEXT,0), post=ic.getTextAfterCursor(EditorEditJournal.CONTEXT,0);
+            if (pre==null || post==null || pre.length()>EditorEditJournal.CONTEXT || post.length()>EditorEditJournal.CONTEXT) return false;
+            final String prefix=pre.toString(), suffix=post.toString();
+            if (epoch!=mLatinIME.editorGeneration() || ic!=mLatinIME.getCurrentInputConnection()
+                    || !mLatinIME.mayUseTransientCorrectionMemory(sv) || !TextUtils.equals(before,ic.getSelectedText(0))) return false;
+            clearCorrectionRecall();
+            invalidateSuggestionRequests();
+            mConnection.beginBatchEdit();
+            try {
+                attempted=true;
+                mConnection.commitText(after,1);
+                mSpaceState=SpaceState.NONE;
+                if (editContextMatches(ic,prefix,after,suffix)) {
+                    long now=SystemClock.elapsedRealtime();
+                    if (mEditJournal.remember(start,before,after,prefix,suffix,now,epoch,ic)) scheduleVerifiedEditExpiry(now);
+                } else clearVerifiedEdits();
+            } finally { mConnection.endBatchEdit(); }
+            mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+            return true;
+        } catch (RuntimeException ignored) { clearVerifiedEdits(); return attempted; }
+    }
+    private boolean applyVerifiedEdit(boolean redo, InputTransaction tx) {
+        if (mEditJournal.isEmpty()) return false;
+        final long epoch=mLatinIME.editorGeneration();
+        final android.view.inputmethod.InputConnection ic=mLatinIME.getCurrentInputConnection();
+        final EditorEditJournal.Entry e=mEditJournal.next(redo,SystemClock.elapsedRealtime(),epoch,ic);
+        if(e==null) return false;
+        final String from=redo?e.before():e.after(), to=redo?e.after():e.before();
+        final int end=e.start+from.length();
+        if (!mLatinIME.mayUseTransientCorrectionMemory(tx.getSettingsValues()) || mWordComposer.isComposingWord()
+                || mConnection.hasSelection() || mConnection.getExpectedSelectionStart()!=end
+                || !editContextMatches(ic,e.prefix(),from,e.suffix())) {clearVerifiedEdits();return false;}
+        // Once we attempt a selection or commit, consume the action. Never additionally invoke host undo.
+        try {
+            if(!from.isEmpty() && (!mConnection.setSelection(e.start,end) || !TextUtils.equals(from,ic.getSelectedText(0)))) {
+                if(epoch==mLatinIME.editorGeneration() && ic==mLatinIME.getCurrentInputConnection()) mConnection.setSelection(end,end);
+                clearVerifiedEdits();return true;
+            }
+            if(epoch!=mLatinIME.editorGeneration() || ic!=mLatinIME.getCurrentInputConnection()
+                    || !e.valid(SystemClock.elapsedRealtime(),epoch,ic)
+                    || !mLatinIME.mayUseTransientCorrectionMemory(tx.getSettingsValues())) {
+                if(epoch==mLatinIME.editorGeneration() && ic==mLatinIME.getCurrentInputConnection()) mConnection.setSelection(end,end);
+                clearVerifiedEdits();return true;
+            }
+            mConnection.commitText(to,1);
+            if(editContextMatches(ic,e.prefix(),to,e.suffix())) mEditJournal.applied(redo);
+            else clearVerifiedEdits();
+            mSpaceState=SpaceState.NONE;
+            tx.setDidAffectContents();tx.setRequiresUpdateSuggestions();
+            tx.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+        } catch(RuntimeException ignored) {clearVerifiedEdits();}
+        return true;
+    }
+
     // RAM-only direct-correction receipt; no touch coordinates are persisted.
     private String mCurrentSwipeSkeleton;
     private String mRejectedSwipeSkeleton;
@@ -371,6 +455,7 @@ public final class InputLogic {
 
     /** Privacy boundaries must not carry an unfinished swipe receipt across modes. */
     public void clearPendingPrivateLearning() {
+        clearVerifiedEdits();
         clearCorrectionRecall();
         clearTransientCorrectionMemory();
         mCurrentSwipeSkeleton = null;
@@ -430,6 +515,7 @@ public final class InputLogic {
      * @param settingsValues the current settings values
      */
     public void startInput(final String combiningSpec, final SettingsValues settingsValues) {
+        clearVerifiedEdits();
         clearCorrectionRecall();
         invalidateSuggestionRequests();
         clearTransientCorrectionMemory();
@@ -568,6 +654,7 @@ public final class InputLogic {
     private InputTransaction onTextInputWithOrigin(final SettingsValues settingsValues, final Event event,
             final int keyboardShiftMode, final LatinIME.UIHandler handler, final boolean fromVoice,
             final boolean replaceVoiceDraft) {
+        clearVerifiedEdits();
         invalidateRecallForEdit();
         clearTransientCorrectionMemory();
         // Dictated text must not confirm an unrelated swipe-correction candidate.
@@ -630,6 +717,7 @@ public final class InputLogic {
     public InputTransaction onPickSuggestionManually(final SettingsValues settingsValues,
             final SuggestedWordInfo suggestionInfo, final int keyboardShiftState,
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
+        clearVerifiedEdits();
         if (suggestionInfo.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL))
             return pickCorrectionRecall(settingsValues,suggestionInfo,keyboardShiftState,currentKeyboardScript,handler);
         invalidateRecallForEdit();
@@ -731,6 +819,7 @@ public final class InputLogic {
      */
     public InputTransaction onInsertEmojiSuggestion(final SettingsValues settingsValues,
             final String emoji, final int keyboardShiftState, final LatinIME.UIHandler handler) {
+        clearVerifiedEdits();
         invalidateRecallForEdit();
         clearAdaptiveTouchProof();
         final Event event = Event.createSoftwareTextEvent(emoji, KeyCode.MULTIPLE_CODE_POINTS, null);
@@ -788,6 +877,7 @@ public final class InputLogic {
             return false;
         }
         clearTransientCorrectionMemory();
+        clearVerifiedEdits();
         clearRecallDisplay();
         if (newSelStart != newSelEnd || (oldSelStart == newSelStart && oldSelEnd == newSelEnd))
             clearCorrectionRecall();
@@ -892,6 +982,7 @@ public final class InputLogic {
     public InputTransaction onCodeInput(final SettingsValues settingsValues,
             @NonNull final Event event, final int keyboardShiftMode,
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
+        if (event.getKeyCode()!=KeyCode.UNDO && event.getKeyCode()!=KeyCode.REDO) clearVerifiedEdits();
         if (!mRecallMemory.isEmpty() || mRecallCandidate != null) {
             if (event.isFunctionalKeyEvent() && event.getKeyCode() != KeyCode.DELETE) {
                 // Unknown functional operations may replace or delete an unbounded range.
@@ -963,6 +1054,7 @@ public final class InputLogic {
         mRejectedSwipeSkeleton = null;
         mWordBeingCorrectedByCursor = null;
         clearAdaptiveTouchProof();
+        clearVerifiedEdits();
         invalidateRecallForEdit();
         mInputLogicHandler.onStartBatchInput();
         handler.showGesturePreviewAndSetSuggestions(SuggestedWords.getEmptyBatchInstance(), false);
@@ -1344,10 +1436,10 @@ public final class InputLogic {
                 }
                 break;
             case KeyCode.UNDO:
-                sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON);
+                if (!applyVerifiedEdit(false,inputTransaction)) sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON);
                 break;
             case KeyCode.REDO:
-                sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
+                if (!applyVerifiedEdit(true,inputTransaction)) sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
                 break;
             case KeyCode.SPLIT_LAYOUT:
                 KeyboardSwitcher.getInstance().toggleSplitKeyboardMode();
@@ -3702,6 +3794,7 @@ public final class InputLogic {
     }
 
     public void onDestroy() {
+        clearVerifiedEdits();
         clearCorrectionRecall();
         finishInput();
         mInputLogicHandler.onDestroy();

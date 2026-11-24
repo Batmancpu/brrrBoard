@@ -1296,6 +1296,7 @@ public class LatinIME extends InputMethodService implements
         // settings are reused by a restart or delayed orientation handling.
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
+        mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mInputLogic.mSuggest.clearNextWordSuggestionsCache();
@@ -1327,6 +1328,7 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInputView(final boolean finishingInput) {
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
+        mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mVaultSelectionEpoch++;
@@ -1345,6 +1347,7 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInput() {
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
+        mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         mEditorFocusEpoch++;
@@ -1689,6 +1692,7 @@ public class LatinIME extends InputMethodService implements
     public void onWindowHidden() {
         mClipboardHistoryManager.dismissExtraction();
         mKeyboardActionListener.onCancelDeletePointer();
+        mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
         mInputLogic.clearTransientCorrectionMemory();
         SecureAppTemporaryOptOut.clear();
