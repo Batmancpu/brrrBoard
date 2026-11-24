@@ -71,7 +71,7 @@ jobs:
             diff_base="$(git merge-base origin/main "$GITHUB_SHA")"
           fi
           changes="$(git diff --name-only "$diff_base" "$GITHUB_SHA")"
-          if grep -Eq '^(app/|buildSrc/|gradle/|tools/(make-emoji-keys/|fetch-board-|verify-(voice-model|gtcrn|brrclean)-packaging\.sh$)|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changes" &&
+          if grep -Eq '^(app/|buildSrc/|gradle/|tools/(make-emoji-keys/|fetch-board-|verify-(voice-model|gtcrn|brrclean|voice-endpoints)-packaging\.sh$)|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changes" &&
              ! grep -Fxq 'docs/releases/notes.json' <<< "$changes"; then
             echo '::error::Update docs/releases/notes.json with exact user-visible changes for this application update.'
             exit 1
@@ -106,6 +106,13 @@ jobs:
         run: bash tools/fetch-board-gtcrn.sh
       - name: Stage pinned brrClean native GTCRN weights inside APK
         run: bash tools/fetch-board-brrclean.sh
+      - name: Fetch and verify adaptive voice models
+        run: bash tools/fetch-board-voice-endpoints.sh
+      - name: Execute pinned speech endpoint models on CPU
+        run: |
+          python3 -m venv "$RUNNER_TEMP/voice-model-smoke"
+          "$RUNNER_TEMP/voice-model-smoke/bin/pip" install --disable-pip-version-check onnxruntime==1.23.2 'numpy<3'
+          "$RUNNER_TEMP/voice-model-smoke/bin/python" tools/test_voice_endpoint_models.py
       - name: Verify native GTCRN against pinned model on host
         run: |
           g++ -std=c++17 -O2 -I app/src/main/jni/brrclean \
@@ -142,6 +149,7 @@ jobs:
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
           bash tools/verify-gtcrn-packaging.sh "$APK"
           bash tools/verify-brrclean-packaging.sh "$APK"
+          bash tools/verify-voice-endpoints-packaging.sh "$APK"
 
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           CERT_OUTPUT="$("$APKSIGNER" verify --print-certs "$APK")"

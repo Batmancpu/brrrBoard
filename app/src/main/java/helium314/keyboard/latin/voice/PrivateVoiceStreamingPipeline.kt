@@ -7,6 +7,8 @@ import android.os.Looper
 import android.os.SystemClock
 import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * One private dictation session: capture thread contributes only bounded PCM
@@ -25,7 +27,16 @@ internal class PrivateVoiceStreamingPipeline(
 ) {
     private data class Pending(val pcm: ByteArray, val enqueuedAtMs: Long)
 
-    private val chunker = PrivateVoiceChunker()
+    // Model loading, VAD and semantic inference never block AudioRecord or UI.
+    // The recording duration bounds the queued PCM.
+    private val captureWorker = Executors.newSingleThreadExecutor { work ->
+        Thread({
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            work.run()
+        }, "brrBoard-private-endpoint").apply { isDaemon = true }
+    }
+    private val endpoint = PrivateVoiceEndpointDetector(context)
+    private val chunker = PrivateVoiceChunker(endpoint::speech, endpoint::thoughtComplete)
     private val handler = Handler(Looper.getMainLooper())
     private val cancelled = AtomicBoolean(false)
     private val pending = ArrayDeque<Pending>() // accessed only on main looper
@@ -40,43 +51,72 @@ internal class PrivateVoiceStreamingPipeline(
     /** Never wait for inference on AudioRecord's capture thread. */
     fun append(source: ByteArray, count: Int) {
         if (cancelled.get()) return
-        chunker.append(source, count) { chunk ->
-            handler.post {
-                if (cancelled.get()) chunk.fill(0)
-                else {
-                    pending.addLast(Pending(chunk, SystemClock.elapsedRealtime()))
-                    VoiceDenoiseMetrics.streamingBacklog(pending.size)
-                    pump()
+        if (count == 0) return
+        val frame = source.copyOf(count)
+        try {
+            captureWorker.execute {
+                try {
+                    if (!cancelled.get()) chunker.append(frame, frame.size, ::enqueueChunk)
+                } catch (_: Exception) {
+                    handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
+                } finally {
+                    frame.fill(0)
                 }
             }
-        }
+        } catch (_: RejectedExecutionException) { frame.fill(0) }
     }
 
     /** Called only after AudioRecord has stopped and yielded its last frame. */
     fun finishCapture() {
         if (cancelled.get()) return
-        chunker.finish { chunk ->
-            handler.post {
-                if (cancelled.get()) chunk.fill(0)
-                else {
-                    pending.addLast(Pending(chunk, SystemClock.elapsedRealtime()))
-                    VoiceDenoiseMetrics.streamingBacklog(pending.size)
-                    pump()
+        try {
+            captureWorker.execute {
+                try {
+                    if (!cancelled.get()) chunker.finish(::enqueueChunk)
+                    handler.post {
+                        if (!cancelled.get()) {
+                            ended = true
+                            pump()
+                        }
+                    }
+                } catch (_: Exception) {
+                    handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
+                } finally {
+                    chunker.discard()
+                    endpoint.close()
                 }
             }
-        }
+        } catch (_: RejectedExecutionException) { /* cancellation already owns cleanup */ }
+        captureWorker.shutdown()
+    }
+
+    fun cancel() {
+        if (!cancelled.compareAndSet(false, true)) return
+        stopCaptureWorker()
+        if (Looper.myLooper() == Looper.getMainLooper()) dispose() else handler.post { dispose() }
+    }
+
+    private fun enqueueChunk(chunk: ByteArray) {
         handler.post {
-            if (!cancelled.get()) {
-                ended = true
+            if (cancelled.get()) chunk.fill(0)
+            else {
+                pending.addLast(Pending(chunk, SystemClock.elapsedRealtime()))
+                VoiceDenoiseMetrics.streamingBacklog(pending.size)
                 pump()
             }
         }
     }
 
-    fun cancel() {
-        if (!cancelled.compareAndSet(false, true)) return
-        chunker.discard()
-        if (Looper.myLooper() == Looper.getMainLooper()) dispose() else handler.post { dispose() }
+    private fun stopCaptureWorker() {
+        // Queued frames see cancellation and wipe themselves. The worker alone
+        // releases native state after the currently executing inference ends.
+        try {
+            captureWorker.execute {
+                chunker.discard()
+                endpoint.close()
+            }
+        } catch (_: RejectedExecutionException) { /* finishCapture owns cleanup */ }
+        captureWorker.shutdown()
     }
 
     private fun pump() {
@@ -139,7 +179,7 @@ internal class PrivateVoiceStreamingPipeline(
 
     private fun complete(result: Result<String>) {
         if (!cancelled.compareAndSet(false, true)) return
-        chunker.discard()
+        stopCaptureWorker()
         dispose()
         onDone(result)
     }

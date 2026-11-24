@@ -9,7 +9,10 @@ import kotlin.math.abs
  * safety window, and keeps 320 ms of real overlap.
  * No speech is thrown away, no audio is logged and the input frame is never retained.
  */
-internal class PrivateVoiceChunker {
+internal class PrivateVoiceChunker(
+    private val activity: ((ByteArray, Int, Int) -> Boolean?)? = null,
+    private val thoughtComplete: ((ByteArray, Int) -> Boolean?)? = null,
+) {
     private val pcm = ByteArray(MAX_BYTES)
     private var used = 0
     private var emitted = false
@@ -18,6 +21,7 @@ internal class PrivateVoiceChunker {
     private var scanBytes = 0
     private var quietBytes = 0
     private var speechSeen = false
+    private var nextTurnCheck = END_SILENCE_BYTES
 
     @Synchronized
     fun append(source: ByteArray, count: Int, emit: (ByteArray) -> Unit) {
@@ -31,26 +35,33 @@ internal class PrivateVoiceChunker {
             System.arraycopy(source, position, pcm, used, bytes)
             used += bytes
             position += bytes
-            if (used == MAX_BYTES) {
-                flushWindow(emit)
-            }
             while (used - scanBytes >= ENERGY_WINDOW_BYTES) {
                 val windowEnd = scanBytes + ENERGY_WINDOW_BYTES
-                val energy = averageAbsAmplitude(scanBytes, windowEnd)
+                val speech = activity?.invoke(pcm, scanBytes, windowEnd)
+                    ?: (averageAbsAmplitude(scanBytes, windowEnd) >= SPEECH_ENERGY_THRESHOLD)
                 scanBytes = windowEnd
-                if (energy >= SPEECH_ENERGY_THRESHOLD) {
+                if (speech) {
                     speechSeen = true
                     quietBytes = 0
+                    nextTurnCheck = END_SILENCE_BYTES
                 } else if (speechSeen) {
                     quietBytes += ENERGY_WINDOW_BYTES
-                    if (used >= MIN_EARLY_CHUNK_BYTES && quietBytes >= END_SILENCE_BYTES) {
-                        // A pause ends the utterance sooner than the hard 6 s cap.
-                        flushWindow(used, emit)
-                        quietBytes = 0
-                        speechSeen = false
+                    if (scanBytes >= MIN_EARLY_CHUNK_BYTES && quietBytes >= nextTurnCheck) {
+                        // An incomplete thought may wait, but never beyond the hard cap.
+                        val completed = if (quietBytes < MAX_PAUSE_BYTES)
+                            thoughtComplete?.invoke(pcm, scanBytes) else true
+                        if (completed != false) {
+                            flushWindow(scanBytes, emit)
+                            quietBytes = 0
+                            speechSeen = false
+                            nextTurnCheck = END_SILENCE_BYTES
+                        } else {
+                            nextTurnCheck = quietBytes + TURN_RECHECK_BYTES
+                        }
                     }
                 }
             }
+            if (used == MAX_BYTES) flushWindow(emit)
         }
     }
 
@@ -79,10 +90,12 @@ internal class PrivateVoiceChunker {
         // window. The downstream transcript joiner removes duplicated words.
         val from = boundary - OVERLAP_BYTES
         val remaining = used - from
+        val scanned = scanBytes - from
         System.arraycopy(pcm, from, pcm, 0, remaining)
         pcm.fill(0, remaining, used)
         used = remaining
-        scanBytes = used
+        // Neither rescore old overlap nor skip unscanned post-boundary samples.
+        scanBytes = scanned.coerceIn(OVERLAP_BYTES, used)
         emitted = true
         emit(chunk)
     }
@@ -133,6 +146,8 @@ internal class PrivateVoiceChunker {
         private const val MIN_EARLY_CHUNK_SECONDS = 3
         private const val SPEECH_ENERGY_THRESHOLD = 180.0
         private const val END_SILENCE_BYTES = BYTES_PER_SECOND * END_SILENCE_MS / 1000
+        private const val TURN_RECHECK_BYTES = BYTES_PER_SECOND * 400 / 1000
+        private const val MAX_PAUSE_BYTES = BYTES_PER_SECOND * 1400 / 1000
         private const val MIN_EARLY_CHUNK_BYTES = BYTES_PER_SECOND * MIN_EARLY_CHUNK_SECONDS
         const val TARGET_BYTES = BYTES_PER_SECOND * TARGET_SECONDS
         const val MAX_BYTES = BYTES_PER_SECOND * MAX_SECONDS

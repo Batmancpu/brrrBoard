@@ -115,6 +115,18 @@ LOCAL_NDK_STL_VARIANT := c++_static
 LOCAL_LDFLAGS := -Wl,-z,max-page-size=16384 -Wl,--build-id=none
 include $(BUILD_SHARED_LIBRARY)
 
+# Adaptive voice endpoint inference uses only the already-packaged ORT C API.
+include $(CLEAR_VARS)
+LOCAL_MODULE := libbrrvoiceendpoint
+LOCAL_SRC_FILES := voiceendpoint/turn_jni.cpp
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/voiceendpoint/ort_headers
+LOCAL_CPPFLAGS := -std=c++17 -O2 -fno-exceptions
+LOCAL_SDK_VERSION := 21
+LOCAL_NDK_STL_VARIANT := c++_static
+LOCAL_LDLIBS := -ldl
+LOCAL_LDFLAGS := -Wl,-z,max-page-size=16384 -Wl,--build-id=none
+include $(BUILD_SHARED_LIBRARY)
+
 #################### Unit test on host environment
 #include $(LOCAL_PATH)/HostUnitTests.mk
 

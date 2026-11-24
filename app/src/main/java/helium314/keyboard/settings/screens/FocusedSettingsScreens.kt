@@ -191,6 +191,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
     val installed = remember(refresh) { VoiceModelChoice.installed(ctx) }
     val selected = remember(refresh) { VoiceModelChoice.active(ctx) }
     var cleaningEnabled by remember(refresh) { mutableStateOf(VoiceNoiseChoice.isCleaningEnabled(ctx)) }
+    var adaptiveBatching by remember(refresh) { mutableStateOf(helium314.keyboard.latin.voice.VoiceEndpointPreference.enabled(ctx)) }
     val voicePrefs = ctx.prefs()
     var holdToTalk by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldToTalkEnabled(ctx)) }
     var holdAutoSend by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldAutoSendEnabled(ctx)) }
@@ -219,6 +220,19 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                     Text("Audio is decoded on this device. The keyboard uses the selected installed model and never downloads model files.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Adaptive speech batching", style = MaterialTheme.typography.titleMedium)
+                        Text("Silero VAD + Smart Turn: detects pauses and completed thoughts locally, without stopping the microphone.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(checked = adaptiveBatching, onCheckedChange = {
+                        adaptiveBatching = it
+                        helium314.keyboard.latin.voice.VoiceEndpointPreference.setEnabled(ctx, it)
+                    })
                 }
             }
 

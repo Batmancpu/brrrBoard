@@ -87,4 +87,39 @@ class PrivateVoiceChunkerTest {
             sizes.sumOf { it.toLong() } - (sizes.size - 1L) * PrivateVoiceChunker.OVERLAP_BYTES)
     }
 
+
+    @Test fun incompleteThoughtWaitsButNeverStopsCaptureOrLosesSamples() {
+        val second = PrivateVoiceChunker.BYTES_PER_SECOND
+        val pcm = ByteArray(second * 9) { i -> if (i % 2 == 0) 0x20 else 0x03 }
+        pcm.fill(0, second * 3, second * 5)
+        val chunks = mutableListOf<ByteArray>()
+        var queries = 0
+        val chunker = PrivateVoiceChunker(
+            activity = { bytes, from, to -> (from until to).any { bytes[it] != 0.toByte() } },
+            thoughtComplete = { _, _ -> ++queries >= 2 }
+        )
+        val first = second * 38 / 10
+        chunker.append(pcm, first, chunks::add)
+        assertTrue(queries >= 1)
+        assertTrue(chunks.isEmpty())
+        chunker.append(pcm.copyOfRange(first, pcm.size), pcm.size - first, chunks::add)
+        chunker.finish(chunks::add)
+        assertTrue(queries >= 2)
+        assertTrue(chunks.size >= 2)
+        assertTrue(chunks.all { it.size <= PrivateVoiceChunker.MAX_BYTES })
+        val reconstructed = chunks.flatMapIndexed { i, b -> b.drop(if (i == 0) 0 else PrivateVoiceChunker.OVERLAP_BYTES) }.toByteArray()
+        assertArrayEquals(pcm, reconstructed)
+    }
+
+    @Test fun missingNeuralModelsUseOriginalPauseGateAndPreservePcm() {
+        val second = PrivateVoiceChunker.BYTES_PER_SECOND
+        val pcm = ByteArray(second * 5) { i -> if (i < second * 4) 0x22 else 0 }
+        val chunks = mutableListOf<ByteArray>()
+        val chunker = PrivateVoiceChunker(activity = { _, _, _ -> null }, thoughtComplete = { _, _ -> null })
+        chunker.append(pcm, pcm.size, chunks::add)
+        assertTrue(chunks.isNotEmpty())
+        assertTrue(chunks.first().size < PrivateVoiceChunker.MAX_BYTES)
+        chunker.finish(chunks::add)
+        assertArrayEquals(pcm, chunks.flatMapIndexed { i, b -> b.drop(if (i == 0) 0 else PrivateVoiceChunker.OVERLAP_BYTES) }.toByteArray())
+    }
 }

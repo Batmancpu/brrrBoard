@@ -69,7 +69,7 @@ jobs:
             fi
           else
             changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" | grep -Ev '^app/src/test/' || true)"
-            if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify-(voice-model|gtcrn|brrclean)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
+            if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify-(voice-model|gtcrn|brrclean|voice-endpoints)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
               echo "product_changed=true" >> "$GITHUB_OUTPUT"
             else
               echo "product_changed=false" >> "$GITHUB_OUTPUT"
@@ -106,6 +106,8 @@ jobs:
         run: bash tools/fetch-board-gtcrn.sh
       - name: Stage pinned brrClean native GTCRN weights inside every APK
         run: bash tools/fetch-board-brrclean.sh
+      - name: Fetch and verify adaptive voice models
+        run: bash tools/fetch-board-voice-endpoints.sh
       - name: Bundle pinned English ASR model only when explicitly requested
         if: steps.release_scope.outputs.bundle_voice == 'true'
         run: bash tools/prepare-offline-voice-pack.sh
@@ -227,6 +229,7 @@ jobs:
           bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_MODE"
           bash tools/verify-gtcrn-packaging.sh "$apk"
           bash tools/verify-brrclean-packaging.sh "$apk"
+          bash tools/verify-voice-endpoints-packaging.sh "$apk"
           for dict in main_hi-Latn emoji_hi-Latn emoji_en-IN; do
             unzip -p "$apk" "assets/dicts/$dict.dict" | cmp - "app/src/main/assets/dicts/$dict.dict"
           done

@@ -31,3 +31,5 @@ release, installation is user initiated and copies verified assets to this
 app's private storage. A previously installed verified copy continues to power
 offline dictation across lightweight APK updates. See
 tools/offline-ultra-voice-model.lock.
+
+Adaptive speech batching: Silero VAD v6.2.3 (MIT; Silero Team), Smart Turn v3.2 CPU INT8 (BSD-2-Clause; Daily). Model sources: https://github.com/snakers4/silero-vad ; https://huggingface.co/pipecat-ai/smart-turn-v3 . Whisper feature extraction adapted from Marmalade (MIT), blob 437b863cb8fb18fee5be78162030325f0dcfeda2; see source and bundled licenses.

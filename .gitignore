@@ -52,3 +52,10 @@ VOICE_INPUT_RESEARCH.md
 app/src/main/assets/voice/brrclean_gtcrn.weights
 !tools/join-ultra-abtest-apk.sh
 test-artifacts/
+
+# Hash-pinned adaptive voice assets and matching runtime headers fetched by CI.
+!tools/fetch-board-voice-endpoints.sh
+!tools/verify-voice-endpoints-packaging.sh
+/app/src/main/assets/voice/silero_vad_v6_2_3.onnx
+/app/src/main/assets/voice/smart-turn-v3.2-cpu.onnx
+/app/src/main/jni/voiceendpoint/ort_headers/
