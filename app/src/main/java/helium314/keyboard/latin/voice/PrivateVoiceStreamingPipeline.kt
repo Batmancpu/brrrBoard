@@ -51,6 +51,7 @@ internal class PrivateVoiceStreamingPipeline(
     /** Never wait for inference on AudioRecord's capture thread. */
     fun append(source: ByteArray, count: Int) {
         if (cancelled.get()) return
+        require(count >= 0 && count <= source.size && count % 2 == 0)
         if (count == 0) return
         val frame = source.copyOf(count)
         try {
