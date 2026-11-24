@@ -17,6 +17,12 @@ class EmojiPanelKeyMorphTest {
         assertEquals(210f, EmojiPanelKeyMorph.position(250f, 210f, 1f), 0f)
     }
 
+    @Test fun stationaryKeysDoNotNeedAnOverlayEvenIfTheirBoundsChange() {
+        org.junit.Assert.assertFalse(EmojiPanelKeyMorph.moves(40f, 60f, 40f, 60f))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.moves(40f, 60f, 40f, 90f))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.moves(40f, 60f, 80f, 60f))
+    }
+
     @Test fun motionClampsWithoutOvershoot() {
         assertEquals(0f, EmojiPanelKeyMorph.position(0f, 100f, -1f), 0f)
         assertEquals(100f, EmojiPanelKeyMorph.position(0f, 100f, 2f), 0f)

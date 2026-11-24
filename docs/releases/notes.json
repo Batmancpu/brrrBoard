@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Smooth direct Emoji Search entry without the intermediate Browse transition.",
+  "summary": "Stabilize icons throughout Emoji panel transitions.",
   "changes": [
     {
-      "title": "Emoji Search animation",
-      "detail": "Open the final Search layout in one transition instead of opening Browse and switching 50 ms later. Skip the initial result snapshot and avoid morphing while geometry is unsettled."
+      "title": "Flicker-free icon handoff",
+      "detail": "Use one moving key artwork at native opacity, transfer ownership at pre-draw, and stop repeated footer icon resets during layout."
     }
   ]
 }

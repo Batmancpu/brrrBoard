@@ -337,8 +337,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final MainKeyboardView sourceKeys = !allowEmojiKeyMorph ? null
                 : toEmoji ? mKeyboardView
                 : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
-        final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(sourceKeys);
+        // Cancel the previous owner before sampling a new transition.
         EmojiPanelKeyMorph.cancel();
+        final EmojiPanelKeyMorph.Snapshot source = EmojiPanelKeyMorph.capture(mCurrentInputView, sourceKeys);
         action.run();
         if (source != null && mCurrentInputView != null) {
             final MainKeyboardView destination = toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph()

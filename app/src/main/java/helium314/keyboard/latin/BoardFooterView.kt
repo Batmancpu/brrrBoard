@@ -69,6 +69,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private var holdCancelArmed = false
     private var returnToLetters = false
     private var toolbarNavigationActive = false
+    private var renderedVoiceInk: Int? = null
+    private var renderedVoiceDark: Boolean? = null
     private var rightFooterAccessibilityMode: Boolean? = null
     private var footerPrimaryActionId: Int? = null
     private var footerVoiceActionId: Int? = null
@@ -344,9 +346,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             // ABC replaces the actual smile drawable while browsing Emoji.
             // A quiet gold tint leaves privacy unmistakable in this panel,
             // including with animations disabled or while Search is active.
-            emojiButton.imageTintList = ColorStateList.valueOf(
+            val tint = ColorStateList.valueOf(
                 if (privateMode) FooterPrivacyPalette.GOLD
                 else Settings.getValues().mColors.get(ColorType.KEY_ICON))
+            if (emojiButton.imageTintList != tint) emojiButton.imageTintList = tint
         }
         // A double-tap starts on Emoji, whose footer currently displays ABC.
         // The original !returnToLetters guard skipped the entire 760/700ms
@@ -794,36 +797,57 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun render(show: Boolean, showMicrophone: Boolean, returnToAbc: Boolean,
         toolbarActive: Boolean = false) {
+        val wasReturningToLetters = returnToLetters
+        val wasToolbarActive = toolbarNavigationActive
         visibility = if (show) VISIBLE else GONE
         returnToLetters = returnToAbc
         toolbarNavigationActive = toolbarActive
         refreshPrivateGestureAvailability()
-        if (returnToAbc) emojiButton.setImageResource(R.drawable.ic_board_abc)
-        else emojiButton.setImageDrawable(privateEmojiIcon)
+        // onMeasure may run many times while the IME is resizing. Never
+        // replace the same drawable or restart its animation on each pass.
+        if (returnToAbc) {
+            if (!wasReturningToLetters || emojiButton.drawable == null)
+                emojiButton.setImageResource(R.drawable.ic_board_abc)
+        } else if (emojiButton.drawable !== privateEmojiIcon) {
+            emojiButton.setImageDrawable(privateEmojiIcon)
+        }
         emojiButton.contentDescription = resources.getString(
             if (returnToAbc) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
         )
         if (!show) {
+            renderedVoiceInk = null
+            renderedVoiceDark = null
             reset()
             return
         }
-        val tint = ColorStateList.valueOf(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        val ink = Settings.getValues().mColors.get(ColorType.KEY_ICON)
+        val tint = ColorStateList.valueOf(ink)
         val dark = KeyboardTheme.isDarkThemeActive(context)
-        emojiButton.imageTintList = if (returnToAbc) tint else null
+        val refreshVoice = wasToolbarActive != toolbarActive ||
+            renderedVoiceInk != ink || renderedVoiceDark != dark
+        renderedVoiceInk = ink
+        renderedVoiceDark = dark
+        // ABC's final privacy-aware tint is set once, not normal -> gold on
+        // every measure. The smile drawable supplies its own theme ink.
+        if (!returnToAbc && emojiButton.imageTintList != null) emojiButton.imageTintList = null
         syncEmojiPrivacy(animate = false)
-        voiceError.setTextColor(Settings.getValues().mColors.get(ColorType.KEY_ICON))
+        if (voiceError.currentTextColor != ink) voiceError.setTextColor(ink)
         if (toolbarActive) {
-            micPulse?.cancel()
-            micPulse = null
-            micUnderlight.setPhase(FooterMicUnderlightView.Phase.IDLE, dark)
-            microphone.setImageResource(R.drawable.sym_keyboard_settings_rounded)
-            microphone.imageTintList = tint
-            microphone.contentDescription = resources.getString(R.string.board_footer_open_settings)
+            if (!wasToolbarActive || microphone.drawable == null)
+                microphone.setImageResource(R.drawable.sym_keyboard_settings_rounded)
+            if (refreshVoice) {
+                micPulse?.cancel()
+                micPulse = null
+                micUnderlight.setPhase(FooterMicUnderlightView.Phase.IDLE, dark)
+                microphone.imageTintList = tint
+                microphone.contentDescription = resources.getString(R.string.board_footer_open_settings)
+            }
         } else {
-            pulsingMicIcon?.let { microphone.setImageDrawable(it) }
-            if (dictationProcessing) showDictationProcessing()
-            else showDictationActive(dictationActive)
-            microphone.contentDescription = resources.getString(R.string.board_inline_dictation)
+            pulsingMicIcon?.let { if (microphone.drawable !== it) microphone.setImageDrawable(it) }
+            if (refreshVoice) {
+                if (dictationProcessing) showDictationProcessing(offline = dictationOffline)
+                else showDictationActive(dictationActive, offline = dictationOffline)
+            }
         }
         syncRightFooterAccessibilityActions()
         microphone.visibility = if (show && (showMicrophone || toolbarActive)) VISIBLE else INVISIBLE
@@ -840,7 +864,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
         passwordManagerButton.visibility = if (passwordField && !showMicrophone &&
             cachedPasswordManagerIntent != null) VISIBLE else GONE
-        passwordManagerButton.imageTintList = tint
+        if (passwordManagerButton.imageTintList != tint) passwordManagerButton.imageTintList = tint
     }
 
     fun showDictationActive(active: Boolean, offline: Boolean = false) {
