@@ -705,7 +705,8 @@ class ClipboardHistoryManager(
                         selection.expectedSelectionStart != start || selection.expectedSelectionEnd != end ||
                         !latinIME.mayUseTransientCorrectionMemory(latinIME.mSettings.current)) return@setItems
                     val current = try { clipboardManager.primaryClip } catch (_: Exception) { null } ?: return@setItems
-                    if (clipReceipt(current, requireReliableTimestamp = false) != receipt) return@setItems
+                    val liveReceipt = try { clipReceipt(current, requireReliableTimestamp = false) } catch (_: Exception) { null }
+                    if (liveReceipt != receipt) return@setItems
                     val text = extractionText(current) ?: return@setItems
                     val entity = entities[index]
                     if (entity !in ClipboardEntityExtractor.extract(text)) return@setItems

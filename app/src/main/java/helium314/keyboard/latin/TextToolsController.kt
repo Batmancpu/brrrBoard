@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-package helium314.keyboard.latin.inputlogic
+package helium314.keyboard.latin
 
 import android.app.AlertDialog
 import android.os.SystemClock
 import android.text.Spanned
 import android.view.WindowManager
 import android.view.inputmethod.InputConnection
-import helium314.keyboard.latin.LatinIME
+import helium314.keyboard.latin.inputlogic.ContextualTextActions
 import helium314.keyboard.latin.utils.getPlatformDialogThemeContext
 import java.security.MessageDigest
 

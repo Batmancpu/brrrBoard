@@ -427,7 +427,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             deleteHead = next
             if (deleteCanJournal) {
                 if (!latinIME.mayUseTransientCorrectionMemory(settings.current)) { onCancelDeletePointer(); return }
-                deleteProof = if (next == deleteAnchor) "" else deleteConnection?.getSelectedText(0)?.toString()
+                deleteProof = if (next == deleteAnchor) "" else runCatching { deleteConnection?.getSelectedText(0)?.toString() }.getOrNull()
                 if (deleteProof?.length != deleteAnchor - next) { onCancelDeletePointer(); return }
             }
             gestureMoveBackHaptics()
@@ -454,7 +454,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             val proof = deleteProof
             val ic = deleteConnection
             if (proof == null || ic == null || !latinIME.mayUseTransientCorrectionMemory(settings.current) ||
-                proof != ic.getSelectedText(0)?.toString()) {
+                proof != runCatching { ic.getSelectedText(0)?.toString() }.getOrNull()) {
                 onCancelDeletePointer()
                 return
             }

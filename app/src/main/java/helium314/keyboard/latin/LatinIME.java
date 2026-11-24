@@ -281,7 +281,7 @@ public class LatinIME extends InputMethodService implements
     private GestureConsumer mGestureConsumer = GestureConsumer.NULL_GESTURE_CONSUMER;
 
     private final ClipboardHistoryManager mClipboardHistoryManager = new ClipboardHistoryManager(this);
-    private final helium314.keyboard.latin.inputlogic.TextToolsController mTextTools = new helium314.keyboard.latin.inputlogic.TextToolsController(this);
+    private final TextToolsController mTextTools = new TextToolsController(this);
     public void requestContextualTextActions() { mTextTools.request(); }
     private final EditorSessionGeneration mEditorSessionGeneration = new EditorSessionGeneration();
 
@@ -2428,6 +2428,9 @@ public class LatinIME extends InputMethodService implements
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
+        mTextTools.dismiss();
+        mClipboardHistoryManager.dismissExtraction();
+        mKeyboardActionListener.onCancelDeletePointer();
         mEditorSessionGeneration.invalidate();
         mHandler.cancelUpdateSuggestionStrip();
         mHandler.cancelResumeSuggestions();
