@@ -106,6 +106,7 @@ fun BrainDashboardScreen(
                         eraseAdaptive = false
                     }) { Text("Reset") } },
                     dismissButton = { OutlinedButton(onClick = { eraseAdaptive = false }) { Text("Cancel") } })
+                AppProfileControls()
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
                 }

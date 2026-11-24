@@ -80,6 +80,7 @@ public class SettingsValues {
     public final boolean mVarToolbarDirection;
     public final boolean mUsePersonalizedDicts;
     public final boolean mAdaptiveTouchEnabled;
+    public final long mAppProfileRevision;
     public final boolean mUseDoubleSpacePeriod;
     public final boolean mBlockPotentiallyOffensive;
     public final KeyboardActionListener.SwipeAction mSpaceSwipeHorizontal;
@@ -185,15 +186,24 @@ public class SettingsValues {
 
         // Get the settings preferences
         boolean isLocked = IsLockedCompatKt.isDeviceLocked(context); // we want to hide the toolbar / suggestion strip entirely if device is locked
+        final AppProfileStore.Profile configuredProfile = isLocked ? new AppProfileStore.Profile()
+                : AppProfileStore.get(context, mInputAttributes.mTargetApplicationPackageName);
+        final boolean profileAllowed = !isLocked && mInputAttributes.mIsGeneralTextInput
+                && !mInputAttributes.mNoLearning && !mInputAttributes.mIsPasswordField
+                && !mInputAttributes.mVaultPrivateEditor
+                && !SecureAppsPolicy.isSecure(prefs, mInputAttributes.mTargetApplicationPackageName)
+                && !prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE);
+        final AppProfileStore.Profile profile = profileAllowed ? configuredProfile : new AppProfileStore.Profile();
+        mAppProfileRevision = AppProfileStore.revision();
         mToolbarMode = isLocked ? ToolbarMode.HIDDEN : Settings.readToolbarMode(prefs);
         mPersistentToolbarKey = ToolbarUtilsKt.getPersistentToolbarKey(prefs);
         mToolbarSwipeDownToHide = prefs.getBoolean(Settings.PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE, Defaults.PREF_TOOLBAR_SWIPE_DOWN_TO_HIDE);
         mToolbarHidingGlobal = isLocked || prefs.getBoolean(Settings.PREF_TOOLBAR_HIDING_GLOBAL, Defaults.PREF_TOOLBAR_HIDING_GLOBAL);
         mAutoCap = prefs.getBoolean(Settings.PREF_AUTO_CAP, Defaults.PREF_AUTO_CAP) && ScriptUtils.scriptSupportsUppercase(mLocale);
-        mVibrateOn = Settings.readVibrationEnabled(prefs);
+        mVibrateOn = profile.haptics(Settings.readVibrationEnabled(prefs));
         mImportantHapticsInDndMode = prefs.getBoolean(Settings.PREF_IMPORTANT_HAPTICS_IN_DND,
                 Defaults.PREF_IMPORTANT_HAPTICS_IN_DND);
-        mSoundOn = prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON);
+        mSoundOn = profile.sound(prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON));
         mSuggestEmojis = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_SUGGEST_EMOJIS, Defaults.PREF_SUGGEST_EMOJIS);
         mInlineEmojiSearch = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_INLINE_EMOJI_SEARCH, Defaults.PREF_INLINE_EMOJI_SEARCH);
         mShowEmojiDescriptions = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, Defaults.PREF_SHOW_EMOJI_DESCRIPTIONS);
@@ -209,7 +219,7 @@ public class SettingsValues {
         mLanguageSwitchKeyToOtherImes = languagePref.equals("input_method") || languagePref.equals("both");
         mLanguageSwitchKeyToOtherSubtypes = languagePref.equals("internal") || languagePref.equals("both");
         mShowsLanguageSwitchKey = prefs.getBoolean(Settings.PREF_SHOW_LANGUAGE_SWITCH_KEY, Defaults.PREF_SHOW_LANGUAGE_SWITCH_KEY);
-        mShowsNumberRow = prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW, Defaults.PREF_SHOW_NUMBER_ROW);
+        mShowsNumberRow = profile.numberRow(prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW, Defaults.PREF_SHOW_NUMBER_ROW));
         mShowsNumberRowInSymbols = prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW_IN_SYMBOLS, Defaults.PREF_SHOW_NUMBER_ROW_IN_SYMBOLS);
         mLocalizedNumberRow = SubtypeUtilsKt.getHasLocalizedNumberRow(selectedSubtype, prefs);
         mShowNumberRowHints = prefs.getBoolean(Settings.PREF_SHOW_NUMBER_ROW_HINTS, Defaults.PREF_SHOW_NUMBER_ROW_HINTS);
@@ -225,7 +235,7 @@ public class SettingsValues {
                 && inputAttributes.mIsGeneralTextInput;
         mBlockPotentiallyOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE);
         mUrlDetectionEnabled = prefs.getBoolean(Settings.PREF_URL_DETECTION, Defaults.PREF_URL_DETECTION);
-        mAutoCorrectionEnabledPerUserSettings = prefs.getBoolean(Settings.PREF_AUTO_CORRECTION, Defaults.PREF_AUTO_CORRECTION);
+        mAutoCorrectionEnabledPerUserSettings = profile.autocorrect(prefs.getBoolean(Settings.PREF_AUTO_CORRECTION, Defaults.PREF_AUTO_CORRECTION));
         mAutoCorrectEnabled = !mInputAttributes.mVaultPrivateEditor && mAutoCorrectionEnabledPerUserSettings
                 && (mInputAttributes.mInputTypeShouldAutoCorrect || prefs.getBoolean(Settings.PREF_MORE_AUTO_CORRECTION, Defaults.PREF_MORE_AUTO_CORRECTION))
                 && (mUrlDetectionEnabled || !InputTypeUtils.isUriOrEmailType(mInputAttributes.mInputType));
@@ -270,11 +280,11 @@ public class SettingsValues {
                 && prefs.getBoolean(Settings.PREF_ALWAYS_SHOW_SUGGESTIONS, Defaults.PREF_ALWAYS_SHOW_SUGGESTIONS)
                 && ((inputAttributes.mInputType & InputType.TYPE_MASK_VARIATION) != InputType.TYPE_TEXT_VARIATION_WEB_EDIT_TEXT
                   || !prefs.getBoolean(Settings.PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT, Defaults.PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT));
-        final boolean suggestionsEnabled = prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS);
+        final boolean suggestionsEnabled = profile.suggestions(prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS));
         mSuggestionsEnabledPerUserSettings = suggestionsEnabled && (mInputAttributes.mShouldShowSuggestions || mOverrideShowingSuggestions)
                 && !mSuggestionStripHiddenPerUserSettings;
         mSecondaryStripVisible = mToolbarMode != ToolbarMode.HIDDEN || ! mToolbarHidingGlobal;
-        mIncognitoModeEnabled = prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE)
+        mIncognitoModeEnabled = configuredProfile.privateMode(prefs.getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE, Defaults.PREF_ALWAYS_INCOGNITO_MODE))
                 || mInputAttributes.mNoLearning || mInputAttributes.mIsPasswordField
                 || (SecureAppsPolicy.isSecure(prefs, mInputAttributes.mTargetApplicationPackageName)
                     && !SecureAppTemporaryOptOut.applies(mInputAttributes.mTargetApplicationPackageName));

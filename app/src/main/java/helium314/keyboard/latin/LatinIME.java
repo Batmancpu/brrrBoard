@@ -1486,7 +1486,8 @@ public class LatinIME extends InputMethodService implements
 
         // we want to reload the settings before calling updateKeyboardTheme, because
         // updateKeyboardTheme reads SettingsValues.mToolbarMode
-        if (isDifferentTextField || !currentSettingsValues.hasSameOrientation(getResources().getConfiguration())) {
+        if (isDifferentTextField || currentSettingsValues.mAppProfileRevision != helium314.keyboard.latin.settings.AppProfileStore.revision()
+                || !currentSettingsValues.hasSameOrientation(getResources().getConfiguration())) {
             loadSettings();
             if (hasSuggestionStripView())
                 mSuggestionStripView.updateVoiceKey();
