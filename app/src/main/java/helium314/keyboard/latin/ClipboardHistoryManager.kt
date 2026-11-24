@@ -118,6 +118,7 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
+        clearDecryptedHistory()
         dismissExtraction()
         clipboardManager.removePrimaryClipChangedListener(this)
         unregisterScreenshotObserver()
@@ -557,6 +558,7 @@ class ClipboardHistoryManager(
     }
 
     private fun suppressPrivateClipboardSuggestions() {
+        clearDecryptedHistory()
         ownedPrimaryClip = null
         latestImageSuggestion = null
         latestScreenshotSuggestion = null
@@ -831,6 +833,9 @@ class ClipboardHistoryManager(
 
     fun clearRecoveredTranscripts() = recoveryRepository.clear()
 
+    fun searchHistoryIds(query: String): List<Long> = if(isHistoryPrivate()) emptyList() else clipboardDao?.searchIds(query).orEmpty()
+    fun hasUnpinnedHistory() = !isHistoryPrivate() && clipboardDao?.hasUnpinned()==true
+
     fun getHistorySize() = if (isHistoryPrivate()) 0 else clipboardDao?.count() ?: 0
 
     fun getHistoryEntry(position: Int) = if (isHistoryPrivate()) null else clipboardDao?.getAt(position)
@@ -841,8 +846,11 @@ class ClipboardHistoryManager(
         ClipboardPrivacyPolicy.isPrivateEditor(
             latinIME.currentInputEditorInfo, latinIME.mSettings.current.mIncognitoModeEnabled)
 
+    fun clearDecryptedHistory() { cachedClipboardDao?.clearDecryptedHistory() }
+
     fun setHistoryChangeListener(listener: ClipboardDao.Listener?) {
         clipboardDao?.listener = listener
+        if(listener==null) clearDecryptedHistory()
     }
 
     private sealed class RecentClip(open val timeStamp: Long) {

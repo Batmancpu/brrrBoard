@@ -625,3 +625,9 @@ Candidate source review correction: use a distinct physical .vault ciphertext fi
 ### Follow-up verification and identity evidence
 - v1.0.302 exact commit fd1ad4f: debug 45458915263 and signed release 45458915431 both succeeded.
 - ATP3 adds unordered mismatching literal-key identities as a bounded bit mask; ATP1/ATP2 migrate without inventing identities. Clear identities at decay; no sequence, timestamp or words persisted. Image proxy release uses a one-shot lease and startup scan tolerates unavailable cache directory. These changes still require exact-commit CI and device validation.
+
+
+### Clipboard transient payload hardening
+- Replace the history-wide decrypted text list with metadata and process-local HMAC fingerprints. Exact equality still checks the database. UI reads on demand through at most 16 entries / 262144 characters, fixed 30-second window; close/hide/editor changes clear the DAO payload references. Pinned entries remain persistent by design; explicitly exported backups remain user-controlled. JVM Strings and UI framework copies cannot be securely zeroed. Existing image/undo lifecycle remains unchanged. Test cache time and bounds. Exact workflow and device testing still required.
+
+- Clipboard search scans rows individually and returns IDs, rather than rebuilding a full plaintext history list. Added sampled-map practice, which is a diagnostic simulation only and does not learn or retain touches; full bounded swipe association inspection and per-pair removal use existing encrypted store. Native dictionary migration and physical device acceptance are separate work.

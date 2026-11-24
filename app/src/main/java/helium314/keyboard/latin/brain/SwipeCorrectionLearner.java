@@ -257,6 +257,32 @@ public final class SwipeCorrectionLearner {
                 : "Ready · no encrypted corrections saved yet");
     }
 
+    /** Existing encrypted associations only; no new data is collected for inspection. */
+    public static final class Association {
+        public final String seed, word;
+        public final int count;
+        Association(Entry e) { seed=e.seed; word=e.word; count=e.count; }
+    }
+    public synchronized List<Association> associations() {
+        final List<Entry> rows=new ArrayList<>(learned.values());
+        rows.sort(Comparator.comparing((Entry e)->e.seed).thenComparing(e->e.word));
+        final List<Association> result=new ArrayList<>(rows.size());
+        for(Entry e:rows) result.add(new Association(e));
+        return java.util.Collections.unmodifiableList(result);
+    }
+    /** Remove exactly one existing pair; never overwrite an unavailable encrypted vault. */
+    public boolean forget(String seed,String word) {
+        final List<Entry> snapshot;
+        final long version;
+        synchronized(this) {
+            if(vaultReadOnly || learned.remove(key(seed,word))==null) return false;
+            snapshot=new ArrayList<>(learned.values());
+            version=++revision;
+        }
+        DISK.execute(()->persistEncrypted(snapshot,version));
+        return true;
+    }
+
     public static boolean isAllowed(final Context context, @Nullable final EditorInfo editor,
             final boolean incognito, final boolean personalizedSuggestionsEnabled) {
         return personalizedSuggestionsEnabled && EmojiContextEligibility.isEligible(editor, incognito)

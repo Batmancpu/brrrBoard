@@ -8,6 +8,12 @@ import javax.crypto.SecretKey
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.SystemClock
+import android.os.Handler
+import android.os.Looper
+import java.security.SecureRandom
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import helium314.keyboard.compat.isDeviceLocked
 import helium314.keyboard.latin.ClipboardImageHistoryClip
 import helium314.keyboard.latin.ClipboardHistoryEntry
 import helium314.keyboard.latin.settings.Settings
@@ -46,28 +52,68 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         ClipboardTextVault.key(context, false) else null
     private var payloadWritesBlocked = false
 
-    // Existing in-memory history; this feature protects persisted payloads, not RAM.
-    private val cache = mutableListOf<ClipboardHistoryEntry>().apply {
-        db.readableDatabase.query(
-            TABLE,
-            arrayOf(COLUMN_ID, COLUMN_TIMESTAMP, COLUMN_PINNED, COLUMN_TEXT),
-            null,
-            null,
-            null,
-            null,
-            "$COLUMN_PINNED, $COLUMN_TIMESTAMP DESC" // was only relevant in the initial approach of using a cursor instead of a cache
-        ).use {
-            while (it.moveToNext()) {
-                add(ClipboardHistoryEntry(it.getLong(0), it.getLong(1), it.getInt(2) != 0,
-                    ClipboardTextVault.read(it,3,it.getLong(0),vaultKey)))
+    // No history-wide plaintext list. HMAC is process-local, never stored on disk.
+    private class IndexEntry(val id: Long,var timeStamp: Long,var isPinned: Boolean,
+                             val image: Boolean,val digest: ByteArray): Comparable<IndexEntry> {
+        override fun compareTo(other: IndexEntry): Int {
+            val pin=other.isPinned.compareTo(isPinned)
+            if(pin==0) return other.timeStamp.compareTo(timeStamp)
+            return if(Settings.getValues()?.mClipboardHistoryPinnedFirst==false) -pin else pin
+        }
+        fun copyEntry()=IndexEntry(id,timeStamp,isPinned,image,digest)
+    }
+    private val digestKey=SecretKeySpec(ByteArray(32).also { SecureRandom().nextBytes(it) },"HmacSHA256")
+    private fun fingerprint(text: String): ByteArray {
+        val bytes=text.toByteArray(Charsets.UTF_8)
+        return try { Mac.getInstance("HmacSHA256").apply { init(digestKey) }.doFinal(bytes) }
+        finally { bytes.fill(0) }
+    }
+    private fun index(id: Long,stamp: Long,pinned: Boolean,text: String)=
+        IndexEntry(id,stamp,pinned,ClipboardImageHistoryClip.hasImageHistoryPrefix(text),fingerprint(text))
+    private val payloadCache=ClipboardPayloadCache(SystemClock::elapsedRealtime)
+    private val expiryHandler=Handler(Looper.getMainLooper())
+    private val expirePayloads: Runnable=Runnable { synchronized(this) { payloadCache.prune(); scheduleExpiry() } }
+    private fun scheduleExpiry() {
+        expiryHandler.removeCallbacks(expirePayloads)
+        val deadline=payloadCache.expiry()
+        if(deadline!=0L) expiryHandler.postDelayed(expirePayloads,(deadline-SystemClock.elapsedRealtime()).coerceAtLeast(1L))
+    }
+    @Synchronized fun clearDecryptedHistory() {
+        expiryHandler.removeCallbacks(expirePayloads)
+        payloadCache.clear()
+    }
+    private fun readPayload(id: Long): String {
+        check(!isDeviceLocked(context))
+        return db.readableDatabase.query(TABLE,arrayOf(COLUMN_TEXT),"$COLUMN_ID = ?",arrayOf(id.toString()),null,null,null).use {
+            check(it.moveToFirst()) { "Clipboard row unavailable" }
+            ClipboardTextVault.read(it,0,id,vaultKey)
+        }
+    }
+    private fun materialize(e: IndexEntry): ClipboardHistoryEntry? {
+        if(isDeviceLocked(context)) { clearDecryptedHistory(); return null }
+        val text=payloadCache.get(e.id) ?: try { readPayload(e.id).also { payloadCache.put(e.id,it); scheduleExpiry() } }
+            catch (_: Exception) { clearDecryptedHistory(); return null }
+        return ClipboardHistoryEntry(e.id,e.timeStamp,e.isPinned,text)
+    }
+    private fun same(e: IndexEntry,digest: ByteArray,text: String): Boolean =
+        e.digest.contentEquals(digest) && readPayload(e.id)==text
+    private val cache = mutableListOf<IndexEntry>().apply {
+        check(!isDeviceLocked(context))
+        db.readableDatabase.query(TABLE,arrayOf(COLUMN_ID,COLUMN_TIMESTAMP,COLUMN_PINNED,COLUMN_TEXT),
+            null,null,null,null,null).use {
+            while(it.moveToNext()) {
+                val id=it.getLong(0)
+                add(index(id,it.getLong(1),it.getInt(2)!=0,ClipboardTextVault.read(it,3,id,vaultKey)))
             }
         }
         sort()
     }
 
     @Synchronized fun addClip(timestamp: Long, pinned: Boolean, text: String) {
+        check(!isDeviceLocked(context))
         clearOldClips()
-        val existingIndex = cache.indexOfFirst { it.text == text }
+        val digest=fingerprint(text)
+        val existingIndex = cache.indexOfFirst { same(it,digest,text) }
         if (existingIndex >= 0 && cache[existingIndex].timeStamp == timestamp)
             return // nothing to do
         if (existingIndex >= 0) {
@@ -83,7 +129,7 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         cv.put(COLUMN_PINNED, pinned)
         val rowId = insertPayload(db.writableDatabase,cv,text,null)
 
-        val entry = ClipboardHistoryEntry(rowId, timestamp, pinned, text)
+        val entry = index(rowId, timestamp, pinned, text)
         cache.add(entry)
         cache.sort()
         listener?.onClipInserted(cache.indexOf(entry))
@@ -117,6 +163,7 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
 
     /** Opt-in, irreversible per database. On any pre-commit failure the old rows remain intact. */
     @Synchronized fun enableTextVault(): ClipboardTextVault.Status {
+        clearDecryptedHistory()
         val database = db.writableDatabase
         if (vaultKey == null) {
             val key = ClipboardTextVault.key(context,true)
@@ -142,8 +189,15 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
 
     @Synchronized fun portableText(): List<ClipboardPortableBackup.Entry> {
         check(!helium314.keyboard.compat.isDeviceLocked(context))
-        return cache.filterNot { ClipboardImageHistoryClip.hasImageHistoryPrefix(it.text) }
-            .map { ClipboardPortableBackup.Entry(it.timeStamp,it.isPinned,it.text) }
+        val result=ArrayList<ClipboardPortableBackup.Entry>()
+        var chars=0L
+        for(e in cache) if(!e.image) {
+            val text=readPayload(e.id)
+            chars+=text.length
+            require(result.size<10_000 && chars<=8*1024*1024) { "Clipboard export exceeds limit" }
+            result.add(ClipboardPortableBackup.Entry(e.timeStamp,e.isPinned,text))
+        }
+        return result
     }
 
     /** Validate the entire import, then merge without destroying existing clips or pins. */
@@ -153,11 +207,12 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         check(listener == null) { "Close clipboard before restoring history" }
         val database = db.writableDatabase
         val original = cache.toList()
-        val next = original.map { ClipboardHistoryEntry(it.id,it.timeStamp,it.isPinned,it.text) }.toMutableList()
+        val next = original.map { it.copyEntry() }.toMutableList()
         database.beginTransaction()
         try {
             for (item in entries) {
-                val existing = next.firstOrNull { it.text == item.text }
+                val digest=fingerprint(item.text)
+                val existing = next.firstOrNull { same(it,digest,item.text) }
                 if (existing != null) {
                     val stamp = maxOf(existing.timeStamp,item.timestamp)
                     val pin = existing.isPinned || item.pinned
@@ -169,12 +224,12 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
                 } else {
                     val cv = ContentValues().apply { put(COLUMN_TIMESTAMP,item.timestamp); put(COLUMN_PINNED,item.pinned) }
                     val id = insertPayload(database,cv,item.text,null)
-                    next.add(ClipboardHistoryEntry(id,item.timestamp,item.pinned,item.text))
+                    next.add(index(id,item.timestamp,item.pinned,item.text))
                 }
             }
             database.setTransactionSuccessful()
         } finally { database.endTransaction() }
-        cache.clear(); cache.addAll(next); cache.sort()
+        clearDecryptedHistory(); cache.clear(); cache.addAll(next); cache.sort()
         // Restore normally restarts the settings/IME. Refuse to mutate an active
         // RecyclerView through background callbacks; settings callers must hide it.
     }
@@ -189,13 +244,23 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         db.writableDatabase.update(TABLE, cv, "$COLUMN_ID = ${entry.id}", null)
     }
 
-    @Synchronized fun isPinned(index: Int) = cache[index].isPinned
+    @Synchronized fun isPinned(index: Int) = cache.getOrNull(index)?.isPinned ?: true
 
-    @Synchronized fun getAt(index: Int) = cache[index]
+    @Synchronized fun getAt(index: Int) = cache.getOrNull(index)?.let { materialize(it) }
 
-    @Synchronized fun get(id: Long) = cache.first { it.id == id }
+    @Synchronized fun get(id: Long) = cache.firstOrNull { it.id == id }?.let { materialize(it) }
 
     @Synchronized fun count() = cache.size
+
+    /** Scan one decrypted row at a time; return only IDs, never a plaintext results list. */
+    @Synchronized fun searchIds(query: String): List<Long> {
+        val q=query.trim()
+        if(q.isEmpty() || isDeviceLocked(context)) return emptyList()
+        return cache.asSequence().filter { !it.image && runCatching { readPayload(it.id).contains(q,ignoreCase=true) }.getOrDefault(false) }
+            .sortedWith(compareByDescending<IndexEntry> { it.timeStamp }.thenByDescending { it.id })
+            .map { it.id }.toList()
+    }
+    @Synchronized fun hasUnpinned() = cache.any { !it.isPinned }
 
     @Synchronized fun sort() = cache.sort()
 
@@ -218,11 +283,12 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
     }
 
     // RecyclerView initiates this, so we don't call listener (or we'll get an IndexOutOfRangeException from RecyclerView)
-    @Synchronized fun deleteClipAt(index: Int): ClipboardHistoryEntry {
-        val entry = cache[index]
-        cache.remove(entry)
+    @Synchronized fun deleteClipAt(index: Int): ClipboardHistoryEntry? {
+        val entry = cache.getOrNull(index) ?: return null
+        val result=materialize(entry) ?: return null
         db.writableDatabase.delete(TABLE, "$COLUMN_ID = ${entry.id}", null)
-        return entry
+        cache.remove(entry); payloadCache.remove(entry.id)
+        return result
     }
 
     @Synchronized fun restoreClip(entry: ClipboardHistoryEntry, targetIndex: Int): Int {
@@ -235,14 +301,15 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         insertPayload(db.writableDatabase,cv,entry.text,entry.id)
 
         val insertIndex = targetIndex.coerceIn(0, cache.size)
-        cache.add(insertIndex, entry)
+        val indexed=index(entry.id,entry.timeStamp,entry.isPinned,entry.text)
+        cache.add(insertIndex, indexed)
         cache.sort()
-        return cache.indexOf(entry)
+        return cache.indexOf(indexed)
     }
 
     @Synchronized fun clearOldClips(now: Boolean = false) {
-        if (listener != null)
-            return // never clear when clipboard is visible
+        if (listener != null || isDeviceLocked(context))
+            return // never clear when clipboard is visible or locked
         if (!now && lastClearOldClips > SystemClock.elapsedRealtime() - 5 * 1000)
             return
 
@@ -253,10 +320,10 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         val entriesToRemove = cache.filter { it.timeStamp < minTime && !it.isPinned }
         if (entriesToRemove.isEmpty())
             return // nothing was removed
-        cache.removeAll(entriesToRemove.toSet())
-
+        val images=imageUris(entriesToRemove)
         db.writableDatabase.delete(TABLE, "$COLUMN_TIMESTAMP < $minTime AND $COLUMN_PINNED = 0", null)
-        deleteCachedImageFiles(entriesToRemove)
+        cache.removeAll(entriesToRemove.toSet()); clearDecryptedHistory()
+        deleteCachedImageFiles(images)
     }
 
     @Synchronized fun clearNonPinned() {
@@ -264,6 +331,9 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         if (entriesToRemove.isEmpty())
             return // nothing to remove
 
+        val images=imageUris(entriesToRemove)
+        db.writableDatabase.delete(TABLE, "$COLUMN_PINNED = 0", null)
+        clearDecryptedHistory()
         if (listener != null) {
             val indicesToRemove = mutableListOf<Int>()
             cache.forEachIndexed { idx, clip ->
@@ -275,23 +345,27 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         } else {
             cache.removeAll(entriesToRemove.toSet())
         }
-        db.writableDatabase.delete(TABLE, "$COLUMN_PINNED = 0", null)
-        deleteCachedImageFiles(entriesToRemove)
+        deleteCachedImageFiles(images)
     }
 
     @Synchronized fun clear() {
         if (count() == 0) return
         val entriesToRemove = cache.toList()
         val removedCount = entriesToRemove.size
-        cache.clear()
-        listener?.onClipsRemoved(0, removedCount)
+        val images=imageUris(entriesToRemove)
         db.writableDatabase.delete(TABLE, null, null)
-        deleteCachedImageFiles(entriesToRemove)
+        clearDecryptedHistory(); cache.clear()
+        listener?.onClipsRemoved(0, removedCount)
+        deleteCachedImageFiles(images)
     }
 
-    private fun deleteCachedImageFiles(entries: Collection<ClipboardHistoryEntry>) {
-        entries.forEach { entry ->
-            val uri = ClipboardImageHistoryClip.decode(entry.text)?.uri ?: return@forEach
+    private fun imageUris(entries: Collection<IndexEntry>): List<Uri> =
+        entries.filter { it.image }.mapNotNull { e ->
+            runCatching { ClipboardImageHistoryClip.decode(readPayload(e.id))?.uri }.getOrNull()
+        }
+
+    private fun deleteCachedImageFiles(entries: Collection<Uri>) {
+        entries.forEach { uri ->
             val file = cachedImageFile(uri) ?: return@forEach
             if (ClipboardImageVault.hasStored(file) && !ClipboardImageVault.delete(context,file)) {
                 Log.e(TAG, "can't delete cached clipboard image")

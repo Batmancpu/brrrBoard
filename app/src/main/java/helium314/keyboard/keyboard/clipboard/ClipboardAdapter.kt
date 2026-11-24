@@ -67,8 +67,7 @@ class ClipboardAdapter(
     fun refreshSearchResults() {
         val manager = clipboardHistoryManager
         filteredIds = if (filterQuery.isEmpty() || manager == null) emptyList() else
-            ClipboardSearchPolicy.matchingIds(filterQuery,
-                (0 until manager.getHistorySize()).mapNotNull { manager.getHistoryEntry(it) })
+            manager.searchHistoryIds(filterQuery)
         notifyDataSetChanged()
     }
 
@@ -231,7 +230,7 @@ class ClipboardAdapter(
     }
 
     private fun hasClearAction(): Boolean = !isFiltered && clipboardHistoryManager?.let { manager ->
-        (0 until manager.getHistorySize()).any { manager.getHistoryEntry(it)?.isPinned == false }
+        manager.hasUnpinnedHistory()
     } == true
 
     override fun getItemCount() = if (isFiltered) filteredIds.size else

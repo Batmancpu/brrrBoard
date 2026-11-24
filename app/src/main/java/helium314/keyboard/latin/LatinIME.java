@@ -1298,6 +1298,7 @@ public class LatinIME extends InputMethodService implements
         // settings are reused by a restart or delayed orientation handling.
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
+        mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
@@ -1332,6 +1333,7 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInputView(final boolean finishingInput) {
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
+        mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
@@ -1352,6 +1354,7 @@ public class LatinIME extends InputMethodService implements
     public void onFinishInput() {
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
+        mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
@@ -1699,6 +1702,7 @@ public class LatinIME extends InputMethodService implements
     public void onWindowHidden() {
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
+        mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mInputLogic.clearVerifiedEdits();
         mInputLogic.clearCorrectionRecall();
@@ -2431,6 +2435,7 @@ public class LatinIME extends InputMethodService implements
     void clearPendingPrivateLearning() {
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
+        mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mEditorSessionGeneration.invalidate();
         mHandler.cancelUpdateSuggestionStrip();

@@ -34,6 +34,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -135,6 +137,8 @@ fun BrainDashboardScreen(
     }
     val learner = remember(context) { SwipeCorrectionLearner.get(context) }
     val snapshot = remember(refresh) { learner.snapshot() }
+    var showAllAssociations by remember { mutableStateOf(false) }
+    val associations=remember(refresh,showAllAssociations) { if(showAllAssociations) learner.associations() else emptyList() }
     val emoji = remember(refresh) { readEmojiUsage(context) }
     val activity = remember(refresh) { BrainPerformanceMetrics.activity() }
     val typingSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.TYPING) }
@@ -332,7 +336,15 @@ fun BrainDashboardScreen(
                     if (snapshot.recentAssociations.isEmpty()) {
                         Text("No swipe corrections recorded yet. Correct a swipe deliberately twice to make its alternative eligible.")
                     } else {
-                        snapshot.recentAssociations.forEach { pair ->
+                        OutlinedButton(onClick={showAllAssociations=!showAllAssociations}) {
+                            Text(if(showAllAssociations) "Hide stored pairs" else "Inspect all ${snapshot.storedPairs} pairs")
+                        }
+                        if(showAllAssociations) associations.forEach { pair ->
+                            Row(verticalAlignment=Alignment.CenterVertically) {
+                                Text("${pair.seed} → ${pair.word} · ${pair.count}",Modifier.weight(1f),style=MaterialTheme.typography.bodyMedium)
+                                TextButton(onClick={ if(learner.forget(pair.seed,pair.word)) refresh++ }) { Text("Forget") }
+                            }
+                        } else snapshot.recentAssociations.forEach { pair ->
                             Text(pair, style = MaterialTheme.typography.bodyMedium)
                         }
                     }

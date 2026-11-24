@@ -3,6 +3,8 @@ package helium314.keyboard.settings.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import helium314.keyboard.keyboard.AdaptiveTouchGeometry
@@ -66,10 +68,19 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                 val map=remember(active.layout,active.model) { AdaptiveTouchGeometry.sampleDecisionMap(active.layout,active.model) }
                 if(map!=null) {
                     Text("Sampled recognition boundaries",fontWeight=FontWeight.SemiBold)
+                    var sampledCell by remember(map) { mutableIntStateOf(-1) }
                     Text("Original detector",style=MaterialTheme.typography.bodySmall)
-                    RecognitionMap(map,letter,false)
+                    RecognitionMap(map,letter,false,sampledCell) { sampledCell=it }
                     Text("Adaptive detector",style=MaterialTheme.typography.bodySmall)
-                    RecognitionMap(map,letter,true)
+                    RecognitionMap(map,letter,true,sampledCell) { sampledCell=it }
+                    if(sampledCell>=0) {
+                        val raw=map.originalAt(sampledCell)
+                        val adapted=map.adaptedAt(sampledCell)
+                        val rawLabel=if(raw<0) "No letter" else ('A'+raw).toString()
+                        val adaptedLabel=if(adapted<0) "No letter" else ('A'+adapted).toString()
+                        Text("Sampled tap: $rawLabel → $adaptedLabel",fontWeight=FontWeight.SemiBold)
+                    }
+                    Text("Tap either map to practice recognition at a sampled position. This does not type or train and is discarded when the panel closes.",style=MaterialTheme.typography.bodySmall)
                     Text("${map.changes} of ${map.columns*map.rows} sampled positions change letter. Highlight: selected key; accent: changed decision. This is an isolated-tap simulation, not recorded touch locations or swipe/hysteresis behaviour.",style=MaterialTheme.typography.bodySmall)
                 } else Text("Open the matching alphabet layout and type a few letters to make its sampled recognition map available. Saved evidence alone cannot reconstruct physical boundaries.",style=MaterialTheme.typography.bodySmall)
                 val total=active.count(letter)
@@ -111,9 +122,17 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
     }
 }
 
-@Composable private fun RecognitionMap(map: AdaptiveTouchGeometry.DecisionMap,letter: Int,adapted: Boolean) {
+@Composable private fun RecognitionMap(map: AdaptiveTouchGeometry.DecisionMap,letter: Int,adapted: Boolean,selected: Int,onSelect: (Int)->Unit) {
     val palette=MaterialTheme.colorScheme
-    Canvas(Modifier.fillMaxWidth().aspectRatio(map.aspect.coerceIn(1f,8f))) {
+    Canvas(Modifier.fillMaxWidth().aspectRatio(map.aspect.coerceIn(1f,8f)).pointerInput(map) {
+        detectTapGestures { tap ->
+            if(size.width>0 && size.height>0) {
+                val col=(tap.x/size.width*map.columns).toInt().coerceIn(0,map.columns-1)
+                val row=(tap.y/size.height*map.rows).toInt().coerceIn(0,map.rows-1)
+                onSelect(row*map.columns+col)
+            }
+        }
+    }) {
         val dx=size.width/map.columns
         val dy=size.height/map.rows
         for(row in 0 until map.rows) for(col in 0 until map.columns) {
@@ -127,6 +146,11 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                 else -> lerp(palette.surfaceVariant,palette.onSurfaceVariant,(key%4)*.12f)
             }
             drawRect(color,Offset(col*dx,row*dy),Size(dx+.3f,dy+.3f))
+        }
+        if(selected>=0) {
+            val center=Offset((selected%map.columns+.5f)*dx,(selected/map.columns+.5f)*dy)
+            drawCircle(palette.onSurface,5.dp.toPx(),center)
+            drawCircle(palette.surface,2.dp.toPx(),center)
         }
     }
 }
