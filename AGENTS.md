@@ -1,3 +1,7 @@
+## Thought-first voice safety and efficiency — 2026-11-24
+
+Owner authorized after existing exact-source workflows succeeded. Base v1.0.268 `41b527610233d186cd68756d5f7f62ca3b5e9e82` debug 45333883057 and signed release 45333883032 green. Candidate prioritizes complete thoughts up to 12s (8s decode/backlog pressure; 6s memory/model/legacy fallback), latched per batch, keeps 320ms overlap and 170s recording cap. Retains stateful isolated GTCRN and dual Silero, 8s Smart Turn tail only, installed Parakeet and original signer. Bounded smaller-window retry and partial-result warning with no auto-send; no new model or permission. See [VOICE_THOUGHT_FIRST_RENO10_2026_11_24.md](docs/VOICE_THOUGHT_FIRST_RENO10_2026_11_24.md) for exact plan, implementation, test commands and pending physical-device performance. Candidate CI and production release pending. Do not claim process-crash prevention or measured device accuracy/latency from CI.
+
 ## BR Brain stateful protection implementation — 2026-11-24
 
 Owner approved complete speech-preserving protected audio implementation. Prior verified release v1.0.266 (704e742250c2c323cfe4c016e325275bf43ce8ee) passed debug 45332802475 and Obtainium 45332802499; APK SHA256 2c74ca21e8ea22512a71e82dd08a0dabb8ce7e2e27c745e88b78e84a168e40fe. Subsequent capture-first improvements are preserved.

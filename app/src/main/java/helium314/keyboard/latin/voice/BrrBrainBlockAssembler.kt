@@ -162,6 +162,10 @@ internal class AlignedVoiceBuffer {
         require(count in 0..used)
         return pcm.copyOf(count)
     }
+    fun copyRecent(count: Int, maxBytes: Int): ByteArray {
+        require(count in 0..used && count % 2 == 0 && maxBytes > 0 && maxBytes % 2 == 0)
+        return pcm.copyOfRange((count-maxBytes).coerceAtLeast(0),count)
+    }
     fun boundaryPenalty(from: Int, to: Int): Double {
         var speech=0; var weak=0
         for (i in from/2 until to/2) {

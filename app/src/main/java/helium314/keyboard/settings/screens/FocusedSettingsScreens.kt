@@ -228,7 +228,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Adaptive speech batching", style = MaterialTheme.typography.titleMedium)
-                        Text("Silero VAD + Smart Turn: detects pauses and completed thoughts locally, without stopping the microphone.", style = MaterialTheme.typography.bodySmall)
+                        Text("Silero VAD + Smart Turn: prioritize completed thoughts, with a 12-second safety limit. Shorter batches under pressure; the microphone stays active. Off restores six-second batching.", style = MaterialTheme.typography.bodySmall)
                     }
                     Switch(checked = adaptiveBatching, onCheckedChange = {
                         adaptiveBatching = it

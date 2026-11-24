@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.voice
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -24,6 +25,7 @@ internal class PrivateVoiceStreamingPipeline(
     private val mode: VoiceNoiseMode,
     private val onDone: (Result<String>) -> Unit,
     private val onPartialText: (String) -> Unit = {},
+    private val onIncomplete: () -> Unit = {},
 ) {
     private data class Pending(val pcm: ByteArray, val enhanced: BrrCleanResult?, val enqueuedAtMs: Long)
 
@@ -41,6 +43,20 @@ internal class PrivateVoiceStreamingPipeline(
     private val cancelled = AtomicBoolean(false)
     private val endpoint = PrivateVoiceEndpointDetector(context)
     private val adaptive = VoiceEndpointPreference.enabled(context)
+    private val batchBudget = VoiceBatchBudget()
+    @Volatile private var queuedBatches = 0
+    @Volatile private var lastDecodeRealtimePermille = -1L
+
+    private fun nextBatchCap(): Int {
+        val pressure = runCatching {
+            val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memory = ActivityManager.MemoryInfo()
+            manager.getMemoryInfo(memory)
+            memory.lowMemory || memory.availMem <= memory.threshold * 2
+        }.getOrDefault(true)
+        return batchBudget.choose(adaptive, endpoint.thoughtReady(), pressure,
+            queuedBatches, lastDecodeRealtimePermille)
+    }
     // Existing adaptive-batching toggle is a reversible escape hatch:
     // disabled -> original batch denoiser, enabled -> isolated streaming path.
     private val aligned = if (mode == VoiceNoiseMode.GTCRN && adaptive) AlignedVoiceBuffer() else null
@@ -73,17 +89,24 @@ internal class PrivateVoiceStreamingPipeline(
             if (!adaptive) null else aligned?.activity(from, to) ?: endpoint.speech(raw, from, to)
         },
         boundaryPenalty = { from, to -> aligned?.boundaryPenalty(from,to) ?: 0.0 },
+        capSeconds = ::nextBatchCap,
         thoughtComplete = { raw, count ->
             if (aligned == null) endpoint.thoughtComplete(raw, count)
             else {
-                val protectedPcm = aligned.copyPrefix(count)
-                try { endpoint.thoughtComplete(protectedPcm, count) }
+                val protectedPcm = aligned.copyRecent(count, WhisperFeatures.N_SAMPLES * 2)
+                try { endpoint.thoughtComplete(protectedPcm, protectedPcm.size) }
                 finally { protectedPcm.fill(0) }
             }
         },
     )
     private val pending = ArrayDeque<Pending>() // accessed only on main looper
     private val recognized = ArrayList<String>() // volatile memory only
+    // Never deduplicate across an unrecoverable audio gap.
+    private val discontinuities = HashSet<Int>()
+    private var incomplete = false
+    private fun mergedText(): String = VoiceTranscriptFormatter.format(
+        if (discontinuities.isEmpty()) VoiceTranscriptJoiner.merge(recognized)
+        else VoiceTranscriptJoiner.merge(recognized, discontinuities))
     private var ended = false
     private var busy = false
     private var activeRaw: ByteArray? = null
@@ -171,6 +194,7 @@ internal class PrivateVoiceStreamingPipeline(
             if (cancelled.get()) { chunk.fill(0); enhanced?.pcm?.fill(0) }
             else {
                 pending.addLast(Pending(chunk, enhanced, SystemClock.elapsedRealtime()))
+                queuedBatches = pending.size
                 VoiceDenoiseMetrics.streamingBacklog(pending.size)
                 pump()
             }
@@ -200,12 +224,17 @@ internal class PrivateVoiceStreamingPipeline(
     private fun pump() {
         if (cancelled.get() || busy) return
         if (pending.isEmpty()) {
-            if (ended) complete(Result.success(
-                VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(recognized))))
+            if (ended) {
+                val text = mergedText()
+                if (incomplete && text.isBlank())
+                    complete(Result.failure(IllegalStateException("Offline chunk transcription failed")))
+                else complete(Result.success(text))
+            }
             return
         }
         busy = true
         val item = pending.removeFirst()
+        queuedBatches = pending.size
         VoiceDenoiseMetrics.streamingBacklog(pending.size)
         val pcm = item.pcm
         activeRaw = pcm
@@ -256,7 +285,11 @@ internal class PrivateVoiceStreamingPipeline(
     private fun decode(pcm: ByteArray, recovery: ByteArray? = null, retryBlank: Boolean = false) {
         if (cancelled.get()) { pcm.fill(0); recovery?.fill(0); return }
         activeRecovery = recovery
+        val decodeStarted = SystemClock.elapsedRealtime()
+        val durationMs = (pcm.size.toLong() * 1000 / PrivateVoiceChunker.BYTES_PER_SECOND).coerceAtLeast(1L)
         activeDecode = engine.transcribe(pcm, formatTranscript = false) { result ->
+            lastDecodeRealtimePermille =
+                (SystemClock.elapsedRealtime() - decodeStarted).coerceAtLeast(0L) * 1000 / durationMs
             activeDecode = null
             val original = activeRecovery
             activeRecovery = null
@@ -269,16 +302,24 @@ internal class PrivateVoiceStreamingPipeline(
             }
             original?.fill(0)
             if (result.isFailure) {
-                complete(Result.failure(IllegalStateException("Offline chunk transcription failed")))
+                // A recoverable per-batch failure must not erase earlier text
+                // or end the mic. Mark the gap, suppress auto-send and keep
+                // decoding later audio. A wholly failed take still errors.
+                discontinuities += recognized.size
+                if (!incomplete) {
+                    incomplete = true
+                    onIncomplete()
+                }
+                lastDecodeRealtimePermille = maxOf(1000L, lastDecodeRealtimePermille)
             } else {
                 recognized += result.getOrNull().orEmpty()
-                val partial = VoiceTranscriptFormatter.format(VoiceTranscriptJoiner.merge(recognized))
+                val partial = mergedText()
                 if (partial.isNotBlank()) onPartialText(partial)
                 VoiceDenoiseMetrics.streamingChunkComplete(
                     SystemClock.elapsedRealtime() - activeStarted)
-                busy = false
-                pump()
             }
+            busy = false
+            pump()
         }
     }
 
@@ -304,6 +345,8 @@ internal class PrivateVoiceStreamingPipeline(
             item.pcm.fill(0); item.enhanced?.pcm?.fill(0)
         }
         recognized.clear()
+        discontinuities.clear()
+        queuedBatches = 0
         VoiceDenoiseMetrics.streamingBacklog(0)
     }
 }

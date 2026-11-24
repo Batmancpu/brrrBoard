@@ -122,4 +122,80 @@ class PrivateVoiceChunkerTest {
         chunker.finish(chunks::add)
         assertArrayEquals(pcm, chunks.flatMapIndexed { i, b -> b.drop(if (i == 0) 0 else PrivateVoiceChunker.OVERLAP_BYTES) }.toByteArray())
     }
+
+    @Test fun completeTenSecondThoughtDoesNotCutAtSixSeconds() {
+        val second = PrivateVoiceChunker.BYTES_PER_SECOND
+        val audio = ByteArray(14 * second) { i -> if (i % 2 == 0) 0x20 else 0x03 }
+        audio.fill(0, 10 * second, 12 * second)
+        val chunks = mutableListOf<ByteArray>()
+        var checks = 0
+        val c = PrivateVoiceChunker(
+            activity = { bytes, from, to -> (from until to).any { bytes[it] != 0.toByte() } },
+            thoughtComplete = { _, _ -> ++checks >= 2 },
+            capSeconds = { 12 })
+        c.append(audio, 10 * second, chunks::add)
+        assertTrue(chunks.isEmpty())
+        c.append(audio.copyOfRange(10 * second, audio.size), 4 * second, chunks::add)
+        c.finish(chunks::add)
+        assertEquals(11 * second, chunks.first().size)
+        assertTrue(checks >= 2)
+        assertArrayEquals(audio, reconstruct(chunks))
+    }
+
+    @Test fun dynamicCapIsLatchedAndDownshiftNeverLosesPcm() {
+        val second = PrivateVoiceChunker.BYTES_PER_SECOND
+        val audio = ByteArray(125 * second) { i -> if (i % 2 == 0) 0x20 else 0x03 }
+        for (frame in listOf(1280, 4096, 20480, 320000, audio.size)) {
+            val chunks = mutableListOf<ByteArray>()
+            var cap = 12
+            val c = PrivateVoiceChunker(capSeconds = { cap })
+            var offset = 0
+            while (offset < audio.size) {
+                val count = minOf(frame, audio.size - offset)
+                c.append(audio.copyOfRange(offset, offset + count), count) {
+                    chunks += it
+                    cap = if (chunks.size == 1) 8 else 6
+                }
+                offset += count
+            }
+            c.finish(chunks::add)
+            assertEquals(12 * second, chunks[0].size)
+            assertTrue(chunks[1].size <= 8 * second)
+            assertTrue(chunks.drop(2).all { it.size <= 6 * second })
+            assertArrayEquals(audio, reconstruct(chunks))
+        }
+    }
+
+    @Test fun naturalShortThoughtCanFlushBeforeThreeSeconds() {
+        val second = PrivateVoiceChunker.BYTES_PER_SECOND
+        val pcm = ByteArray(2 * second) { i -> if (i < second && i % 2 == 1) 4 else 0 }
+        val chunks = mutableListOf<ByteArray>()
+        val c = PrivateVoiceChunker(thoughtComplete = { _, _ -> true }, capSeconds = { 12 })
+        c.append(pcm, pcm.size, chunks::add)
+        assertTrue(chunks.first().size in (second * 12 / 10)..(second * 2))
+        c.finish(chunks::add)
+        assertArrayEquals(pcm, reconstruct(chunks))
+    }
+
+    @Test fun budgetIsConservativeAndNeverOscillatesDuringSession() {
+        val b = VoiceBatchBudget()
+        assertEquals(12, b.choose(true,true,false,0,-1L))
+        assertEquals(8, b.choose(true,true,false,2,500L))
+        assertEquals(8, b.choose(true,true,false,0,100L))
+        assertEquals(6, b.choose(true,true,true,0,100L))
+        assertEquals(6, b.choose(true,true,false,0,100L))
+        assertEquals(6, VoiceBatchBudget().choose(true,false,false,0,-1L))
+        assertEquals(6, VoiceBatchBudget().choose(false,true,false,0,-1L))
+        assertEquals(8, VoiceBatchBudget().choose(true,true,false,0,900L))
+    }
+
+    private fun reconstruct(chunks: List<ByteArray>): ByteArray {
+        val output = java.io.ByteArrayOutputStream()
+        chunks.forEachIndexed { i, b ->
+            val skip = if (i == 0) 0 else PrivateVoiceChunker.OVERLAP_BYTES
+            output.write(b,skip,b.size-skip)
+        }
+        return output.toByteArray()
+    }
+
 }

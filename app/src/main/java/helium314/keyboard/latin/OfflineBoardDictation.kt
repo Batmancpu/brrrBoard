@@ -99,15 +99,18 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         footer = currentFooter
         composingVoiceDraft = ""
         liveDraftRejected = false
+        var incompleteBatch = false
         val pipeline = PrivateVoiceStreamingPipeline(ime, selectedEngine,
             VoiceNoiseChoice.selected(ime), onDone = { result ->
             if (generation == id) {
-                if (phase == Phase.DECODING) onTranscriptionCompleted(result, id, connection)
+                if (phase == Phase.DECODING) onTranscriptionCompleted(result, id, connection, incompleteBatch)
                 else if (result.isFailure) fail(R.string.board_voice_offline_failed)
             }
         }, onPartialText = { partial ->
             if (generation == id && !Settings.getValues().mIncognitoModeEnabled)
                 updateComposingDraft(connection, partial)
+        }, onIncomplete = {
+            if (generation == id) incompleteBatch = true
         })
         streaming = pipeline
         phase = Phase.STARTING
@@ -175,7 +178,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         streaming?.finishCapture()
     }
 
-    private fun onTranscriptionCompleted(answer: Result<String>, id: Long, connection: InputConnection) {
+    private fun onTranscriptionCompleted(answer: Result<String>, id: Long,
+                                         connection: InputConnection, incomplete: Boolean = false) {
             if (id != generation || phase != Phase.DECODING) return
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
@@ -194,7 +198,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             val statusFooter = footer
             val hadLiveDraft = composingVoiceDraft.isNotEmpty()
             val shouldSend = OfflineDictationAutoSendPolicy.shouldSend(
-                requested = autoSendOnComplete,
+                requested = autoSendOnComplete && !incomplete,
                 validDestination = validDestination,
                 privateMode = Settings.getValues().mIncognitoModeEnabled,
                 imeOptions = originalEditorInfo?.imeOptions ?: 0,
@@ -203,6 +207,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
                 ime.onPrivateVoiceTextInput(phrase, hadLiveDraft)
                 if (shouldSend) connection.performEditorAction(EditorInfo.IME_ACTION_SEND)
+                if (incomplete) statusFooter?.showDictationError(R.string.board_voice_partial_transcript)
             } else if (validEditor) {
                 statusFooter?.showDictationError(R.string.board_voice_offline_failed)
             }

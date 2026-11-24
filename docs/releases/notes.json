@@ -1,38 +1,18 @@
 {
   "schema": 1,
-  "summary": "Stateful BR Brain: capture-first, dual-path speech protection and conservative silence batching.",
+  "summary": "Prioritize complete thoughts with a conservative, pressure-aware 12-second voice safety budget.",
   "changes": [
     {
-      "title": "Dual-path neural speech protection",
-      "detail": "Compare aligned original and denoised Silero scores with independent recurrent history, energy attenuation and padded speech context. Recover attenuated speech by smoothly blending original samples. Reuse one VAD session per batch in the isolated denoiser, with raw fallback on any failure."
+      "title": "Thought-first continuous transcription",
+      "detail": "Keep a coherent 10–12-second thought together when Smart Turn is available. Flush on a confirmed natural pause or a safe 12-second boundary, reduce to eight seconds when decode falls behind and six seconds under memory pressure, unavailable detection or disabled adaptive mode. Keep the microphone active and preserve raw/protected audio overlap."
     },
     {
-      "title": "Conservative speech gain and continuous capture",
-      "detail": "Apply bounded speech-aware gain only near speech, preserve every sample and the existing continuous dictation overlap and thought-aware batching. No audio storage or network access. Device accuracy and latency validation remain pending."
+      "title": "Reduce endpoint processing and safely recover long decodes",
+      "detail": "Reuse the existing stateful denoiser and aligned VAD scores, pass only the last eight seconds to Smart Turn and avoid redundant long waveform conversion. Recover ordinary long-decode exceptions using bounded sequential six-second windows. Preserve already-recognized parts if a batch cannot be recovered; flag partial output and disable auto-send."
     },
     {
-      "title": "Verify bundled neural endpoint models",
-      "detail": "Extend the existing GTCRN contract test to require the exact new auxiliary ONNX allowlist and mandatory endpoint hash verifiers. Preserve the opt-in-only Parakeet policy."
-    },
-    {
-      "title": "Keep original audio through successful transcription",
-      "detail": "Retain raw PCM in RAM until protected decode returns. Retry original once on decoder failure or empty output with sustained raw speech evidence, and wipe it on success/cancellation. Preserve exact auxiliary model allowlist and existing security gates."
-    },
-    {
-      "title": "Immediate tap-to-record",
-      "detail": "Dispatch a normal microphone tap on release without the double-tap confirmation delay. The previous mic double-tap keyboard switch is available as an opt-in setting. Stop and Cancel remain responsive during startup; preserve hold-to-talk and private-mode guards."
-    },
-    {
-      "title": "Capture-first model preparation",
-      "detail": "Prioritize the audio thread and use 40 ms PCM reads. After real audio arrives, prepare Silero first, queue Parakeet warm-up separately and prepare Smart Turn while the ordered PCM queue continues accepting frames. Renew the ASR idle lease and expose a RAM-only request-to-first-PCM timing in Offline voice settings. No recording to disk."
-    },
-    {
-      "title": "Stateful streaming GTCRN and dual-path endpointing",
-      "detail": "One isolated child per adaptive dictation session, 640 ms blocks with 16 ms alignment lookahead, uninterrupted GTCRN recurrent/STFT state and independent raw/clean Silero histories. Protect each block using neighboring context before selecting quiet batch boundaries. Retain raw overlap and original PCM; timeout/cancel/crash disables the child and falls back to raw for the remainder of the session."
-    },
-    {
-      "title": "Conservative silence compaction",
-      "detail": "Compact only long outer digital-zero runs confirmed as non-speech by both detectors; retain speech padding and all nonzero quiet samples and internal pauses. Thought completion sees protected audio with natural pauses. Speech-aware gain runs on the ASR batch. Existing adaptive batching toggle allows reverting to isolated batch enhancement. Smart Turn remains the verified endpoint model; English-only candidate accuracy and physical-device performance still require benchmarking."
+      "title": "Preserve offline privacy and existing speech models",
+      "detail": "No new model weights, runtime download, permissions or signing changes. Add tests for adaptive limits, continuous audio, protected alignment, smaller retry windows and partial-result safety. Physical Reno10 speed and accuracy remain to be measured."
     }
   ]
 }

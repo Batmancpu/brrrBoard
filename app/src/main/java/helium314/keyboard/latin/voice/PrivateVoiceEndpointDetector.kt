@@ -76,12 +76,26 @@ internal class PrivateVoiceEndpointDetector(private val context: Context) {
         }
     }
 
+    /** Worker-confined; a failed/missing model retains the six-second policy. */
+    fun thoughtReady(): Boolean = turn != 0L
+
     fun thoughtComplete(pcm: ByteArray, count: Int): Boolean? {
         if (!enabled) return null
         prepareThought()
         if (turn == 0L) return null
-        val samples = pcmFloats(pcm, 0, count)
-        val window = WhisperFeatures.lastWindow(samples)
+        // Only the latest eight seconds belong to the fixed model input.
+        // Fill the left-padded waveform directly instead of allocating an
+        // entire 12-second float array and another padded copy.
+        require(count in 0..pcm.size && count % 2 == 0)
+        val window = FloatArray(WhisperFeatures.N_SAMPLES)
+        val from = (count - window.size * 2).coerceAtLeast(0)
+        val samples = (count - from) / 2
+        val offset = window.size - samples
+        for (i in 0 until samples) {
+            val p = from + i * 2
+            window[offset + i] = ((pcm[p + 1].toInt() shl 8) or
+                (pcm[p].toInt() and 255)).toShort() / 32768f
+        }
         val flat = FloatArray(WhisperFeatures.N_MELS * WhisperFeatures.N_FRAMES)
         var mel: Array<FloatArray>? = null
         return try {
@@ -95,7 +109,6 @@ internal class PrivateVoiceEndpointDetector(private val context: Context) {
             disableTurn()
             null
         } finally {
-            samples.fill(0f)
             window.fill(0f)
             flat.fill(0f)
             mel?.forEach { it.fill(0f) }

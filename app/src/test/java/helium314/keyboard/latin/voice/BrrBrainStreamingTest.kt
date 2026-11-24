@@ -117,4 +117,19 @@ class BrrBrainStreamingTest {
         assertEquals(n,checkNotNull(aligned.take(faint)).pcm.size)
         aligned.clear()
     }
+
+    @Test fun longBatchKeepsProtectedAudioAndRecentTurnWindowAligned() {
+        val n = PrivateVoiceChunker.MAX_BYTES
+        val raw = waveform(n)
+        val aligned = AlignedVoiceBuffer()
+        aligned.append(raw, scored(raw))
+        val lastEight = WhisperFeatures.N_SAMPLES * 2
+        assertArrayEquals(raw.copyOfRange(n-lastEight,n), aligned.copyRecent(n,lastEight))
+        val first = checkNotNull(aligned.take(raw))
+        assertEquals(n, first.pcm.size)
+        assertArrayEquals(raw.copyOfRange(n-PrivateVoiceChunker.OVERLAP_BYTES,n),
+            aligned.copyPrefix(PrivateVoiceChunker.OVERLAP_BYTES))
+        first.pcm.fill(0); aligned.clear(); raw.fill(0)
+    }
+
 }

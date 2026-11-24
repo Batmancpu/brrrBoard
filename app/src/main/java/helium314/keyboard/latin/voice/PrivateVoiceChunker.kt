@@ -4,15 +4,17 @@ package helium314.keyboard.latin.voice
 import kotlin.math.abs
 
 /**
- * Recorder-thread-only, bounded 16 kHz PCM16 chunker. Closes a batch after a
- * sustained quiet tail or at the quietest 100 ms boundary in the 5–6 second
- * safety window, and keeps 320 ms of real overlap.
+ * Capture-worker-only, bounded 16 kHz PCM16 chunker. Semantic completion
+ * takes priority over the old six-second cut, up to a latched safety budget.
+ * At the ceiling choose a low-energy/neural-safe boundary and keep 320 ms
+ * of real overlap. A shorter budget applies only to the next batch.
  * No speech is thrown away, no audio is logged and the input frame is never retained.
  */
 internal class PrivateVoiceChunker(
     private val activity: ((ByteArray, Int, Int) -> Boolean?)? = null,
     private val thoughtComplete: ((ByteArray, Int) -> Boolean?)? = null,
     private val boundaryPenalty: ((Int, Int) -> Double)? = null,
+    private val capSeconds: () -> Int = { LEGACY_MAX_SECONDS },
 ) {
     private val pcm = ByteArray(MAX_BYTES)
     private var used = 0
@@ -23,6 +25,9 @@ internal class PrivateVoiceChunker(
     private var quietBytes = 0
     private var speechSeen = false
     private var nextTurnCheck = END_SILENCE_BYTES
+    private var limitBytes = 0
+
+    private fun budgetBytes(): Int = capSeconds().coerceIn(LEGACY_MAX_SECONDS, MAX_SECONDS) * BYTES_PER_SECOND
 
     @Synchronized
     fun append(source: ByteArray, count: Int, emit: (ByteArray) -> Unit) {
@@ -30,13 +35,18 @@ internal class PrivateVoiceChunker(
         require(count >= 0 && count <= source.size && count % 2 == 0)
         check(totalBytes + count <= MAX_CAPTURE_BYTES) { "Voice duration limit reached" }
         totalBytes += count
+        if (limitBytes == 0) limitBytes = budgetBytes()
         var position = 0
         while (position < count) {
-            val bytes = minOf(count - position, MAX_BYTES - used)
+            // Consume at most the next analysis window. An early endpoint can
+            // then lower the next budget even if a caller supplies a huge frame.
+            val bytes = minOf(count - position, limitBytes - used,
+                ENERGY_WINDOW_BYTES - (used - scanBytes))
+            check(bytes > 0)
             System.arraycopy(source, position, pcm, used, bytes)
             used += bytes
             position += bytes
-            while (used - scanBytes >= ENERGY_WINDOW_BYTES) {
+            if (used - scanBytes >= ENERGY_WINDOW_BYTES) {
                 val windowEnd = scanBytes + ENERGY_WINDOW_BYTES
                 val speech = activity?.invoke(pcm, scanBytes, windowEnd)
                     ?: (averageAbsAmplitude(scanBytes, windowEnd) >= SPEECH_ENERGY_THRESHOLD)
@@ -47,9 +57,13 @@ internal class PrivateVoiceChunker(
                     nextTurnCheck = END_SILENCE_BYTES
                 } else if (speechSeen) {
                     quietBytes += ENERGY_WINDOW_BYTES
-                    if (scanBytes >= MIN_EARLY_CHUNK_BYTES && quietBytes >= nextTurnCheck) {
-                        // An incomplete thought may wait, but never beyond the hard cap.
-                        val completed = if (quietBytes < MAX_PAUSE_BYTES)
+                    val semanticBudget = limitBytes > LEGACY_MAX_BYTES
+                    val minimum = if (semanticBudget) MIN_SEMANTIC_CHUNK_BYTES else MIN_EARLY_CHUNK_BYTES
+                    val maxPause = if (semanticBudget) SEMANTIC_MAX_PAUSE_BYTES else MAX_PAUSE_BYTES
+                    if (scanBytes >= minimum && quietBytes >= nextTurnCheck) {
+                        // A hesitation is not a complete thought. The long-mode
+                        // pause timeout and safety ceiling are independent.
+                        val completed = if (quietBytes < maxPause)
                             thoughtComplete?.invoke(pcm, scanBytes) else true
                         if (completed != false) {
                             flushWindow(scanBytes, emit)
@@ -62,7 +76,11 @@ internal class PrivateVoiceChunker(
                     }
                 }
             }
-            if (used == MAX_BYTES) flushWindow(emit)
+            if (used == limitBytes) {
+                flushWindow(emit)
+                quietBytes = 0
+                nextTurnCheck = END_SILENCE_BYTES
+            }
         }
     }
 
@@ -99,6 +117,7 @@ internal class PrivateVoiceChunker(
         scanBytes = scanned.coerceIn(OVERLAP_BYTES, used)
         emitted = true
         emit(chunk)
+        limitBytes = budgetBytes()
     }
 
     private fun averageAbsAmplitude(from: Int, to: Int): Double {
@@ -114,10 +133,12 @@ internal class PrivateVoiceChunker(
     }
 
     private fun quietBoundary(): Int {
-        var best = TARGET_BYTES
+        val earliest = limitBytes - (if (limitBytes > 8 * BYTES_PER_SECOND) 2 else 1) * BYTES_PER_SECOND
+        val preferred = if (limitBytes == LEGACY_MAX_BYTES) TARGET_BYTES else limitBytes
+        var best = preferred
         var bestScore = Double.POSITIVE_INFINITY
-        var at = TARGET_BYTES
-        while (at <= MAX_BYTES) {
+        var at = earliest
+        while (at <= limitBytes) {
             val from = (at - ENERGY_WINDOW_BYTES / 2).coerceAtLeast(0)
             val to = (at + ENERGY_WINDOW_BYTES / 2).coerceAtMost(used)
             var energy = 0L
@@ -127,7 +148,7 @@ internal class PrivateVoiceChunker(
                 energy += abs(sample).toLong()
             }
             val average = energy.toDouble() / ((to - from) / 2).coerceAtLeast(1)
-            val score = average + (at - TARGET_BYTES).toDouble() / BYTES_PER_SECOND * 8.0 +
+            val score = average + abs(at - preferred).toDouble() / BYTES_PER_SECOND * 8.0 +
                 (boundaryPenalty?.invoke(from, to) ?: 0.0)
             if (score < bestScore) {
                 best = at
@@ -142,7 +163,8 @@ internal class PrivateVoiceChunker(
         const val SAMPLE_RATE = 16_000
         const val BYTES_PER_SECOND = SAMPLE_RATE * 2
         const val TARGET_SECONDS = 5
-        const val MAX_SECONDS = 6
+        const val LEGACY_MAX_SECONDS = 6
+        const val MAX_SECONDS = 12
         const val OVERLAP_MS = 320
         private const val END_SILENCE_MS = 600
         private const val MIN_EARLY_CHUNK_SECONDS = 3
@@ -150,8 +172,11 @@ internal class PrivateVoiceChunker(
         private const val END_SILENCE_BYTES = BYTES_PER_SECOND * END_SILENCE_MS / 1000
         private const val TURN_RECHECK_BYTES = BYTES_PER_SECOND * 400 / 1000
         private const val MAX_PAUSE_BYTES = BYTES_PER_SECOND * 1400 / 1000
+        private const val SEMANTIC_MAX_PAUSE_BYTES = BYTES_PER_SECOND * 2200 / 1000
+        private const val MIN_SEMANTIC_CHUNK_BYTES = BYTES_PER_SECOND * 1200 / 1000
         private const val MIN_EARLY_CHUNK_BYTES = BYTES_PER_SECOND * MIN_EARLY_CHUNK_SECONDS
         const val TARGET_BYTES = BYTES_PER_SECOND * TARGET_SECONDS
+        const val LEGACY_MAX_BYTES = BYTES_PER_SECOND * LEGACY_MAX_SECONDS
         const val MAX_BYTES = BYTES_PER_SECOND * MAX_SECONDS
         const val OVERLAP_BYTES = BYTES_PER_SECOND * OVERLAP_MS / 1000
         val MAX_CAPTURE_BYTES: Long = BYTES_PER_SECOND.toLong() * PrivatePcmBuffer.MAX_SECONDS

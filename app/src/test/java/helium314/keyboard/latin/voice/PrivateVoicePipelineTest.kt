@@ -120,4 +120,21 @@ class PrivateVoicePipelineTest {
         assertFalse(PrivateVoiceCacheCleanup.isOrphanName("clipboard-image.png"))
         assertFalse(PrivateVoiceCacheCleanup.isOrphanName("../brrboard-voice-123e4567-e89b-12d3-a456-426614174000.pcm"))
     }
+
+    @Test fun contextualTwelveSecondDecodeIsOneWindowAndRetryIsBounded() {
+        val pcm = ByteArray(12 * 32000)
+        assertEquals(listOf(VoiceSegmenter.Window(0, 12 * 16000)), VoiceSegmenter.windows(pcm))
+        val retry = VoiceSegmenter.windows(pcm, maxSeconds = 6)
+        assertTrue(retry.size >= 2)
+        assertEquals(0, retry.first().startSample)
+        assertEquals(12 * 16000, retry.last().endExclusive)
+        assertTrue(retry.all { it.endExclusive-it.startSample <= 6*16000 })
+        assertTrue(retry.zipWithNext().all { (a,b) -> b.startSample <= a.endExclusive && b.endExclusive > a.endExclusive })
+    }
+
+    @Test fun failedBatchGapNeverDeletesRepeatedWordsAcrossNonAdjacentAudio() {
+        assertEquals("one two one two three", VoiceTranscriptJoiner.merge(
+            listOf("one two", "", "one two three"), setOf(1)))
+    }
+
 }

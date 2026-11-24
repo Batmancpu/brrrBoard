@@ -19,11 +19,12 @@ internal object VoiceSegmenter {
         init { require(startSample >= 0 && endExclusive > startSample) }
     }
 
-    fun windows(pcm16: ByteArray, sampleRate: Int = 16_000): List<Window> {
-        require(sampleRate > 0 && pcm16.size % 2 == 0)
+    fun windows(pcm16: ByteArray, sampleRate: Int = 16_000,
+                maxSeconds: Int = MAX_SECONDS): List<Window> {
+        require(sampleRate > 0 && pcm16.size % 2 == 0 && maxSeconds in 6..MAX_SECONDS)
         val samples = pcm16.size / 2
         if (samples == 0) return emptyList()
-        val max = sampleRate * MAX_SECONDS
+        val max = sampleRate * maxSeconds
         if (samples <= max) return listOf(Window(0, samples))
 
         val result = ArrayList<Window>()
@@ -36,9 +37,9 @@ internal object VoiceSegmenter {
                 result += Window(start, samples)
                 break
             }
-            val earliest = start + sampleRate * MIN_SECONDS
+            val earliest = start + sampleRate * minOf(MIN_SECONDS, maxSeconds - 2)
             val latest = (start + max).coerceAtMost(samples)
-            val target = start + sampleRate * TARGET_SECONDS
+            val target = start + sampleRate * minOf(TARGET_SECONDS, maxSeconds - 1)
             var chosen = target
             var best = Double.POSITIVE_INFINITY
             var boundary = earliest

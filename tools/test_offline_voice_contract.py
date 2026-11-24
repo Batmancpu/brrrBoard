@@ -91,6 +91,21 @@ class OfflineVoiceContractTest(unittest.TestCase):
             for forbidden in ("HttpURLConnection", "Socket(", "FileOutputStream", "AudioRecord("):
                 self.assertNotIn(forbidden, source)
 
+    def test_thought_first_bounded_safety_and_partial_result_contract(self):
+        chunker = (SOURCE / "latin/voice/PrivateVoiceChunker.kt").read_text()
+        engine = (SOURCE / "latin/voice/OfflineVoiceEngine.kt").read_text()
+        policy = (SOURCE / "latin/voice/VoiceBatchBudget.kt").read_text()
+        self.assertIn("const val MAX_SECONDS = 12", chunker)
+        self.assertIn("const val LEGACY_MAX_SECONDS = 6", chunker)
+        self.assertIn("capSeconds = ::nextBatchCap", self.pipeline)
+        self.assertIn("endpoint.thoughtReady()", self.pipeline)
+        self.assertIn("memory.lowMemory", self.pipeline)
+        self.assertIn("queuedBatches >= 2", policy)
+        self.assertIn("decodeWindows(PrivateVoiceChunker.LEGACY_MAX_SECONDS)", engine)
+        self.assertIn("requested = autoSendOnComplete && !incomplete", self.dictation)
+        self.assertIn("board_voice_partial_transcript", self.dictation)
+        self.assertIn("onIncomplete()", self.pipeline)
+
     def test_removed_model_ab_test_has_no_live_app_entrypoint(self):
         self.assertFalse((SOURCE / "latin/voice/VoiceNoiseLab.kt").exists())
         self.assertFalse((SOURCE / "settings/screens/VoiceNoiseLabScreen.kt").exists())

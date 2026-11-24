@@ -73,8 +73,9 @@ internal class OfflineVoiceEngine(
                     }
                     val rec = requireRecognizer()
                     VoiceSessionCrashTrail.note(context, "ASR_DECODING")
-                    val pieces = ArrayList<String>()
-                    for (window in VoiceSegmenter.windows(pcm16)) {
+                    fun decodeWindows(maxSeconds: Int): String {
+                        val pieces = ArrayList<String>()
+                        for (window in VoiceSegmenter.windows(pcm16, maxSeconds = maxSeconds)) {
                         check(!request.isCancelled) { "Dictation was cancelled" }
                         val samples = FloatArray(window.endExclusive - window.startSample)
                         try {
@@ -95,11 +96,22 @@ internal class OfflineVoiceEngine(
                         } finally {
                             samples.fill(0f)
                         }
+                        }
+                        return VoiceTranscriptJoiner.merge(pieces)
+                    }
+                    val combined = try {
+                        decodeWindows(15)
+                    } catch (failure: Exception) {
+                        // A normal native/Java decode error in a longer batch
+                        // gets one bounded, sequential shorter-window attempt.
+                        // No second recognizer or retry after user cancellation.
+                        if (request.isCancelled || pcm16.size <= PrivateVoiceChunker.LEGACY_MAX_BYTES)
+                            throw failure
+                        decodeWindows(PrivateVoiceChunker.LEGACY_MAX_SECONDS)
                     }
                     lastUsedAt = SystemClock.elapsedRealtime()
                     VoiceSessionCrashTrail.note(context, "ASR_DECODED")
                     check(!request.isCancelled) { "Dictation was cancelled" }
-                    val combined = VoiceTranscriptJoiner.merge(pieces)
                     if (formatTranscript) VoiceTranscriptFormatter.format(combined) else combined
                 }
             } finally {

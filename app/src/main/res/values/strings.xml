@@ -558,6 +558,7 @@
     <string name="board_voice_offline_model_install_failed">Private voice model setup failed. Open brrBoard Settings to retry.</string>
     <string name="board_voice_offline_listening">Private offline listening…</string>
     <string name="board_voice_offline_failed">Private English transcription failed</string>
+    <string name="board_voice_partial_transcript">Partial transcript — some audio could not be decoded. Review before sending.</string>
     <string name="board_voice_destination_changed">Speech not inserted: cursor or selection changed</string>
     <string name="board_voice_saved_for_recovery">Speech saved because the cursor moved</string>
     <string name="board_voice_open_clipboard">Open Clipboard</string>
