@@ -1323,6 +1323,7 @@ public final class InputLogic {
                 mConnection.getNgramContextFromNthPreviousWord(settingsValues.mSpacingAndPunctuations, 2),
                 (int) TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()),
                 settingsValues.mBlockPotentiallyOffensive);
+        mSuggest.clearNextWordSuggestionsCache();
     }
 
     /**

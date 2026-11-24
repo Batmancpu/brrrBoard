@@ -3,6 +3,7 @@ package helium314.keyboard.latin.brain
 
 import helium314.keyboard.keyboard.Keyboard
 import helium314.keyboard.latin.common.InputPointers
+import java.lang.ref.WeakReference
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -18,17 +19,43 @@ import kotlin.math.max
  */
 object SwipeGeometryRescue {
     data class Point(val x: Double, val y: Double)
+    // Geometry only, never a stroke or editor text. Do not keep an old Keyboard
+    // (and its native proximity table) alive just for this optional rescue.
+    private var geometryOwner: WeakReference<Keyboard>? = null
+    private var geometry: Map<Char, Point> = emptyMap()
+    internal fun acceptsPointerCount(count: Int): Boolean = count in 3..1024
+
+    @Synchronized private fun centersFor(keyboard: Keyboard): Map<Char, Point> {
+        if (geometryOwner?.get() === keyboard) return geometry
+        val centers = LinkedHashMap<Char, Point>()
+        for (key in keyboard.sortedKeys) {
+            val code = Character.toLowerCase(key.code)
+            if (code !in 'a'.code..'z'.code) continue
+            val letter = code.toChar()
+            if (letter !in centers) {
+                centers[letter] = Point(key.x + key.width / 2.0, key.y + key.height / 2.0)
+            }
+        }
+        geometryOwner = WeakReference(keyboard)
+        geometry = centers
+        return centers
+    }
 
     /** Deterministic and testable without an Android IME or native decoder. */
     fun hints(points: List<Point>, keyCenters: Map<Char, Point>, keyPitch: Double): List<String> {
         if (points.size < 3 || keyCenters.size < 4 || keyPitch <= 0) return emptyList()
         // Never treat a tap, a tiny jitter or a massive accidental swipe as a word.
-        val length = points.zipWithNext().sumOf { (a, b) -> hypot(b.x - a.x, b.y - a.y) }
+        var length = 0.0
+        for (i in 1 until points.size) {
+            val a = points[i - 1]; val b = points[i]
+            length += hypot(b.x - a.x, b.y - a.y)
+        }
         if (length < keyPitch * 1.15 || length > keyPitch * 65) return emptyList()
         val spaced = ArrayList<Point>()
         spaced.add(points.first())
         val step = max(keyPitch * 0.28, 1.0)
-        for (point in points.drop(1)) {
+        for (i in 1 until points.size) {
+            val point = points[i]
             val last = spaced.last()
             if (hypot(point.x - last.x, point.y - last.y) >= step) spaced.add(point)
         }
@@ -77,20 +104,12 @@ object SwipeGeometryRescue {
 
     fun hints(pointers: InputPointers, keyboard: Keyboard): List<String> {
         val count = pointers.pointerSize
-        if (count !in 3..256) return emptyList()
-        val centers = LinkedHashMap<Char, Point>()
-        for (key in keyboard.sortedKeys) {
-            val code = Character.toLowerCase(key.code)
-            if (code !in 'a'.code..'z'.code) continue
-            val letter = code.toChar()
-            if (letter !in centers) {
-                centers[letter] = Point(key.x + key.width / 2.0, key.y + key.height / 2.0)
-            }
-        }
+        if (!acceptsPointerCount(count)) return emptyList()
+        val centers = centersFor(keyboard)
         if (centers.size < 20) return emptyList()
         val xs = pointers.xCoordinates
         val ys = pointers.yCoordinates
-        val sampled = ArrayList<Point>(minOf(count, 256))
+        val sampled = ArrayList<Point>(count)
         for (index in 0 until count) sampled.add(Point(xs[index].toDouble(), ys[index].toDouble()))
         return hints(sampled, centers, keyboard.mMostCommonKeyWidth.toDouble())
     }
@@ -119,8 +138,8 @@ object SwipeGeometryRescue {
         val budget = minOf(3, max(1, a.length / 3))
         if (kotlin.math.abs(a.length - b.length) > budget) return false
         var previous = IntArray(b.length + 1) { it }
+        var current = IntArray(b.length + 1)
         for (i in a.indices) {
-            val current = IntArray(b.length + 1)
             current[0] = i + 1
             for (j in b.indices) {
                 current[j + 1] = minOf(
@@ -128,7 +147,9 @@ object SwipeGeometryRescue {
                     current[j] + 1,
                     previous[j] + if (a[i] == b[j]) 0 else 1)
             }
+            val old = previous
             previous = current
+            current = old
         }
         return previous[b.length] <= budget
     }

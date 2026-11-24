@@ -101,7 +101,8 @@ public final class BrSuggestionBrain {
             @Nullable final SettingsValues values, @NonNull final NgramContext context,
             @NonNull final List<SuggestedWordInfo> nativeSuggestions,
             final long editorGeneration) {
-        if (!isEligible(ime, editor, values)) return nativeSuggestions;
+        if (!isEligible(ime, editor, values) || !BrContextLmExperiment.isEnabled(ime))
+            return nativeSuggestions;
         return BrContextLmExperiment.rerankManualSuggestions(
                 ime, context, new ArrayList<>(nativeSuggestions), editorGeneration, true);
     }
@@ -111,13 +112,13 @@ public final class BrSuggestionBrain {
             @Nullable final LatinIME ime, @Nullable final EditorInfo editor,
             @Nullable final SettingsValues values) {
         if (!isEligible(ime, editor, values) || !userUnlocked(ime)
+                || !SwipeCorrectionLearner.isAllowed(ime, editor,
+                        values.mIncognitoModeEnabled,
+                        values.isSuggestionsEnabledPerUserSettings())
                 || !NoBackupStorageMigration.migrateEncryptedRecord(
                         ime, "brr_swipe_corrections_v2.aesgcm")
                 || !NoBackupStorageMigration.migrateEncryptedRecord(
-                        ime, "brr_swipe_corrections_v1")
-                || !SwipeCorrectionLearner.isAllowed(ime, editor,
-                        values.mIncognitoModeEnabled,
-                        values.isSuggestionsEnabledPerUserSettings())) {
+                        ime, "brr_swipe_corrections_v1")) {
             return null;
         }
         return SwipeCorrectionLearner.get(ime);

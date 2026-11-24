@@ -22,7 +22,14 @@ import androidx.core.graphics.ColorUtils
 /** Small state machine that avoids re-recording an unchanged panel source. */
 internal class PanelGlassRecordState {
     private var dirty = true
+    private var framePending = false
     fun invalidate() { dirty = true }
+    fun requestFrame(): Boolean {
+        if (framePending) return false
+        framePending = true
+        return true
+    }
+    fun frameStarted() { framePending = false }
     fun needsRecording(hasDisplayList: Boolean): Boolean = dirty || !hasDisplayList
     fun recordingCompleted() { dirty = false }
 }
@@ -61,8 +68,18 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     private var registeredObserver: ViewTreeObserver? = null
     private val scrollObserver = ViewTreeObserver.OnScrollChangedListener { invalidateSource() }
     private val recordState = PanelGlassRecordState()
-    private val sourceLayoutListener = OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> invalidateSource() }
-    private val overlayLayoutListener = OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> invalidateSource() }
+    // Clear the scheduling flag at the frame callback even if Android skips
+    // onDraw (hidden view, reused display list or interrupted traversal).
+    private val redrawFrame = Runnable {
+        recordState.frameStarted()
+        if (isAttachedToWindow && isShown) invalidate()
+    }
+    private val sourceLayoutListener = OnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+        if (l != ol || t != ot || r != or || b != ob) invalidateSource()
+    }
+    private val overlayLayoutListener = OnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+        if (l != ol || t != ot || r != or || b != ob) invalidateSource()
+    }
     private val globalLayoutObserver = ViewTreeObserver.OnGlobalLayoutListener { invalidateSource() }
 
     init {
@@ -78,15 +95,9 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     fun configure(content: View?, edge: Edge, color: Int) {
         if (source !== content) {
             unobserve()
-            source?.removeOnLayoutChangeListener(sourceLayoutListener)
             source = content
             // Drop the old GPU display list when leaving a sensitive panel.
-            node = null
-            blurWidth = 0
-            blurHeight = 0
-            blurBleed = -1
-            recordState.invalidate()
-            content?.addOnLayoutChangeListener(sourceLayoutListener)
+            dropNode()
             observe()
         }
         this.edge = edge
@@ -123,19 +134,32 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         observe()
+        invalidateSource()
     }
 
     override fun onDetachedFromWindow() {
         unobserve()
-        node = null
-        recordState.invalidate()
+        dropNode()
+        removeCallbacks(redrawFrame)
+        recordState.frameStarted()
         super.onDetachedFromWindow()
+    }
+
+    private fun dropNode() {
+        node = null
+        // A new RenderNode must receive its position and blur effect even
+        // when the reattached view has exactly the previous dimensions.
+        blurWidth = 0
+        blurHeight = 0
+        blurBleed = -1
+        recordState.invalidate()
     }
 
     private fun observe() {
         if (!isAttachedToWindow || source == null || registeredObserver != null) return
         val observer = source!!.viewTreeObserver
         if (observer.isAlive) {
+            source?.addOnLayoutChangeListener(sourceLayoutListener)
             observer.addOnScrollChangedListener(scrollObserver)
             observer.addOnGlobalLayoutListener(globalLayoutObserver)
             registeredObserver = observer
@@ -143,6 +167,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     }
 
     private fun unobserve() {
+        source?.removeOnLayoutChangeListener(sourceLayoutListener)
         registeredObserver?.takeIf { it.isAlive }?.let {
             it.removeOnScrollChangedListener(scrollObserver)
             it.removeOnGlobalLayoutListener(globalLayoutObserver)
@@ -153,7 +178,9 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     /** Mark only content/geometry changes dirty; unchanged frames reuse the GPU display list. */
     fun invalidateSource() {
         recordState.invalidate()
-        postInvalidateOnAnimation()
+        if (isAttachedToWindow && isShown && recordState.requestFrame()) {
+            postOnAnimation(redrawFrame)
+        }
     }
 
     override fun onDraw(canvas: Canvas) {

@@ -6,7 +6,6 @@
 package helium314.keyboard.latin
 
 import android.text.TextUtils
-import android.util.LruCache
 import com.android.inputmethod.latin.utils.BinaryDictionaryUtils
 import helium314.keyboard.keyboard.Keyboard
 import helium314.keyboard.keyboard.emoji.EmojiContextScorer
@@ -42,10 +41,10 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     private var mAutoCorrectionThreshold = 0f
     private val mPlausibilityThreshold = 0f
     private val nextWordSuggestionsCache =
-        LruCache<NextWordCacheKey, SuggestionResults>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
+        EpochLruCache<NextWordCacheKey, SuggestionResults>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
 
     // cache cleared whenever LatinIME.loadSettings is called, notably on changing layout and switching input fields
-    fun clearNextWordSuggestionsCache() = nextWordSuggestionsCache.evictAll()
+    fun clearNextWordSuggestionsCache() = nextWordSuggestionsCache.clear()
 
     /**
      * Set the normalized-score threshold for a suggestion to be considered strong enough that we
@@ -67,6 +66,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // Only content-free timing/counts, and never while an incognito/protected editor is active.
         // The timing covers this entire local candidate generation call, not display latency.
         val values = Settings.getValues()
+        val cacheEpoch = nextWordSuggestionsCache.epoch()
         val requestedEditorGeneration = LatinIME.getInstance()?.editorGeneration() ?: -1L
         val measurable = values != null && values.mInputAttributes.mShouldShowSuggestions
             && EmojiContextEligibility.isEligible(
@@ -80,11 +80,12 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         try {
             val result = if (wordComposer.isBatchMode) {
                 getSuggestedWordsForBatchInput(wordComposer, ngramContext, keyboard,
-                    settingsValuesForSuggestion, inputStyle, sequenceNumber)
+                    settingsValuesForSuggestion, inputStyle, sequenceNumber,
+                    requestedEditorGeneration, cacheEpoch)
             } else {
                 getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard,
                     settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber,
-                    requestedEditorGeneration)
+                    requestedEditorGeneration, cacheEpoch)
             }
             if (measurable) BrainPerformanceMetrics.recordSuggestionBatch(result.size())
             return result
@@ -98,11 +99,11 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     private fun getSuggestedWordsForNonBatchInput(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                       settingsValuesForSuggestion: SettingsValuesForSuggestion, inputStyleIfNotPrediction: Int,
                       isCorrectionEnabled: Boolean, sequenceNumber: Int,
-                      requestedEditorGeneration: Long): SuggestedWords {
+                      requestedEditorGeneration: Long, cacheEpoch: Long): SuggestedWords {
         val typedWordString = wordComposer.typedWord
         val resultsArePredictions = !wordComposer.isComposingWord
         val suggestionResults = if (typedWordString.isEmpty())
-                getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion)
+                getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion, requestedEditorGeneration, cacheEpoch)
             else mDictionaryFacilitator.getSuggestionResults(wordComposer.composedDataSnapshot, ngramContext, keyboard,
                 settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyleIfNotPrediction)
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
@@ -132,7 +133,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             suggestionsContainer.firstOrNull(),
             {
                 val first = suggestionsContainer.firstOrNull() ?: suggestionResults.first()
-                val suggestions = getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion)
+                val suggestions = getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion, requestedEditorGeneration, cacheEpoch)
                 val suggestionForFirstInContainer = suggestions.firstOrNull { it.mWord == first.word }
                 val suggestionForTypedWord = suggestions.firstOrNull { it.mWord == capitalizedTypedWord }
                 suggestionForFirstInContainer to suggestionForTypedWord
@@ -196,6 +197,9 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // Never issue an extra surrounding-editor-text IPC from this path.
         val currentSettings = Settings.getValues()
         val mayUseEmojiContext = !currentSettings.mIncognitoModeEnabled
+            && !currentSettings.mInputAttributes.mNoLearning
+            && requestedEditorGeneration >= 0
+            && LatinIME.getInstance()?.editorGeneration() == requestedEditorGeneration
             && currentSettings.mInputAttributes.mIsGeneralTextInput
             && currentSettings.mInputAttributes.mShouldShowSuggestions
             && EmojiContextEligibility.isEligible(
@@ -217,13 +221,16 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 emojiContext, 48, false
             )
         } else emptyList()
-        val rankedEmojiCandidates = rankedEmojiPicks.map { it.emoji }
+        val currentEmojiPicks = if (emojiService?.editorGeneration() == requestedEditorGeneration
+            && emojiService?.currentInputEditorInfo === emojiSuggestionEditor
+            && Settings.getValues() === currentSettings) rankedEmojiPicks else emptyList()
+        val rankedEmojiCandidates = currentEmojiPicks.map { it.emoji }
         if (resultsArePredictions && mayUseEmojiContext
             && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
             && suggestionsList.none { it.isEmoji }) {
             // Learned suggestions are manual actions only and never take either
             // text-prediction slot.
-            val emoji = rankedEmojiPicks.firstOrNull { it.confidence >= 520 }?.emoji
+            val emoji = currentEmojiPicks.firstOrNull { it.confidence >= 520 }?.emoji
             if (emoji != null) {
                 // Preserve the two strongest text predictions in visible slots;
                 // an Emoji is a distinct insertion action, never a word candidate.
@@ -367,7 +374,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         wordComposer: WordComposer,
         ngramContext: NgramContext, keyboard: Keyboard,
         settingsValuesForSuggestion: SettingsValuesForSuggestion,
-        inputStyle: Int, sequenceNumber: Int
+        inputStyle: Int, sequenceNumber: Int,
+        requestedEditorGeneration: Long, cacheEpoch: Long
     ): SuggestedWords {
         val suggestionResults = mDictionaryFacilitator.getSuggestionResults(
             wordComposer.composedDataSnapshot, ngramContext, keyboard,
@@ -434,7 +442,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // modify inputType such in getSuggestedWordsForNonBatchInput.
         val pseudoTypedWordInfo = preferNextWordSuggestion(
             suggestionsContainer.firstOrNull(),
-            suggestionsContainer, getNextWordSuggestions(ngramContext, keyboard, inputStyle, settingsValuesForSuggestion), rejected
+            suggestionsContainer, getNextWordSuggestions(ngramContext, keyboard, inputStyle, settingsValuesForSuggestion,
+                requestedEditorGeneration, cacheEpoch), rejected
         )
         val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && suggestionsContainer.isNotEmpty()) {
             getSuggestionsInfoListWithDebugInfo(suggestionResults.first().mWord, suggestionsContainer)
@@ -453,15 +462,21 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
 
     /** get suggestions based on the current ngram context, with an empty typed word (that's what next word suggestions do)  */
     private fun getNextWordSuggestions(ngramContext: NgramContext, keyboard: Keyboard, inputStyle: Int,
-                                       settingsValuesForSuggestion: SettingsValuesForSuggestion): SuggestionResults {
-        // The old context-only cache could reuse a result from another locale,
-        // keyboard layout or input style. Do not retain a private context at all.
-        val cacheable = Settings.getValues()?.mIncognitoModeEnabled != true
-        val key = NextWordCacheKey.from(ngramContext, mDictionaryFacilitator.mainLocale.toLanguageTag(),
+                                       settingsValuesForSuggestion: SettingsValuesForSuggestion,
+                                       requestedEditorGeneration: Long, cacheEpoch: Long): SuggestionResults {
+        // Do not even allocate a retained-context key for an ineligible or stale editor.
+        fun cacheable(): Boolean {
+            val settings = Settings.getValues() ?: return false
+            return requestedEditorGeneration >= 0 &&
+                LatinIME.getInstance()?.editorGeneration() == requestedEditorGeneration &&
+                !settings.mIncognitoModeEnabled && !settings.mInputAttributes.mNoLearning &&
+                !settings.mInputAttributes.mIsPasswordField && !settings.mInputAttributes.mVaultPrivateEditor
+        }
+        val key = if (cacheable()) NextWordCacheKey.from(ngramContext, mDictionaryFacilitator.mainLocale.toLanguageTag(),
             keyboard.mId.hashCode(), inputStyle,
             settingsValuesForSuggestion.mBlockPotentiallyOffensive,
-            settingsValuesForSuggestion.mSpaceAwareGesture)
-        if (cacheable) nextWordSuggestionsCache.get(key)?.let { return it }
+            settingsValuesForSuggestion.mSpaceAwareGesture) else null
+        if (key != null) nextWordSuggestionsCache.get(cacheEpoch, key)?.let { return it }
         val started = IntelligenceMetrics.begin()
         val newResults = try {
             mDictionaryFacilitator.getSuggestionResults(ComposedData(InputPointers(1),
@@ -469,7 +484,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         } finally {
             IntelligenceMetrics.end(IntelligenceMetrics.Path.NEXT_WORD, started)
         }
-        if (cacheable) nextWordSuggestionsCache.put(key, newResults)
+        if (key != null && cacheable()) nextWordSuggestionsCache.put(cacheEpoch, key, newResults)
         return newResults
     }
 

@@ -41,6 +41,7 @@ internal class PrivateVoiceStreamingPipeline(
     private var streamThoughtPrepared = false
     private val handler = Handler(Looper.getMainLooper())
     private val cancelled = AtomicBoolean(false)
+    private val framePool = VoiceFramePool()
     private val endpoint = PrivateVoiceEndpointDetector(context)
     private val adaptive = VoiceEndpointPreference.enabled(context)
     private val batchBudget = VoiceBatchBudget()
@@ -120,7 +121,7 @@ internal class PrivateVoiceStreamingPipeline(
         if (cancelled.get()) return
         require(count >= 0 && count <= source.size && count % 2 == 0)
         if (count == 0) return
-        val frame = source.copyOf(count)
+        val frame = framePool.copyFrom(source, count)
         try {
             captureWorker.execute {
                 try {
@@ -141,10 +142,10 @@ internal class PrivateVoiceStreamingPipeline(
                 } catch (_: Exception) {
                     handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
                 } finally {
-                    frame.fill(0)
+                    framePool.recycle(frame)
                 }
             }
-        } catch (_: RejectedExecutionException) { frame.fill(0) }
+        } catch (_: RejectedExecutionException) { framePool.recycle(frame) }
     }
 
     /** Called only after AudioRecord has stopped and yielded its last frame. */
@@ -202,6 +203,7 @@ internal class PrivateVoiceStreamingPipeline(
     }
 
     private fun stopCaptureWorker() {
+        framePool.close()
         // Queued frames see cancellation and wipe themselves. The worker alone
         // releases native state after the currently executing inference ends.
         try {
@@ -213,6 +215,7 @@ internal class PrivateVoiceStreamingPipeline(
     }
 
     private fun closeCapture() {
+        framePool.close()
         stream?.discard()
         streamBridge?.close(cancelled.get())
         streamBridge = null

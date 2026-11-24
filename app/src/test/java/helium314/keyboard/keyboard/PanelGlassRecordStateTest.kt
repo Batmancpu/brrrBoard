@@ -6,6 +6,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PanelGlassRecordStateTest {
+    @Test fun repeatedInvalidationsShareOneFrameButKeepContentDirty() {
+        val state = PanelGlassRecordState()
+        state.recordingCompleted()
+        state.invalidate()
+        assertTrue(state.requestFrame())
+        state.invalidate()
+        assertFalse(state.requestFrame())
+        assertTrue(state.needsRecording(true))
+        state.frameStarted()
+        state.recordingCompleted()
+        assertFalse(state.needsRecording(true))
+        assertTrue(state.requestFrame())
+    }
     @Test fun unchangedFramesReuseTheRecordingButInvalidationsRefreshIt() {
         val state = PanelGlassRecordState()
         assertTrue(state.needsRecording(hasDisplayList = false))

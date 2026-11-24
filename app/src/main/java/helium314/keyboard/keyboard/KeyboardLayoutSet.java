@@ -28,8 +28,6 @@ import helium314.keyboard.latin.utils.ResourceUtils;
 import helium314.keyboard.latin.utils.ScriptUtils;
 import helium314.keyboard.latin.utils.SubtypeLocaleUtils;
 
-import java.lang.ref.SoftReference;
-import java.util.HashMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,12 +51,10 @@ public final class KeyboardLayoutSet {
     // How many layouts we forcibly keep in cache. This only includes ALPHABET (default) and
     // ALPHABET_AUTOMATIC_SHIFTED layouts - other layouts may stay in memory in the map of
     // soft-references, but we forcibly cache this many alphabetic/auto-shifted layouts.
-    private static final int FORCIBLE_CACHE_SIZE = 4;
-    // By construction of soft references, anything that is also referenced somewhere else
-    // will stay in the cache. So we forcibly keep some references in an array to prevent
-    // them from disappearing from sKeyboardCache.
-    private static final Keyboard[] sForcibleKeyboardCache = new Keyboard[FORCIBLE_CACHE_SIZE];
-    private static final HashMap<KeyboardId, SoftReference<Keyboard>> sKeyboardCache = new HashMap<>();
+    // Keep recent primary layouts warm, while bounding the metadata held by
+    // soft entries (including entries whose values have already been collected).
+    private static final LayoutRetentionCache<KeyboardId, Keyboard> sKeyboardCache =
+            new LayoutRetentionCache<>(48, 4);
     @NonNull
     private static final UniqueKeysCache sUniqueKeysCache = UniqueKeysCache.newInstance();
 
@@ -118,10 +114,12 @@ public final class KeyboardLayoutSet {
     }
 
     private static void clearKeyboardCache() {
-        sKeyboardCache.clear();
-        sUniqueKeysCache.clear();
-        LayoutParser.INSTANCE.clearCache();
-        KeyboardIconsSet.Companion.setNeedsReload(true);
+        synchronized (sKeyboardCache) {
+            sKeyboardCache.clear();
+            sUniqueKeysCache.clear();
+            LayoutParser.INSTANCE.clearCache();
+            KeyboardIconsSet.Companion.setNeedsReload(true);
+        }
     }
 
     KeyboardLayoutSet(final Context context, @NonNull final Params params) {
@@ -163,8 +161,19 @@ public final class KeyboardLayoutSet {
 
     @NonNull
     private Keyboard getKeyboard(final KeyboardId id) {
-        final SoftReference<Keyboard> ref = sKeyboardCache.get(id);
-        final Keyboard cachedKeyboard = (ref == null) ? null : ref.get();
+        // Spellchecker and IME share the builder's UniqueKeysCache and parser.
+        // Use the same monitor for construction and invalidation.
+        synchronized (sKeyboardCache) {
+            return getKeyboardLocked(id);
+        }
+    }
+
+    @NonNull
+    private Keyboard getKeyboardLocked(final KeyboardId id) {
+        final boolean retain = (id.mElementId == KeyboardId.ELEMENT_ALPHABET
+                || id.mElementId == KeyboardId.ELEMENT_ALPHABET_AUTOMATIC_SHIFTED)
+                && !mParams.mIsSpellChecker;
+        final Keyboard cachedKeyboard = sKeyboardCache.get(id, retain);
         if (cachedKeyboard != null) {
             if (DEBUG_CACHE) {
                 Log.d(TAG, "keyboard cache size=" + sKeyboardCache.size() + ": HIT  id=" + id);
@@ -180,22 +189,9 @@ public final class KeyboardLayoutSet {
             builder.disableTouchPositionCorrectionDataForTest();
         }
         final Keyboard keyboard = builder.build();
-        sKeyboardCache.put(id, new SoftReference<>(keyboard));
-        if ((id.mElementId == KeyboardId.ELEMENT_ALPHABET
-                || id.mElementId == KeyboardId.ELEMENT_ALPHABET_AUTOMATIC_SHIFTED)
-                && !mParams.mIsSpellChecker) {
-            // We only forcibly cache the primary, "ALPHABET", layouts.
-            for (int i = sForcibleKeyboardCache.length - 1; i >= 1; --i) {
-                sForcibleKeyboardCache[i] = sForcibleKeyboardCache[i - 1];
-            }
-            sForcibleKeyboardCache[0] = keyboard;
-            if (DEBUG_CACHE) {
-                Log.d(TAG, "forcing caching of keyboard with id=" + id);
-            }
-        }
+        sKeyboardCache.put(id, keyboard, retain);
         if (DEBUG_CACHE) {
-            Log.d(TAG, "keyboard cache size=" + sKeyboardCache.size() + ": "
-                    + ((ref == null) ? "LOAD" : "GCed") + " id=" + id);
+            Log.d(TAG, "keyboard cache size=" + sKeyboardCache.size() + ": LOAD id=" + id);
         }
         return keyboard;
     }

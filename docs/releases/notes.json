@@ -1,14 +1,22 @@
 {
   "schema": 1,
-  "summary": "Improve first-attempt WhatsApp vault gesture recognition and discreet feedback.",
+  "summary": "Bounded keyboard memory, glass lifecycle, private voice buffers and prediction/swipe efficiency.",
   "changes": [
     {
-      "title": "One-stroke recognition",
-      "detail": "Preserves final touch samples and supports small wrist-angle differences using the existing two-of-three enrollment consensus. Existing saved gestures and privacy guards remain."
+      "title": "Bounded keyboard memory",
+      "detail": "Keep four recent alphabet layouts warm and bound soft layout entries; invalidate both tiers on geometry, locale or theme changes."
     },
     {
-      "title": "Discreet vault feedback",
-      "detail": "A failed gesture vibrates without displaying a vault-identifying toast; success confirmation remains haptic. WhatsApp Search keeps its private microphone policy."
+      "title": "Glass lifecycle and redraws",
+      "detail": "Restore GPU blur on same-size reattachment, detach source observers, and coalesce repeated frame requests without changing glass styling."
+    },
+    {
+      "title": "Private voice buffer reuse",
+      "detail": "Reuse bounded zeroized capture-frame buffers without changing speech order, batch duration, model or cancellation policy."
+    },
+    {
+      "title": "Prediction and swipe efficiency",
+      "detail": "Reject stale cache writes and Emoji results, skip disabled reranking work, reuse swipe geometry and support denser touch samples; preserve native ranking."
     }
   ]
 }

@@ -29,6 +29,20 @@ class SwipeGeometryRescueTest {
         assertTrue("expected hapy spelling seed, got $hints", hints.contains("hapy"))
     }
 
+    @Test fun denseTouchSamplingRetainsCornersWithoutDiscardingTheStroke() {
+        val trace = listOf('h', 'a', 'p', 'y').zipWithNext().flatMap { (a, b) ->
+            val from = keys.getValue(a); val to = keys.getValue(b)
+            (0..120).map { i -> val t = i / 120.0
+                SwipeGeometryRescue.Point(from.x + (to.x - from.x) * t,
+                    from.y + (to.y - from.y) * t)
+            }
+        }
+        assertTrue(trace.size > 256)
+        assertTrue(SwipeGeometryRescue.acceptsPointerCount(trace.size))
+        assertTrue(SwipeGeometryRescue.hints(trace, keys, 2.0).contains("hapy"))
+        assertTrue(!SwipeGeometryRescue.acceptsPointerCount(1025))
+    }
+
     @Test fun rejectsTapJitterAndUnboundedGesture() {
         assertEquals(emptyList<String>(), SwipeGeometryRescue.hints(
             listOf(keys.getValue('h')), keys, 2.0))
