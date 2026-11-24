@@ -1,3 +1,7 @@
+## Verified v1.0.269 release — 2026-11-24
+
+Source `580c8209707b0a614be97ec34afb4cda2fc5868b`. Exact debug 45335526847 and original-signed Obtainium 45335527009 completed successfully; full unit tests, model/packaging and offline privacy gates passed. APK 75,525,709 bytes; SHA-256 `4e4eb4d831417fa7a7f4485fcc871afc2a0d0ae974a77cb20b92a5f7c3edf43d`. https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.269/brrBoard.apk . Physical Reno10 accuracy, peak native memory, battery and latency measurements remain pending. The broader UI efficiency source audit found an old-layout strong-cache retention opportunity; no speculative UI optimization was shipped in this voice safety release.
+
 # Thought-first offline dictation and efficiency — 2026-11-24
 
 Owner explicitly approved implementation after the preceding workflows succeeded. Verified base v1.0.268: 41b527610233d186cd68756d5f7f62ca3b5e9e82, debug 45333883057 and original-signed release 45333883032 both success. No branch or active workflow interrupted.
