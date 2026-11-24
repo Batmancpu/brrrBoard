@@ -30,6 +30,10 @@ class ClipboardTextVaultTest {
             db.execSQL("INSERT INTO CLIPBOARD VALUES (4,123,1,'pinned')")
             db.execSQL("INSERT INTO CLIPBOARD VALUES (8,456,0,'ordinary')")
             ClipboardTextVault.migrate(db,key)
+            db.rawQuery("PRAGMA secure_delete",null).use { c ->
+                assertTrue(c.moveToFirst())
+                assertEquals(1,c.getInt(0))
+            }
             assertEquals(ClipboardTextVault.Status.CLEANUP_PENDING,ClipboardTextVault.status(db))
             db.rawQuery("SELECT ID,TIMESTAMP,PINNED,TEXT FROM CLIPBOARD ORDER BY ID",null).use { c ->
                 assertTrue(c.moveToNext())

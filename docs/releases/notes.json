@@ -21,6 +21,10 @@
     {
       "title": "Optional editing gestures",
       "detail": "Enable a dedicated Edit key for letter-slide shortcuts or configurable directional flicks; off by default and separate from normal glide typing."
+    },
+    {
+      "title": "Clipboard migration compatibility",
+      "detail": "Read and verify SQLite secure-delete PRAGMA through the result-returning query API before converting existing records."
     }
   ]
 }

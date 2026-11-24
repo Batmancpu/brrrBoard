@@ -82,12 +82,23 @@ object ClipboardTextVault {
         }
     }
 
+    // secure_delete is a result-returning PRAGMA even when assigning a value.
+    // Android execSQL is only for statements with no returned rows. Consume and
+    // verify the result on the transaction's connection before modifying data.
+    private fun requireSecureDelete(db: SQLiteDatabase) {
+        db.rawQuery("PRAGMA secure_delete=ON",null).use { cursor ->
+            check(cursor.moveToFirst() && cursor.getInt(0) == 1) {
+                "SQLite secure deletion unavailable"
+            }
+        }
+    }
+
     /** State and every existing payload switch together in the same SQLite transaction. */
     internal fun migrate(db: SQLiteDatabase,key: SecretKey) {
         check(!enabled(db))
-        db.execSQL("PRAGMA secure_delete=ON")
         db.beginTransaction()
         try {
+            requireSecureDelete(db)
             // Page through ids, not all ciphertext. Existing rows and pins keep exact ids/times.
             var last: Long? = null
             while (true) {
@@ -122,7 +133,7 @@ object ClipboardTextVault {
     internal fun finishCleanup(db: SQLiteDatabase) {
         if (status(db) != Status.CLEANUP_PENDING) return
         try {
-            db.execSQL("PRAGMA secure_delete=ON")
+            requireSecureDelete(db)
             fun checkpoint() = db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)",null).use {
                 it.moveToFirst() && it.getInt(0) == 0
             }
