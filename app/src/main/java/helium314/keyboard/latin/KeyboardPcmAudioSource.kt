@@ -57,6 +57,10 @@ internal class KeyboardPcmAudioSource(
             var suppression: NoiseSuppressor? = null
             try {
                 if (!wanted.get() || closed.get()) return@Thread
+                // Capture must outrank background model initialization and inference.
+                if (!toBrrSpeak) runCatching {
+                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+                }
                 if (!toBrrSpeak && VoiceCaptureNoiseReduction.callIsActive(context)) {
                     throw IOException("Microphone unavailable during a call")
                 }
@@ -122,7 +126,8 @@ internal class KeyboardPcmAudioSource(
                 mainHandler.post {
                     if (wanted.get() && !closed.get()) onRecordingStarted()
                 }
-                val samples = ByteArray(bufferSize)
+                // Keep the hardware buffer roomy, but deliver offline PCM in 40 ms frames.
+                val samples = ByteArray(if (toBrrSpeak) bufferSize else SAMPLE_RATE_HZ * 2 * 40 / 1000)
                 try {
                     val startedAt = android.os.SystemClock.elapsedRealtime()
                     var nextCallCheck = startedAt + 2_000L

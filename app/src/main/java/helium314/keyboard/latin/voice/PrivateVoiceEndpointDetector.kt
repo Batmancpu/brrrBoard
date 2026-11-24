@@ -32,12 +32,12 @@ internal class PrivateVoiceEndpointDetector(private val context: Context) {
             if (data.size == bytes && hash == sha) data else { data.fill(0); null }
         }.getOrNull()
 
-    fun speech(pcm: ByteArray, from: Int, to: Int): Boolean? {
-        if (!enabled) return null
+    fun prepareActivity() {
+        if (!enabled) return
         if (!vadAttempted) {
             vadAttempted = true
             try {
-                val verified = verifiedAsset(VAD_PATH, 2327524, VAD_SHA) ?: return null
+                val verified = verifiedAsset(VAD_PATH, 2327524, VAD_SHA) ?: return
                 verified.fill(0)
                 vad = Vad(context.assets, VadModelConfig(
                     sileroVadModelConfig = SileroVadModelConfig(
@@ -46,6 +46,11 @@ internal class PrivateVoiceEndpointDetector(private val context: Context) {
                     sampleRate = 16000, numThreads = 1, provider = "cpu"))
             } catch (_: Throwable) { vad = null }
         }
+    }
+
+    fun speech(pcm: ByteArray, from: Int, to: Int): Boolean? {
+        if (!enabled) return null
+        prepareActivity()
         val detector = vad ?: return null
         val samples = pcmFloats(pcm, from, to)
         return try {
@@ -60,15 +65,20 @@ internal class PrivateVoiceEndpointDetector(private val context: Context) {
         } finally { samples.fill(0f) }
     }
 
-    fun thoughtComplete(pcm: ByteArray, count: Int): Boolean? {
-        if (!enabled) return null
+    fun prepareThought() {
+        if (!enabled) return
         if (!turnAttempted) {
             turnAttempted = true
-            val weights = verifiedAsset(TURN_PATH, 8679182, TURN_SHA) ?: return null
+            val weights = verifiedAsset(TURN_PATH, 8679182, TURN_SHA) ?: return
             try { turn = BrrVoiceTurnNative.create(weights) }
             catch (_: Throwable) { turn = 0L }
             finally { weights.fill(0) }
         }
+    }
+
+    fun thoughtComplete(pcm: ByteArray, count: Int): Boolean? {
+        if (!enabled) return null
+        prepareThought()
         if (turn == 0L) return null
         val samples = pcmFloats(pcm, 0, count)
         val window = WhisperFeatures.lastWindow(samples)

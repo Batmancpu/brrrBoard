@@ -55,6 +55,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     fun start(root: View?, holdToTalk: Boolean = false) {
         if (phase != Phase.IDLE) return
+        val requestedAt = android.os.SystemClock.elapsedRealtime()
         val info = ime.currentInputEditorInfo ?: return
         val connection = ime.currentInputConnection ?: return
         val start = ime.mInputLogic.mConnection.expectedSelectionStart
@@ -115,6 +116,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         currentFooter.clearDictationError()
         currentFooter.showDictationStatus(R.string.board_voice_starting)
         currentFooter.setDictationCancelAvailable(true, offline = true)
+        val firstPcm = java.util.concurrent.atomic.AtomicBoolean(false)
         val capture = KeyboardPcmAudioSource(
             context = ime,
             onRecordingStarted = {
@@ -133,12 +135,17 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
                     fail(R.string.board_voice_offline_failed)
                 }
             },
-            onPcmFrame = { bytes, count -> pipeline.append(bytes, count) },
+            onPcmFrame = { bytes, count ->
+                if (count > 0 && firstPcm.compareAndSet(false, true))
+                    helium314.keyboard.latin.voice.VoiceDenoiseMetrics.microphoneStarted(
+                        android.os.SystemClock.elapsedRealtime() - requestedAt)
+                pipeline.append(bytes, count)
+            },
             onCaptureFinished = { if (generation == id) finishCapture() },
             toBrrSpeak = false,
         )
         source = capture
-        selectedEngine.warm() // Model loading overlaps with the held recording, never with UI touch.
+        // Open the microphone first. The audio worker warms models only after real PCM arrives.
         capture.start()
     }
 

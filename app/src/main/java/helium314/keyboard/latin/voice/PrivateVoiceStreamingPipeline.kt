@@ -35,6 +35,7 @@ internal class PrivateVoiceStreamingPipeline(
             work.run()
         }, "brrBoard-private-endpoint").apply { isDaemon = true }
     }
+    private var modelsPrepared = false // capture worker only
     private val endpoint = PrivateVoiceEndpointDetector(context)
     private val chunker = PrivateVoiceChunker(endpoint::speech, endpoint::thoughtComplete)
     private val handler = Handler(Looper.getMainLooper())
@@ -58,7 +59,18 @@ internal class PrivateVoiceStreamingPipeline(
         try {
             captureWorker.execute {
                 try {
-                    if (!cancelled.get()) chunker.append(frame, frame.size, ::enqueueChunk)
+                    if (!cancelled.get()) {
+                        if (!modelsPrepared) {
+                            modelsPrepared = true
+                            // AudioRecord is already returning PCM. Prepare small activity model,
+                            // queue ASR warm-up on its own worker, then prepare Smart Turn.
+                            // Incoming frames remain ordered in the capture worker's RAM queue.
+                            endpoint.prepareActivity()
+                            if (!cancelled.get()) engine.warm()
+                            if (!cancelled.get()) endpoint.prepareThought()
+                        }
+                        if (!cancelled.get()) chunker.append(frame, frame.size, ::enqueueChunk)
+                    }
                 } catch (_: Exception) {
                     handler.post { complete(Result.failure(IllegalStateException("Offline audio batching failed"))) }
                 } finally {

@@ -44,7 +44,10 @@ internal class OfflineVoiceEngine(
 
     fun warm(): Future<*> = worker.submit {
         if (VoiceModelInstaller.isInstalled(context, modelPack)) {
-            runCatching { requireRecognizer() }
+            runCatching { requireRecognizer() }.onSuccess {
+                // An already-loaded model must renew its idle lease as well.
+                lastUsedAt = SystemClock.elapsedRealtime()
+            }
             scheduleIdleUnload()
         }
     }

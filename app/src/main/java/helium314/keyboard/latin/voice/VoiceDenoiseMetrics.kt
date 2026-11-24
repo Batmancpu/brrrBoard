@@ -31,6 +31,10 @@ internal object VoiceDenoiseMetrics {
     private val chunks = AtomicLong()
     private val chunkMs = AtomicLong(-1L)
     private val backlog = AtomicLong()
+    private val startupMs = AtomicLong(-1L)
+
+    fun microphoneStarted(elapsedMs: Long) { startupMs.set(elapsedMs.coerceAtLeast(0)) }
+    fun lastMicrophoneStartupMs(): Long = startupMs.get()
 
     fun enhanced(elapsedMs: Long) {
         lastMs.set(elapsedMs.coerceAtLeast(0))

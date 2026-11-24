@@ -193,6 +193,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
     var cleaningEnabled by remember(refresh) { mutableStateOf(VoiceNoiseChoice.isCleaningEnabled(ctx)) }
     var adaptiveBatching by remember(refresh) { mutableStateOf(helium314.keyboard.latin.voice.VoiceEndpointPreference.enabled(ctx)) }
     val voicePrefs = ctx.prefs()
+    var micDoubleTapSwitch by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isMicDoubleTapSwitchEnabled(ctx)) }
     var holdToTalk by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldToTalkEnabled(ctx)) }
     var holdAutoSend by remember(refresh) { mutableStateOf(VoiceGesturePreferences.isHoldAutoSendEnabled(ctx)) }
     val ultraBundled = remember(refresh) { VoiceModelInstaller.hasBundled(ctx, UltraVoiceModelManifest.pack) }
@@ -234,6 +235,25 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                         helium314.keyboard.latin.voice.VoiceEndpointPreference.setEnabled(ctx, it)
                     })
                 }
+            }
+
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Double-tap mic to switch keyboards", style = MaterialTheme.typography.titleMedium)
+                        Text("Off by default for immediate tap-to-record. Enabling it restores the double-tap shortcut and its single-tap confirmation delay.", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(checked = micDoubleTapSwitch, onCheckedChange = {
+                        micDoubleTapSwitch = it
+                        voicePrefs.edit().putBoolean(VoiceGesturePreferences.MIC_DOUBLE_TAP_SWITCH, it).apply()
+                    })
+                }
+            }
+            val startupMs = helium314.keyboard.latin.voice.VoiceDenoiseMetrics.lastMicrophoneStartupMs()
+            if (startupMs >= 0) {
+                Text("Last voice request to first PCM: ${startupMs} ms (RAM-only timing)",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Text("Keyboard transcription model", style = MaterialTheme.typography.titleMedium,

@@ -5,4 +5,8 @@ package helium314.keyboard.latin
 internal object FooterMicTapPolicy {
     fun isImmediate(recording: Boolean, transcribing: Boolean): Boolean =
         recording || transcribing
+
+    /** Exactly one single-tap callback, chosen before the gesture begins. */
+    fun dispatchSingleTap(doubleTapSwitch: Boolean, confirmed: Boolean): Boolean =
+        doubleTapSwitch == confirmed
 }

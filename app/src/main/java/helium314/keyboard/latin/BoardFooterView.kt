@@ -132,13 +132,20 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
             post { refreshPrivateGestureAvailability() }
         }
     }
-    /** Idle single taps wait for the double-tap switch window; an active stop is immediate. */
-    private val micGestureDetector = GestureDetector(context,
-        object : GestureDetector.SimpleOnGestureListener() {
+    /** Instant single tap is the default; legacy double-tap switching is opt-in. */
+    private var micDoubleTapSwitch = false
+    private val micGestureListener = object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
 
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                if (FooterMicTapPolicy.dispatchSingleTap(micDoubleTapSwitch, confirmed = false) &&
+                    micActionAvailable()) microphone.performClick()
+                return true
+            }
+
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (!micActionAvailable()) return false
+                if (!FooterMicTapPolicy.dispatchSingleTap(micDoubleTapSwitch, confirmed = true) ||
+                    !micActionAvailable()) return false
                 microphone.performClick()
                 return true
             }
@@ -163,7 +170,12 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 }
                 return true
             }
-        })
+        }
+    private val micGestureDetector = GestureDetector(context, micGestureListener).apply {
+        // GestureDetector automatically installs a double-tap listener for SimpleOnGestureListener.
+        // Explicitly clear it so default single taps are dispatched on UP, not after a timeout.
+        setOnDoubleTapListener(null)
+    }
 
     private fun micActionAvailable(): Boolean = this::ime.isInitialized &&
         microphone.visibility == VISIBLE && microphone.isShown &&
@@ -635,14 +647,21 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 }
                 return@setOnTouchListener true
             }
-            // Once capture really begins (or transcription is pending), the next tap
-            // stops/cancels without the idle double-tap confirmation delay. A quick
-            // idle double-tap still switches keyboards without ever opening a mic.
-            if (FooterMicTapPolicy.isImmediate(dictationActive, dictationProcessing)) {
+            // Starting, recording and decoding are all immediate Stop/Cancel targets.
+            if (FooterMicTapPolicy.isImmediate(dictationActive || cancelDictationActionId != null, dictationProcessing)) {
                 if (event.actionMasked == MotionEvent.ACTION_UP && micActionAvailable()) {
                     view.performClick()
                 }
                 return@setOnTouchListener true
+            }
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                val legacy = VoiceGesturePreferences.isMicDoubleTapSwitchEnabled(context)
+                if (legacy != micDoubleTapSwitch) {
+                    cancelMicGesture()
+                    micDoubleTapSwitch = legacy
+                    micGestureDetector.setOnDoubleTapListener(if (legacy) micGestureListener else null)
+                    view.isPressed = true
+                }
             }
             micGestureDetector.onTouchEvent(event)
             true
