@@ -2569,6 +2569,11 @@ public class LatinIME extends InputMethodService implements
         if (mIsDestroyed) {
             return;
         }
+        for (int i=0;i<suggestedWords.size();i++) {
+            final SuggestedWordInfo info = suggestedWords.getInfo(i);
+            if (info.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)
+                    && !mInputLogic.isCorrectionRecallCurrent(info)) return;
+        }
         cancelPendingEmptyPredictionClear();
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
         if (currentSettingsValues.mInputAttributes.mVaultPrivateEditor && !suggestedWords.isEmpty()) return;

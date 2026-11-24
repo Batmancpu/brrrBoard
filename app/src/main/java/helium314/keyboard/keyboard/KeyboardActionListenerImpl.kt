@@ -387,6 +387,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     private var deleteHead = -1
     private var deleteEpoch = -1L
     private var deleteConnection: InputConnection? = null
+    private var deleteStarted = 0L
     private val deleteTimeout = Runnable { onCancelDeletePointer() }
 
     private fun deleteOwnerValid(): Boolean = deleteAnchor >= 0 &&
@@ -403,9 +404,10 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
             if (anchor < 0 || connection.expectedSelectionStart != anchor) return
             deleteAnchor = anchor; deleteHead = anchor
             deleteEpoch = latinIME.editorGeneration(); deleteConnection = ic
+            deleteStarted = SystemClock.elapsedRealtime()
             latinIME.mHandler.postDelayed(deleteTimeout, 30_000)
         }
-        if (!deleteOwnerValid()) {
+        if (!deleteOwnerValid() || SystemClock.elapsedRealtime() - deleteStarted >= 30_000) {
             onCancelDeletePointer()
             return
         }
@@ -434,7 +436,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     }
 
     override fun onUpWithDeletePointerActive() {
-        if (!deleteOwnerValid() || deleteHead == deleteAnchor) {
+        if (!deleteOwnerValid() || deleteHead == deleteAnchor || SystemClock.elapsedRealtime() - deleteStarted >= 30_000) {
             onCancelDeletePointer()
             return
         }

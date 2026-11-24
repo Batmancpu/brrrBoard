@@ -1,22 +1,14 @@
 {
   "schema": 1,
-  "summary": "Experimental Adaptive Touch in BR Brain with private local aggregate learning.",
+  "summary": "Session-local correction recall and cancel-safe delete swipe.",
   "changes": [
     {
-      "title": "Adaptive Touch (experimental)",
-      "detail": "Opt-in letter boundary adjustment learns from explicitly chosen tap suggestions. Centered taps and swipe typing retain their existing path."
+      "title": "30-second correction recall",
+      "detail": "Return to a recently autocorrected word to recover its original spelling when the exact editor range still matches. No persistent recall history."
     },
     {
-      "title": "Private touch learning",
-      "detail": "Only bounded layout-level offset aggregates are encrypted locally. Transient touch proof expires; protected editors are excluded. No new internet permission."
-    },
-    {
-      "title": "Learning controls",
-      "detail": "BR Brain includes an experimental switch and an explicit reset for touch-offset models."
-    },
-    {
-      "title": "Storage compatibility",
-      "detail": "Use the existing app credential-protected no-backup context and reject device-protected storage; no plaintext fallback."
+      "title": "Reversible delete swipe",
+      "detail": "Only a genuine release commits the owned selection. Canceled or expired gestures restore their preview instead of deleting text."
     }
   ]
 }

@@ -1100,6 +1100,13 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (mInHorizontalSwipe && currentKey != null && currentKey.getCode() == KeyCode.DELETE) {
             if (physicalUp && !mIsTrackingForActionDisabled) sListener.onUpWithDeletePointerActive();
             else sListener.onCancelDeletePointer();
+            // A delete swipe consumes the release even if its preview was canceled.
+            mInHorizontalSwipe = false;
+            mInVerticalSwipe = false;
+            mKeySwipeAllowed = false;
+            sInKeySwipe = false;
+            sListener.onEndSpaceSwipe();
+            return;
         }
 
         if (isShowingPopupKeysPanel()) {
