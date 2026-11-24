@@ -1,5 +1,10 @@
 # Next AI handoff — brrBoard (2026-11-23)
 
+## 2026-11-24 — separate private-gesture candidate compile recovery
+
+The unshipped `wip/private-footer-gesture-20261123` branch has its known Kotlin `FloatArray.fill(0)`/missing-import errors fixed in `b1a4b9fe`, and required branch release notes at `7cc17dba`. Exact-source debug/full Android suite [45328920397](https://github.com/Batmancpu/brrrBoard/actions/runs/45328920397) **completed success** after a prior release-notes-gate failure [45328858762](https://github.com/Batmancpu/brrrBoard/actions/runs/45328858762). Added `PrivateGestureTraceTest` invalid/flat/nonmatching/matching gesture coverage. This is **debug-only** and **not included** in signed v1.0.260. Secret insertion, false-positive/security/device accessibility and encrypted storage acceptance remain unresolved; do not merge or publish this gesture merely because CI is green.
+
+
 ## Read this first
 
 This is the current owner-directed handoff. Read this file, then `AGENTS.md`,

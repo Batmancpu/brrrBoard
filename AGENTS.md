@@ -1,5 +1,10 @@
 Warning: truncated output (original token count: 97472)
 
+## 2026-11-24 — separate private-gesture candidate compile recovery
+
+The unshipped `wip/private-footer-gesture-20261123` branch has its known Kotlin `FloatArray.fill(0)`/missing-import errors fixed in `b1a4b9fe`, and required branch release notes at `7cc17dba`. Exact-source debug/full Android suite [45328920397](https://github.com/Batmancpu/brrrBoard/actions/runs/45328920397) **completed success** after a prior release-notes-gate failure [45328858762](https://github.com/Batmancpu/brrrBoard/actions/runs/45328858762). Added `PrivateGestureTraceTest` invalid/flat/nonmatching/matching gesture coverage. This is **debug-only** and **not included** in signed v1.0.260. Secret insertion, false-positive/security/device accessibility and encrypted storage acceptance remain unresolved; do not merge or publish this gesture merely because CI is green.
+
+
 ## 2026-11-24 — verified signed stabilization release v1.0.260
 
 Source `30e86d270a979945efda9da828e93fd6f39ee876` passed exact-SHA debug/full Android tests [45328763013](https://github.com/Batmancpu/brrrBoard/actions/runs/45328763013) and original-signer Obtainium release [45328762985](https://github.com/Batmancpu/brrrBoard/actions/runs/45328762985). Published [v1.0.260](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.260), APK 63,544,172 bytes, GitHub asset SHA-256 `cb4a694da22e3ecd7e0bcf21ecc4be1f55d2851adccc1d1853b052f762576c04`. Changes: consistent important-action haptic only on explicit offline Cancel, no redundant key-tick for the Cancel label; centralized, unit-tested Send-only hold-to-talk policy with private/invalid destination safeguards. v1.0.259 continuous voice fix is preserved. Installed private models, `com.mangoloads.board`, original signing identity and no-Internet permissions unchanged. Real Oppo 5G phone behavior is still unverified. Unreleased private-footer gesture work remains isolated on `wip/private-footer-gesture-20261123`; its candidate compiler fixes are not part of the signed APK.
