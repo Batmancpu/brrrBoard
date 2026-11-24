@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Continuity improvements for interrupted Emoji key morphs.",
+  "summary": "Experimental Adaptive Touch in BR Brain with private local aggregate learning.",
   "changes": [
     {
-      "title": "Interruptible key motion",
-      "detail": "Rapid panel reversal begins at the last drawn key position, rather than snapping to the previous target."
+      "title": "Adaptive Touch (experimental)",
+      "detail": "Opt-in letter boundary adjustment learns from explicitly chosen tap suggestions. Centered taps and swipe typing retain their existing path."
     },
     {
-      "title": "Rendering safety",
-      "detail": "Optional morph artwork restores native icons when repeated animator callback gaps are large. No full-panel fade."
+      "title": "Private touch learning",
+      "detail": "Only bounded layout-level offset aggregates are encrypted locally. Transient touch proof expires; protected editors are excluded. No new internet permission."
     },
     {
-      "title": "Adaptive Touch groundwork",
-      "detail": "Added a bounded clustered Gaussian mathematical kernel and synthetic tests. Personalized touch is not enabled in the input path yet."
+      "title": "Learning controls",
+      "detail": "BR Brain includes an experimental switch and an explicit reset for touch-offset models."
     }
   ]
 }
