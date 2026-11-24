@@ -117,7 +117,17 @@ class BundledOfflineMicContractTest(unittest.TestCase):
         self.assertIn("015454eef64bd4328e6ff4946c231d4a4a632e93", verify)
         self.assertIn("assets/voice/gtcrn_simple.onnx", verify)
         self.assertIn("assets/licenses/gtcrn-mit.txt", verify)
-        self.assertIn("grep -Fvx 'assets/voice/gtcrn_simple.onnx'", parakeet_policy)
+        # Auxiliary models are exact-path allowlisted, never a directory wildcard.
+        for name in ("assets/voice/gtcrn_simple.onnx",
+                     "assets/voice/silero_vad_v6_2_3.onnx",
+                     "assets/voice/smart-turn-v3.2-cpu.onnx"):
+            self.assertIn(f"-e '{name}'", parakeet_policy)
+        for workflow in (debug, release):
+            self.assertIn("bash tools/fetch-board-voice-endpoints.sh", workflow)
+            self.assertIn("bash tools/verify-voice-endpoints-packaging.sh", workflow)
+        endpoint_verify = self.read("tools/verify-voice-endpoints-packaging.sh")
+        self.assertIn("1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3", endpoint_verify)
+        self.assertIn("2bb026316b14a660486a75b1733cd3fbab8c2fd0314dc9af7be49f8cca967e4f", endpoint_verify)
         self.assertIn("grep -Eq '^assets/voice-model/'", parakeet_policy)
         license_text = self.read("app/src/main/assets/licenses/gtcrn-mit.txt")
         self.assertIn("MIT License", license_text)

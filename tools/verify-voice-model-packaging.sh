@@ -31,7 +31,8 @@ case "$mode" in
   unbundled)
     entries="$(unzip -Z1 "$apk")"
     # Only pinned auxiliary voice models are permitted in lightweight APKs.
-    # Dedicated APK verifiers check their exact SHA-256 bytes.
+    # Both build workflows must run the dedicated GTCRN and endpoint verifiers
+    # on the same APK; this policy only recognizes the exact approved paths.
     if grep -Eq '^assets/voice-model/' <<< "$entries" ||
        grep -E '^assets/.*\.onnx$' <<< "$entries" |
            grep -Fvx -e 'assets/voice/gtcrn_simple.onnx' -e 'assets/voice/silero_vad_v6_2_3.onnx' -e 'assets/voice/smart-turn-v3.2-cpu.onnx' >/dev/null; then

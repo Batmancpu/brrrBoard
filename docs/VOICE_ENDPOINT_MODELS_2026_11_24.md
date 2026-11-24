@@ -15,3 +15,5 @@ Host CPU model graph smoke test, JUnit chunk continuity/fallback/semantic delay,
 CI repair: GitHub's runner Python did not offer ONNX Runtime 1.23.2 wheels. Pin available 1.28.0 for the host graph test (Android runtime remains pinned separately), and preserve recorder frame bounds validation.
 
 Packaging repair: APK compilation succeeded. The existing lightweight ASR guard correctly rejected unfamiliar ONNX files; extend only the exact auxiliary model paths in both allowlists, retain independent mandatory hash verification and add positive/negative path regression tests.
+
+Contract repair: Android unit tests and APK checks passed on 7f8d977; the legacy contract test matched the former literal single-model grep. Update it to assert all exact approved paths and both workflow endpoint fetch/hash verification steps. No gate bypass. The concurrent quiet-speech protection change e34c72c is preserved.

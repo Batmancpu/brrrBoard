@@ -9,6 +9,10 @@
     {
       "title": "Conservative speech gain and continuous capture",
       "detail": "Apply bounded speech-aware gain only near speech, preserve every sample and the existing continuous dictation overlap and thought-aware batching. No audio storage or network access. Device accuracy and latency validation remain pending."
+    },
+    {
+      "title": "Verify bundled neural endpoint models",
+      "detail": "Extend the existing GTCRN contract test to require the exact new auxiliary ONNX allowlist and mandatory endpoint hash verifiers. Preserve the opt-in-only Parakeet policy."
     }
   ]
 }
