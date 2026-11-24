@@ -46,6 +46,38 @@ public final class AdaptiveTouchModel {
         return true;
     }
 
+    /** Merge a bounded word-sized aggregate without storing any tap sequence. */
+    public boolean merge(int group, int n, double x, double y) {
+        if (!valid(group) || n < 1 || n > 32
+                || !finiteBound(x, n * MAX_SAMPLE + 1e-6)
+                || !finiteBound(y, n * MAX_SAMPLE + 1e-6)) return false;
+        if (count[group] + n > MAX_EVIDENCE) {
+            double keep = (MAX_EVIDENCE - n) / (double) count[group];
+            sumX[group] *= keep;
+            sumY[group] *= keep;
+            count[group] = MAX_EVIDENCE - n;
+        }
+        count[group] += n;
+        sumX[group] += x;
+        sumY[group] += y;
+        return true;
+    }
+
+    public void writeTo(java.io.DataOutput out) throws java.io.IOException {
+        for (int i = 0; i < CLUSTERS; i++) {
+            out.writeInt(count[i]); out.writeDouble(sumX[i]); out.writeDouble(sumY[i]);
+        }
+    }
+
+    public static AdaptiveTouchModel readFrom(java.io.DataInput in) throws java.io.IOException {
+        int[] n = new int[CLUSTERS];
+        double[] x = new double[CLUSTERS], y = new double[CLUSTERS];
+        for (int i = 0; i < CLUSTERS; i++) {
+            n[i] = in.readInt(); x[i] = in.readDouble(); y[i] = in.readDouble();
+        }
+        return fromAggregates(n, x, y);
+    }
+
     public Snapshot snapshot() {
         return new Snapshot(count.clone(), sumX.clone(), sumY.clone());
     }

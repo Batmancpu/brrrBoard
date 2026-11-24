@@ -145,9 +145,72 @@ public final class InputLogic {
 
     /** Only the transient correction receipt; do not reset normal composition or swipe state. */
     public void clearTransientCorrectionMemory() {
+        clearAdaptiveTouchProof();
         if (!mCorrectionRejection.hasReceipt()) return;
         mCorrectionRejection.clear();
         mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
+    }
+
+    // Proof is limited to the existing composing word. Raw tap positions never leave this UI thread.
+    private helium314.keyboard.keyboard.AdaptiveTouchGeometry mAdaptiveGeometry, mPendingGeometry;
+    private int mAdaptiveCount, mAdaptiveBefore, mPendingX, mPendingY;
+    private long mAdaptiveEpoch, mAdaptiveAt, mPendingEpoch;
+    private boolean mAdaptiveActive, mPendingValid;
+    private final int[] mAdaptiveX = new int[32], mAdaptiveY = new int[32];
+    private void clearAdaptiveTouchProof() {
+        mAdaptiveCount = 0; mAdaptiveGeometry = null;
+        java.util.Arrays.fill(mAdaptiveX, 0); java.util.Arrays.fill(mAdaptiveY, 0);
+    }
+    public int beginAdaptiveTap(Keyboard keyboard, int code, int x, int y) {
+        mAdaptiveActive = false; mPendingGeometry = null;
+        final SettingsValues sv = Settings.getValues();
+        if (!sv.mAdaptiveTouchEnabled || !sv.mUsePersonalizedDicts || sv.mIncognitoModeEnabled
+                || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return code;
+        final helium314.keyboard.keyboard.AdaptiveTouchGeometry g =
+                helium314.keyboard.keyboard.AdaptiveTouchGeometry.of(keyboard);
+        if (g == null || x < 0 || y < 0) return code;
+        final long epoch = mLatinIME.editorGeneration(), now = SystemClock.elapsedRealtime();
+        final int before = mWordComposer.size();
+        if (before == 0) clearAdaptiveTouchProof();
+        mPendingValid = before == 0 || (mAdaptiveCount == before && mAdaptiveGeometry != null
+                && mAdaptiveGeometry.signature == g.signature && mAdaptiveEpoch == epoch
+                && now >= mAdaptiveAt && now - mAdaptiveAt < 30_000);
+        mAdaptiveActive = true; mPendingGeometry = g; mAdaptiveBefore = before;
+        mPendingEpoch = epoch; mPendingX = x; mPendingY = y;
+        return g.choose(helium314.keyboard.latin.brain.AdaptiveTouchStore.get(mLatinIME)
+                .snapshot(g.signature), code, x, y);
+    }
+    public void endAdaptiveTap(int code) {
+        if (!mAdaptiveActive) return;
+        mAdaptiveActive = false;
+        final String typed = mWordComposer.getTypedWord();
+        if (!mPendingValid || mPendingEpoch != mLatinIME.editorGeneration()
+                || mAdaptiveBefore >= 32 || mWordComposer.isBatchMode() || mWordComposer.isResumed()
+                || mWordComposer.isCursorFrontOrMiddleOfComposingWord()
+                || typed.length() != mAdaptiveBefore + 1
+                || helium314.keyboard.keyboard.AdaptiveTouchGeometry.index(typed.charAt(typed.length()-1))
+                    != helium314.keyboard.keyboard.AdaptiveTouchGeometry.index(code)
+                || (mAdaptiveBefore != 0 && mAdaptiveCount != mAdaptiveBefore)) {
+            clearAdaptiveTouchProof(); return;
+        }
+        mAdaptiveX[mAdaptiveBefore] = mPendingX; mAdaptiveY[mAdaptiveBefore] = mPendingY;
+        mAdaptiveCount = mAdaptiveBefore + 1; mAdaptiveGeometry = mPendingGeometry;
+        mAdaptiveEpoch = mPendingEpoch; mAdaptiveAt = SystemClock.elapsedRealtime();
+    }
+    private void confirmAdaptiveTouch(SettingsValues sv, String selected) {
+        try {
+            final long now = SystemClock.elapsedRealtime();
+            final String typed = mWordComposer.getTypedWord();
+            if (!sv.mAdaptiveTouchEnabled || !sv.mUsePersonalizedDicts || mAdaptiveGeometry == null
+                    || mAdaptiveCount != typed.length() || mAdaptiveEpoch != mLatinIME.editorGeneration()
+                    || now < mAdaptiveAt || now - mAdaptiveAt >= 30_000
+                    || mWordComposer.isResumed() || mWordComposer.isBatchMode()
+                    || !mLatinIME.mayUseTransientCorrectionMemory(sv)) return;
+            int[] n = new int[6]; double[] x = new double[6], y = new double[6];
+            if (mAdaptiveGeometry.aggregate(typed, selected, mAdaptiveX, mAdaptiveY, n, x, y))
+                helium314.keyboard.latin.brain.AdaptiveTouchStore.get(mLatinIME)
+                        .learn(mAdaptiveGeometry.signature, n, x, y);
+        } finally { clearAdaptiveTouchProof(); }
     }
 
     // RAM-only direct-correction receipt; no touch coordinates are persisted.
@@ -433,6 +496,8 @@ public final class InputLogic {
 
         final SuggestedWords suggestedWords = mSuggestedWords;
         final String suggestion = suggestionInfo.mWord;
+        if (!isInlineEmojiSearchAction()) confirmAdaptiveTouch(settingsValues, suggestion);
+        else clearAdaptiveTouchProof();
         if (mWordComposer.isBatchMode() && mCurrentSwipeSkeleton != null
                 && !suggestion.equalsIgnoreCase(mWordComposer.getTypedWord())) {
             confirmSwipeCorrection(settingsValues, mCurrentSwipeSkeleton, suggestion);
@@ -522,6 +587,7 @@ public final class InputLogic {
      */
     public InputTransaction onInsertEmojiSuggestion(final SettingsValues settingsValues,
             final String emoji, final int keyboardShiftState, final LatinIME.UIHandler handler) {
+        clearAdaptiveTouchProof();
         final Event event = Event.createSoftwareTextEvent(emoji, KeyCode.MULTIPLE_CODE_POINTS, null);
         final InputTransaction transaction = new InputTransaction(settingsValues, event,
                 SystemClock.uptimeMillis(), mSpaceState, keyboardShiftState);
@@ -678,6 +744,7 @@ public final class InputLogic {
     public InputTransaction onCodeInput(final SettingsValues settingsValues,
             @NonNull final Event event, final int keyboardShiftMode,
             final String currentKeyboardScript, final LatinIME.UIHandler handler) {
+        if (!mAdaptiveActive) clearAdaptiveTouchProof();
         mWordBeingCorrectedByCursor = null;
         mJustRevertedACommit = false;
         final Event processedEvent = mWordComposer.processEvent(event);
@@ -741,6 +808,7 @@ public final class InputLogic {
         mCurrentSwipeSkeleton = null;
         mRejectedSwipeSkeleton = null;
         mWordBeingCorrectedByCursor = null;
+        clearAdaptiveTouchProof();
         mInputLogicHandler.onStartBatchInput();
         handler.showGesturePreviewAndSetSuggestions(SuggestedWords.getEmptyBatchInstance(), false);
         handler.cancelUpdateSuggestionStrip();
@@ -2688,6 +2756,7 @@ public final class InputLogic {
      *                                  word.
      */
     private void resetComposingState(final boolean alsoResetLastComposedWord) {
+        clearAdaptiveTouchProof();
         mWordComposer.reset();
         if (alsoResetLastComposedWord) {
             mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;

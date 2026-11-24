@@ -317,7 +317,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
     // Note that we need primaryCode argument because the keyboard may in shifted state and the
     // primaryCode is different from {@link Key#mKeyCode}.
     private void callListenerOnCodeInput(final Key key, final int primaryCode, final int x,
-            final int y, final long eventTime, final boolean isKeyRepeat) {
+            final int y, final long eventTime, final boolean isKeyRepeat, final boolean physicalTap) {
         final boolean ignoreModifierKey = mIsInDraggingFinger && key.isModifier()
                 && key.getCode() != KeyCode.NUMPAD; // we allow for the numpad to be toggled from sliding input
         final boolean altersCode = key.altCodeWhileTyping() && sTimerProxy.isTypingState() && !isClearlyInsideKey(key, x, y);
@@ -340,7 +340,10 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 sListener.onTextInput(outputText);
             } else if (code != KeyCode.NOT_SPECIFIED) {
                 if (mKeyboard.hasProximityCharsCorrection(code)) {
-                    sListener.onCodeInput(code, x, y, isKeyRepeat);
+                    if (physicalTap && !altersCode && AdaptiveTouchGeometry.index(code) >= 0
+                            && mKeyboard.mId.isAlphabetKeyboard()) {
+                        sListener.onTapCodeInput(mKeyboard, code, x, y);
+                    } else sListener.onCodeInput(code, x, y, isKeyRepeat);
                 } else {
                     sListener.onCodeInput(code, Constants.NOT_A_COORDINATE, Constants.NOT_A_COORDINATE, isKeyRepeat);
                 }
@@ -886,7 +889,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                     lastX, lastY, Constants.printableCode(oldKey.getCode()),
                     x, y, Constants.printableCode(key.getCode())));
         }
-        onUpEventInternal(x, y, eventTime);
+        onUpEventInternal(x, y, eventTime, false);
         onDownEventInternal(x, y, eventTime);
     }
 
@@ -1065,7 +1068,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 sPointerTrackerQueue.releaseAllPointersOlderThan(this, eventTime);
             }
         }
-        onUpEventInternal(x, y, eventTime);
+        onUpEventInternal(x, y, eventTime, getActivePointerTrackerCount() == 1);
         sPointerTrackerQueue.remove(this);
     }
 
@@ -1077,11 +1080,11 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         if (DEBUG_EVENT) {
             printTouchEvent("onPhntEvent:", mLastX, mLastY, eventTime);
         }
-        onUpEventInternal(mLastX, mLastY, eventTime);
+        onUpEventInternal(mLastX, mLastY, eventTime, false);
         cancelTrackingForAction();
     }
 
-    private void onUpEventInternal(final int x, final int y, final long eventTime) {
+    private void onUpEventInternal(final int x, final int y, final long eventTime, final boolean physicalUp) {
         sTimerProxy.cancelKeyTimersOf(this);
         final boolean isInDraggingFinger = mIsInDraggingFinger;
         final boolean isInSlidingKeyInput = mIsInSlidingKeyInput;
@@ -1144,7 +1147,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 && (currentKey.getCode() == currentRepeatingKeyCode) && !isInDraggingFinger) {
             return;
         }
-        detectAndSendKey(currentKey, mKeyX, mKeyY, eventTime);
+        detectAndSendKey(currentKey, mKeyX, mKeyY, eventTime, physicalUp && !isInDraggingFinger && !isInSlidingKeyInput);
         if (isInSlidingKeyInput) {
             callListenerOnFinishSlidingInput();
         }
@@ -1326,14 +1329,14 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
                 && y > key.getY() + key.getHeight() * 0.15 && y < key.getY() + key.getHeight() * 0.85;
     }
 
-    private void detectAndSendKey(final Key key, final int x, final int y, final long eventTime) {
+    private void detectAndSendKey(final Key key, final int x, final int y, final long eventTime, final boolean physicalTap) {
         if (key == null) {
             callListenerOnCancelInput();
             return;
         }
 
         final int code = key.getCode();
-        callListenerOnCodeInput(key, code, x, y, eventTime, false);
+        callListenerOnCodeInput(key, code, x, y, eventTime, false, physicalTap);
         callListenerOnRelease(key, code, false);
     }
 
@@ -1362,7 +1365,7 @@ public final class PointerTracker implements PointerTrackerQueue.Element,
         final int nextRepeatCount = repeatCount + 1;
         startKeyRepeatTimer(nextRepeatCount);
         callListenerOnPressAndCheckKeyboardLayoutChange(key, repeatCount);
-        callListenerOnCodeInput(key, code, mKeyX, mKeyY, SystemClock.uptimeMillis(), true);
+        callListenerOnCodeInput(key, code, mKeyX, mKeyY, SystemClock.uptimeMillis(), true, false);
     }
 
     private void startKeyRepeatTimer(final int repeatCount) {

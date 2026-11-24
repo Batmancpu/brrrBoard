@@ -79,6 +79,32 @@ fun BrainDashboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
+                var adaptive by remember { mutableStateOf(context.prefs().getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false)) }
+                var eraseAdaptive by remember { mutableStateOf(false) }
+                Card {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Adaptive Touch", fontWeight = FontWeight.SemiBold)
+                                Text("Experimental · learns from confirmed tap suggestions", style = MaterialTheme.typography.bodySmall)
+                            }
+                            Switch(checked = adaptive, onCheckedChange = {
+                                adaptive = it
+                                context.prefs().edit().putBoolean(Settings.PREF_ADAPTIVE_TOUCH, it).apply()
+                            })
+                        }
+                        Text("Adjusts uncertain letter boundaries only after enough evidence. Encrypted local aggregates; never stores words or tap paths. Excludes private fields and swipe typing.", style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = { eraseAdaptive = true }) { Text("Reset touch learning") }
+                    }
+                }
+                if (eraseAdaptive) AlertDialog(onDismissRequest = { eraseAdaptive = false },
+                    title = { Text("Reset Adaptive Touch?") },
+                    text = { Text("Delete the saved touch-offset models for all layouts.") },
+                    confirmButton = { Button(onClick = {
+                        helium314.keyboard.latin.brain.AdaptiveTouchStore.get(context).reset()
+                        eraseAdaptive = false
+                    }) { Text("Reset") } },
+                    dismissButton = { OutlinedButton(onClick = { eraseAdaptive = false }) { Text("Cancel") } })
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
                 }

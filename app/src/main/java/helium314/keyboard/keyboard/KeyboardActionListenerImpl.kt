@@ -113,6 +113,17 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         return false
     }
 
+    override fun onTapCodeInput(keyboard: Keyboard, primaryCode: Int, x: Int, y: Int) {
+        val mkv = keyboardSwitcher.mainKeyboardView
+        if (metaState != 0 || mkv.keyboard !== keyboard || TouchpadHandler.isTouchpadModeRequested()) {
+            onCodeInput(primaryCode, x, y, false)
+            return
+        }
+        val adjusted = inputLogic.beginAdaptiveTap(keyboard, primaryCode, mkv.getKeyX(x), mkv.getKeyY(y))
+        try { onCodeInput(adjusted, x, y, false) }
+        finally { inputLogic.endAdaptiveTap(adjusted) }
+    }
+
     override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
         // A second finger must not type an arbitrary key into the editor while
         // the first finger is steering the caret across the blank trackpad.

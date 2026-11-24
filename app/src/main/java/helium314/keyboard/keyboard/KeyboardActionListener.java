@@ -59,6 +59,10 @@ public interface KeyboardActionListener {
      */
     // TODO: change this to send an Event object instead
     void onCodeInput(int primaryCode, int x, int y, boolean isKeyRepeat);
+    /** Genuine physical alphabet tap; default behavior is unchanged for other listeners. */
+    default void onTapCodeInput(Keyboard keyboard, int primaryCode, int x, int y) {
+        onCodeInput(primaryCode, x, y, false);
+    }
 
     /**
      * Sends a string of characters to the listener.

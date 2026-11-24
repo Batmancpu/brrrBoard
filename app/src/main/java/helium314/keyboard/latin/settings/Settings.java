@@ -119,6 +119,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_ALWAYS_SHOW_SUGGESTIONS = "always_show_suggestions";
     public static final String PREF_ALWAYS_SHOW_SUGGESTIONS_EXCEPT_WEB_TEXT = "always_show_suggestions_except_web_text";
     public static final String PREF_KEY_USE_PERSONALIZED_DICTS = "use_personalized_dicts";
+    public static final String PREF_ADAPTIVE_TOUCH = "adaptive_touch_experimental";
     public static final String PREF_KEY_USE_DOUBLE_SPACE_PERIOD = "use_double_space_period";
     public static final String PREF_BLOCK_POTENTIALLY_OFFENSIVE = "block_potentially_offensive";
     public static final String PREF_SHOW_LANGUAGE_SWITCH_KEY = "show_language_switch_key";

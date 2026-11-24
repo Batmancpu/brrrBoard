@@ -79,6 +79,7 @@ public class SettingsValues {
     public final boolean mShowsEmojiKey;
     public final boolean mVarToolbarDirection;
     public final boolean mUsePersonalizedDicts;
+    public final boolean mAdaptiveTouchEnabled;
     public final boolean mUseDoubleSpacePeriod;
     public final boolean mBlockPotentiallyOffensive;
     public final KeyboardActionListener.SwipeAction mSpaceSwipeHorizontal;
@@ -219,6 +220,7 @@ public class SettingsValues {
         mShowsEmojiKey = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_KEY, Defaults.PREF_SHOW_EMOJI_KEY);
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION);
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS);
+        mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, false);
         mUseDoubleSpacePeriod = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_KEY_USE_DOUBLE_SPACE_PERIOD, Defaults.PREF_KEY_USE_DOUBLE_SPACE_PERIOD)
                 && inputAttributes.mIsGeneralTextInput;
         mBlockPotentiallyOffensive = prefs.getBoolean(Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE, Defaults.PREF_BLOCK_POTENTIALLY_OFFENSIVE);
