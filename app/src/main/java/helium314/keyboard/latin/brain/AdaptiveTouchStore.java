@@ -34,6 +34,7 @@ public final class AdaptiveTouchStore {
         }
         public int count(int key) { return evidence.count(key); }
         public int mismatch(int key) { return evidence.mismatch(key); }
+        public int mismatchMask(int key) { return evidence.mismatchMask(key); }
         public int region(int key) { return evidence.region(key); }
         public int countAt(int key,int cell) { return evidence.countAt(key,cell); }
     }

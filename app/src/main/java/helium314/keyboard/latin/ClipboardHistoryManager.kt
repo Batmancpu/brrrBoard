@@ -26,6 +26,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
+import helium314.keyboard.latin.database.ClipboardImageVault
 import androidx.core.content.edit
 import androidx.core.view.isGone
 import coil.load
@@ -107,6 +108,7 @@ class ClipboardHistoryManager(
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(this)
         clipboardDao // attempt once now; getter retries on later access if still locked
+        GlobalScope.launch(Dispatchers.IO) { ClipboardImageVault.migrateExisting(latinIME.applicationContext) }
         restoreProcessedScreenshotUris()
         // Migrate away from old preferences containing raw copied text/URI.
         ClipboardDismissalPreferences.removeLegacyRawContent(latinIME.prefs())
@@ -1076,18 +1078,20 @@ class ClipboardHistoryManager(
         if (inaccessibleImageClipUris.contains(uriString)) return null
 
         resolveOwnClipboardCacheFile(latinIME, clip.uri)?.let { cachedFile ->
-            return if (cachedFile.exists() && cachedFile.length() > 0L) clip.uri else null
+            return if (ClipboardImageVault.ensureEncrypted(latinIME,cachedFile)) clip.uri else null
         }
 
         val mimeInfo = normalizeImageMimeType(clip.mimeType)
         val clipboardDir = File(latinIME.cacheDir, "clipboard").apply { mkdirs() }
         val imageFile = File(clipboardDir, cacheFileNameForSource(clip.uri, clip.timeStamp, mimeInfo.mimeType))
-        if (!imageFile.exists() || imageFile.length() == 0L) {
-            if (!copyImageClipAtomically(clip.uri, imageFile)) {
+        val ready = if (ClipboardImageVault.hasStored(imageFile)) ClipboardImageVault.ensureEncrypted(latinIME,imageFile)
+            else ClipboardImageVault.cache(latinIME,clip.uri,imageFile)
+        if (!ready) {
+            if (!isDeviceLocked(latinIME)) {
                 if (inaccessibleImageClipUris.size > 50) inaccessibleImageClipUris.clear()
                 inaccessibleImageClipUris.add(uriString)
-                return null
             }
+            return null
         }
         return FileProvider.getUriForFile(latinIME, "${latinIME.packageName}.fileprovider", imageFile)
     }
@@ -1102,36 +1106,6 @@ class ClipboardHistoryManager(
             latinIME.mKeyboardSwitcher.showToast(latinIME.getString(R.string.toast_msg_content_paste_failed), true)
         }
         return outcome
-    }
-
-    private fun copyImageClipAtomically(sourceUri: Uri, imageFile: File): Boolean {
-        val tempFile = File.createTempFile("${imageFile.nameWithoutExtension}_", ".tmp", imageFile.parentFile)
-        return try {
-            latinIME.contentResolver.openInputStream(sourceUri)?.use { input ->
-                tempFile.outputStream().use { output -> input.copyTo(output) }
-            } ?: return false
-            if (tempFile.length() == 0L) return false
-
-            if (imageFile.exists() && !imageFile.delete()) {
-                Log.w("ClipboardHistoryManager", "Failed to replace cached image clipboard clip")
-                return false
-            }
-            if (!tempFile.renameTo(imageFile)) {
-                tempFile.copyTo(imageFile, overwrite = true)
-            }
-            imageFile.length() > 0L
-        } catch (e: Exception) {
-            if (e is java.io.FileNotFoundException || e is IllegalArgumentException || e is IllegalStateException || e is SecurityException) {
-                Log.w("ClipboardHistoryManager", "Screenshot media not ready/accessible (${e.javaClass.simpleName})")
-            } else {
-                Log.w("ClipboardHistoryManager", "Failed to cache image clipboard clip (${e.javaClass.simpleName})")
-            }
-            false
-        } finally {
-            if (tempFile.exists() && !tempFile.delete()) {
-                Log.w("ClipboardHistoryManager", "Failed to delete temp image clipboard clip")
-            }
-        }
     }
 
     private fun currentTextSuggestionChanged(clip: RecentClip.Text): Boolean =

@@ -476,6 +476,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                     }
                     setMainKeyboardFrame(currentSettingsValues, toggleState);
                     keyboardView.setKeyboard(newKeyboard);
+                    if (!animate && currentPanel==keyboardView && oldKeyboard!=null
+                            && oldKeyboard.mId.mInternalAction==null && newKeyboard.mId.mInternalAction==null
+                            && LayerMotionPolicy.alphabetSymbolSwitch(oldKeyboard.mId.mElementId,newKeyboard.mId.mElementId)) {
+                        keyboardView.startLayerPresentation();
+                    } else keyboardView.cancelLayerPresentation();
                     mCurrentInputView.setKeyboardTopPadding(newKeyboard.mTopPadding);
                     final boolean searchPanelActive = (mKlipyPalettesView != null && mKlipyPalettesView.isSearchMode())
                             || (mEmojiPalettesView != null && mEmojiPalettesView.isSearchMode())

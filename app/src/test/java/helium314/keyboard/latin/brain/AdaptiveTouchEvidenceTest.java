@@ -6,17 +6,17 @@ public class AdaptiveTouchEvidenceTest {
     @Test public void binsReflectDirectionAndNoSequence() throws Exception {
         AdaptiveTouchEvidence e=new AdaptiveTouchEvidence();
         assertTrue(e.observe(4,0,0,0,false));
-        assertTrue(e.observe(4,0,.75,-.75,true));
+        assertTrue(e.observeLiteral(4,0,.75,-.75,5));
         assertEquals(1,e.countAt(4,12)); assertEquals(1,e.countAt(4,4));
         assertEquals(1,e.mismatch(4));
         assertFalse(e.observe(4,1,0,0,false));
         assertFalse(e.observe(4,0,Double.NaN,0,false));
         ByteArrayOutputStream b=new ByteArrayOutputStream();
         e.writeTo(new DataOutputStream(b));
-        assertEquals(26*27,b.size());
+        assertEquals(26*31,b.size());
         AdaptiveTouchEvidence restored=AdaptiveTouchEvidence.readFrom(new DataInputStream(new ByteArrayInputStream(b.toByteArray())));
         assertEquals(2,restored.count(4)); assertEquals(1,restored.mismatch(4));
-        assertEquals(1,restored.countAt(4,4));
+        assertEquals(1,restored.countAt(4,4)); assertEquals(1<<5,restored.mismatchMask(4));
     }
     @Test public void mergeStaysBoundedAndCopyIsIndependent() {
         AdaptiveTouchEvidence e=new AdaptiveTouchEvidence(), batch=new AdaptiveTouchEvidence();
@@ -51,7 +51,16 @@ public class AdaptiveTouchEvidenceTest {
         try { e.merge(batch); fail("incompatible region"); } catch(IllegalArgumentException expected) {}
         assertEquals(0,e.count(0));
     }
+    @Test public void previousRecordDoesNotInventLiteralIdentities() throws Exception {
+        ByteArrayOutputStream bytes=new ByteArrayOutputStream();
+        DataOutputStream out=new DataOutputStream(bytes);
+        out.writeInt(0x41545032); out.writeInt(1); out.writeLong(42L); new AdaptiveTouchModel().writeTo(out);
+        for(int k=0;k<26;k++) { out.writeByte(k==4?1:0); out.writeByte(k==4?1:0); for(int c=0;c<25;c++) out.writeByte(k==4&&c==12?1:0); }
+        AdaptiveTouchEvidence e=AdaptiveTouchRecord.read(bytes.toByteArray()).evidence.get(42L);
+        assertEquals(1,e.mismatch(4)); assertEquals(0,e.mismatchMask(4));
+        assertTrue(e.observeLiteral(4,0,0,0,5)); assertEquals(1<<5,e.mismatchMask(4));
+    }
     @Test public void fullStoreFitsExistingAuthenticatedVaultLimit() {
-        assertTrue(8+12*(8+6*(4+8+8)+26*27)<16*1024-64);
+        assertTrue(8+12*(8+6*(4+8+8)+26*31)<16*1024-64);
     }
 }

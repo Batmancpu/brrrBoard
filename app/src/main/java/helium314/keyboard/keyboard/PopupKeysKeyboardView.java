@@ -177,6 +177,7 @@ public class PopupKeysKeyboardView extends KeyboardView implements PopupKeysPane
         mOriginX = panelFinalX;
         mOriginY = y + container.getPaddingTop() + (int) getY();
         controller.onShowPopupKeysPanel(this);
+        startLayerPresentation();
         final PopupKeysKeyboardAccessibilityDelegate accessibilityDelegate = mAccessibilityDelegate;
         if (accessibilityDelegate != null
                 && AccessibilityUtils.Companion.getInstance().isAccessibilityEnabled()) {
@@ -276,6 +277,7 @@ public class PopupKeysKeyboardView extends KeyboardView implements PopupKeysPane
 
     @Override
     public void dismissPopupKeysPanel() {
+        cancelLayerPresentation();
         if (!isShowingInParent()) {
             return;
         }

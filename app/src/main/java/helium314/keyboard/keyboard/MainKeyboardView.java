@@ -478,6 +478,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             mKeyDetector.setKeyboard(
                     keyboard, -getPaddingLeft(), -getPaddingTop() + getVerticalCorrection());
             PointerTracker.setKeyDetector(mKeyDetector);
+            AdaptiveTouchGeometry.registerDetector(keyboard,mKeyDetector.getTouchX(0),mKeyDetector.getTouchY(0));
             mPopupKeysKeyboardCache.clear();
 
             mSpaceKey = keyboard.getKey(Constants.CODE_SPACE);
@@ -991,6 +992,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
+        if (event.getActionMasked()==MotionEvent.ACTION_DOWN) cancelLayerPresentation();
         if (handleEditGesture(event)) return true;
         if (getKeyboard() == null) {
             return false;
@@ -1037,6 +1039,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     public void onHideWindow() {
+        cancelLayerPresentation();
         resetEditGesture();
         onDismissPopupKeysPanel();
         final MainKeyboardAccessibilityDelegate accessibilityDelegate = mAccessibilityDelegate;

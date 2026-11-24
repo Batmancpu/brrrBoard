@@ -31,6 +31,7 @@ import androidx.core.view.isGone
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import coil.load
+import coil.request.CachePolicy
 import helium314.keyboard.keyboard.KeyboardTheme
 import helium314.keyboard.keyboard.KeyboardTypeface
 import helium314.keyboard.latin.ClipboardHistoryEntry
@@ -342,7 +343,11 @@ class ClipboardAdapter(
 
             if (imageClip != null) {
                 imageView.isGone = false
-                imageView.load(imageClip.uri) { crossfade(false) }
+                imageView.load(imageClip.uri) {
+                    crossfade(false)
+                    memoryCachePolicy(CachePolicy.DISABLED)
+                    diskCachePolicy(CachePolicy.DISABLED)
+                }
                 imageView.contentDescription = itemView.context.getString(R.string.clipboard_image_preview)
                 contentView?.text = imageClip.label
                 contentView?.let { KeyboardTypeface.applyToTextView(it, imageClip.label, itemTypeFace ?: android.graphics.Typeface.DEFAULT) }

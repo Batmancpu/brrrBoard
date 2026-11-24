@@ -2,6 +2,10 @@
 package helium314.keyboard.settings.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import helium314.keyboard.keyboard.AdaptiveTouchGeometry
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +63,15 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                     }
                 }
                 Text("Each key shows retained samples; tap it for the detailed heatmap below.",style=MaterialTheme.typography.bodySmall)
+                val map=remember(active.layout,active.model) { AdaptiveTouchGeometry.sampleDecisionMap(active.layout,active.model) }
+                if(map!=null) {
+                    Text("Sampled recognition boundaries",fontWeight=FontWeight.SemiBold)
+                    Text("Original detector",style=MaterialTheme.typography.bodySmall)
+                    RecognitionMap(map,letter,false)
+                    Text("Adaptive detector",style=MaterialTheme.typography.bodySmall)
+                    RecognitionMap(map,letter,true)
+                    Text("${map.changes} of ${map.columns*map.rows} sampled positions change letter. Highlight: selected key; accent: changed decision. This is an isolated-tap simulation, not recorded touch locations or swipe/hysteresis behaviour.",style=MaterialTheme.typography.bodySmall)
+                } else Text("Open the matching alphabet layout and type a few letters to make its sampled recognition map available. Saved evidence alone cannot reconstruct physical boundaries.",style=MaterialTheme.typography.bodySmall)
                 val total=active.count(letter)
                 val peak=(0 until 25).maxOf { active.countAt(letter,it) }.coerceAtLeast(1)
                 Text("Intended letter ${('A'+letter)} · ${total} retained samples",fontWeight=FontWeight.SemiBold)
@@ -76,6 +89,9 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                     }
                 }
                 Text("Literal key differed from confirmed intended letter: ${active.mismatch(letter)} / $total")
+                val literalKeys=(0 until 26).filter { active.mismatchMask(letter) and (1 shl it) != 0 }.joinToString(", ") { ('A'+it).toString() }
+                Text(if(literalKeys.isEmpty()) "No retained literal-key identities." else "Recent mismatching literal keys: $literalKeys",style=MaterialTheme.typography.bodySmall)
+                Text("Identities are unordered and expire at decay; older mismatches may have no identity.",style=MaterialTheme.typography.bodySmall)
                 val region=active.region(letter)
                 if(region>=0) {
                     Text(if(active.model.ready(region))
@@ -91,6 +107,26 @@ internal fun AdaptiveTouchDatabasePanel(refresh: Int) {
                         style=MaterialTheme.typography.bodySmall)
                 }
             }
+        }
+    }
+}
+
+@Composable private fun RecognitionMap(map: AdaptiveTouchGeometry.DecisionMap,letter: Int,adapted: Boolean) {
+    val palette=MaterialTheme.colorScheme
+    Canvas(Modifier.fillMaxWidth().aspectRatio(map.aspect.coerceIn(1f,8f))) {
+        val dx=size.width/map.columns
+        val dy=size.height/map.rows
+        for(row in 0 until map.rows) for(col in 0 until map.columns) {
+            val i=row*map.columns+col
+            val raw=map.originalAt(i)
+            val key=if(adapted) map.adaptedAt(i) else raw
+            val color=when {
+                key<0 -> palette.surface
+                adapted && key!=raw -> palette.tertiary
+                key==letter -> palette.primary
+                else -> lerp(palette.surfaceVariant,palette.onSurfaceVariant,(key%4)*.12f)
+            }
+            drawRect(color,Offset(col*dx,row*dy),Size(dx+.3f,dy+.3f))
         }
     }
 }

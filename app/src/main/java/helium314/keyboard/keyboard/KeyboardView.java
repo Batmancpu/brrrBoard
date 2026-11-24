@@ -10,6 +10,9 @@ import static helium314.keyboard.keyboard.KeyboardTheme.STYLE_ROUNDED;
 import static helium314.keyboard.keyboard.KeyboardTheme.STYLE_CIRCLE;
 
 import android.content.Context;
+import android.animation.ValueAnimator;
+import android.view.animation.PathInterpolator;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -87,6 +90,39 @@ public class KeyboardView extends View {
     // Drawing
     /** True if all keys should be drawn */
     private boolean mInvalidateAllKeys;
+    private ValueAnimator mLayerPresentation;
+    private float mLayerPresentationScale=1f;
+
+    /** Canvas-only elastic settle; View bounds, hit detection and glass are never transformed. */
+    public void startLayerPresentation() {
+        if (!isHardwareAccelerated() || !KeyboardMotionSpec.isIos27(getContext())
+                || !KeyboardMotionSpec.optionalMotion(getContext())
+                || helium314.keyboard.accessibility.AccessibilityUtils.Companion.getInstance().isAccessibilityEnabled()) {
+            cancelLayerPresentation(); return;
+        }
+        final float start=mLayerPresentation==null ? .985f : mLayerPresentationScale;
+        if(mLayerPresentation!=null) mLayerPresentation.cancel();
+        final ValueAnimator animation=ValueAnimator.ofFloat(start,1.008f,1f);
+        mLayerPresentation=animation;
+        animation.setDuration(150L);
+        animation.setInterpolator(new PathInterpolator(.20f,0f,.25f,1f));
+        animation.addUpdateListener(a->{
+            if(mLayerPresentation!=animation) return;
+            mLayerPresentationScale=(float)a.getAnimatedValue();
+            invalidate();
+        });
+        animation.addListener(new android.animation.AnimatorListenerAdapter(){
+            @Override public void onAnimationEnd(android.animation.Animator a) {
+                if(mLayerPresentation==animation) { mLayerPresentation=null; mLayerPresentationScale=1f; invalidate(); }
+            }
+        });
+        animation.start();
+    }
+    public void cancelLayerPresentation() {
+        ValueAnimator old=mLayerPresentation;
+        mLayerPresentation=null; mLayerPresentationScale=1f;
+        if(old!=null) { old.cancel(); invalidate(); }
+    }
     /** The keys that should be drawn */
     private final HashSet<Key> mInvalidatedKeys = new HashSet<>();
     /** The working rectangle for clipping */
@@ -274,7 +310,12 @@ public class KeyboardView extends View {
     protected void onDraw(@NonNull final Canvas canvas) {
         super.onDraw(canvas);
         if (canvas.isHardwareAccelerated()) {
-            onDrawKeyboard(canvas);
+            if(mLayerPresentationScale==1f) onDrawKeyboard(canvas);
+            else {
+                int save=canvas.save();
+                canvas.scale(mLayerPresentationScale,mLayerPresentationScale,getWidth()/2f,getHeight()/2f);
+                try { onDrawKeyboard(canvas); } finally { canvas.restoreToCount(save); }
+            }
             return;
         }
 
@@ -1147,6 +1188,7 @@ public class KeyboardView extends View {
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelLayerPresentation();
         super.onDetachedFromWindow();
         freeOffscreenBuffer();
     }

@@ -12,6 +12,7 @@ public final class AdaptiveTouchEvidence {
     private static final int CAP = 255;
     private final int[][] bins = new int[LETTERS][CELLS];
     private final int[] wrong = new int[LETTERS], total = new int[LETTERS], group = new int[LETTERS];
+    private final int[] mismatchMask = new int[LETTERS];
     public AdaptiveTouchEvidence() { Arrays.fill(group,-1); }
 
     public static int cell(double x, double y) {
@@ -30,7 +31,13 @@ public final class AdaptiveTouchEvidence {
         if (mismatch) wrong[intended]++;
         return true;
     }
+    public boolean observeLiteral(int intended,int region,double x,double y,int literal) {
+        if(literal<0 || literal>=LETTERS || !observe(intended,region,x,y,literal!=intended)) return false;
+        if(literal!=intended) mismatchMask[intended] |= 1<<literal;
+        return true;
+    }
     private void halve(int letter) {
+        mismatchMask[letter]=0; // identity evidence expires at decay; counts remain approximate.
         int old = total[letter], next = 0;
         for (int i=0;i<CELLS;i++) { bins[letter][i] /= 2; next += bins[letter][i]; }
         wrong[letter] = old == 0 ? 0 : (int)((long)wrong[letter]*next/old);
@@ -48,19 +55,20 @@ public final class AdaptiveTouchEvidence {
             group[k]=batch.group[k];
             while(total[k]+n>CAP) halve(k);
             for(int i=0;i<CELLS;i++) bins[k][i]+=batch.bins[k][i];
-            total[k]+=n; wrong[k]+=batch.wrong[k];
+            total[k]+=n; wrong[k]+=batch.wrong[k]; mismatchMask[k]|=batch.mismatchMask[k];
         }
     }
     public AdaptiveTouchEvidence copy() {
         AdaptiveTouchEvidence out=new AdaptiveTouchEvidence();
         for(int k=0;k<LETTERS;k++) {
             System.arraycopy(bins[k],0,out.bins[k],0,CELLS);
-            out.total[k]=total[k]; out.wrong[k]=wrong[k]; out.group[k]=group[k];
+            out.total[k]=total[k]; out.wrong[k]=wrong[k]; out.group[k]=group[k]; out.mismatchMask[k]=mismatchMask[k];
         }
         return out;
     }
     public int count(int letter) { return total[letter]; }
     public int mismatch(int letter) { return wrong[letter]; }
+    public int mismatchMask(int letter) { return mismatchMask[letter]; }
     public int region(int letter) { return group[letter]; }
     public int countAt(int letter,int cell) { return bins[letter][cell]; }
 
@@ -68,16 +76,23 @@ public final class AdaptiveTouchEvidence {
         for(int k=0;k<LETTERS;k++) {
             out.writeByte(group[k]+1); out.writeByte(wrong[k]);
             for(int n:bins[k]) out.writeByte(n);
+            out.writeInt(mismatchMask[k]);
         }
     }
     public static AdaptiveTouchEvidence readFrom(DataInput in) throws IOException {
+        return readFrom(in,true);
+    }
+    static AdaptiveTouchEvidence readFrom(DataInput in,boolean identities) throws IOException {
         AdaptiveTouchEvidence out=new AdaptiveTouchEvidence();
         for(int k=0;k<LETTERS;k++) {
             int region=in.readUnsignedByte()-1, wrong=in.readUnsignedByte(), total=0;
             for(int i=0;i<CELLS;i++) { int n=in.readUnsignedByte(); out.bins[k][i]=n; total+=n; }
             if(region < -1 || region >= AdaptiveTouchModel.CLUSTERS || total>CAP || wrong>total
                     || (total>0 && region<0)) throw new IOException("invalid touch evidence");
-            out.group[k]=region; out.wrong[k]=wrong; out.total[k]=total;
+            int mask=identities?in.readInt():0;
+            if((mask & ~((1<<LETTERS)-1))!=0 || (mask & (1<<k))!=0 || Integer.bitCount(mask)>wrong)
+                throw new IOException("invalid mismatch identities");
+            out.group[k]=region; out.wrong[k]=wrong; out.total[k]=total; out.mismatchMask[k]=mask;
         }
         return out;
     }

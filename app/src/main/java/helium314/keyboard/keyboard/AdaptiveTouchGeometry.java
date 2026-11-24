@@ -9,6 +9,53 @@ import java.util.WeakHashMap;
 /** Actual alphabet geometry, isolated by layout and size; no editor metadata. */
 public final class AdaptiveTouchGeometry {
     private static final WeakHashMap<Keyboard, AdaptiveTouchGeometry> cache = new WeakHashMap<>();
+    private static final WeakHashMap<Keyboard,int[]> detectorOffsets = new WeakHashMap<>();
+    // Only public layout geometry; no additional strong Keyboard/EditorInfo references.
+    public static void registerDetector(Keyboard keyboard,int x,int y) {
+        if(keyboard.mId.isAlphabetKeyboard() && !keyboard.mId.mDeviceLocked && keyboard.mId.mInternalAction==null)
+            detectorOffsets.put(keyboard,new int[]{x,y});
+    }
+    public static final class DecisionMap {
+        public final int columns=84, rows=30;
+        public final float aspect;
+        private final int[] original=new int[columns*rows], adapted=new int[columns*rows];
+        public final int changes;
+        DecisionMap(Keyboard keyboard,AdaptiveTouchGeometry geometry,int[] correction,AdaptiveTouchModel.Snapshot model) {
+            double left=Double.MAX_VALUE,top=Double.MAX_VALUE,right=-Double.MAX_VALUE,bottom=-Double.MAX_VALUE;
+            for(int i=0;i<26;i++) {
+                left=Math.min(left,geometry.cx[i]-geometry.w[i]/2); right=Math.max(right,geometry.cx[i]+geometry.w[i]/2);
+                top=Math.min(top,geometry.cy[i]-geometry.h[i]/2); bottom=Math.max(bottom,geometry.cy[i]+geometry.h[i]/2);
+            }
+            aspect=(float)((right-left)/(bottom-top));
+            KeyDetector detector=new KeyDetector(); detector.setKeyboard(keyboard,correction[0],correction[1]);
+            int changed=0;
+            for(int row=0;row<rows;row++) for(int col=0;col<columns;col++) {
+                int x=(int)Math.floor(left+(col+.5)*(right-left)/columns)-correction[0];
+                int y=(int)Math.floor(top+(row+.5)*(bottom-top)/rows)-correction[1];
+                Key key=detector.detectHitKey(x,y);
+                int cell=row*columns+col;
+                int code=key==null || !key.isEnabled() ? -1 : key.getCode();
+                original[cell]=index(code);
+                adapted[cell]=index(code>=0 && keyboard.hasProximityCharsCorrection(code)
+                        ? geometry.choose(model,code,x,y):code);
+                if(original[cell]!=adapted[cell]) changed++;
+            }
+            changes=changed;
+        }
+        public int originalAt(int cell) { return original[cell]; }
+        public int adaptedAt(int cell) { return adapted[cell]; }
+    }
+    /** Settings-only rasterization of the actual detector and adaptive chooser, not touch history.
+     * Null when the matching live layout has been evicted. Run on the UI thread, never on a tap. */
+    public static DecisionMap sampleDecisionMap(long signature,AdaptiveTouchModel.Snapshot model) {
+        for(java.util.Map.Entry<Keyboard,AdaptiveTouchGeometry> e:cache.entrySet()) {
+            Keyboard keyboard=e.getKey(); AdaptiveTouchGeometry g=e.getValue();
+            if(keyboard==null || g==null || g.signature!=signature) continue;
+            int[] offsets=detectorOffsets.get(keyboard);
+            if(offsets!=null) return new DecisionMap(keyboard,g,offsets,model);
+        }
+        return null;
+    }
     private final int[] codes = new int[26], groups = new int[26];
     private final double[] cx = new double[26], cy = new double[26], w = new double[26], h = new double[26];
     public final long signature;
@@ -75,7 +122,7 @@ public final class AdaptiveTouchGeometry {
             double x=rx(j,xs[p]),y=ry(j,ys[p]);
             if(Math.abs(x)>.8 || Math.abs(y)>.8) return false;
             int raw=index(literal[p]);
-            if(raw<0 || !evidence.observe(j,groups[j],x,y,raw!=j)) return false;
+            if(raw<0 || !evidence.observeLiteral(j,groups[j],x,y,raw)) return false;
             int group=groups[j]; n[group]++; sx[group]+=x; sy[group]+=y;
         }
         return true;

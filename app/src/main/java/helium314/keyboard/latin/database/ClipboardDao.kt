@@ -293,9 +293,10 @@ class ClipboardDao private constructor(private val db: Database, context: Contex
         entries.forEach { entry ->
             val uri = ClipboardImageHistoryClip.decode(entry.text)?.uri ?: return@forEach
             val file = cachedImageFile(uri) ?: return@forEach
-            if (file.exists() && !file.delete()) {
+            if (ClipboardImageVault.hasStored(file) && !ClipboardImageVault.delete(context,file)) {
                 Log.e(TAG, "can't delete cached clipboard image")
             }
+            runCatching { context.revokeUriPermission(uri,android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
         }
     }
 

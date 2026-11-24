@@ -140,7 +140,7 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
         </provider>
 
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="helium314.keyboard.latin.database.EncryptedClipboardFileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
