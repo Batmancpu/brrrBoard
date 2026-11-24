@@ -18,3 +18,8 @@ Immediate idle tap on UP, disable GestureDetector double tap listener by default
 4. Audit UI hot paths: glass RenderNode invalidation/blur, keyboard layout recomputation, panel inflation, suggestion/native scoring and dictionary loading, clipboard/emoji indexing, settings list and startup work. Perfetto/frame metrics and cold/warm benchmarks before changing hot paths. Prioritize avoiding main-thread I/O and repeated allocation over cosmetic changes. Do not warm models without an explicit mic action.
 5. Retain ASR 90s idle unload for now; test memory-pressure callback and release policy, never keep Ultra resident indefinitely.
 6. Run exact SHA debug tests and signed workflow, physical Oppo test: rapid taps during STARTING, hold/release/cancel, legacy double-tap with no microphone, switch editors, protected mode, first syllables, cold/warm 120 seconds. No physical validation yet.
+
+
+## 2026-11-24 — Capture-first release verified
+
+Exact source `c2d68aa0a815599ee5e3531606bb470e60a6e398`: debug/full unit tests `45333533721` and original-signed release `45333533691` completed successfully, including same-commit gate, signing verification and publication. Non-draft v1.0.267 published 2026-11-24T05:36:01Z; uploaded APK https://github.com/Batmancpu/brrrBoard/releases/download/v1.0.267/brrBoard.apk, 75,472,461 bytes, GitHub asset SHA-256 `4eafb395f2ec24db53329467737ee9f41aa3f3ef288062a566646a729609730c`. This verifies the capture-first checkpoint, not later concurrent features. No physical phone test or measured latency; verify cold/warm first syllables, quiet speech and continuous two-minute dictation on Oppo. Large optional ASR bundling skipped. No source repair needed.
