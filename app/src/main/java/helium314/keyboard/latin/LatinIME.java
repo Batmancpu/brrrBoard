@@ -2310,7 +2310,7 @@ public class LatinIME extends InputMethodService implements
             if (secret == null) {
                 if (editor == mEditorFocusEpoch && selection == mVaultSelectionEpoch && isInputViewShown() && isVaultPasswordTarget()) {
                     AudioAndHapticFeedbackManager.getInstance().performSecureAppIncognitoWarning();
-                    android.widget.Toast.makeText(this, "Code vault locked or pattern not recognized. Hold Settings title to unlock.", android.widget.Toast.LENGTH_SHORT).show();
+                    // Private gesture failure is haptic only: no public vault-identifying toast.
                 }
                 return;
             }

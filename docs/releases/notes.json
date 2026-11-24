@@ -1,22 +1,14 @@
 {
   "schema": 1,
-  "summary": "Private 60-second Settings Search unlock for the WhatsApp code vault; retain corrected Emoji key motion.",
+  "summary": "Improve first-attempt WhatsApp vault gesture recognition and discreet feedback.",
   "changes": [
     {
-      "title": "Shared Search and Backspace motion",
-      "detail": "Search travels from bottom right to the Emoji Search position; Backspace moves into the bottom-right slot. Reverse on return. Existing key sizes, colors and layout retained."
+      "title": "One-stroke recognition",
+      "detail": "Preserves final touch samples and supports small wrist-angle differences using the existing two-of-three enrollment consensus. Existing saved gestures and privacy guards remain."
     },
     {
-      "title": "Remove incorrect key-to-field morph",
-      "detail": "Search fields appear normally in Emoji and Clipboard. No X morph, no additional Clipboard entry animation or whole-panel fade."
-    },
-    {
-      "title": "Hidden vault unlock",
-      "detail": "Holding brrBoard Settings vibrates and arms the existing search bar for 60 seconds without navigating. Enter the enrolled WhatsApp secret code to open vault settings automatically."
-    },
-    {
-      "title": "Private code entry and recovery",
-      "detail": "Masked private input bypasses ordinary settings filtering and learning; no default password, clears on timeout or background. Local Keystore verifier and separately authenticated setup/recovery retain device-credential protection."
+      "title": "Discreet vault feedback",
+      "detail": "A failed gesture vibrates without displaying a vault-identifying toast; success confirmation remains haptic. WhatsApp Search keeps its private microphone policy."
     }
   ]
 }

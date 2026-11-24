@@ -44,7 +44,12 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
                 add(event.x, event.y)
             }
             MotionEvent.ACTION_UP -> {
-                if (ownership.valid) add(event.x, event.y)
+                // ACTION_UP may carry batched MOVE samples on some devices.
+                // Capture them before the final endpoint rather than losing a corner.
+                if (ownership.valid) {
+                    for (i in 0 until event.historySize) add(event.getHistoricalX(0, i), event.getHistoricalY(0, i))
+                    add(event.x, event.y, terminal = true)
+                }
                 val valid = ownership.finish()
                 val trace = if (valid && event.eventTime - startedAt in 120L..8_000L)
                     VaultGestureTrace.normalize(xs, ys, count, density) else null
@@ -57,18 +62,25 @@ class VaultStrokeCapture(private val density: Float, private val onTrace: Consum
         return true
     }
 
-    private fun add(x: Float, y: Float) {
+    private fun add(x: Float, y: Float, terminal: Boolean = false) {
         if (!ownership.valid) return
         val slack = 6f * density
         if (!x.isFinite() || !y.isFinite() || x < -slack || y < -slack ||
             x >= startWidth + slack || y >= startHeight + slack) { invalidateStroke(); return }
         val px = x.coerceIn(0f, (startWidth - 1).coerceAtLeast(0).toFloat())
         val py = y.coerceIn(0f, (startHeight - 1).coerceAtLeast(0).toFloat())
-        if (count > 0 && hypot(px - xs[count - 1], py - ys[count - 1]) < density * .65f) return
+        if (count > 0 && hypot(px - xs[count - 1], py - ys[count - 1]) < density * .65f) {
+            // Preserve the actual lift position, but never overwrite the initial DOWN.
+            if (terminal && count > 1) { xs[count - 1] = px; ys[count - 1] = py }
+            return
+        }
         // Decimate in place instead of rejecting a long, high-refresh-rate stroke.
         if (count == MAX_POINTS) {
+            val lastX = xs[MAX_POINTS - 1]; val lastY = ys[MAX_POINTS - 1]
             for (i in 1 until MAX_POINTS / 2) { xs[i] = xs[i * 2]; ys[i] = ys[i * 2] }
-            xs.fill(0f, MAX_POINTS / 2); ys.fill(0f, MAX_POINTS / 2); count = MAX_POINTS / 2
+            count = MAX_POINTS / 2
+            xs[count] = lastX; ys[count] = lastY; count++
+            xs.fill(0f, count); ys.fill(0f, count)
         }
         xs[count] = px; ys[count] = py; count++
     }

@@ -3,6 +3,8 @@ package helium314.keyboard.latin
 
 import kotlin.math.hypot
 import kotlin.math.sqrt
+import kotlin.math.cos
+import kotlin.math.sin
 
 /** Small deterministic normalizer for one-finger traces starting in the reserved footer strip and continuing across the keyboard. */
 internal object VaultGestureTrace {
@@ -66,9 +68,43 @@ internal object VaultGestureTrace {
         return result
     }
 
-    /** Use the actual enrolled shapes, not only their averaged corners. Require a majority. */
-    fun matchesEnrollment(samples: List<FloatArray>, candidate: FloatArray): Boolean =
-        samples.size == ENROLLMENT_SAMPLES && samples.count { matches(it, candidate) } >= 2
+    /** Still require two independent enrolled shapes to agree on the same alignment.
+     * Never update the enrollment from an unverified stroke. A small rigid rotation
+     * compensates for a different finger/wrist angle, not a different drawing. */
+    fun matchesEnrollment(samples: List<FloatArray>, candidate: FloatArray): Boolean {
+        if (samples.size != ENROLLMENT_SAMPLES || candidate.size != POINT_COUNT * 2 ||
+            candidate.any { !it.isFinite() } ||
+            samples.any { it.size != candidate.size || it.any { p -> !p.isFinite() } }) return false
+        if (samples.count { matches(it, candidate) } >= 2) return true
+        // One common bounded alignment; no per-template angle search, reflection,
+        // reversal, or wider point-error threshold.
+        val adjusted = FloatArray(candidate.size)
+        try {
+            for (degrees in intArrayOf(-4, 4, -8, 8)) {
+                val angle = degrees * Math.PI / 180.0
+                val c = cos(angle)
+                val sn = sin(angle)
+                var minX = Float.POSITIVE_INFINITY; var maxX = Float.NEGATIVE_INFINITY
+                var minY = Float.POSITIVE_INFINITY; var maxY = Float.NEGATIVE_INFINITY
+                for (i in 0 until POINT_COUNT) {
+                    val x = candidate[i * 2]; val y = candidate[i * 2 + 1]
+                    val rx = (x * c - y * sn).toFloat(); val ry = (x * sn + y * c).toFloat()
+                    adjusted[i * 2] = rx; adjusted[i * 2 + 1] = ry
+                    minX = minOf(minX, rx); maxX = maxOf(maxX, rx)
+                    minY = minOf(minY, ry); maxY = maxOf(maxY, ry)
+                }
+                val scale = maxOf(maxX - minX, maxY - minY)
+                if (!scale.isFinite() || scale <= 0f) return false
+                val cx = (minX + maxX) / 2f; val cy = (minY + maxY) / 2f
+                for (i in 0 until POINT_COUNT) {
+                    adjusted[i * 2] = (adjusted[i * 2] - cx) / scale
+                    adjusted[i * 2 + 1] = (adjusted[i * 2 + 1] - cy) / scale
+                }
+                if (samples.count { matches(it, adjusted) } >= 2) return true
+            }
+            return false
+        } finally { adjusted.fill(0f) }
+    }
 
     fun matches(template: FloatArray, candidate: FloatArray): Boolean {
         if (template.size != POINT_COUNT * 2 || candidate.size != template.size) return false

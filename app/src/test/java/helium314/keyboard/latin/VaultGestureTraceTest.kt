@@ -35,6 +35,21 @@ class VaultGestureTraceTest {
         assertFalse(VaultGestureTrace.matchesEnrollment(listOf(a, a, b), b))
         assertFalse(VaultGestureTrace.matchesEnrollment(listOf(a, a), a))
     }
+    @Test fun oneStrokeAllowsSmallWristAngleChangesButStillRequiresConsensus() {
+        val enrolled = shape()
+        val xs = FloatArray(25) { if (it < 13) it * 4f else (24 - it) * 4f }
+        val ys = FloatArray(25) { if (it < 13) it * 2f else 24f - (it - 12) * 1f }
+        val angle = 8.0 * Math.PI / 180.0
+        val rotatedX = FloatArray(xs.size) { (xs[it] * kotlin.math.cos(angle) - ys[it] * kotlin.math.sin(angle)).toFloat() }
+        val rotatedY = FloatArray(xs.size) { (xs[it] * kotlin.math.sin(angle) + ys[it] * kotlin.math.cos(angle)).toFloat() }
+        val candidate = requireNotNull(VaultGestureTrace.normalize(rotatedX, rotatedY, xs.size, 1f))
+        assertTrue(VaultGestureTrace.matchesEnrollment(listOf(enrolled, enrolled, enrolled), candidate))
+        val reverse = shape(true)
+        assertFalse(VaultGestureTrace.matchesEnrollment(listOf(enrolled, enrolled, enrolled), reverse))
+        val mirrored = enrolled.copyOf().also { for (i in 1 until it.size step 2) it[i] = -it[i] }
+        assertFalse(VaultGestureTrace.matchesEnrollment(listOf(enrolled, enrolled, enrolled), mirrored))
+        assertFalse(VaultGestureTrace.matchesEnrollment(listOf(enrolled, reverse, reverse), candidate))
+    }
     @Test fun diagonalDragIsNotASecretPattern() {
         val x = FloatArray(20) { it * 4f }
         val y = FloatArray(20) { it * 3f }
