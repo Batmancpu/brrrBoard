@@ -1,14 +1,26 @@
 {
   "schema": 1,
-  "summary": "Session-local correction recall and cancel-safe delete swipe.",
+  "summary": "Private productivity tools, app profiles, and steadier suggestions.",
   "changes": [
     {
-      "title": "30-second correction recall",
-      "detail": "Return to a recently autocorrected word to recover its original spelling when the exact editor range still matches. No persistent recall history."
+      "title": "Undo and redo verified edits",
+      "detail": "A short editor-local journal supports undo and redo of confirmed delete swipes and selected-text edits, with existing host fallback."
     },
     {
-      "title": "Reversible delete swipe",
-      "detail": "Only a genuine release commits the owned selection. Canceled or expired gestures restore their preview instead of deleting text."
+      "title": "Smart clipboard extraction",
+      "detail": "Tap the Clipboard · Extract header to choose a masked link, email, phone or verification code from the current plain-text clip. Sensitive or oversized clips are excluded from automatic history and previews."
+    },
+    {
+      "title": "Per-app profiles",
+      "detail": "BR Brain offers app-specific correction, suggestions, number row, sound, haptics and always-private settings."
+    },
+    {
+      "title": "Text tools",
+      "detail": "Select plain text, then open Text tools in the toolbar for local case, whitespace and line transformations."
+    },
+    {
+      "title": "Stable suggestions",
+      "detail": "Unrelated suggestion replacements no longer crossfade full words; session recall is never retained as outgoing artwork."
     }
   ]
 }

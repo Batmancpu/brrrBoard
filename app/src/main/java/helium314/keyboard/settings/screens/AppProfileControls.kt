@@ -2,6 +2,8 @@
 package helium314.keyboard.settings.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,7 +31,7 @@ internal fun AppProfileControls() {
             Text("$count configured. Profiles apply at the next editor session. They cannot relax private-field restrictions.",
                 style = MaterialTheme.typography.bodySmall)
             Button(onClick = { query = ""; picking = true }, modifier = Modifier.fillMaxWidth()) { Text("Choose an app") }
-            if (count > 0) OutlinedButton(onClick = { reset = true }) { Text("Reset all profiles") }
+            if (count > 0 || error) OutlinedButton(onClick = { reset = true }) { Text("Reset all profiles") }
             if (error) Text("Profile storage unavailable.", color = MaterialTheme.colorScheme.error)
         }
     }
@@ -69,7 +71,7 @@ internal fun AppProfileControls() {
         var profile by remember(pkg) { mutableStateOf(AppProfileStore.get(context,pkg)) }
         AlertDialog(onDismissRequest = { selected = null }, title = { Text("App profile") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(pkg, style = MaterialTheme.typography.bodySmall)
                     ProfileChoice("Autocorrect",profile.autocorrect) { profile = profile.copy(autocorrect = it) }
                     ProfileChoice("Suggestions",profile.suggestions) { profile = profile.copy(suggestions = it) }

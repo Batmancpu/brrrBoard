@@ -10,7 +10,8 @@ object ClipboardEntityExtractor {
     private val link = Regex("(?i)https?://[^\\s<>\"']{1,512}")
     private val email = Regex("(?i)(?<![\\w.+-])[a-z0-9._%+-]{1,64}@[a-z0-9-]{1,63}(?:\\.[a-z0-9-]{1,63}){1,5}(?![\\w.-])")
     private val phone = Regex("(?<![\\w])(?:\\+\\d{1,3}[ -]?)?(?:\\(?\\d{2,5}\\)?[ .-]?){2,5}\\d{2,5}(?![\\w])")
-    private val code = Regex("(?i)\\b(?:otp|verification code|one[ -]time(?: password| code)?|security code|passcode)\\b[ \\t:=#-]{0,16}(\\d{4,8})(?!\\d)")
+    private val code = Regex("(?i)\\b(?:otp|verification code|one[ -]time(?: password| code)?|security code|passcode)\\b(?:[ \\t:=#-]{0,8}is)?[ \\t:=#-]{0,16}(\\d{4,8})(?!\\d)")
+    private val reverseCode = Regex("(?i)(?<!\\d)(\\d{4,8})[ \\t]{1,8}(?:is[ \\t]{1,8})?(?:your[ \\t]{1,8})?(?:otp|verification code|security code|one[ -]time code)\\b")
     private val secret = Regex("(?i)\\b(?:password|passwd|passphrase|recovery (?:code|key|phrase)|private key|api[ _-]?key|access token|secret key|cvv|cvc|card pin)\\b[ \\t:=#-]{1,16}\\S{3,}")
     private val bareCode = Regex("\\s*\\d{4,8}\\s*")
     private val card = Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)")
@@ -29,7 +30,7 @@ object ClipboardEntityExtractor {
     /** Conservative auto-history gate, not a claim to identify every secret. */
     fun excludeFromAutomaticHistory(text: CharSequence): Boolean {
         if (text.length > MAX_CHARS) return true
-        return code.containsMatchIn(text) || bareCode.matches(text) || secret.containsMatchIn(text) ||
+        return code.containsMatchIn(text) || reverseCode.containsMatchIn(text) || bareCode.matches(text) || secret.containsMatchIn(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }
     }
     fun extract(text: CharSequence): List<Entity> {
@@ -40,6 +41,7 @@ object ClipboardEntityExtractor {
                 out.add(Entity(kind, start, end))
         }
         for (m in code.findAll(text)) m.groups[1]?.let { add(Kind.CODE, it.range.first, it.range.last + 1) }
+        for (m in reverseCode.findAll(text)) m.groups[1]?.let { add(Kind.CODE, it.range.first, it.range.last + 1) }
         for (m in link.findAll(text)) {
             val value = m.value.trimEnd('.', ',', ';', '!', '?', ')', ']', '}')
             val uri = try { java.net.URI(value) } catch (_: Exception) { null }

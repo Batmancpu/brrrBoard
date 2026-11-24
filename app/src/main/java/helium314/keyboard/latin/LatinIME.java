@@ -1309,6 +1309,7 @@ public class LatinIME extends InputMethodService implements
         // Entering a protected editor is a privacy boundary, not a recoverable
         // destination change. Do not keep an old audio decode running there.
         if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editorInfo)
+                || helium314.keyboard.latin.settings.AppProfileStore.get(this, editorInfo == null ? null : editorInfo.packageName).getPrivateMode()
                 || ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
                 mSettings.getCurrent().mIncognitoModeEnabled)
                 || SecureAppsPolicy.isSecure(KtxKt.prefs(this),
