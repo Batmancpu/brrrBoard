@@ -17,6 +17,7 @@ import helium314.keyboard.latin.voice.VoiceCaptureNoiseReduction
 import helium314.keyboard.latin.voice.VoiceSessionCrashTrail
 import helium314.keyboard.latin.voice.VoiceNoiseChoice
 import helium314.keyboard.latin.voice.VoiceGesturePreferences
+import helium314.keyboard.latin.voice.VoiceStopMetrics
 
 /**
  * The blue press-and-hold path belongs wholly to brrBoard. No SpeechRecognizer, IPC, WAV,
@@ -87,6 +88,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             return
         }
         val selectedEngine = OfflineVoiceEngine.forKeyboard(ime, modelPack)
+        VoiceStopMetrics.begin(!Settings.getValues().mIncognitoModeEnabled)
         generation++
         val id = generation
         originalConnection = connection
@@ -157,6 +159,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             Phase.IDLE, Phase.DECODING -> return
             Phase.STARTING, Phase.CAPTURING -> {
                 phase = Phase.DECODING
+                VoiceStopMetrics.stop()
                 footer?.showDictationProcessing(offline = true)
                 source?.stop()
             }
@@ -167,12 +170,14 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
         if (phase == Phase.CAPTURING) {
             // The 170s recording cap is a normal end, not a discarded take.
             phase = Phase.DECODING
+            VoiceStopMetrics.stop()
             footer?.showDictationProcessing(offline = true)
         }
         if (phase != Phase.DECODING) {
             cancel()
             return
         }
+        VoiceStopMetrics.captureReleased()
         VoiceSessionCrashTrail.note(ime, "MIC_CAPTURE_STOPPED")
         source = null
         streaming?.finishCapture()
@@ -181,6 +186,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     private fun onTranscriptionCompleted(answer: Result<String>, id: Long,
                                          connection: InputConnection, incomplete: Boolean = false) {
             if (id != generation || phase != Phase.DECODING) return
+            VoiceStopMetrics.resultReady()
             val validEditor = sameEditor(connection)
             val phrase = answer.getOrNull().orEmpty().trim()
             val validDestination = validEditor &&
@@ -206,6 +212,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             finish(OfflineDictationExit.OTHER, clearDraft = outcome != VoiceTranscriptDeliveryPolicy.Outcome.INSERT)
             if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
                 ime.onPrivateVoiceTextInput(phrase, hadLiveDraft)
+                VoiceStopMetrics.dispatchReturned()
                 if (shouldSend) connection.performEditorAction(EditorInfo.IME_ACTION_SEND)
                 if (incomplete) statusFooter?.showDictationError(R.string.board_voice_partial_transcript)
             } else if (validEditor) {
@@ -306,7 +313,8 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
     }
 
     private fun updateComposingDraft(connection: InputConnection, text: String) {
-        if (phase != Phase.CAPTURING || liveDraftRejected ||
+        // Deliver completed batches during Stop drain with the same editor/range guard.
+        if ((phase != Phase.CAPTURING && phase != Phase.DECODING) || liveDraftRejected ||
             text == composingVoiceDraft || !sameEditor(connection)) return
         val destinationSafe = if (composingVoiceDraft.isEmpty()) destinationUnchanged()
             else composingDraftStillAtOriginalCursor()
@@ -324,6 +332,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             if (composingVoiceDraft.isEmpty()) ime.mInputLogic.preparePrivateVoiceDraft()
             if (rich.setVoiceComposingText(originalSelectionStart, composingVoiceDraft, text)) {
                 composingVoiceDraft = text
+                if (phase == Phase.DECODING) VoiceStopMetrics.drainPartial()
             } else {
                 // Editors can reject composing spans. Keep recording and defer delivery
                 // to Stop, rather than repeatedly attempting an unsupported live write.

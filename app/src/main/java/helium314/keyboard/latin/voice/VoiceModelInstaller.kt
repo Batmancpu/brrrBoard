@@ -27,13 +27,13 @@ internal object VoiceModelInstaller {
         private set
     private val progressByModel = ConcurrentHashMap<String, Progress>()
 
-    fun modelDir(context: Context): File = modelDir(context, VoiceModelManifest.pack)
+    fun modelDir(context: Context): File = modelDir(context, UltraVoiceModelManifest.pack)
     fun modelDir(context: Context, pack: VoiceModelPack): File {
         val directories = modelDirectories(context, pack)
         return directories.firstOrNull { isInstalledAt(it, pack) } ?: directories.first()
     }
 
-    fun isInstalled(context: Context): Boolean = isInstalled(context, VoiceModelManifest.pack)
+    fun isInstalled(context: Context): Boolean = isInstalled(context, UltraVoiceModelManifest.pack)
 
     fun isInstalled(context: Context, pack: VoiceModelPack): Boolean {
         return modelDirectories(context, pack).any { isInstalledAt(it, pack) }
@@ -53,9 +53,32 @@ internal object VoiceModelInstaller {
         val directories = mutableListOf(File(deviceContext.noBackupFilesDir, pack.modelDir))
         val userManager = context.getSystemService(UserManager::class.java)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || userManager?.isUserUnlocked == true) {
-            directories += File(context.noBackupFilesDir, pack.modelDir)
+            val credential = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) context.createCredentialProtectedStorageContext() else context
+            directories += File(credential.noBackupFilesDir, pack.modelDir)
         }
         return directories.distinctBy { it.absolutePath }
+    }
+
+    /** Called only after actual native Ultra recognition; preserve the legacy
+     * pack when replacement verification fails or credential storage is locked. */
+    @Synchronized
+    internal fun retireLegacyAfterReplacement(context: Context,
+        replacement: VoiceModelPack = UltraVoiceModelManifest.pack,
+        legacy: VoiceModelPack = VoiceModelManifest.pack): Boolean {
+        if (replacement.id == legacy.id || !isInstalled(context,replacement)) return false
+        val user = context.getSystemService(UserManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && user?.isUserUnlocked != true) return false
+        return runCatching {
+            var complete = true
+            for (dir in modelDirectories(context,legacy)) {
+                val parent = requireNotNull(dir.parentFile)
+                for (target in listOf(dir, File(parent, ".installing-${legacy.id}"))) {
+                    check(target.canonicalFile == File(parent.canonicalFile,target.name))
+                    if (target.exists() && !target.deleteRecursively()) complete = false
+                }
+            }
+            complete
+        }.getOrDefault(false)
     }
 
     fun hasBundled(context: Context, pack: VoiceModelPack): Boolean {
@@ -67,7 +90,7 @@ internal object VoiceModelInstaller {
     }
 
     @Synchronized
-    fun installBundledIfPresent(context: Context): Boolean = installBundledIfPresent(context, VoiceModelManifest.pack)
+    fun installBundledIfPresent(context: Context): Boolean = installBundledIfPresent(context, UltraVoiceModelManifest.pack)
 
     /** Installs model assets only when this app update explicitly contains them. */
     @Synchronized
@@ -142,13 +165,13 @@ internal object VoiceModelInstaller {
     }
 
     fun progress(pack: VoiceModelPack): Progress = progressByModel[pack.id]
-        ?: if (pack.id == VoiceModelManifest.ID) Progress(installState, installPercent)
+        ?: if (pack.id == UltraVoiceModelManifest.ID) Progress(installState, installPercent)
         else Progress(InstallState.NOT_INSTALLED, 0)
 
     private fun setProgress(pack: VoiceModelPack, state: InstallState, percent: Int) {
         val safePercent = percent.coerceIn(0, 100)
         progressByModel[pack.id] = Progress(state, safePercent)
-        if (pack.id == VoiceModelManifest.ID) {
+        if (pack.id == UltraVoiceModelManifest.ID) {
             installState = state
             installPercent = safePercent
         }

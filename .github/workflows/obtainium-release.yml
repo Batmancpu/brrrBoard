@@ -17,11 +17,6 @@ on:
       - '.github/workflows/obtainium-release.yml'
   workflow_dispatch:
     inputs:
-      bundle_voice_model:
-        description: 'Include the ~136 MB English ASR model for bootstrap/recovery'
-        type: boolean
-        required: true
-        default: false
       bundle_ultra_model:
         description: 'Include the pinned Parakeet Ultra 0.6B model for this update (about 640 MiB)'
         type: boolean
@@ -56,15 +51,11 @@ jobs:
         run: |
           set -euo pipefail
           bundle_ultra=false
-          bundle_voice=false
           if [[ "$GITHUB_EVENT_NAME" != "push" || -z "$BEFORE_SHA" || "$BEFORE_SHA" =~ ^0+$ ]]; then
             echo "product_changed=true" >> "$GITHUB_OUTPUT"
             if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
               if [[ "${{ inputs.bundle_ultra_model }}" == "true" ]]; then
                 bundle_ultra=true
-                bundle_voice=true
-              elif [[ "${{ inputs.bundle_voice_model }}" == "true" ]]; then
-                bundle_voice=true
               fi
             fi
           else
@@ -77,14 +68,11 @@ jobs:
             fi
           fi
           if [[ "$bundle_ultra" == true ]]; then
-            model_mode=both
-          elif [[ "$bundle_voice" == true ]]; then
-            model_mode=bundled
+            model_mode=ultra
           else
             model_mode=unbundled
           fi
           echo "bundle_ultra=$bundle_ultra" >> "$GITHUB_OUTPUT"
-          echo "bundle_voice=$bundle_voice" >> "$GITHUB_OUTPUT"
           echo "model_mode=$model_mode" >> "$GITHUB_OUTPUT"
       - name: Check signing enrollment
         if: github.event_name != 'push' || steps.release_scope.outputs.product_changed == 'true'
@@ -108,9 +96,6 @@ jobs:
         run: bash tools/fetch-board-brrclean.sh
       - name: Fetch and verify adaptive voice models
         run: bash tools/fetch-board-voice-endpoints.sh
-      - name: Bundle pinned English ASR model only when explicitly requested
-        if: steps.release_scope.outputs.bundle_voice == 'true'
-        run: bash tools/prepare-offline-voice-pack.sh
       - name: Bundle pinned Parakeet Ultra only when explicitly requested
         if: steps.release_scope.outputs.bundle_ultra == 'true'
         run: bash tools/prepare-ultra-voice-pack.sh
@@ -255,10 +240,8 @@ jobs:
             exit 0
           fi
           model_note='No Parakeet model weights in this update; retains the previously installed verified private model.'
-          if [[ "$BUNDLE_MODE" == 'both' ]]; then
-            model_note='Includes SHA-256-verified Parakeet 110M and Parakeet Ultra 0.6B INT8 packs for offline dictation. Ultra is optional in settings; allow roughly 700 MiB of additional app storage.'
-          elif [[ "$BUNDLE_MODE" == 'bundled' ]]; then
-            model_note='Contains SHA-256-verified English voice model for bootstrap or recovery.'
+          if [[ "$BUNDLE_MODE" == 'ultra' ]]; then
+            model_note='Includes SHA-256-verified Parakeet Ultra 0.6B INT8 for offline dictation; no legacy 110M weights. Allow roughly 700 MiB of additional app storage.'
           fi
           printf '\n%s\nThe 535 KB GTCRN denoising model is bundled permanently in this APK; no audio is uploaded or model fetched at runtime.\nAPK SHA-256: %s.\n' "$model_note" "$SHA256" >> "$RUNNER_TEMP/brrBoard-release-notes.md"
           gh release create "v$version" "$APK" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \

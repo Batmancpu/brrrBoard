@@ -107,8 +107,6 @@ import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.R
 import helium314.keyboard.latin.voice.VoiceModelInstaller
 import helium314.keyboard.latin.voice.VoiceModelChoice
-import helium314.keyboard.latin.voice.VoiceModelManifest
-import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import kotlinx.coroutines.delay
 import helium314.keyboard.latin.utils.JniUtils
 import helium314.keyboard.latin.utils.NextScreenIcon
@@ -174,16 +172,6 @@ fun MainSettingsScreen(
         var offlineVoiceReady by remember { mutableStateOf(VoiceModelChoice.active(ctx) != null) }
         var offlineInstallState by remember { mutableStateOf(VoiceModelInstaller.installState) }
         var offlineInstallPercent by remember { mutableStateOf(VoiceModelInstaller.installPercent) }
-        var voiceChoiceRevision by remember { mutableStateOf(0) }
-        val installedVoiceModels = remember(b?.value, voiceChoiceRevision) {
-            VoiceModelChoice.installed(ctx)
-        }
-        val activeVoiceModel = remember(b?.value, voiceChoiceRevision) {
-            VoiceModelChoice.active(ctx)
-        }
-        val compactVoiceModel = installedVoiceModels.firstOrNull { it.id == VoiceModelManifest.ID }
-        val ultraVoiceModel = installedVoiceModels.firstOrNull { it.id == UltraVoiceModelManifest.ID }
-        val voiceInstallScope = rememberCoroutineScope()
         LaunchedEffect(ctx) {
             // The one-time installer verifies and extracts the model on an I/O worker. Refresh
             // this tiny status while Settings is visible without blocking composition.
@@ -352,23 +340,6 @@ fun MainSettingsScreen(
                     title = "Dictionary & learning",
                     description = "Personal words, dictionaries and brrBrain insights",
                     onClick = onClickDictionaries,
-                )
-                Md3ePreference(
-                    icon = "graphic_eq",
-                    title = "Parakeet 110M · compact model",
-                    description = when {
-                        compactVoiceModel == null -> "Not installed · use Offline voice if this update includes its verified files"
-                        activeVoiceModel?.id == VoiceModelManifest.ID -> "Currently active · tap to use Ultra when it is installed"
-                        else -> "Lower-memory alternative · tap to make it the keyboard model"
-                    },
-                    onClick = {
-                        val target = if (activeVoiceModel?.id == VoiceModelManifest.ID)
-                            ultraVoiceModel else compactVoiceModel
-                        if (target != null && VoiceModelChoice.select(ctx, target)) {
-                            voiceChoiceRevision++
-                            runCatching { KeyboardSwitcher.getInstance().reloadKeyboard() }
-                        }
-                    },
                 )
                 Md3ePreference(
                     icon = "tune",

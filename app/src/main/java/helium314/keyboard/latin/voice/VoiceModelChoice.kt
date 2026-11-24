@@ -17,23 +17,16 @@ internal object VoiceModelChoice {
             add(VoiceModelManifest.pack)
     }
 
-    /** Saved choice wins while installed. A missing pack falls back safely to the other. */
+    /** Always prefer verified Ultra; legacy is migration-only until Ultra exists. */
     fun active(context: Context): VoiceModelPack? {
         val available = installed(context)
-        val requested = context.prefs().getString(PREFERENCE_KEY, null)
-        return when (requested) {
-            SELECTED_ULTRA -> available.firstOrNull { it.id == SELECTED_ULTRA }
-                ?: available.firstOrNull { it.id == SELECTED_110M }
-            SELECTED_110M -> available.firstOrNull { it.id == SELECTED_110M }
-                ?: available.firstOrNull { it.id == SELECTED_ULTRA }
-            else -> available.firstOrNull { it.id == SELECTED_ULTRA }
-                ?: available.firstOrNull { it.id == SELECTED_110M }
-        }
+        return available.firstOrNull { it.id == SELECTED_ULTRA }
+            ?: available.firstOrNull { it.id == SELECTED_110M }
     }
 
     fun select(context: Context, pack: VoiceModelPack): Boolean {
         if (!VoiceModelInstaller.isInstalled(context, pack)) return false
-        if (pack.id != SELECTED_110M && pack.id != SELECTED_ULTRA) return false
+        if (pack.id != SELECTED_ULTRA) return false
         context.prefs().edit().putString(PREFERENCE_KEY, pack.id).apply()
         return true
     }

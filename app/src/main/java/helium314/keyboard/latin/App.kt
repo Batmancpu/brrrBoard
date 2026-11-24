@@ -17,6 +17,7 @@ import helium314.keyboard.latin.utils.SubtypeSettings
 import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.upgradeToolbarPrefs
 import helium314.keyboard.latin.voice.VoiceModelInstaller
+import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import helium314.keyboard.latin.voice.PrivateVoiceCacheCleanup
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,9 +60,12 @@ class App : Application() {
 
         // An optional manual bootstrap release carries ASR weights. Regular updates
         // reuse the verified private noBackup copy without packaging it again.
-        // Never download a model on the phone, and never erase a verified copy.
-        scope.launch(Dispatchers.IO) {
-            VoiceModelInstaller.installBundledIfPresent(this@App)
+        // Only the main process may extract the large optional Ultra bootstrap.
+        // Isolated denoiser processes must not race the same staging directory.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && getProcessName() == packageName) {
+            scope.launch(Dispatchers.IO) {
+                VoiceModelInstaller.installBundledIfPresent(this@App, UltraVoiceModelManifest.pack)
+            }
         }
 
         RichInputMethodManager.init(this)

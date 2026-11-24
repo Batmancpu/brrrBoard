@@ -3,20 +3,20 @@
   "summary": "Optional clipboard text encryption and safer portable backup.",
   "changes": [
     {
-      "title": "Hidden private settings",
-      "detail": "Hold the settings header and enter the existing secret code to access protected Brain details. Removed public fingerprint entry points; private session expires or locks when Settings leaves the foreground."
+      "title": "Ultra default and legacy cleanup",
+      "detail": "Prefer verified Ultra; remove unused 110M after successful Ultra recognition. Ultra-only explicit recovery builds."
     },
     {
-      "title": "Credential recovery",
-      "detail": "Recovery is visible only in the armed private search window. Existing device credential protection remains for changing the saved code."
+      "title": "Voice Stop responsiveness",
+      "detail": "Continue delivering decoded batches while final audio drains, with existing editor and privacy safeguards."
     },
     {
-      "title": "Live protected-session state",
-      "detail": "The hidden settings hub now observes current authorization even when Android retains its navigation graph, and expired or restored locked routes return to the ordinary Settings screen."
+      "title": "Voice timing diagnostics",
+      "detail": "Copy report includes local Stop-stage and batch latency, never speech or typed text."
     },
     {
-      "title": "Private details available throughout the unlocked session",
-      "detail": "Ordinary BR Brain shows a details link only while the hidden secret-code session is authorized. Locked Settings does not advertise it."
+      "title": "Retire compact model controls",
+      "detail": "Removes the obsolete 110M model picker and prevents isolated speech processes from racing Ultra installation."
     }
   ]
 }

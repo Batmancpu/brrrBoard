@@ -4,7 +4,7 @@ package helium314.keyboard.latin
 import android.view.inputmethod.InputConnection
 import helium314.keyboard.latin.voice.OfflineVoiceEngine
 import helium314.keyboard.latin.voice.VoiceModelChoice
-import helium314.keyboard.latin.voice.VoiceModelManifest
+import helium314.keyboard.latin.voice.UltraVoiceModelManifest
 import helium314.keyboard.latin.voice.PrivatePcmBuffer
 import helium314.keyboard.latin.voice.VoiceResultArbiter
 import helium314.keyboard.latin.voice.VoiceDecodeRequest
@@ -21,7 +21,7 @@ internal class HybridVoiceBackup(
     private val onLocalPaste: (String) -> Unit,
 ) {
     private val modelPack = VoiceModelChoice.active(ime)
-    private val engine = OfflineVoiceEngine.forKeyboard(ime, modelPack ?: VoiceModelManifest.pack)
+    private val engine = OfflineVoiceEngine.forKeyboard(ime, modelPack ?: UltraVoiceModelManifest.pack)
     private val buffer = PrivatePcmBuffer()
     private val arbiter = VoiceResultArbiter()
     private var decodeRequest: VoiceDecodeRequest? = null

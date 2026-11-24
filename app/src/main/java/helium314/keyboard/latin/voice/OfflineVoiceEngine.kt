@@ -22,7 +22,7 @@ import java.util.concurrent.Future
  */
 internal class OfflineVoiceEngine(
     private val context: Context,
-    private val modelPack: VoiceModelPack = VoiceModelManifest.pack,
+    private val modelPack: VoiceModelPack = UltraVoiceModelManifest.pack,
 ) {
     private val worker = Executors.newSingleThreadExecutor { runnable ->
         Thread({
@@ -33,6 +33,7 @@ internal class OfflineVoiceEngine(
     private val handler = Handler(Looper.getMainLooper())
     private var recognizer: OfflineRecognizer? = null // worker thread only
     private var lastUsedAt = 0L // worker thread only
+    private var legacyRetired = false // worker thread only
     private val idleUnload = Runnable {
         worker.execute {
             if (SystemClock.elapsedRealtime() - lastUsedAt >= IDLE_UNLOAD_MS) {
@@ -119,6 +120,11 @@ internal class OfflineVoiceEngine(
             }
             if (!request.isCancelled) {
                 handler.post { if (!request.isCancelled) callback(result) }
+                // A successful nonblank Ultra decode proves the replacement can run.
+                // Post the transcript first; deletion never runs on the UI/audio thread.
+                if (!legacyRetired && modelPack.id == UltraVoiceModelManifest.ID && !result.getOrNull().isNullOrBlank()) {
+                    legacyRetired = VoiceModelInstaller.retireLegacyAfterReplacement(context)
+                }
             }
             scheduleIdleUnload()
         }
@@ -169,7 +175,7 @@ internal class OfflineVoiceEngine(
 
         /** Keyboard dictation prefers installed Ultra and unloads stale model workers. */
         fun shared(context: Context): OfflineVoiceEngine = forKeyboard(
-            context, VoiceModelChoice.active(context) ?: VoiceModelManifest.pack)
+            context, VoiceModelChoice.active(context) ?: UltraVoiceModelManifest.pack)
 
         @Synchronized
         fun forKeyboard(context: Context, modelPack: VoiceModelPack): OfflineVoiceEngine {

@@ -218,7 +218,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                     Text(selected?.let { "Keyboard model: ${modelTitle(it)}" }
                         ?: "No verified offline model is installed",
                         style = MaterialTheme.typography.titleMedium)
-                    Text("Audio is decoded on this device. The keyboard uses the selected installed model and never downloads model files.",
+                    Text("Ultra is preferred. A legacy installed model remains usable until Ultra is available; after successful Ultra recognition unused 110M files are removed. No model is downloaded by the keyboard.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -267,7 +267,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                     VoiceModelOption(
                         title = modelTitle(pack),
                         summary = if (pack.id == UltraVoiceModelManifest.ID)
-                            "Highest-capacity · recommended · more memory and slower first load"
+                            "Default · highest-capacity · more memory and slower first load"
                         else "Compact · lower memory and quicker first load",
                         selected = selected?.id == pack.id,
                         onClick = {
