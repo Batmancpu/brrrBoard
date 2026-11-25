@@ -1,5 +1,7 @@
 # brrBoard documentation
 
+**AI read order:** [AGENTS.md](../AGENTS.md) and [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md) only by default. Use individual topic documents as needed; [historical engineering handoff](ENGINEERING_HANDOFF.md), [owner conversation](PROJECT_CONVERSATION.md), and [known issues](KNOWN_ISSUES.md) are on-demand historical references, not automatic context or live status. Dated plans may be superseded by the current checkpoint.
+
 Start with the [main README](../README.md) for the app, install link and privacy overview. The documents below go deeper without turning the project's first GitHub screen into an engineering log.
 
 - [Current Emoji, Toolbar, performance and model work plan](EMOJI_TOOLBAR_PERFORMANCE_AND_MODEL_PLAN_2026_11_21.md)
