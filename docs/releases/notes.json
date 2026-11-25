@@ -17,6 +17,10 @@
     {
       "title": "Management and regression coverage",
       "detail": "Separate backup, reset, compatibility, version history and troubleshooting; preserve safe crash report and add preset tests and settings source checks."
+    },
+    {
+      "title": "Keep the brand regression contract",
+      "detail": "Use the explicit untinted logo argument for Manage brrBoard."
     }
   ]
 }

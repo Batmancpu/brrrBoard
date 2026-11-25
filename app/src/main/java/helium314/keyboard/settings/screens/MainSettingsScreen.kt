@@ -232,8 +232,8 @@ fun MainSettingsScreen(
         Md3ePreferenceGroup("Tools & management") {
             Md3ePreference("content_paste", "Tools", "Toolbar, clipboard, emoji and text tools", onClickToolsHub, isFirst = true)
             Md3ePreference("shield", "Privacy & app profiles", "Personal learning, secure apps and permissions", onClickPrivacy)
-            Md3ePreference(R.drawable.mangoloads_brand_small, "Manage brrBoard",
-                "Updates, backup, resources and troubleshooting", onClickAdvancedHub, isLast = true, brandIcon = true)
+            Md3ePreference(icon = R.drawable.mangoloads_brand_small, title = "Manage brrBoard",
+                description = "Updates, backup, resources and troubleshooting", onClick = onClickAdvancedHub, isLast = true, brandIcon = true)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
