@@ -703,7 +703,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val wasAttachedChips = !isExternalSuggestionVisible && suggestionsChipScroll.isVisible &&
             shouldUseChipSuggestions() && suggestionsChipStrip.childCount > 0
         val previousLayoutDirection = suggestionsStrip.layoutDirection
-        if (shouldShowSuggestionContent(suggestionsForStrip)) moveClipboardToCompact()
+        // Preserve the bound accessory through transient empty decoder results;
+        // the normal word-row clear must not detach its action receipt.
+        moveClipboardToCompact()
         isExternalSuggestionVisible = false
         setRtl(isRtlLanguage)
         suggestedWords = suggestionsForStrip
@@ -789,27 +791,38 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {
         if (view is ClipboardAccessoryView && !view.retired && !addCloseButton) {
-            if (clipboardAccessory === view && view.parent != null) {
+            val same = clipboardAccessory === view
+            if (same && view.parent === suggestionsStrip && !view.compact) {
                 updateSuggestionContainersVisibility(true)
                 return
             }
-            clearClipboardAccessory()
-            clipboardAccessory = view
-            view.onAccessoryChanged = {
-                if (clipboardAccessory === view) {
-                    if (view.retired) clearClipboardAccessory()
-                    updateSuggestionContainersVisibility(!toolbarContainer.isVisible)
+            if (!same) {
+                clearClipboardAccessory()
+                clipboardAccessory = view
+                view.onAccessoryChanged = {
+                    if (clipboardAccessory === view) {
+                        if (view.retired) clearClipboardAccessory()
+                        updateSuggestionContainersVisibility(!toolbarContainer.isVisible)
+                    }
                 }
             }
-            if (hasTypedInCurrentSession && shouldShowSuggestionContent() && !isExternalSuggestionVisible) {
+            // A neutral fallback following the existing 164ms display-only hold
+            // must not retain disabled words indefinitely. Re-expand the same
+            // bound view when there are no live word targets; never renew timers.
+            val liveWords = wordViews.any { it.isEnabled && it.tag is Int }
+            if (ClipboardAccessoryPolicy.preferCompact(hasTypedInCurrentSession,
+                    shouldShowSuggestionContent(), liveWords, isExternalSuggestionVisible)) {
                 moveClipboardToCompact()
                 updateSuggestionContainersVisibility(true)
                 return
             }
+            (view.parent as? ViewGroup)?.removeView(view)
+            view.setCompactMode(false)
+            view.isVisible = true
+            setPredictionAccessoryMargins(0)
             wordMorph.cancel(wordViews)
             clear()
             isExternalSuggestionVisible = true
-            view.setCompactMode(false)
             suggestionsStrip.addView(view, LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             updateSuggestionContainersVisibility(true)

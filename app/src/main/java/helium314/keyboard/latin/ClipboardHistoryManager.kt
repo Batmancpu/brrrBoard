@@ -1085,7 +1085,8 @@ class ClipboardHistoryManager(
         val editorEpoch = latinIME.editorGeneration()
         val key = AccessoryKey(clip, rich, editorEpoch, connection)
         val existing = clipboardSuggestionView
-        if (existing != null && !existing.retired && accessoryKey == key) return existing
+        if (existing != null && !existing.retired && accessoryKey == key &&
+            accessoryKey?.connection === connection) return existing
         releaseClipboardAccessory()
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
@@ -1106,7 +1107,9 @@ class ClipboardHistoryManager(
                 }
             }
         }
-        val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
+        val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())?.let {
+            it.constantState?.newDrawable(latinIME.resources)?.mutate() ?: it.mutate()
+        }
         val label = clip?.let {
             helium314.keyboard.latin.suggestions.ClipboardPreviewPolicy.label(it.content.toString())
         } ?: latinIME.getString(
@@ -1132,7 +1135,8 @@ class ClipboardHistoryManager(
                 (if (clip != null) currentTextSuggestionChanged(clip)
                 else (if (rich?.isScreenshot == true) recentScreenshotPaste(latinIME.currentInputEditorInfo)
                       else recentRichPaste(latinIME.currentInputEditorInfo)) != rich)) {
-                root.retire()
+                if (clipboardSuggestionView === root) releaseClipboardAccessory()
+                else root.retire()
                 return@setOnClickListener
             }
             if (clip != null) {

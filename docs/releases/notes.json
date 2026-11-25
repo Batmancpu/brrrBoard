@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "Apple-inspired clipboard accessories · stability",
+  "summary": "Apple-inspired clipboard accessories · refined transitions",
   "changes": [
     {
       "title": "A coherent suggestion strip",
@@ -8,7 +8,7 @@
     },
     {
       "title": "Paste alongside typing",
-      "detail": "Fresh full actions survive idle prediction refreshes, then become compact beside centered words. Short accessory-only reveal."
+      "detail": "Fresh full actions survive idle prediction refreshes, then become compact beside centered words. Short accessory-only reveal. Neutral fallback restores a full action without resetting its expiry."
     },
     {
       "title": "Privacy and stability",
