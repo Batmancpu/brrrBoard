@@ -2107,6 +2107,7 @@ public class LatinIME extends InputMethodService implements
         // Without this function the inline autofill suggestions will not be visible
         mHandler.cancelResumeSuggestions();
         mInlineProviderViewActive = true;
+        mClipboardHistoryManager.releaseClipboardAccessory();
         mSuggestionStripView.setExternalSuggestionView(inlineSuggestionView, true);
 
         return true;
@@ -2440,6 +2441,7 @@ public class LatinIME extends InputMethodService implements
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
+        mClipboardHistoryManager.onClipboardPrivacyBoundary();
         mClipboardHistoryManager.clearRecoveredTranscripts();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.suggestions
 
+import android.animation.ValueAnimator
+import android.os.Build
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -95,6 +97,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         gapParams.width = if (value) 0 else dp(6)
         gapParams.weight = if (value) 1f else 0f
         gap.layoutParams = gapParams
+        gap.isVisible = value || chrome.isVisible
         val chromeParams = chrome.layoutParams as LayoutParams
         chromeParams.width = if (value) dp(38) else LayoutParams.WRAP_CONTENT
         chrome.layoutParams = chromeParams
@@ -108,6 +111,17 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         chrome.setPaddingRelative(dp(if (value) 10 else 9), 0, dp(10), 0)
         close.isVisible = !value
         // The empty center has no click listener and lets prediction taps pass through.
+    }
+
+    /** A short accessory-only reveal, never animates layout or the glass surface. */
+    fun reveal() {
+        animate().cancel()
+        if (retired || (Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled())) {
+            alpha = 1f
+            return
+        }
+        alpha = .82f
+        animate().alpha(1f).setDuration(120L).start()
     }
 
     fun hideChrome() {

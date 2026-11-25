@@ -633,6 +633,9 @@ class ClipboardHistoryManager(
         }
     }
 
+    /** Explicit mode changes revoke both visual state and the previous Chrome receipt. */
+    fun onClipboardPrivacyBoundary() = suppressPrivateClipboardSuggestions()
+
     private fun suppressPrivateClipboardSuggestions() {
         invalidateChrome()
         releaseClipboardAccessory()

@@ -258,14 +258,17 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
     private var clipboardAccessory: ClipboardAccessoryView? = null
 
+    private fun setAccessoryMargin(target: View, inset: Int) {
+        val params = target.layoutParams as FrameLayout.LayoutParams
+        if (params.marginStart == inset && params.marginEnd == inset) return
+        params.marginStart = inset
+        params.marginEnd = inset
+        target.layoutParams = params
+    }
+
     private fun setPredictionAccessoryMargins(inset: Int) {
-        for (target in listOf(suggestionsStrip, suggestionsChipScroll)) {
-            val params = target.layoutParams as FrameLayout.LayoutParams
-            if (params.marginStart == inset && params.marginEnd == inset) continue
-            params.marginStart = inset
-            params.marginEnd = inset
-            target.layoutParams = params
-        }
+        setAccessoryMargin(suggestionsStrip, inset)
+        setAccessoryMargin(suggestionsChipScroll, inset)
     }
 
     private fun clearClipboardAccessory() {
@@ -289,6 +292,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             accessory.setCompactMode(true)
             suggestionsMiddleContainer.addView(accessory, FrameLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            accessory.reveal()
         }
         isExternalSuggestionVisible = false
     }
@@ -299,7 +303,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             setPredictionAccessoryMargins(0)
             return
         }
-        val fits = suggestionsMiddleContainer.width >= 244.dpToPx(resources)
+        val fits = ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width,
+            resources.displayMetrics.density)
         val visible = show && fits
         accessory.isVisible = visible
         setPredictionAccessoryMargins(if (visible) accessory.sideWidth else 0)
@@ -340,6 +345,10 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             setupKey(it, colors)
             applyAlphabetIconTint(it, colors)
             applyBoardToolbarBackground(it, colors)
+        }
+        suggestionsMiddleContainer.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left != oldRight - oldLeft)
+                updateSuggestionContainersVisibility(!toolbarContainer.isVisible)
         }
         val pinnedDropListener = View.OnDragListener { target, event -> onPinnedToolbarDrag(target, event) }
         suggestionsMiddleContainer.setOnDragListener(pinnedDropListener)
@@ -643,6 +652,14 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         (0 until words.size()).any { words.getInfo(it).isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL) }
 
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
+        // An asynchronous startup or next-word response is not a typing action.
+        // Do not collapse a fresh full capsule before the user can see it.
+        val accessory = clipboardAccessory
+        if (accessory != null && !accessory.retired && !accessory.compact &&
+            ClipboardAccessoryPolicy.keepFullForIdle(hasTypedInCurrentSession, suggestions.mInputStyle)) return
+        if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_UPDATE_BATCH ||
+            suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH)
+            hasTypedInCurrentSession = true
         // Expiring recall text must never survive in an outgoing overlay or
         // delayed visual hold, even when native tap targets have been revoked.
         val recallBoundary = hasSessionRecall(suggestedWords) || hasSessionRecall(suggestions)
@@ -796,6 +813,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             suggestionsStrip.addView(view, LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             updateSuggestionContainersVisibility(true)
+            view.reveal()
             if (Settings.getValues().mAutoHideToolbar) setToolbarVisibility(false)
             return
         }

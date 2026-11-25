@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Apple-inspired clipboard accessories",
+  "summary": "Apple-inspired clipboard accessories · stability",
   "changes": [
     {
-      "title": "Coherent suggestion strip",
-      "detail": "Independent adaptive paste and Chrome capsules, quieter dismissal, matching typography and compact URL previews."
+      "title": "A coherent suggestion strip",
+      "detail": "Independent adaptive paste and Chrome capsules, quieter dismissal, matching typography and domain-only previews."
     },
     {
-      "title": "Paste while typing",
-      "detail": "Compact actions share the strip with centered predictions where space allows."
+      "title": "Paste alongside typing",
+      "detail": "Fresh full actions survive idle prediction refreshes, then become compact beside centered words. Short accessory-only reveal."
     },
     {
-      "title": "Preserved privacy",
-      "detail": "Original clipboard, strict Chrome expiry, clean-on-tap navigation and editor receipts remain protected."
+      "title": "Privacy and stability",
+      "detail": "Original clipboard preserved; Chrome clean-on-tap and expiry unchanged. Explicit incognito and Autofill transitions revoke accessories."
     }
   ]
 }
