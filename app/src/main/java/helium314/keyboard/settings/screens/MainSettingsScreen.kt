@@ -91,6 +91,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import helium314.keyboard.latin.utils.UncachedInputMethodManagerUtils
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.draw.clip
@@ -213,17 +215,15 @@ fun MainSettingsScreen(
             }
         }
 
-        Md3ePreferenceGroup("Intelligence") {
+        Md3ePreferenceGroup("Personalization") {
             Md3ePreference(icon = "psychology", title = "BR Brain",
-                description = "Local learning & personalization",
                 onClick = onClickBrainDashboard, isFirst = true, isLast = true)
         }
         Md3ePreferenceGroup("Your experience") {
             Md3ePreference(icon = "palette", title = "Appearance",
-                description = "Glass, colour, layout & type",
                 onClick = onClickAppearance, isFirst = true)
             Md3ePreference(icon = "keyboard", title = "Typing",
-                description = "Corrections, languages & gestures", onClick = onClickTypingHub)
+                onClick = onClickTypingHub)
             Md3ePreference(icon = "mic", title = "Voice",
                 description = if (offlineVoiceReady) "On-device dictation ready"
                     else when (offlineInstallState) {
@@ -232,22 +232,21 @@ fun MainSettingsScreen(
                         else -> "Model & microphone settings"
                     }, onClick = onClickVoice)
             Md3ePreference(icon = "content_paste", title = "Clipboard",
-                description = "History & temporary voice recovery", onClick = onClickClipboard)
+                onClick = onClickClipboard)
             Md3ePreference(icon = "graphic_eq", title = "Sound & haptics",
-                description = "Feedback & intensity", onClick = onClickSound, isLast = true)
+                onClick = onClickSound, isLast = true)
         }
         Md3ePreferenceGroup("More control") {
             Md3ePreference(icon = "shield", title = "Privacy & security",
-                description = "Protected apps & personal data", onClick = onClickPrivacy, isFirst = true)
+                onClick = onClickPrivacy, isFirst = true)
             Md3ePreference(icon = "tune", title = "Advanced",
-                description = "Fine tuning, diagnostics & backup", onClick = onClickAdvancedHub, isLast = true)
+                onClick = onClickAdvancedHub, isLast = true)
         }
 
         Md3ePreferenceGroup("About") {
                 Md3ePreference(
                     icon = R.drawable.mangoloads_brand_small,
                     title = "About brrBoard",
-                    description = "Version, privacy, licenses and setup help",
                     onClick = onClickAbout,
                     brandIcon = true,
                     isLast = true,
@@ -263,16 +262,16 @@ fun Md3ePreferenceGroup(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 11.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 12.dp, bottom = 10.dp, top = 4.dp)
+            modifier = Modifier.padding(start = 14.dp, bottom = 7.dp, top = 2.dp)
         )
         Column(
-            modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
+            modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surface),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             content()
         }
@@ -324,81 +323,54 @@ fun Md3ePreference(
             }
         }
     }
-    val shape = RoundedCornerShape(
-        topStart = if (isFirst) 20.dp else 0.dp,
-        topEnd = if (isFirst) 20.dp else 0.dp,
-        bottomStart = if (isLast) 20.dp else 0.dp,
-        bottomEnd = if (isLast) 20.dp else 0.dp,
-    )
-    
-    val cardColor = MaterialTheme.colorScheme.surface
-    val dark = isSystemInDarkTheme()
-    val iconInk = when (icon) {
-        "psychology", "palette" -> if (dark) Color(0xFFBCACFF) else Color(0xFF7454B5)
-        "mic" -> if (dark) Color(0xFFFF9A9F) else Color(0xFFB53C4C)
-        "content_paste" -> if (dark) Color(0xFFFFC089) else Color(0xFF98601F)
-        "shield", "graphic_eq" -> if (dark) Color(0xFF7ED6AC) else Color(0xFF247B59)
-        else -> MaterialTheme.colorScheme.primary
+    val iconColor = when (icon) {
+        "psychology" -> Color(0xFF6255C7)
+        "palette" -> Color(0xFF8B55BD)
+        "mic" -> Color(0xFFC83D52)
+        "content_paste" -> Color(0xFFA96818)
+        "shield" -> Color(0xFF23815D)
+        "graphic_eq" -> Color(0xFFC14476)
+        "tune" -> Color(0xFF676B78)
+        else -> Color(0xFF2865C7)
     }
-    
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(cardColor)
-            .then(interactionModifier)
-            .heightIn(min = 58.dp)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(34.dp)
-                .then(if (brandIcon) Modifier else Modifier.clip(RoundedCornerShape(9.dp))
-                    .background(iconInk.copy(alpha = .14f)))
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().then(interactionModifier)
+                .heightIn(min = 54.dp).padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            if (brandIcon && icon is Int) {
-                // Never apply Material Icon tint to the full-color MangoLoads mark.
-                Image(
-                    painter = painterResource(id = icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                )
-            } else if (icon is String) {
-                Text(
-                    text = icon,
-                    fontFamily = materialSymbols,
-                    fontSize = 22.sp,
-                    color = iconInk,
-                    modifier = Modifier.clearAndSetSemantics { }
-                )
-            } else if (icon is Int) {
-                Icon(
-                    painter = painterResource(id = icon),
-                    contentDescription = null,
-                    tint = iconInk,
-                    modifier = Modifier.size(22.dp)
-                )
+            val tile = RoundedCornerShape(9.dp)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(32.dp).then(if (brandIcon) Modifier else Modifier
+                    .clip(tile)
+                    .background(Brush.verticalGradient(listOf(iconColor.copy(alpha = .86f), iconColor)))
+                    .border(.5.dp, Color.White.copy(alpha = .22f), tile))
+            ) {
+                if (brandIcon && icon is Int) {
+                    Image(painterResource(id = icon), null, Modifier.size(32.dp))
+                } else if (icon is String) {
+                    Text(icon, fontFamily = materialSymbols, fontSize = 20.sp, color = Color.White,
+                        modifier = Modifier.clearAndSetSemantics { })
+                } else if (icon is Int) {
+                    Icon(painterResource(id = icon), null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
             }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            if (description != null) {
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
+                    color = MaterialTheme.colorScheme.onSurface)
+                if (description != null) {
+                    Text(description, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
+            Text("chevron_right", fontFamily = materialSymbols, fontSize = 19.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .65f),
+                modifier = Modifier.clearAndSetSemantics { })
         }
-        Text("chevron_right", fontFamily = materialSymbols, fontSize = 20.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .75f))
+        if (!isLast) HorizontalDivider(Modifier.padding(start = 59.dp),
+            thickness = .5.dp, color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

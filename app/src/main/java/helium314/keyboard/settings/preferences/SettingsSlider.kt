@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
@@ -43,12 +44,12 @@ fun SettingsSlider(value: Float, onValueChange: (Float) -> Unit,
         enabled = enabled, valueRange = valueRange, steps = steps,
         onValueChangeFinished = onValueChangeFinished, interactionSource = interactionSource,
         thumb = {
-            Box(Modifier.size(28.dp).shadow(if (pressed || dragged) 4.dp else 2.dp, CircleShape)
-                .background(Color.White.copy(alpha = if (enabled) 1f else .7f), CircleShape)
+            Box(Modifier.size(if (pressed || dragged) 30.dp else 27.dp).shadow(if (pressed || dragged) 4.dp else 2.dp, CircleShape)
+                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF0F1F4)).map { it.copy(alpha = if (enabled) 1f else .7f) }), CircleShape)
                 .border(.5.dp, Color.Black.copy(alpha = .12f), CircleShape))
         },
         track = { state ->
-            Canvas(Modifier.fillMaxWidth().height(6.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(5.dp)) {
                 val corner = CornerRadius(size.height / 2f)
                 drawRoundRect(inactive, cornerRadius = corner)
                 val length = valueRange.endInclusive - valueRange.start

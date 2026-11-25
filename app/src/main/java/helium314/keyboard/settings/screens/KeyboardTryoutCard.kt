@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -72,7 +73,7 @@ internal fun KeyboardTryoutCard() {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var previewText by remember { mutableStateOf("") }
     val reduceMotion = getTransitionAnimationScale(context) <= 0f
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(30.dp)
     val deepBlue = MaterialTheme.colorScheme.surface
     val sapphire = MaterialTheme.colorScheme.primaryContainer
     val gold = MaterialTheme.colorScheme.primary
@@ -96,11 +97,11 @@ internal fun KeyboardTryoutCard() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 20.dp, vertical = 10.dp)
             .animateContentSize(if (reduceMotion) androidx.compose.animation.core.snap() else spring(dampingRatio = .9f, stiffness = 520f))
             .clip(shape)
-            .background(Brush.linearGradient(listOf(deepBlue, sapphire)))
-            .border(1.dp, gold.copy(alpha = .16f), shape)
+            .background(Brush.linearGradient(listOf(deepBlue, sapphire.copy(alpha = .76f), deepBlue)))
+            .border(1.dp, Brush.linearGradient(listOf(Color.White.copy(alpha = .72f), gold.copy(alpha = .12f))), shape)
             .then(if (!expanded) Modifier.clickable(role = Role.Button) { expanded = true } else Modifier)
             .padding(horizontal = 17.dp, vertical = 16.dp),
     ) {
@@ -110,22 +111,43 @@ internal fun KeyboardTryoutCard() {
             label = "keyboard-tryout-morph",
         ) { showEditor ->
             if (!showEditor) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Your keyboard.", color = foreground, fontSize = 21.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(4.dp))
-                        Text("Try it with your current glass & layout", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                        Spacer(Modifier.height(9.dp))
-                        Text("Try typing", color = gold, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(Modifier.fillMaxWidth()) {
+                        Text("Your keyboard", color = foreground, fontSize = 24.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(3.dp))
+                        Text("A space to make it yours.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     }
-                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = .7f)),
-                        contentAlignment = Alignment.Center) {
-                        Text("keyboard", fontFamily = materialSymbols, color = gold, fontSize = 30.sp)
+                    // Decorative keycap illustration, not a second input field or captured user text.
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                        .background(deepBlue.copy(alpha = .55f)).padding(9.dp)
+                        .then(Modifier.clearAndSetSemantics { }),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM").forEach { letters ->
+                            Row(Modifier.fillMaxWidth().padding(horizontal = if (letters.length == 10) 0.dp else 9.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+                                letters.forEach { letter ->
+                                    Box(Modifier.weight(1f).height(20.dp).clip(RoundedCornerShape(5.dp))
+                                        .background(deepBlue).border(.5.dp, Color.White.copy(alpha = .35f), RoundedCornerShape(5.dp)),
+                                        contentAlignment = Alignment.Center) {
+                                        Text(letter.toString(), color = foreground, fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf("123", "space", "return").forEach { label ->
+                                Box(Modifier.weight(if (label == "space") 2.8f else 1f).height(19.dp)
+                                    .clip(RoundedCornerShape(5.dp)).background(if (label == "return") gold else deepBlue),
+                                    contentAlignment = Alignment.Center) {
+                                    Text(label, color = if (label == "return") MaterialTheme.colorScheme.onPrimary else foreground, fontSize = 9.sp)
+                                }
+                            }
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(deepBlue.copy(alpha = .78f))
+                        .padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Try typing", color = gold, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        Text("chevron_right", fontFamily = materialSymbols, color = gold, fontSize = 19.sp)
                     }
                 }
             } else {

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -38,24 +39,24 @@ fun SettingsSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?,
     val pressed by interaction.collectIsPressedAsState()
     val track by animateColorAsState(
         targetValue = (if (checked) {
-            if (dark) Color(0xFF30D158) else Color(0xFF248A3D)
+            if (dark) Color(0xFF30D158) else Color(0xFF258B41)
         } else if (dark) Color(0xFF515159) else Color(0xFFD1D1D6)).let {
             if (enabled) it else it.copy(alpha = .45f)
         }, animationSpec = if (reduceMotion) snap() else tween(180), label = "switch-track")
-    val thumbWidth by animateDpAsState(if (pressed && enabled) 30.dp else 26.dp,
+    val thumbWidth by animateDpAsState(if (pressed && enabled) 33.dp else 27.dp,
         animationSpec = if (reduceMotion) snap() else tween(150), label = "switch-press")
-    val position by animateDpAsState(if (checked) 48.dp - thumbWidth else 2.dp,
+    val position by animateDpAsState(if (checked) 49.dp - thumbWidth else 2.dp,
         animationSpec = if (reduceMotion) snap() else tween(180), label = "switch-slide")
     Box(modifier.size(width = 52.dp, height = 48.dp).then(
         if (onCheckedChange == null) Modifier else Modifier.toggleable(
             value = checked, enabled = enabled, role = Role.Switch,
             interactionSource = interaction, indication = null, onValueChange = onCheckedChange)
     ), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 50.dp, height = 30.dp).clip(CircleShape).background(track)) {
+        Box(Modifier.size(width = 51.dp, height = 31.dp).clip(CircleShape).background(track).border(.5.dp, Color.Black.copy(alpha = .09f), CircleShape)) {
             Box(Modifier.align(Alignment.CenterStart).offset(x = position)
-                .size(width = thumbWidth, height = 26.dp)
+                .size(width = thumbWidth, height = 27.dp)
                 .shadow(if (enabled) 2.dp else 0.dp, CircleShape)
-                .background(Color.White.copy(alpha = if (enabled) 1f else .65f), CircleShape)
+                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF0F1F4)).map { it.copy(alpha = if (enabled) 1f else .65f) }), CircleShape)
                 .border(.5.dp, Color.Black.copy(alpha = .07f), CircleShape))
         }
     }

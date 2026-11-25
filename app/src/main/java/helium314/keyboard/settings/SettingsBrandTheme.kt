@@ -87,13 +87,14 @@ fun SettingsBrandTheme(content: @Composable () -> Unit) {
     // An IME's custom keycap font must not unexpectedly become the settings UI font.
     val typography = MaterialTheme.typography.let { base ->
         base.copy(
-            displayLarge = base.displayLarge.copy(fontFamily = googleSansFlex),
-            headlineLarge = base.headlineLarge.copy(fontFamily = googleSansFlex),
-            headlineMedium = base.headlineMedium.copy(fontFamily = googleSansFlex),
-            headlineSmall = base.headlineSmall.copy(fontFamily = googleSansFlex),
-            titleLarge = base.titleLarge.copy(fontFamily = googleSansFlex),
-            titleMedium = base.titleMedium.copy(fontFamily = FontFamily.SansSerif),
-            bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif, fontSize = 16.sp, lineHeight = 22.sp),
+            displayLarge = base.displayLarge.copy(fontFamily = FontFamily.SansSerif),
+            headlineLarge = base.headlineLarge.copy(fontFamily = FontFamily.SansSerif),
+            headlineMedium = base.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
+            headlineSmall = base.headlineSmall.copy(fontFamily = FontFamily.SansSerif),
+            titleLarge = base.titleLarge.copy(fontFamily = FontFamily.SansSerif),
+            titleMedium = base.titleMedium.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold),
+            titleSmall = base.titleSmall.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Medium),
+            bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif, fontSize = 17.sp, lineHeight = 23.sp, letterSpacing = (-.25).sp, fontWeight = FontWeight.Normal),
             bodyMedium = base.bodyMedium.copy(fontFamily = FontFamily.SansSerif),
             bodySmall = base.bodySmall.copy(fontFamily = FontFamily.SansSerif, fontSize = 13.sp, lineHeight = 18.sp),
             labelLarge = base.labelLarge.copy(fontFamily = FontFamily.SansSerif),
@@ -101,7 +102,7 @@ fun SettingsBrandTheme(content: @Composable () -> Unit) {
     }
     MaterialTheme(colorScheme = palette, typography = typography, shapes = Shapes(
         extraSmall = RoundedCornerShape(9.dp), small = RoundedCornerShape(13.dp),
-        medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(24.dp),
+        medium = RoundedCornerShape(24.dp), large = RoundedCornerShape(28.dp),
         extraLarge = RoundedCornerShape(30.dp),
     ), content = content)
 }

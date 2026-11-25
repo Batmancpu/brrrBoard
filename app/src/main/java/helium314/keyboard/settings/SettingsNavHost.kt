@@ -115,8 +115,8 @@ fun SettingsNavHost(
         navController = navController,
         startDestination = startDestination ?: if (showWelcomeWizard) SettingsDestination.WelcomeWizard else SettingsDestination.Settings,
         enterTransition = { slideInHorizontally(initialOffsetX = { +it * dir }, animationSpec = animation) },
-        exitTransition = { slideOutHorizontally(targetOffsetX = { -it * dir }, animationSpec = animation) },
-        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it * dir }, animationSpec = animation) },
+        exitTransition = { slideOutHorizontally(targetOffsetX = { -it * dir / 4 }, animationSpec = animation) },
+        popEnterTransition = { slideInHorizontally(initialOffsetX = { -it * dir / 4 }, animationSpec = animation) },
         popExitTransition = { slideOutHorizontally(targetOffsetX = { +it * dir }, animationSpec = animation) }
     ) {
         composable(SettingsDestination.Settings) {

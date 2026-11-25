@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Settings 2.0 · glass design system and simpler navigation",
+  "summary": "Settings 2.1 · iOS-inspired visual identity",
   "changes": [
     {
-      "title": "New settings home",
-      "detail": "Compact everyday categories, dedicated Typing and Advanced hubs, actual keyboard tryout without continuous shimmer."
+      "title": "Cleaner settings home",
+      "detail": "Compact icon-led groups, inset separators and a keyboard-inspired private tryout."
     },
     {
-      "title": "Glass-inspired design system",
-      "detail": "Pearl and Graphite, rounded grouped rows, glass header and search, iOS-style switches and sliders, refined dialogs."
+      "title": "Refined visual language",
+      "detail": "Pill search, tighter blurred header, neutral typography, sculpted controls and asymmetric navigation."
     },
     {
-      "title": "Appearance & privacy",
-      "detail": "Glass Studio first, live keyboard preview, optional Brain controls and clear explanation of temporary Voice Recovery."
+      "title": "Preserved behavior",
+      "detail": "Existing preferences, privacy, keyboard engine and signing unchanged."
     }
   ]
 }

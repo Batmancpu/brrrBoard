@@ -317,8 +317,8 @@ fun <T: Any?> SearchScreen(
                 onClearClick = { setShowSearch(false) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .heightIn(min = 50.dp),
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .heightIn(min = 48.dp),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -349,7 +349,7 @@ fun <T: Any?> SearchScreen(
                 contentWindowInsets = WindowInsets(0),
                 topBar = {
                     val topBarHazeStyle = remember(topBarBg) {
-                        HazeStyle(blurRadius = 22.dp, tint = topBarBg.copy(alpha = 0.86f))
+                        HazeStyle(blurRadius = 28.dp, tint = topBarBg.copy(alpha = 0.74f))
                     }
                     AnimatedVisibility(
                         visible = !SettingsActivity.isTopBarHidden && SettingsActivity.activeOverlay == null,
@@ -374,7 +374,7 @@ fun <T: Any?> SearchScreen(
                         Column(
                             modifier = Modifier.layout { measurable, constraints ->
                                 val fraction = scrollBehavior.state.collapsedFraction
-                                val bottomPadding = (18.dp.toPx() * (1f - fraction)).roundToInt()
+                                val bottomPadding = (6.dp.toPx() * (1f - fraction)).roundToInt()
                                 val placeable = measurable.measure(constraints)
                                 layout(placeable.width, placeable.height + bottomPadding) {
                                     placeable.placeRelative(0, 0)
@@ -386,13 +386,14 @@ fun <T: Any?> SearchScreen(
                                 shapes = MaterialTheme.shapes,
                                 typography = MaterialTheme.typography.copy(
                                     headlineMedium = MaterialTheme.typography.headlineMedium.copy(
-                                        fontFamily = googleSansFlex,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                                         fontSize = 34.sp,
-                                        lineHeight = 42.sp,
+                                        letterSpacing = (-1).sp,
+                                        lineHeight = 40.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
                                     titleLarge = MaterialTheme.typography.titleLarge.copy(
-                                        fontFamily = googleSansFlex,
+                                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                                         fontWeight = FontWeight.Medium
                                     )
                                 )
@@ -401,10 +402,10 @@ fun <T: Any?> SearchScreen(
                                     title = { 
                                         Box(
                                             modifier = Modifier
-                                                .padding(start = 12.dp)
+                                                .padding(start = 4.dp)
                                                 .layout { measurable, constraints ->
                                                     val fraction = scrollBehavior.state.collapsedFraction
-                                                    val topPadding = (20.dp.toPx() * (1f - fraction)).roundToInt()
+                                                    val topPadding = (6.dp.toPx() * (1f - fraction)).roundToInt()
                                                     val placeable = measurable.measure(constraints)
                                                     layout(placeable.width, placeable.height + topPadding) {
                                                         placeable.placeRelative(0, topPadding)
@@ -425,7 +426,7 @@ fun <T: Any?> SearchScreen(
                                             Box(
                                                 contentAlignment = Alignment.Center,
                                                 modifier = Modifier
-                                                    .size(28.dp)
+                                                    .size(36.dp)
                                                     .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                                             ) {
                                                 Text("chevron_left", fontFamily = materialSymbols, fontSize = 22.sp, color = MaterialTheme.colorScheme.primary)
@@ -556,7 +557,7 @@ fun StaticSearchField(
     TextField(
         value = search,
         onValueChange = onSearchChange,
-        shape = RoundedCornerShape(17.dp),
+        shape = CircleShape,
         modifier = modifier,
         leadingIcon = {
             Text(
@@ -627,12 +628,12 @@ private fun GroupedSettingsRows(settings: List<Any?>) {
         if (resolved.isEmpty()) continue
         key(group.title ?: "untitled") {
             group.title?.let { PreferenceCategory(stringResource(it)) }
-            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp)
-                .clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 3.dp)
+                .clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surface)) {
                 CompositionLocalProvider(LocalGroupedSettingsRows provides true) {
                     resolved.forEachIndexed { index, (id, setting) ->
                         key(id) {
-                            if (index > 0) HorizontalDivider(Modifier.padding(start = 16.dp),
+                            if (index > 0) HorizontalDivider(Modifier.padding(start = 16.dp), thickness = .5.dp,
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .55f))
                             setting.Preference()
                         }

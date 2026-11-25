@@ -50,9 +50,9 @@ fun PreferenceCategory(
     Column {
         Text(
             text = title,
-            modifier = modifier.padding(top = 18.dp, start = 26.dp, end = 16.dp, bottom = 8.dp),
+            modifier = modifier.padding(top = 22.dp, start = 34.dp, end = 20.dp, bottom = 7.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.titleSmall
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
         )
     }
 }
@@ -70,19 +70,19 @@ fun Preference(
         modifier = modifier
             .fillMaxWidth()
             .then(if (LocalGroupedSettingsRows.current) Modifier else Modifier
-                .padding(horizontal = 16.dp, vertical = 2.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .padding(horizontal = 20.dp, vertical = 2.dp)
+                .clip(RoundedCornerShape(26.dp))
                 .background(MaterialTheme.colorScheme.surface))
             .clickable { onClick() }
-            .heightIn(min = 54.dp)
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+            .heightIn(min = 50.dp)
+            .padding(vertical = 10.dp, horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null)
             IconOrImage(icon, name, 32)
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+            Text(text = name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal))
             if (description != null) {
                 CompositionLocalProvider(
                     LocalTextStyle provides MaterialTheme.typography.bodySmall,
@@ -113,7 +113,7 @@ fun Preference(
             }
         } else {
             Text("chevron_right", fontFamily = materialSymbols, fontSize = 19.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .65f))
         }
     }
 }
