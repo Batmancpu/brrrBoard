@@ -1,18 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keyboard polish · clean suggestion surface and reliable dismissal",
+  "summary": "Restore iOS internal suggestion separators",
   "changes": [
     {
-      "title": "Clean prediction and paste strip",
-      "detail": "Remove ornamental edge bars, Chrome separator and visible word dividers. Retain stable word positions, native keyboard glass and functional actions."
-    },
-    {
-      "title": "Clipboard dismissal and spacing",
-      "detail": "Remove the redundant hidden close button, retain long-press and accessible dismiss actions with verification-code receipt blocking, and reserve the full Chrome touch slot without phantom spacing."
-    },
-    {
-      "title": "Password manager session cleanup",
-      "detail": "Clear stale provider-owned suggestions on editor changes; genuine provider actions and privacy safeguards remain intact."
+      "title": "Functional suggestion dividers",
+      "detail": "Restore the Chrome accessory divider and ordinary prediction/punctuation dividers with their previous theme-aware styling. Keep the two unwanted outer paste-strip bars absent. Confidence-mode behavior, compact geometry, actions and clipboard privacy remain unchanged."
     }
   ]
 }

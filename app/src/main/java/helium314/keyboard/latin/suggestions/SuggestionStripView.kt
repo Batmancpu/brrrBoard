@@ -211,12 +211,12 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             colors.setBackground(word, ColorType.STRIP_BACKGROUND)
             wordViews.add(word)
             val divider = inflater.inflate(R.layout.suggestion_divider, null) as ImageView
-            // Retain the measured spacer for stable word slots, but draw no
-            // decorative bars. Clipboard, prediction and punctuation share
-            // the same quiet surface in all themes.
+            // Restore the original iOS-style internal prediction boundaries.
+            // Confidence-mode visibility is still owned by the layout helper.
             val separator = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                setColor(android.graphics.Color.TRANSPARENT)
+                setColor(if (KeyboardTheme.isDarkThemeActive(context))
+                    0x6AFFFFFF else 0x56000000)
                 setSize(1.dpToPx(resources), 20.dpToPx(resources))
             }
             divider.setImageDrawable(separator)

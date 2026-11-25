@@ -3,6 +3,13 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import helium314.keyboard.latin.SuggestedWords;
 public class ClipboardAccessoryPolicyTest {
+    @Test public void onlyVisibleChromeGetsAnInternalBoundary() {
+        assertEquals(-1, ClipboardAccessoryPolicy.chromeDividerX(false, false, 300, 344));
+        assertEquals(-1, ClipboardAccessoryPolicy.chromeDividerX(false, true, 0, 44));
+        assertEquals(-1, ClipboardAccessoryPolicy.chromeDividerX(true, false, 0, 0));
+        assertEquals(300, ClipboardAccessoryPolicy.chromeDividerX(true, false, 300, 344));
+        assertEquals(44, ClipboardAccessoryPolicy.chromeDividerX(true, true, 0, 44));
+    }
     @Test public void chromeHasAFullSizeTouchSlot() {
         assertEquals(44, ClipboardAccessoryPolicy.CHROME_SLOT_DP);
     }

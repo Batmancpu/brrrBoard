@@ -41,6 +41,8 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var isVerificationCode = false
     private var intentEmphasized = false
     private var chromeRevealed = false
+    private var separatorInk = Color.TRANSPARENT
+    private val separatorPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     val hasLiveChrome: Boolean get() = !retired && chrome.isVisible && chrome.isEnabled
 
     fun updateIntentEmphasis(value: Boolean) {
@@ -60,6 +62,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         val ink = colors.get(ColorType.SUGGESTION_AUTO_CORRECT)
         val lightInk = ColorUtils.calculateLuminance(ColorUtils.setAlphaComponent(ink, 255)) >= .35
         val pressed = if (lightInk) 0x18FFFFFF else 0x10000000
+        separatorInk = ColorUtils.setAlphaComponent(ink, 35)
         paste.background = feedback(pressed)
         chrome.background = feedback(pressed)
         paste.setPadding(0, 0, 0, 0)
@@ -91,6 +94,21 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
             cornerRadius = dp(8).toFloat()
             setColor(Color.WHITE)
         })
+
+    override fun dispatchDraw(canvas: android.graphics.Canvas) {
+        super.dispatchDraw(canvas)
+        // Only a functional boundary between an action and the content.
+        // Never draw decorative lines at either outer edge of the strip.
+        val x = ClipboardAccessoryPolicy.chromeDividerX(
+            !retired && chrome.isVisible, layoutDirection == View.LAYOUT_DIRECTION_RTL,
+            chrome.left, chrome.right)
+        if (x < 0) return
+        separatorPaint.color = separatorInk
+        separatorPaint.strokeWidth = resources.displayMetrics.density
+        val cy = height / 2f
+        val half = dp(11).toFloat()
+        canvas.drawLine(x.toFloat(), cy - half, x.toFloat(), cy + half, separatorPaint)
+    }
 
     fun setCompactMode(value: Boolean) {
         if (retired || compact == value) return

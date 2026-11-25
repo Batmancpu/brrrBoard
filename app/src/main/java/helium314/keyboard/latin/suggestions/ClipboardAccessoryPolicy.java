@@ -6,6 +6,10 @@ import helium314.keyboard.latin.SuggestedWords;
 public final class ClipboardAccessoryPolicy {
     private ClipboardAccessoryPolicy() {}
     public static final int CHROME_SLOT_DP = 44;
+    /** No action: no line. Otherwise draw only on the inner edge of the action slot. */
+    public static int chromeDividerX(boolean chromeVisible, boolean rtl, int left, int right) {
+        return chromeVisible && right > left ? (rtl ? right : left) : -1;
+    }
     public static boolean compactFits(int middleWidthPx, float density) {
         return density > 0 && middleWidthPx >= Math.round(244f * density);
     }
