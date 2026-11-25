@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import android.content.Context
 import android.net.Uri
 import androidx.compose.material3.MaterialTheme
@@ -8,7 +9,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -155,7 +155,16 @@ fun ClipboardSettingsScreen(onClickBack: () -> Unit) {
         if (historyOn) Settings.PREF_CLIPBOARD_HISTORY_RETENTION_TIME else null,
         if (historyOn) Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST else null,
         Settings.PREF_SUGGEST_CLIPBOARD_CONTENT,
-    ))
+    ), footer = {
+        if (historyOn) Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Voice recovery", style = MaterialTheme.typography.titleMedium)
+                Text("The last dictation stays in memory for 60 seconds. Never saved to clipboard history storage.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    })
 }
 
 private fun hasScreenshotFolderAccess(context: Context): Boolean {
@@ -230,7 +239,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                         Text("Adaptive speech batching", style = MaterialTheme.typography.titleMedium)
                         Text("Silero VAD + Smart Turn: prioritize completed thoughts, with a 12-second safety limit. Shorter batches under pressure; the microphone stays active. Off restores six-second batching.", style = MaterialTheme.typography.bodySmall)
                     }
-                    Switch(checked = adaptiveBatching, onCheckedChange = {
+                    SettingsSwitch(checked = adaptiveBatching, onCheckedChange = {
                         adaptiveBatching = it
                         helium314.keyboard.latin.voice.VoiceEndpointPreference.setEnabled(ctx, it)
                     })
@@ -244,7 +253,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                         Text("Double-tap mic to switch keyboards", style = MaterialTheme.typography.titleMedium)
                         Text("Off by default for immediate tap-to-record. Enabling it restores the double-tap shortcut and its single-tap confirmation delay.", style = MaterialTheme.typography.bodySmall)
                     }
-                    Switch(checked = micDoubleTapSwitch, onCheckedChange = {
+                    SettingsSwitch(checked = micDoubleTapSwitch, onCheckedChange = {
                         micDoubleTapSwitch = it
                         voicePrefs.edit().putBoolean(VoiceGesturePreferences.MIC_DOUBLE_TAP_SWITCH, it).apply()
                     })
@@ -290,7 +299,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = cleaningEnabled, onCheckedChange = {
+                    SettingsSwitch(checked = cleaningEnabled, onCheckedChange = {
                         cleaningEnabled = it
                         VoiceNoiseChoice.setCleaningEnabled(ctx, it)
                     })
@@ -309,7 +318,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = holdToTalk, onCheckedChange = {
+                    SettingsSwitch(checked = holdToTalk, onCheckedChange = {
                         holdToTalk = it
                         voicePrefs.edit().putBoolean(VoiceGesturePreferences.HOLD_TO_TALK, it).apply()
                     })
@@ -328,7 +337,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = holdAutoSend, onCheckedChange = {
+                    SettingsSwitch(checked = holdAutoSend, onCheckedChange = {
                         holdAutoSend = it
                         voicePrefs.edit().putBoolean(VoiceGesturePreferences.AUTO_SEND_HOLD, it).apply()
                     })

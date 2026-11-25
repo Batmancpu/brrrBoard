@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.dialogs
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
+import helium314.keyboard.settings.preferences.SettingsSlider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -584,7 +586,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_blur_radius_title)}: ${currentValues.blurRadius} px",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.blurRadius.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(blurRadius = newValue.toInt()) }
@@ -599,7 +601,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_key_transparency_title)}: ${(100 * currentValues.keyTransparency / 255)}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.keyTransparency.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(keyTransparency = newValue.toInt()) }
@@ -614,7 +616,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_bg_transparency_title)}: ${(100 * currentValues.bgTransparency / 255)}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.bgTransparency.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(bgTransparency = newValue.toInt()) }
@@ -631,7 +633,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_color_blend_title)}: ${currentValues.colorBlend}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.colorBlend.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(colorBlend = newValue.toInt()) }
@@ -646,7 +648,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_saturation_title)}: ${currentValues.saturation}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.saturation.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(saturation = newValue.toInt()) }
@@ -661,7 +663,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_special_vibrancy_title)}: ${currentValues.specialVibrancy}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.specialVibrancy.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(specialVibrancy = newValue.toInt()) }
@@ -676,7 +678,7 @@ fun FrostedGlassAdjustDialog(
                                 text = "${stringResource(R.string.pref_frosted_alphabet_vibrancy_title)}: ${currentValues.alphabetVibrancy}%",
                                 style = MaterialTheme.typography.bodyMedium
                             )
-                            Slider(
+                            SettingsSlider(
                                 value = currentValues.alphabetVibrancy.toFloat(),
                                 onValueChange = { newValue ->
                                     updateCurrentProfile { it.copy(alphabetVibrancy = newValue.toInt()) }
@@ -700,7 +702,7 @@ fun FrostedGlassAdjustDialog(
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Switch(
+                                SettingsSwitch(
                                     checked = snapshot.dustEnabled,
                                     onCheckedChange = { checked ->
                                         updateSparklesEnabled(checked)
@@ -715,7 +717,7 @@ fun FrostedGlassAdjustDialog(
                                     }",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-                                Slider(
+                                SettingsSlider(
                                     value = currentValues.dustAlpha,
                                     onValueChange = { newValue ->
                                         updateCurrentProfile { it.copy(dustAlpha = newValue.coerceIn(1f, 10f)) }

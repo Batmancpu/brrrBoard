@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import android.app.Activity
 import android.app.KeyguardManager
 import android.os.Build
@@ -121,13 +122,13 @@ internal fun VaultSetupScreen(onClickBack: () -> Unit) {
                 Text("Search and fields used by the vault are kept private, including after reopening. If WhatsApp does not expose a stable field ID, protection may cover its other text fields. No secret is stored in the privacy metadata.", style = MaterialTheme.typography.bodySmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Only fields reporting Search to Android", Modifier.weight(1f))
-                    Switch(checked = searchOnly, onCheckedChange = { next ->
+                    SettingsSwitch(checked = searchOnly, onCheckedChange = { next ->
                         if (context.prefs().edit().putBoolean(WhatsAppVaultPolicy.PREF_SEARCH_ONLY, next).commit()) searchOnly = next
                     }, enabled = !enrolling && !busy)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Allow instant gesture on unlocked phone", Modifier.weight(1f))
-                    Switch(checked = instant, onCheckedChange = { instant = it }, enabled = !enrolling && !busy)
+                    SettingsSwitch(checked = instant, onCheckedChange = { instant = it }, enabled = !enrolling && !busy)
                 }
                 if (!enrolling) {
                     OutlinedTextField(value = password, onValueChange = { if (it.length <= 512) password = it },

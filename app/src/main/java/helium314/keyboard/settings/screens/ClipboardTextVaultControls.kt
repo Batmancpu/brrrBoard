@@ -43,7 +43,7 @@ internal fun ClipboardTextVaultControls() {
     Card {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Text("Clipboard text vault",style=MaterialTheme.typography.titleMedium)
-            Text("Optional device-bound AES-GCM protection for saved clipboard text and image references. Image files themselves are not yet encrypted. Does not protect the system clipboard, RAM or earlier backups.",
+            Text("Optional device-bound AES-GCM protection for saved clipboard text and image references. New clipboard images use a separate encrypted image vault; older images may need migration. Does not protect the system clipboard, RAM or earlier backups.",
                 style=MaterialTheme.typography.bodySmall)
             Text(when(status) {
                 ClipboardTextVault.Status.ENCRYPTED -> "Enabled · database cleanup completed"

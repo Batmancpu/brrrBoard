@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "summary": "One-minute private voice recovery",
+  "summary": "Settings 2.0 · glass design system and simpler navigation",
   "changes": [
     {
-      "title": "Voice Recovery",
-      "detail": "Automatically keeps the last finalized dictation in a temporary clipboard card for 60 seconds, with the existing microphone icon and a red glow. Tap to restore; no persistent storage or system clipboard write."
+      "title": "New settings home",
+      "detail": "Compact everyday categories, dedicated Typing and Advanced hubs, actual keyboard tryout without continuous shimmer."
+    },
+    {
+      "title": "Glass-inspired design system",
+      "detail": "Pearl and Graphite, rounded grouped rows, glass header and search, iOS-style switches and sliders, refined dialogs."
+    },
+    {
+      "title": "Appearance & privacy",
+      "detail": "Glass Studio first, live keyboard preview, optional Brain controls and clear explanation of temporary Voice Recovery."
     }
   ]
 }

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings
 
+import helium314.keyboard.settings.screens.TypingSettingsHub
+import helium314.keyboard.settings.screens.AdvancedSettingsHub
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -102,7 +105,7 @@ fun SettingsNavHost(
 
     // duration does not change when system setting changes, but that's rare enough to not care
     val duration = (220 * getTransitionAnimationScale(LocalContext.current)).toInt().coerceAtLeast(0)
-    val animation = tween<IntOffset>(durationMillis = duration)
+    val animation = tween<IntOffset>(durationMillis = duration, easing = FastOutSlowInEasing)
 
     fun goBack() {
         if (!navController.popBackStack()) onClickBack()
@@ -145,7 +148,15 @@ fun SettingsNavHost(
                 onClickBackup = { navController.navigate(SettingsDestination.Backup) },
                 onClickVoice = { navController.navigate(SettingsDestination.Voice) },
                 onClickBack = ::goBack,
+                onClickTypingHub = { navController.navigate(SettingsDestination.TypingHub) },
+                onClickAdvancedHub = { navController.navigate(SettingsDestination.AdvancedHub) },
             )
+        }
+        composable(SettingsDestination.TypingHub) {
+            TypingSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) })
+        }
+        composable(SettingsDestination.AdvancedHub) {
+            AdvancedSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) })
         }
         composable(SettingsDestination.About) {
             AboutScreen(onClickBack = ::goBack)
@@ -270,6 +281,8 @@ fun SettingsNavHost(
 
 object SettingsDestination {
     const val Settings = "settings"
+    const val TypingHub = "typing_hub"
+    const val AdvancedHub = "advanced_hub"
     const val WelcomeWizard = "welcome_wizard"
     const val About = "about"
     const val VersionHistory = "version_history"

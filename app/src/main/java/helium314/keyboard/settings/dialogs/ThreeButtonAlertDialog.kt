@@ -57,7 +57,7 @@ fun ThreeButtonAlertDialog(
             propagateMinConstraints = true
         ) {
             Surface(
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.extraLarge,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = contentColorFor(MaterialTheme.colorScheme.surface),
             ) {

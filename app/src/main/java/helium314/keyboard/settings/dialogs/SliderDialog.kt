@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.dialogs
 
+import helium314.keyboard.settings.preferences.SettingsSlider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,7 +68,7 @@ fun SliderDialog(
                 Column {
                     val stepsCount = intermediateSteps ?: 0
                     val interactionSource = remember { MutableInteractionSource() }
-                    Slider(
+                    SettingsSlider(
                         value = sliderPosition,
                         onValueChange = {
                             sliderPosition = it
@@ -90,17 +90,6 @@ fun SliderDialog(
                         valueRange = range,
                         steps = stepsCount,
                         interactionSource = interactionSource,
-                        thumb = { _ ->
-                            Box(
-                                modifier = Modifier
-                                    .width(4.dp)
-                                    .height(28.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = RoundedCornerShape(2.dp)
-                                    )
-                            )
-                        }
                     )
                     Text(positionString(sliderPosition))
                 }

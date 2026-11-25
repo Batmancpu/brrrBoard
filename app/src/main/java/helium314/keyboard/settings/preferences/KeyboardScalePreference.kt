@@ -16,7 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -131,7 +130,7 @@ private fun KeyboardScaleDialog(
                         // default animations make the dialog flash (see also DictionaryDialog)
                         AnimatedVisibility(visible, exit = fadeOut(), enter = fadeIn()) {
                             WithSmallTitle(variant.ifEmpty { stringResource(R.string.button_default) }) {
-                                Slider(
+                                SettingsSlider(
                                     value = sliderPosition,
                                     onValueChange = { sliderPosition = it },
                                     valueRange = range,

@@ -2,6 +2,10 @@
 @file:OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 package helium314.keyboard.settings
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.key
+import helium314.keyboard.settings.preferences.LocalGroupedSettingsRows
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -147,6 +151,7 @@ fun SearchSettingsScreen(
     onTitleHold: (() -> Unit)? = null,
     onTitleRecovery: (() -> Unit)? = null,
     content: @Composable (ColumnScope.() -> Unit)? = null, // overrides settings if not null
+    header: @Composable ColumnScope.() -> Unit = {},
     footer: @Composable ColumnScope.() -> Unit = {},
 ) {
     val focusManager = LocalFocusManager.current
@@ -176,17 +181,9 @@ fun SearchSettingsScreen(
         onVaultRecovery = onTitleRecovery,
         title = { Text(title, modifier = holdModifier, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         content = {
+            header()
             if (content == null) {
-                settings.forEach {
-                    if (it is Int) {
-                        PreferenceCategory(stringResource(it))
-                    } else {
-                        AnimatedVisibility(visible = it != null) {
-                            if (it != null)
-                                SettingsActivity.settingsContainer[it]?.Preference()
-                        }
-                    }
-                }
+                GroupedSettingsRows(settings)
             } else content.invoke(this)
             footer()
         },
@@ -307,7 +304,7 @@ fun <T: Any?> SearchScreen(
     
     val isDark = isSystemInDarkTheme()
     val scaffoldBg = MaterialTheme.colorScheme.background
-    val topBarBg = MaterialTheme.colorScheme.surface
+    val topBarBg = MaterialTheme.colorScheme.background
     
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     
@@ -321,9 +318,9 @@ fun <T: Any?> SearchScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .heightIn(min = 48.dp, max = 50.dp),
+                    .heightIn(min = 50.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
@@ -352,7 +349,7 @@ fun <T: Any?> SearchScreen(
                 contentWindowInsets = WindowInsets(0),
                 topBar = {
                     val topBarHazeStyle = remember(topBarBg) {
-                        HazeStyle(blurRadius = 14.dp, tint = topBarBg.copy(alpha = 0.76f))
+                        HazeStyle(blurRadius = 22.dp, tint = topBarBg.copy(alpha = 0.86f))
                     }
                     AnimatedVisibility(
                         visible = !SettingsActivity.isTopBarHidden && SettingsActivity.activeOverlay == null,
@@ -392,7 +389,7 @@ fun <T: Any?> SearchScreen(
                                         fontFamily = googleSansFlex,
                                         fontSize = 34.sp,
                                         lineHeight = 42.sp,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Bold
                                     ),
                                     titleLarge = MaterialTheme.typography.titleLarge.copy(
                                         fontFamily = googleSansFlex,
@@ -431,7 +428,7 @@ fun <T: Any?> SearchScreen(
                                                     .size(28.dp)
                                                     .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
                                             ) {
-                                                Text("arrow_back", fontFamily = materialSymbols, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                                                Text("chevron_left", fontFamily = materialSymbols, fontSize = 22.sp, color = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     }
@@ -559,7 +556,7 @@ fun StaticSearchField(
     TextField(
         value = search,
         onValueChange = onSearchChange,
-        shape = CircleShape,
+        shape = RoundedCornerShape(17.dp),
         modifier = modifier,
         leadingIcon = {
             Text(
@@ -597,7 +594,7 @@ fun StaticSearchField(
                 }
             }
         },
-        placeholder = { Text("Search") },
+        placeholder = { Text(if (privateMode) "Enter code" else "Search settings", color = MaterialTheme.colorScheme.onSurfaceVariant) },
         singleLine = true,
         colors = colors,
         textStyle = contentTextDirectionStyle,
@@ -605,4 +602,43 @@ fun StaticSearchField(
         keyboardOptions = if (privateMode) KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false, imeAction = ImeAction.Search)
             else KeyboardOptions(imeAction = ImeAction.Search)
     )
+}
+
+/** Preserve order and stable preference identity while omitting unavailable rows. */
+internal data class SettingsRowGroup(val title: Int?, val keys: List<Any>)
+internal fun groupSettingsRows(settings: List<Any?>): List<SettingsRowGroup> {
+    val groups = mutableListOf<SettingsRowGroup>()
+    var title: Int? = null
+    val keys = mutableListOf<Any>()
+    fun flush() { if (keys.isNotEmpty()) { groups += SettingsRowGroup(title, keys.toList()); keys.clear() } }
+    for (item in settings) when (item) {
+        null -> Unit
+        is Int -> { flush(); title = item }
+        else -> keys.add(item)
+    }
+    flush()
+    return groups
+}
+
+@Composable
+private fun GroupedSettingsRows(settings: List<Any?>) {
+    for (group in groupSettingsRows(settings)) {
+        val resolved = group.keys.mapNotNull { id -> SettingsActivity.settingsContainer[id]?.let { id to it } }
+        if (resolved.isEmpty()) continue
+        key(group.title ?: "untitled") {
+            group.title?.let { PreferenceCategory(stringResource(it)) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp)
+                .clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surface)) {
+                CompositionLocalProvider(LocalGroupedSettingsRows provides true) {
+                    resolved.forEachIndexed { index, (id, setting) ->
+                        key(id) {
+                            if (index > 0) HorizontalDivider(Modifier.padding(start = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .55f))
+                            setting.Preference()
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

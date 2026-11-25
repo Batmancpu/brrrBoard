@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
@@ -24,7 +25,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -400,7 +400,7 @@ fun ProtectedPrivacyScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Switch(checked = privateGestureEnabled, onCheckedChange = { checked ->
+                            SettingsSwitch(checked = privateGestureEnabled, onCheckedChange = { checked ->
                                 privateGestureEnabled = checked
                                 context.prefs().edit().putBoolean(PrivateGestureSession.PREF_ENABLED, checked).apply()
                                 PrivateGestureSession.clear()

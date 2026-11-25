@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -76,13 +77,13 @@ internal fun TextReplacementControls() {
                     OutlinedTextField(replacement,{ if(it.length<=LiteralTextReplacement.MAX_REPLACEMENT) replacement=it },
                         label={Text("Replace with (empty deletes matches)")})
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-                        Text("Match case",Modifier.weight(1f)); Switch(matchCase,{matchCase=it})
+                        Text("Match case",Modifier.weight(1f)); SettingsSwitch(matchCase,{matchCase=it})
                     }
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-                        Text("Whole words",Modifier.weight(1f)); Switch(wholeWord,{wholeWord=it})
+                        Text("Whole words",Modifier.weight(1f)); SettingsSwitch(wholeWord,{wholeWord=it})
                     }
                     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-                        Text("Replace all",Modifier.weight(1f)); Switch(all,{all=it})
+                        Text("Replace all",Modifier.weight(1f)); SettingsSwitch(all,{all=it})
                     }
                     Text("No regex. Do not store passwords or private codes.",style=MaterialTheme.typography.bodySmall)
                     if(existing!=null) TextButton(onClick={ editing=null; save(base.filterIndexed { i,_ -> i!=index }) }) {Text("Delete rule")}

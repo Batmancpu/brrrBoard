@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.preferences
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import helium314.keyboard.settings.materialSymbols
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,16 +40,17 @@ import helium314.keyboard.latin.utils.previewDark
 
 // partially taken from StreetComplete / SCEE
 
+val LocalGroupedSettingsRows = staticCompositionLocalOf { false }
+
 @Composable
 fun PreferenceCategory(
     title: String,
     modifier: Modifier = Modifier,
 ) {
     Column {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Text(
             text = title,
-            modifier = modifier.padding(top = 20.dp, start = 20.dp, end = 16.dp, bottom = 10.dp),
+            modifier = modifier.padding(top = 18.dp, start = 26.dp, end = 16.dp, bottom = 8.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.titleSmall
         )
@@ -61,19 +69,23 @@ fun Preference(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (LocalGroupedSettingsRows.current) Modifier else Modifier
+                .padding(horizontal = 16.dp, vertical = 2.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surface))
             .clickable { onClick() }
-            .heightIn(min = 52.dp)
-            .padding(vertical = 13.dp, horizontal = 20.dp),
+            .heightIn(min = 54.dp)
+            .padding(vertical = 12.dp, horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null)
             IconOrImage(icon, name, 32)
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = name, style = MaterialTheme.typography.bodyLarge)
+            Text(text = name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
             if (description != null) {
                 CompositionLocalProvider(
-                    LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                    LocalTextStyle provides MaterialTheme.typography.bodySmall,
                     LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
                 ) {
                     Text(
@@ -99,6 +111,9 @@ fun Preference(
                     verticalAlignment = Alignment.CenterVertically,
                 ) { value() }
             }
+        } else {
+            Text("chevron_right", fontFamily = materialSymbols, fontSize = 19.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -53,13 +53,13 @@ fun AppearanceScreen(
     val isFrostedActive = helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(ctx)
     val items = listOf(
         R.string.brr_category_visual_material,
+        if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
         Settings.PREF_MOTION_PROFILE,
         Settings.PREF_THEME_ACTION_TINT,
         FrostAccentRoles.PREF_APPLE_PALETTE,
         FrostAccentRoles.PREF_ROUNDED_KEYCAPS,
         Settings.PREF_THEME_KEY_BORDERS,
         Settings.PREF_NAVBAR_COLOR,
-        if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
         // Reflection styles now live inside Glass Studio, not in a duplicate dialog row.
         SettingsWithoutKey.BACKGROUND_IMAGE,
         SettingsWithoutKey.BACKGROUND_IMAGE_LANDSCAPE,
@@ -101,7 +101,8 @@ fun AppearanceScreen(
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = stringResource(R.string.settings_screen_appearance),
-        settings = items
+        settings = items,
+        header = { KeyboardTryoutCard() }
     )
 }
 

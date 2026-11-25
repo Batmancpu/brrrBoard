@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +26,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -87,7 +87,7 @@ fun BrainDashboardScreen(
                                 Text("Adaptive Touch", fontWeight = FontWeight.SemiBold)
                                 Text("Experimental · learns from confirmed tap suggestions", style = MaterialTheme.typography.bodySmall)
                             }
-                            Switch(checked = adaptive, onCheckedChange = {
+                            SettingsSwitch(checked = adaptive, onCheckedChange = {
                                 adaptive = it
                                 context.prefs().edit().putBoolean(Settings.PREF_ADAPTIVE_TOUCH, it).apply()
                                 if (!it) helium314.keyboard.latin.brain.AdaptiveTouchStore.get(context).pause()
@@ -106,10 +106,19 @@ fun BrainDashboardScreen(
                     }) { Text("Reset") } },
                     dismissButton = { OutlinedButton(onClick = { eraseAdaptive = false }) { Text("Cancel") } })
                 Text("Per-app profile details are available in the protected BR Brain dashboard.", style = MaterialTheme.typography.bodySmall)
-                TextTemplateControls()
-                TextReplacementControls()
-                ClipboardTextVaultControls()
-                EditingGestureControls()
+                var showManualControls by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = { showManualControls = !showManualControls },
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text(if (showManualControls) "Hide manual controls" else "Manual controls")
+                }
+                if (showManualControls) {
+                    Text("Optional configuration. Automatic phrase and replacement learning and default text encryption are not yet implemented.",
+                        style = MaterialTheme.typography.bodySmall)
+                    TextTemplateControls()
+                    TextReplacementControls()
+                    ClipboardTextVaultControls()
+                    EditingGestureControls()
+                }
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
                 }
@@ -277,7 +286,7 @@ fun BrainDashboardScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = palette.onSurfaceVariant)
                         }
-                        Switch(checked = contextLmEnabled, onCheckedChange = { enabled ->
+                        SettingsSwitch(checked = contextLmEnabled, onCheckedChange = { enabled ->
                             contextLmEnabled = enabled
                             BrContextLmExperiment.setEnabled(context, enabled)
                             refresh++

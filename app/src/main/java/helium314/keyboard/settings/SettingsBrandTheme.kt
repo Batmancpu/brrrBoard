@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings
 
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -19,26 +24,26 @@ private val PearlPalette = lightColorScheme(
     onPrimaryContainer = Color(0xFF193A76),
     secondary = Color(0xFF536C90),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8EDF5),
+    secondaryContainer = Color(0xFFE8E8EF),
     onSecondaryContainer = Color(0xFF314560),
     tertiary = Color(0xFF866638),
     onTertiary = Color.White,
     tertiaryContainer = Color(0xFFF4E7D4),
     onTertiaryContainer = Color(0xFF5D462B),
-    background = Color(0xFFF7F9FC),
-    onBackground = Color(0xFF17263D),
+    background = Color(0xFFF2F2F7),
+    onBackground = Color(0xFF202126),
     surface = Color.White,
-    onSurface = Color(0xFF17263D),
-    surfaceVariant = Color(0xFFE8EDF5),
-    onSurfaceVariant = Color(0xFF52647F),
+    onSurface = Color(0xFF202126),
+    surfaceVariant = Color(0xFFE8E8EF),
+    onSurfaceVariant = Color(0xFF62636D),
     surfaceTint = Color(0xFF2D60C8),
     surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF9FAFD),
-    surfaceContainer = Color(0xFFF0F4FA),
-    surfaceContainerHigh = Color(0xFFE8EDF5),
-    surfaceContainerHighest = Color(0xFFE0E7F2),
-    outline = Color(0xFF9EABC0),
-    outlineVariant = Color(0xFFDCE3ED),
+    surfaceContainerLow = Color(0xFFF7F7FA),
+    surfaceContainer = Color(0xFFEFEFF4),
+    surfaceContainerHigh = Color(0xFFE8E8EF),
+    surfaceContainerHighest = Color(0xFFE0E0E7),
+    outline = Color(0xFF8D8E99),
+    outlineVariant = Color(0xFFDDDDE4),
     inverseSurface = Color(0xFF24344E),
     inverseOnSurface = Color.White,
     inversePrimary = Color(0xFFA5C0F7),
@@ -49,7 +54,7 @@ private val MidnightPalette = darkColorScheme(
     onPrimary = Color(0xFF112D5D),
     primaryContainer = Color(0xFF264778),
     onPrimaryContainer = Color(0xFFDCE8FF),
-    secondary = Color(0xFFAFC5E4),
+    secondary = Color(0xFFC3C4CF),
     onSecondary = Color(0xFF233B56),
     secondaryContainer = Color(0xFF263D59),
     onSecondaryContainer = Color(0xFFE1EAFA),
@@ -57,22 +62,22 @@ private val MidnightPalette = darkColorScheme(
     onTertiary = Color(0xFF493016),
     tertiaryContainer = Color(0xFF584025),
     onTertiaryContainer = Color(0xFFF5E5CF),
-    background = Color(0xFF0C1527),
-    onBackground = Color(0xFFF5F7FC),
-    surface = Color(0xFF162A45),
-    onSurface = Color(0xFFF5F7FC),
-    surfaceVariant = Color(0xFF273C58),
-    onSurfaceVariant = Color(0xFFAFC5E4),
+    background = Color(0xFF111114),
+    onBackground = Color(0xFFF5F5F7),
+    surface = Color(0xFF242428),
+    onSurface = Color(0xFFF5F5F7),
+    surfaceVariant = Color(0xFF303037),
+    onSurfaceVariant = Color(0xFFC3C4CF),
     surfaceTint = Color(0xFF89ACED),
-    surfaceContainerLowest = Color(0xFF0C1527),
-    surfaceContainerLow = Color(0xFF12213A),
-    surfaceContainer = Color(0xFF162A45),
-    surfaceContainerHigh = Color(0xFF203654),
-    surfaceContainerHighest = Color(0xFF293E5B),
-    outline = Color(0xFF7589A5),
-    outlineVariant = Color(0xFF344861),
+    surfaceContainerLowest = Color(0xFF111114),
+    surfaceContainerLow = Color(0xFF1C1C20),
+    surfaceContainer = Color(0xFF242428),
+    surfaceContainerHigh = Color(0xFF2B2B30),
+    surfaceContainerHighest = Color(0xFF37373E),
+    outline = Color(0xFF8E8F9B),
+    outlineVariant = Color(0xFF3D3D45),
     inverseSurface = Color(0xFFE9EEF7),
-    inverseOnSurface = Color(0xFF162A45),
+    inverseOnSurface = Color(0xFF242428),
     inversePrimary = Color(0xFF2D60C8),
 )
 
@@ -88,11 +93,15 @@ fun SettingsBrandTheme(content: @Composable () -> Unit) {
             headlineSmall = base.headlineSmall.copy(fontFamily = googleSansFlex),
             titleLarge = base.titleLarge.copy(fontFamily = googleSansFlex),
             titleMedium = base.titleMedium.copy(fontFamily = FontFamily.SansSerif),
-            bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif),
+            bodyLarge = base.bodyLarge.copy(fontFamily = FontFamily.SansSerif, fontSize = 16.sp, lineHeight = 22.sp),
             bodyMedium = base.bodyMedium.copy(fontFamily = FontFamily.SansSerif),
-            bodySmall = base.bodySmall.copy(fontFamily = FontFamily.SansSerif),
+            bodySmall = base.bodySmall.copy(fontFamily = FontFamily.SansSerif, fontSize = 13.sp, lineHeight = 18.sp),
             labelLarge = base.labelLarge.copy(fontFamily = FontFamily.SansSerif),
         )
     }
-    MaterialTheme(colorScheme = palette, typography = typography, content = content)
+    MaterialTheme(colorScheme = palette, typography = typography, shapes = Shapes(
+        extraSmall = RoundedCornerShape(9.dp), small = RoundedCornerShape(13.dp),
+        medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(24.dp),
+        extraLarge = RoundedCornerShape(30.dp),
+    ), content = content)
 }

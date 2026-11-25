@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -86,7 +87,7 @@ internal fun AppProfileControls() {
                     ProfileChoice("Haptics",profile.haptics) { profile = profile.copy(haptics = it) }
                     Row(Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Always private",modifier = Modifier.weight(1f))
-                        Switch(profile.privateMode,{ profile = profile.copy(privateMode=it) })
+                        SettingsSwitch(profile.privateMode,{ profile = profile.copy(privateMode=it) })
                     }
                     Text("Inherit uses global settings. Always private only tightens privacy.",
                         style = MaterialTheme.typography.bodySmall)

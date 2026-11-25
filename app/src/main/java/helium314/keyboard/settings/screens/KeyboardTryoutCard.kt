@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -68,11 +72,11 @@ internal fun KeyboardTryoutCard() {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var previewText by remember { mutableStateOf("") }
     val reduceMotion = getTransitionAnimationScale(context) <= 0f
-    val sweep = remember { Animatable(.5f) }
-    val shape = RoundedCornerShape(17.dp)
-    val deepBlue = Color(0xFF173B78)
-    val sapphire = Color(0xFF2D63B5)
-    val gold = Color(0xFFDCC58C)
+    val shape = RoundedCornerShape(24.dp)
+    val deepBlue = MaterialTheme.colorScheme.surface
+    val sapphire = MaterialTheme.colorScheme.primaryContainer
+    val gold = MaterialTheme.colorScheme.primary
+    val foreground = MaterialTheme.colorScheme.onSurface
 
     fun closePreview() {
         expanded = false
@@ -86,48 +90,23 @@ internal fun KeyboardTryoutCard() {
         if (expanded) {
             runCatching { focusRequester.requestFocus() }
             keyboard?.show()
-        } else if (!reduceMotion) {
-            while (isActive) {
-                sweep.snapTo(-.45f)
-                sweep.animateTo(1.45f, animationSpec = tween(2_400))
-            }
-        } else {
-            sweep.snapTo(.5f)
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(spring(dampingRatio = .9f, stiffness = 520f))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .animateContentSize(if (reduceMotion) androidx.compose.animation.core.snap() else spring(dampingRatio = .9f, stiffness = 520f))
             .clip(shape)
             .background(Brush.linearGradient(listOf(deepBlue, sapphire)))
-            .border(1.dp, gold.copy(alpha = .64f), shape)
+            .border(1.dp, gold.copy(alpha = .16f), shape)
             .then(if (!expanded) Modifier.clickable(role = Role.Button) { expanded = true } else Modifier)
-            .drawWithContent {
-                drawContent()
-                if (!reduceMotion && !expanded) {
-                    val x = size.width * sweep.value
-                    drawRoundRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color(0xFFD9EBFF).copy(alpha = .26f),
-                                gold.copy(alpha = .17f),
-                                Color.Transparent,
-                            ),
-                            start = Offset(x - size.width * .18f, 0f),
-                            end = Offset(x + size.width * .18f, size.height),
-                        ),
-                        cornerRadius = CornerRadius(size.height / 2f),
-                    )
-                }
-            }
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 17.dp, vertical = 16.dp),
     ) {
         AnimatedContent(
             targetState = expanded,
-            transitionSpec = { fadeIn(tween(130)) togetherWith fadeOut(tween(75)) },
+            transitionSpec = { fadeIn(tween(if (reduceMotion) 0 else 130)) togetherWith fadeOut(tween(if (reduceMotion) 0 else 75)) },
             label = "keyboard-tryout-morph",
         ) { showEditor ->
             if (!showEditor) {
@@ -136,12 +115,18 @@ internal fun KeyboardTryoutCard() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("keyboard", fontFamily = materialSymbols,
-                        color = Color(0xFFE5D09D), fontSize = 23.sp)
-                    Text("Type", color = Color.White, fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text("arrow_forward", fontFamily = materialSymbols,
-                        color = Color.White.copy(alpha = .82f), fontSize = 20.sp)
+                    Column(Modifier.weight(1f)) {
+                        Text("Your keyboard.", color = foreground, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Try it with your current glass & layout", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                        Spacer(Modifier.height(9.dp))
+                        Text("Try typing", color = gold, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = .7f)),
+                        contentAlignment = Alignment.Center) {
+                        Text("keyboard", fontFamily = materialSymbols, color = gold, fontSize = 30.sp)
+                    }
                 }
             } else {
                 Row(
@@ -153,7 +138,7 @@ internal fun KeyboardTryoutCard() {
                         value = previewText,
                         onValueChange = { previewText = it },
                         modifier = Modifier.weight(1f).focusRequester(focusRequester),
-                        placeholder = { Text("Type to preview suggestions", color = Color.White.copy(alpha = .72f)) },
+                        placeholder = { Text("Type to preview suggestions", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         shape = RoundedCornerShape(13.dp),
                         keyboardOptions = KeyboardOptions(
@@ -173,18 +158,18 @@ internal fun KeyboardTryoutCard() {
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedPlaceholderColor = Color.White.copy(alpha = .72f),
-                            unfocusedPlaceholderColor = Color.White.copy(alpha = .72f),
-                            focusedIndicatorColor = Color(0xFFE5D09D),
-                            unfocusedIndicatorColor = Color.White.copy(alpha = .28f),
-                            cursorColor = Color(0xFFE5D09D),
+                            focusedTextColor = foreground,
+                            unfocusedTextColor = foreground,
+                            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedIndicatorColor = gold,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                            cursorColor = gold,
                         ),
                     )
                     IconButton(onClick = ::closePreview, modifier = Modifier.size(38.dp)) {
                         Text("close", fontFamily = materialSymbols,
-                            color = Color.White, fontSize = 21.sp)
+                            color = foreground, fontSize = 21.sp)
                     }
                 }
             }

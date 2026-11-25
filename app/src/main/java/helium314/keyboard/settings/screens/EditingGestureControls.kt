@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.settings.screens
 
+import helium314.keyboard.settings.preferences.SettingsSwitch
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +25,7 @@ internal fun EditingGestureControls() {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
                 Text("Editing gesture key",Modifier.weight(1f),style=MaterialTheme.typography.titleMedium)
-                Switch(config.enabled,{ enabled ->
+                SettingsSwitch(config.enabled,{ enabled ->
                     prefs.edit().putBoolean(EditingGestureConfig.ENABLED,enabled).apply()
                     config=EditingGestureConfig.read(prefs)
                     KeyboardSwitcher.getInstance().setThemeNeedsReload()
