@@ -24,6 +24,8 @@ class SmartPasteEditorTest {
         assertTrue(ClipboardEntityExtractor.excludeFromAutomaticHistory("Authentication code: 123456"))
         assertNotNull(SmartPastePolicy.copiedOtp("One-time password: 123456"))
         assertNull(SmartPastePolicy.copiedOtp("Card security code 1234"))
+        assertNull(SmartPastePolicy.copiedOtp("card verification code: 1234"))
+        assertNull(SmartPastePolicy.copiedOtp("CVV2: 123"))
         assertNull(SmartPastePolicy.copiedOtp("OTP 123456; password: mysecret"))
     }
     @Test fun providerSurfaceGenerationAndEditorVeto() {

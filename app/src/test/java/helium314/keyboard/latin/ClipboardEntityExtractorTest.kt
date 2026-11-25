@@ -22,6 +22,24 @@ class ClipboardEntityExtractorTest {
         }
         assertFalse(ClipboardEntityExtractor.excludeFromAutomaticHistory("https://example.org/?page=2"))
     }
+    @Test fun paymentCardAndRecoveryCodesNeverBecomeOtpOrHistory() {
+        listOf("Card security code 1234", "card verification code: 1234",
+            "Card verification value 1234", "CVV2: 123", "CVC2: 123",
+            "card-security-code 1234", "Recovery code: 123456",
+            "backup-code 123456", "OTP 123456; card PIN 4321").forEach {
+            assertNull(ClipboardEntityExtractor.verificationCodeRange(it))
+            assertTrue(ClipboardEntityExtractor.excludeFromAutomaticHistory(it))
+        }
+        listOf("OTP 123456", "One-time password: 123456", "Authentication code: 123456",
+            "123456 is your verification code", "123456").forEach { value ->
+            val range = ClipboardEntityExtractor.verificationCodeRange(value)
+            assertNotNull(value, range)
+            assertEquals("123456", value.substring(range!!))
+            assertTrue(ClipboardEntityExtractor.excludeFromAutomaticHistory(value))
+        }
+        assertFalse(ClipboardEntityExtractor.excludeFromAutomaticHistory("Meeting at 123456 Main Street"))
+        assertFalse(ClipboardEntityExtractor.excludeFromAutomaticHistory("Here is your birthday card"))
+    }
     @Test fun boundedAndNoCredentialUrls() {
         assertTrue(ClipboardEntityExtractor.extract("a".repeat(4097)).isEmpty())
         assertTrue(ClipboardEntityExtractor.extract("password: abc123").isEmpty())

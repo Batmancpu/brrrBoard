@@ -13,6 +13,8 @@ object ClipboardEntityExtractor {
     private val code = Regex("(?i)\\b(?:otp|verification code|one[ -]time(?: password| code| passcode)?|authentication code|2fa code|security code|passcode)\\b(?:[ \\t:=#-]{0,8}is)?[ \\t:=#-]{0,16}(\\d{4,8})(?!\\d)")
     private val reverseCode = Regex("(?i)(?<!\\d)(\\d{4,8})[ \\t]{1,8}(?:is[ \\t]{1,8})?(?:your[ \\t]{1,8})?(?:otp|verification code|authentication code|2fa code|security code|one[ -]time(?: code| password| passcode))\\b")
     private val secret = Regex("(?i)\\b(?:password|passwd|passphrase|recovery (?:code|key|phrase)|private key|api[ _-]?key|access token|secret key|cvv|cvc|card pin)\\b[ \\t:=#-]{1,16}\\S{3,}")
+    // Payment-card verification values and recovery credentials are never SMS OTPs.
+    private val nonOtpCredential = Regex("(?i)\\b(?:credit[ -]card|debit[ -]card|card[ \\t-]+(?:security[ \\t-]+code|verification[ \\t-]+(?:code|value)|code|pin|number|cvv2?|cvc2?)|cvv2?|cvc2?|cid|recovery|backup[ -]code|api[ _-]key)\\b")
     private val bareCode = Regex("\\s*\\d{4,8}\\s*")
     private val card = Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)")
     private val pem = Regex("(?i)-----BEGIN [A-Z0-9 ]{0,48}PRIVATE KEY-----")
@@ -42,12 +44,13 @@ object ClipboardEntityExtractor {
     fun excludeFromAutomaticHistory(text: CharSequence): Boolean {
         if (text.length > MAX_CHARS) return true
         return code.containsMatchIn(text) || reverseCode.containsMatchIn(text) || bareCode.matches(text) || hasSecret(text) ||
+            nonOtpCredential.containsMatchIn(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }
     }
     /** Explicitly copied OTP only; ordinary history and ambient suggestions still reject codes. */
     fun verificationCodeRange(text: String): IntRange? {
         if (text.isBlank() || text.length > 512 ||
-            Regex("(?i)\\b(?:credit card|debit card|cvv|cvc|card pin|recovery|backup code|api key)\\b").containsMatchIn(text) ||
+            nonOtpCredential.containsMatchIn(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }) return null
         if (bareCode.matches(text)) {
             val start = text.indexOfFirst { it in '0'..'9' }
