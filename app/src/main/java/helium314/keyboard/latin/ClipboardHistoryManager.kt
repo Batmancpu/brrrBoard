@@ -20,6 +20,7 @@ import android.os.UserManager
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.text.InputType
@@ -67,6 +68,41 @@ class ClipboardHistoryManager(
 
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: View? = null
+    private var chromeCopyTimestamp = 0L
+    private var chromeDeadline = 0L
+    private var chromeBlockedThrough = 0L
+    private var chromeExpiry: Runnable? = null
+    private fun cancelChromeExpiry() {
+        chromeExpiry?.let { latinIME.mHandler.removeCallbacks(it) }
+        chromeExpiry = null
+    }
+    private fun invalidateChrome() {
+        chromeBlockedThrough = maxOf(chromeBlockedThrough, System.currentTimeMillis(), chromeCopyTimestamp)
+        chromeDeadline = 0L
+        cancelChromeExpiry()
+    }
+    private fun chromeRemaining(copyTime: Long): Long {
+        if (copyTime <= chromeBlockedThrough) return 0L
+        val remaining = CleanLinkPolicy.remaining(copyTime, System.currentTimeMillis())
+        if (remaining <= 0L) return 0L
+        val now = SystemClock.elapsedRealtime()
+        if (copyTime != chromeCopyTimestamp) {
+            chromeCopyTimestamp = copyTime
+            chromeDeadline = now + remaining
+        }
+        return minOf(remaining, chromeDeadline - now).coerceAtLeast(0L)
+    }
+    // Do not use the compatibility timestamp fallback for a navigation action.
+    private fun strictTextReceipt(): OwnedClip? = try {
+        val live = clipboardManager.primaryClip
+        if (live == null || ClipboardPrivacyPolicy.boundedPlainText(live) == null) null
+        else clipReceipt(live, true)
+    } catch (_: Exception) { null }
+    private fun chromePrivate(): Boolean {
+        val values = latinIME.mSettings.current
+        return isHistoryPrivate() || values.mInputAttributes.mNoLearning ||
+            values.mInputAttributes.mVaultPrivateEditor
+    }
     private var extractionDialog: AlertDialog? = null
     private val expireExtraction = Runnable { dismissExtraction() }
     fun dismissExtraction() {
@@ -106,7 +142,11 @@ class ClipboardHistoryManager(
     private val recoveryRepository by lazy { RecoveredTranscriptRepository(latinIME) }
     private val recoveryScreenOff = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == Intent.ACTION_SCREEN_OFF) clearRecoveredTranscripts()
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                clearRecoveredTranscripts()
+                invalidateChrome()
+                clipboardSuggestionView?.isGone = true
+            }
         }
     }
     private var recoveryReceiverRegistered = false
@@ -133,6 +173,7 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
+        cancelChromeExpiry()
         setVoiceRecoveryChangeListener(null)
         clearRecoveredTranscripts()
         if (recoveryReceiverRegistered) {
@@ -578,6 +619,7 @@ class ClipboardHistoryManager(
     }
 
     private fun suppressPrivateClipboardSuggestions() {
+        invalidateChrome()
         clearDecryptedHistory()
         ownedPrimaryClip = null
         latestImageSuggestion = null
@@ -1008,6 +1050,7 @@ class ClipboardHistoryManager(
     fun getClipboardSuggestionView(editorInfo: EditorInfo?, parent: ViewGroup?): View? {
         // maybe no need to create a new view
         // but a cache has to consider a few possible changes, so better don't implement without need
+        cancelChromeExpiry()
         clipboardSuggestionView = null
 
         // get the content, or return null
@@ -1075,6 +1118,63 @@ class ClipboardHistoryManager(
 
         val closeButton = binding.clipboardSuggestionClose
         val colors = latinIME.mSettings.current.mColors
+        val chrome = binding.clipboardSuggestionChrome
+        chrome.isGone = true
+        if (clip != null && !chromePrivate() && CleanLinkPolicy.eligible(clip.content.toString())) {
+            val receipt = strictTextReceipt()
+            val remaining = if (receipt != null && receipt.timestamp == clip.timeStamp)
+                chromeRemaining(receipt.timestamp) else 0L
+            if (receipt != null && remaining > 0L) {
+                val pm = latinIME.packageManager
+                val chromeIcon = runCatching {
+                    val app = pm.getApplicationInfo("com.android.chrome", 0)
+                    if (app.enabled) pm.getApplicationIcon(app) else null
+                }.getOrNull()
+                if (chromeIcon != null) {
+                    val size = (20 * latinIME.resources.displayMetrics.density).toInt()
+                    chromeIcon.setBounds(0, 0, size, size)
+                    chrome.setCompoundDrawablesRelative(chromeIcon, null, null, null)
+                    chrome.setTextColor(colors.get(ColorType.KEY_TEXT))
+                    KeyboardTypeface.applyToTextView(chrome)
+                    chrome.isGone = false
+                    chrome.setOnClickListener {
+                        if (!chrome.isShown || clipboardSuggestionView !== binding.root ||
+                            !latinIME.isInputViewShown || chromePrivate() ||
+                            latinIME.editorGeneration() != editorEpoch ||
+                            latinIME.currentInputConnection !== connection ||
+                            chromeRemaining(receipt.timestamp) <= 0L ||
+                            strictTextReceipt() != receipt || currentTextSuggestionChanged(clip)) {
+                            chrome.isGone = true
+                            return@setOnClickListener
+                        }
+                        // Only this explicit tap runs the sanitizer. Never replace the clipboard.
+                        val clean = CleanLinkPolicy.cleanForNavigation(clip.content.toString())
+                        chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
+                        chromeDeadline = 0L
+                        cancelChromeExpiry()
+                        chrome.isGone = true
+                        if (clean == null) return@setOnClickListener
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(clean))
+                            .addCategory(Intent.CATEGORY_BROWSABLE)
+                            .setPackage("com.android.chrome")
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try {
+                            latinIME.startActivity(intent)
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            android.widget.Toast.makeText(latinIME, R.string.board_chrome_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                        } catch (_: SecurityException) {
+                            android.widget.Toast.makeText(latinIME, R.string.board_chrome_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    val expire = Runnable {
+                        chrome.isEnabled = false
+                        chrome.isGone = true
+                    }
+                    chromeExpiry = expire
+                    latinIME.mHandler.postDelayed(expire, remaining)
+                }
+            }
+        }
 
         // Dismissing a chip is a neutral utility, not an Enter/Search action.
         val closeBg = GradientDrawable().apply {
@@ -1141,6 +1241,7 @@ class ClipboardHistoryManager(
         recentTextClip(latinIME.currentInputEditorInfo) != clip
 
     private fun removeClipboardSuggestion(recordDismissal: Boolean = true) {
+        cancelChromeExpiry()
         val clip = if (recordDismissal && !isHistoryPrivate()) recentTextClip(latinIME.currentInputEditorInfo) else null
         if (clip != null) {
             markClipDismissed(clip)

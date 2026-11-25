@@ -506,6 +506,9 @@
     <string name="board_paste_image">Paste image</string>
     <string name="board_paste_from_screenshots">Paste from screenshots</string>
     <string name="board_paste_file">Paste file</string>
+    <string name="board_chrome_label">Chrome</string>
+    <string name="board_chrome_open_clean_link">Open cleaned link in Chrome</string>
+    <string name="board_chrome_unavailable">Unable to open Chrome</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="board_footer_action_removed">Removed</string>
     <string name="board_footer_action_retry">Voice failed</string>

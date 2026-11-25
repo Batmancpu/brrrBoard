@@ -34,6 +34,22 @@
         android:textStyle="bold"
         style="?android:attr/textAppearanceSmall" />
 
+    <TextView
+        android:id="@+id/clipboard_suggestion_chrome"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:drawablePadding="4dp"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:clickable="true"
+        android:focusable="true"
+        android:text="@string/board_chrome_label"
+        android:contentDescription="@string/board_chrome_open_clean_link"
+        android:visibility="gone"
+        style="?android:attr/textAppearanceSmall" />
+
     <ImageButton
         android:id="@+id/clipboard_suggestion_close"
         android:contentDescription="@string/spoken_clipboard_suggestion"

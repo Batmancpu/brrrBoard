@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Settings 2.1 · iOS-inspired visual identity",
+  "summary": "BR Brain · Clean Link first phase",
   "changes": [
     {
-      "title": "Cleaner settings home",
-      "detail": "Compact icon-led groups, inset separators and a keyboard-inspired private tryout."
+      "title": "Open cleaned links in Chrome",
+      "detail": "Eligible fresh clipboard links offer an explicit Chrome action within ten seconds; original clipboard remains unchanged."
     },
     {
-      "title": "Refined visual language",
-      "detail": "Pill search, tighter blurred header, neutral typography, sculpted controls and asymmetric navigation."
+      "title": "Conservative tracking removal",
+      "detail": "Known tracking identifiers are removed only on Chrome tap; unknown functional parameters are retained and sensitive URLs are refused."
     },
     {
-      "title": "Preserved behavior",
-      "detail": "Existing preferences, privacy, keyboard engine and signing unchanged."
+      "title": "Safety and tests",
+      "detail": "Live receipt and editor checks, strict timestamps, monotonic deadline and pure URL policy tests. No network permission or signing changes."
     }
   ]
 }
