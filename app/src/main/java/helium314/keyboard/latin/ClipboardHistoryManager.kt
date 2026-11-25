@@ -88,6 +88,16 @@ class ClipboardHistoryManager(
             SmartPasteLearning.record(d.candidate.kind,d.destination,accepted)
         }
     }
+    /** An explicit successful contextual handoff/insert counts as category use only. */
+    private fun recordContextualUse(kind: SmartPastePolicy.Kind?, dest: SmartPastePolicy.Destination,
+                                   epoch: Long, connection: android.view.inputmethod.InputConnection) {
+        if (kind == null || !learningAllowed() || !latinIME.isInputViewShown ||
+            latinIME.editorGeneration() != epoch || latinIME.currentInputConnection !== connection ||
+            SmartPastePolicy.destination(latinIME.currentInputEditorInfo) != dest ||
+            (dest != SmartPastePolicy.Destination.GENERAL && dest != SmartPastePolicy.Destination.SEARCH)) return
+        SmartPasteLearning.initialize(latinIME)
+        SmartPasteLearning.record(kind, dest, true)
+    }
     /** Only reads the already-cached editor suffix supplied by InputLogic, never the OS clipboard. */
     fun hasActiveSmartPaste(): Boolean = activeDecision?.candidate?.kind?.let {
         it != SmartPastePolicy.Kind.OTP && it != SmartPastePolicy.Kind.RICH
@@ -804,13 +814,20 @@ class ClipboardHistoryManager(
         return ClipboardPrivacyPolicy.boundedPlainText(clip)
     }
 
-    private data class ExtractOption(val label: String, val start: Int, val end: Int)
+    private data class ExtractOption(val label: String, val start: Int, val end: Int,
+                                     val category: SmartPastePolicy.Kind? = null)
 
-    private fun extractOptions(text: String, contextual: Boolean): List<ExtractOption> {
+    private fun extractOptions(text: String, contextual: Boolean,
+                               destination: SmartPastePolicy.Destination? = null): List<ExtractOption> {
         if (!contextual) return ClipboardEntityExtractor.extract(text).map { ExtractOption(it.kind.label, it.start, it.end) }
         if (ClipboardEntityExtractor.excludeFromAutomaticHistory(text)) return emptyList()
-        return ContextualAccessoryPolicy.extractCandidates(text)
-            .map { ExtractOption(it.kind.name.lowercase(java.util.Locale.ROOT), it.start, it.end) }
+        val candidates = ContextualAccessoryPolicy.extractCandidates(text)
+        val ranked = if (destination != null && learningAllowed() &&
+            (destination == SmartPastePolicy.Destination.GENERAL || destination == SmartPastePolicy.Destination.SEARCH)) {
+            SmartPasteLearning.initialize(latinIME)
+            ContextualAccessoryPolicy.rankEntities(candidates) { SmartPasteLearning.bias(it, destination) }
+        } else candidates
+        return ranked.map { ExtractOption(it.kind.name.lowercase(java.util.Locale.ROOT), it.start, it.end, it.kind) }
     }
 
     fun requestExtractCurrentClip() = requestExtractCurrentClip(false)
@@ -830,7 +847,8 @@ class ClipboardHistoryManager(
         val clip = try { clipboardManager.primaryClip } catch (_: Exception) { null } ?: return
         val source = extractionText(clip) ?: return
         val receipt = clipReceipt(clip, requireReliableTimestamp = false) ?: return
-        val entities = extractOptions(source, contextual)
+        val destination = SmartPastePolicy.destination(editor)
+        val entities = extractOptions(source, contextual, destination)
         if (entities.isEmpty()) {
             latinIME.mKeyboardSwitcher.showToast("No supported extractable items", false)
             return
@@ -854,7 +872,8 @@ class ClipboardHistoryManager(
                     val text = extractionText(current) ?: return@setItems
                     val entity = entities[index]
                     if (entity !in extractOptions(text, contextual)) return@setItems
-                    latinIME.insertExtractedClipboardText(text.substring(entity.start, entity.end), epoch, ic)
+                    if (latinIME.insertExtractedClipboardText(text.substring(entity.start, entity.end), epoch, ic) && contextual)
+                        recordContextualUse(entity.category, destination, epoch, ic)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
@@ -1313,6 +1332,7 @@ class ClipboardHistoryManager(
                                         clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("brrBoard", clean))
                                         rememberOwnedCopy()
                                     }
+                                    recordContextualUse(SmartPastePolicy.Kind.LINK, dest, editorEpoch, connection)
                                     chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
                                     cancelChromeExpiry()
                                     root.hideChrome()
@@ -1347,6 +1367,7 @@ class ClipboardHistoryManager(
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         try {
                             latinIME.startActivity(intent)
+                            recordContextualUse(SmartPastePolicy.Kind.LINK, dest, editorEpoch, connection)
                         } catch (_: android.content.ActivityNotFoundException) {
                             android.widget.Toast.makeText(latinIME, R.string.board_chrome_unavailable, android.widget.Toast.LENGTH_SHORT).show()
                         } catch (_: SecurityException) {
@@ -1432,7 +1453,10 @@ class ClipboardHistoryManager(
                                     chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
                                     cancelChromeExpiry()
                                     root.hideChrome()
-                                    runCatching { latinIME.startActivity(contact) }.isSuccess
+                                    runCatching { latinIME.startActivity(contact) }.isSuccess.also { opened ->
+                                        if (opened) recordContextualUse(ContextualAccessoryPolicy.learningKind(action.kind),
+                                            dest, editorEpoch, connection)
+                                    }
                                 }
                             }
                             chrome.setOnLongClickListener { saveContact() }
@@ -1457,6 +1481,8 @@ class ClipboardHistoryManager(
                         if (intent != null) {
                             try {
                                 latinIME.startActivity(intent)
+                                recordContextualUse(ContextualAccessoryPolicy.learningKind(action.kind),
+                                    dest, editorEpoch, connection)
                             } catch (_: android.content.ActivityNotFoundException) {
                                 android.widget.Toast.makeText(latinIME, R.string.board_context_unavailable, android.widget.Toast.LENGTH_SHORT).show()
                             } catch (_: SecurityException) {
@@ -1465,6 +1491,7 @@ class ClipboardHistoryManager(
                         } else if (action.kind == ContextualAccessoryPolicy.Kind.EXTRACT) {
                             requestExtractCurrentClip(true)
                         } else if (latinIME.insertSmartPasteEntity(action.value, editorEpoch, connection)) {
+                            recordContextualUse(ContextualAccessoryPolicy.learningKind(action.kind), dest, editorEpoch, connection)
                             markClipDismissed(clip)
                             releaseClipboardAccessory()
                             latinIME.mHandler.postResumeSuggestions(false)

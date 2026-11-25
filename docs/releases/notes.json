@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Intelligent calendar drafts and more precise entity extraction",
+  "summary": "Adaptive contextual relevance without content logging",
   "changes": [
     {
-      "title": "Contextual calendar events",
-      "detail": "Recognize unambiguous ISO or English month-name dates, today/tomorrow and explicit times, ranges and short event titles. Timed events use local device time, default to a one-hour editable draft, and all-day dates use calendar UTC conventions. Ambiguous and invalid dates or repeated DST times are rejected."
+      "title": "Personalized contextual entity order",
+      "detail": "Rank already-validated extraction choices using bounded category preference counts from existing encrypted BR Brain Smart Paste learning. No change to the set of eligible entities, provider precedence, expiry or explicit tap requirement."
     },
     {
-      "title": "Focused entity extraction",
-      "detail": "Rank specific email, link and tracking entities before other supported details; suppress ambiguous numeric phone fragments. Keep masked explicit selection, original copy receipt, expiry and privacy checks."
+      "title": "Learn from successful contextual actions",
+      "detail": "Successful link, dialer, email, Maps, calendar, parcel, formatting and selected entity actions can contribute category-only counts when personalized learning is enabled and the original safe editor still matches. No raw clipboard values, app identifiers or new storage format."
     }
   ]
 }

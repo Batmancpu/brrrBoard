@@ -37,6 +37,31 @@ object ContextualAccessoryPolicy {
             }
         }.thenBy { it.start }).take(8)
     }
+    /** Learning keys contain categories only; no raw action payload is retained. */
+    fun learningKind(kind: Kind): SmartPastePolicy.Kind? = when (kind) {
+        Kind.DIAL -> SmartPastePolicy.Kind.PHONE
+        Kind.MAIL -> SmartPastePolicy.Kind.EMAIL
+        Kind.MAP -> SmartPastePolicy.Kind.ADDRESS
+        Kind.CALENDAR -> SmartPastePolicy.Kind.DATE
+        Kind.TRACK -> SmartPastePolicy.Kind.TRACKING
+        Kind.CASE, Kind.CLEAN_TEXT -> SmartPastePolicy.Kind.TEXT
+        Kind.EXTRACT -> null // learn the actual chosen entity, not the opening of the picker
+    }
+
+    /** Rank only already-validated options. Bias cannot add or remove an entity. */
+    fun rankEntities(candidates: List<SmartPastePolicy.Candidate>,
+                     bias: (SmartPastePolicy.Kind) -> Int): List<SmartPastePolicy.Candidate> {
+        return candidates.mapIndexed { index, candidate ->
+            val baseline = when (candidate.kind) {
+                SmartPastePolicy.Kind.EMAIL, SmartPastePolicy.Kind.LINK, SmartPastePolicy.Kind.TRACKING -> 4
+                SmartPastePolicy.Kind.PHONE, SmartPastePolicy.Kind.ADDRESS, SmartPastePolicy.Kind.DATE -> 2
+                else -> 0
+            }
+            Triple(candidate, baseline + bias(candidate.kind).coerceIn(-2, 2), index)
+        }.sortedWith(compareByDescending<Triple<SmartPastePolicy.Candidate, Int, Int>> { it.second }
+            .thenBy { it.third }).map { it.first }
+    }
+
     data class Action(val kind: Kind, val value: String, val carrier: String? = null,
         val calendar: CalendarAccessoryPolicy.Draft? = null)
     fun choose(text: String, destination: SmartPastePolicy.Destination,
