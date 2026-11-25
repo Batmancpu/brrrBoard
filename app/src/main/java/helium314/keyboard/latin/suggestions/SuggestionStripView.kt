@@ -1206,7 +1206,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         val toolbarMode = Settings.getValues().mToolbarMode
         val allowPinnedKeys = toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.TOOLBAR_KEYS
-        val allowSuggestions = toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.SUGGESTION_STRIP
+        val providerOwned = isExternalSuggestionVisible && clipboardAccessory == null
+        val allowSuggestions = providerOwned || toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.SUGGESTION_STRIP
         val preferPinnedKeys = showSuggestions &&
                 allowPinnedKeys &&
                 hasPinnedKeys &&

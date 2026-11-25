@@ -204,6 +204,7 @@ public class LatinIME extends InputMethodService implements
     private InsetsOutlineProvider mInsetsUpdater;
     private SuggestionStripView mSuggestionStripView;
     private boolean mInlineProviderViewActive;
+    private long mInlineRenderGeneration;
     // Only a synchronous first-frame placeholder, never an input/correction source.
     private boolean mStartupSuggestionSeedVisible;
     // A transient visual hold, not a candidate cache or a valid tap target.
@@ -2098,16 +2099,21 @@ public class LatinIME extends InputMethodService implements
             return false;
         }
 
-        final View inlineSuggestionView = InlineAutofillUtils.createView(inlineSuggestions, mDisplayContext);
-        if (inlineSuggestionView == null || mSuggestionStripView == null) {
+        if (mSuggestionStripView == null) {
             mInlineProviderViewActive = false;
             return false;
         }
-
-        // Without this function the inline autofill suggestions will not be visible
+        final long responseEpoch = mEditorFocusEpoch;
+        final long renderGeneration = ++mInlineRenderGeneration;
         mHandler.cancelResumeSuggestions();
         mInlineProviderViewActive = true;
         mClipboardHistoryManager.releaseClipboardAccessory();
+        final java.util.function.BooleanSupplier stillCurrent = () ->
+                AccessoryPriorityPolicy.renderBelongsToVisibleEditor(mInlineProviderViewActive,
+                        responseEpoch, mEditorFocusEpoch, renderGeneration, mInlineRenderGeneration,
+                        isInputViewShown());
+        final View inlineSuggestionView = InlineAutofillUtils.createView(inlineSuggestions, mDisplayContext,
+                stillCurrent, () -> { if (stillCurrent.getAsBoolean()) removeExternalSuggestions(); });
         mSuggestionStripView.setExternalSuggestionView(inlineSuggestionView, true);
 
         return true;
@@ -2907,6 +2913,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void removeExternalSuggestions() {
+        ++mInlineRenderGeneration;
         mInlineProviderViewActive = false;
         setNeutralSuggestionStrip();
         mHandler.postResumeSuggestions(false);

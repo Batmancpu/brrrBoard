@@ -101,14 +101,32 @@ public class InlineAutofillUtils {
     }
 
     public static InlineContentClipView createView(final List<InlineSuggestion> inlineSuggestions,
-                                                   final Context context) {
+                                                   final Context context,
+                                                   final java.util.function.BooleanSupplier stillCurrent,
+                                                   final Runnable onAllUnavailable) {
         LinearLayout container = new LinearLayout(context);
+        final int[] pending = {inlineSuggestions.size()};
+        final int[] rendered = {0};
         for (InlineSuggestion inlineSuggestion : inlineSuggestions) {
-            inlineSuggestion.inflate(context, new Size(ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT), context.getMainExecutor(), (view) -> {
-                if (view != null)
-                    container.addView(view);
-            });
+            final FrameLayout slot = new FrameLayout(context);
+            slot.setVisibility(View.GONE);
+            container.addView(slot, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            final java.util.function.Consumer<InlineContentView> attach = view -> {
+                if (!stillCurrent.getAsBoolean()) return;
+                if (view != null) {
+                    slot.addView(view);
+                    slot.setVisibility(View.VISIBLE);
+                    rendered[0]++;
+                }
+                if (--pending[0] == 0 && rendered[0] == 0) onAllUnavailable.run();
+            };
+            try {
+                inlineSuggestion.inflate(context, new Size(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT), context.getMainExecutor(), attach);
+            } catch (RuntimeException ignored) {
+                context.getMainExecutor().execute(() -> attach.accept(null));
+            }
         }
 
         HorizontalScrollView inlineSuggestionView = new HorizontalScrollView(context);

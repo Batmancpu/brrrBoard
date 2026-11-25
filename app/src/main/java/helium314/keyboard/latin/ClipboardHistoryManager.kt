@@ -88,7 +88,9 @@ class ClipboardHistoryManager(
         }
     }
     /** Only reads the already-cached editor suffix supplied by InputLogic, never the OS clipboard. */
-    fun hasActiveSmartPaste(): Boolean = activeDecision != null && clipboardSuggestionView?.retired == false
+    fun hasActiveSmartPaste(): Boolean = activeDecision?.candidate?.kind?.let {
+        it != SmartPastePolicy.Kind.OTP && it != SmartPastePolicy.Kind.RICH
+    } == true && clipboardSuggestionView?.retired == false
 
     fun updateSmartPasteIntent(suffix: String, typing: Boolean) {
         val current = accessoryKey ?: return
@@ -125,6 +127,8 @@ class ClipboardHistoryManager(
         pasteExpiry?.let { latinIME.mHandler.removeCallbacks(it) }
         pasteExpiry = null
         val old = clipboardSuggestionView
+        if (activeDecision?.candidate?.kind == SmartPastePolicy.Kind.OTP)
+            accessoryKey?.clip?.let { otpBlockedThrough = maxOf(otpBlockedThrough,it.timeStamp) }
         clipboardSuggestionView = null
         accessoryKey = null
         classifiedCopy = null
@@ -685,12 +689,10 @@ class ClipboardHistoryManager(
     }
 
     /** Explicit mode changes revoke both visual state and the previous Chrome receipt. */
-    fun onClipboardPrivacyBoundary() {
-        SmartPasteLearning.pause()
-        suppressPrivateClipboardSuggestions()
-    }
+    fun onClipboardPrivacyBoundary() = suppressPrivateClipboardSuggestions()
 
     private fun suppressPrivateClipboardSuggestions() {
+        SmartPasteLearning.pause()
         invalidateChrome()
         releaseClipboardAccessory()
         clearDecryptedHistory()
@@ -979,6 +981,8 @@ class ClipboardHistoryManager(
     fun getHistoryEntryContent(id: Long) = if (isHistoryPrivate()) null else clipboardDao?.get(id)
 
     private fun isHistoryPrivate(): Boolean = isDeviceLocked(latinIME) ||
+        latinIME.mSettings.current.mInputAttributes.mNoLearning ||
+        latinIME.mSettings.current.mInputAttributes.mVaultPrivateEditor ||
         ClipboardPrivacyPolicy.isPrivateEditor(
             latinIME.currentInputEditorInfo, latinIME.mSettings.current.mIncognitoModeEnabled)
 
@@ -1239,18 +1243,20 @@ class ClipboardHistoryManager(
                 if (isOtp) {
                     if (!latinIME.insertCopiedVerificationCode(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
                     otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
+                    dontShowCurrentSuggestion = true
+                    releaseClipboardAccessory()
+                } else if (decision != null && decision.destination != SmartPastePolicy.Destination.GENERAL &&
+                    decision.destination != SmartPastePolicy.Destination.SEARCH) {
+                    if (!latinIME.insertSmartPasteEntity(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
+                    recordPasteDecision(true)
+                    markClipDismissed(clip)
+                    releaseClipboardAccessory()
                 } else {
-                    if (chosen != null && (chosen.start != 0 || chosen.end != clip.content.length)) {
-                        if (!latinIME.insertSmartPasteEntity(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
-                        recordPasteDecision(true)
-                    } else {
-                        // Record the explicit choice before onTextInput can re-enter the strip.
-                        recordPasteDecision(true)
-                        latinIME.onTextInput(clip.content.toString())
-                    }
+                    recordPasteDecision(true)
+                    markClipDismissed(clip)
+                    releaseClipboardAccessory()
+                    latinIME.onTextInput(clip.content.toString())
                 }
-                markClipDismissed(clip)
-                releaseClipboardAccessory()
             } else if (rich != null) {
                 if (!latinIME.commitKlipyContent(rich.uri, label.toString(), rich.mimeType)) return@setOnClickListener
                 dontShowCurrentSuggestion = true
@@ -1328,9 +1334,13 @@ class ClipboardHistoryManager(
         closeButton.setOnClickListener {
             if (clipboardSuggestionView !== root || !root.isShown || root.retired) return@setOnClickListener
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
-            if (isOtp && clip != null) otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
-            else recordPasteDecision(false)
-            if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
+            if (isOtp && clip != null) {
+                otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
+                dontShowCurrentSuggestion = true
+            } else {
+                recordPasteDecision(false)
+                if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
+            }
             removeClipboardSuggestion()
         }
 
@@ -1402,7 +1412,8 @@ class ClipboardHistoryManager(
 
     private fun removeClipboardSuggestion(recordDismissal: Boolean = true) {
         cancelChromeExpiry()
-        val clip = if (recordDismissal && !isHistoryPrivate()) recentTextClip(latinIME.currentInputEditorInfo) else null
+        val clip = if (recordDismissal && !isHistoryPrivate() &&
+            activeDecision?.candidate?.kind != SmartPastePolicy.Kind.OTP) recentTextClip(latinIME.currentInputEditorInfo) else null
         if (clip != null) {
             markClipDismissed(clip)
         } else {

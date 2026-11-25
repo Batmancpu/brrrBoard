@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Smart Paste, verification codes and private adaptation",
+  "summary": "BR Brain · Smart Paste and secure OTP accessories",
   "changes": [
     {
-      "title": "Destination-aware Smart Paste",
-      "detail": "Unique compatible entity selection, copy freshness and cached typing intent; ordinary paste remains original."
+      "title": "Intelligent paste",
+      "detail": "Local destination and intent ranking with original ordinary paste."
     },
     {
-      "title": "Verification-code and Autofill compatibility",
-      "detail": "Recognized OTP fields can offer a masked manually copied code; Android provider suggestions keep exclusive priority."
+      "title": "Verification codes and password managers",
+      "detail": "Masked copied-code action only in recognized OTP fields, provider-owned Autofill with stable ordering and editor-generation checks."
     },
     {
-      "title": "Private adaptation and motion",
-      "detail": "Encrypted category-only feedback with reset control and short capsule-fill transitions; no network or new permissions."
+      "title": "Private learning and fluid chips",
+      "detail": "Encrypted category-only feedback, reset control and 150ms capsule geometry motion; no new permissions."
     }
   ]
 }

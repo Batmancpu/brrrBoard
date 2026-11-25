@@ -10,6 +10,12 @@ object AccessoryPriorityPolicy {
         !providerActive || incoming == Incoming.INLINE_AUTOFILL
 
     @JvmStatic
+    fun renderBelongsToVisibleEditor(providerActive: Boolean, requestEpoch: Long, editorEpoch: Long,
+                                     requestGeneration: Long, activeGeneration: Long, inputVisible: Boolean): Boolean =
+        providerActive && requestGeneration == activeGeneration &&
+            responseBelongsToVisibleEditor(requestEpoch,editorEpoch,inputVisible)
+
+    @JvmStatic
     fun responseBelongsToVisibleEditor(requestEpoch: Long, editorEpoch: Long, inputVisible: Boolean): Boolean =
         inputVisible && requestEpoch >= 0 && requestEpoch == editorEpoch
 }

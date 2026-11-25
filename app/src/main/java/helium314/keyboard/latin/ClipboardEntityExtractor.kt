@@ -10,8 +10,8 @@ object ClipboardEntityExtractor {
     private val link = Regex("(?i)https?://[^\\s<>\"']{1,512}")
     private val email = Regex("(?i)(?<![\\w.+-])[a-z0-9._%+-]{1,64}@[a-z0-9-]{1,63}(?:\\.[a-z0-9-]{1,63}){1,5}(?![\\w.-])")
     private val phone = Regex("(?<![\\w])(?:\\+\\d{1,3}[ -]?)?(?:\\(?\\d{2,5}\\)?[ .-]?){2,5}\\d{2,5}(?![\\w])")
-    private val code = Regex("(?i)\\b(?:otp|verification code|one[ -]time(?: password| code)?|security code|passcode)\\b(?:[ \\t:=#-]{0,8}is)?[ \\t:=#-]{0,16}(\\d{4,8})(?!\\d)")
-    private val reverseCode = Regex("(?i)(?<!\\d)(\\d{4,8})[ \\t]{1,8}(?:is[ \\t]{1,8})?(?:your[ \\t]{1,8})?(?:otp|verification code|security code|one[ -]time code)\\b")
+    private val code = Regex("(?i)\\b(?:otp|verification code|one[ -]time(?: password| code| passcode)?|authentication code|2fa code|security code|passcode)\\b(?:[ \\t:=#-]{0,8}is)?[ \\t:=#-]{0,16}(\\d{4,8})(?!\\d)")
+    private val reverseCode = Regex("(?i)(?<!\\d)(\\d{4,8})[ \\t]{1,8}(?:is[ \\t]{1,8})?(?:your[ \\t]{1,8})?(?:otp|verification code|authentication code|2fa code|security code|one[ -]time(?: code| password| passcode))\\b")
     private val secret = Regex("(?i)\\b(?:password|passwd|passphrase|recovery (?:code|key|phrase)|private key|api[ _-]?key|access token|secret key|cvv|cvc|card pin)\\b[ \\t:=#-]{1,16}\\S{3,}")
     private val bareCode = Regex("\\s*\\d{4,8}\\s*")
     private val card = Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)")
@@ -46,7 +46,7 @@ object ClipboardEntityExtractor {
     }
     /** Explicitly copied OTP only; ordinary history and ambient suggestions still reject codes. */
     fun verificationCodeRange(text: String): IntRange? {
-        if (text.isBlank() || text.length > 512 || hasSecret(text) ||
+        if (text.isBlank() || text.length > 512 ||
             Regex("(?i)\\b(?:credit card|debit card|cvv|cvc|card pin|recovery|backup code|api key)\\b").containsMatchIn(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }) return null
         if (bareCode.matches(text)) {
@@ -56,9 +56,11 @@ object ClipboardEntityExtractor {
         }
         // Do not surface a code from a link, credential-bearing message or multiple candidate codes.
         if (link.containsMatchIn(text)) return null
-        val ranges = (code.findAll(text).mapNotNull { it.groups[1]?.range } +
-            reverseCode.findAll(text).mapNotNull { it.groups[1]?.range }).distinct().take(2).toList()
-        return ranges.singleOrNull()
+        val matches = (code.findAll(text) + reverseCode.findAll(text))
+            .filter { it.groups[1] != null }.distinctBy { it.groups[1]!!.range }.take(2).toList()
+        val match = matches.singleOrNull() ?: return null
+        if (hasSecret(text.removeRange(match.range))) return null
+        return match.groups[1]?.range
     }
 
     fun extract(text: CharSequence): List<Entity> {
