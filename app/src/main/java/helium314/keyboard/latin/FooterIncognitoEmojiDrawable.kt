@@ -117,28 +117,34 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
             themeInk, 0xFFFF7378.toInt(), .25f * denialFraction
         ) else themeInk
         val alpha = (255f * alphaValue / 255f).roundToInt()
-        fill.style = Paint.Style.STROKE
-        fill.strokeWidth = 2.0f
-        fill.strokeCap = Paint.Cap.ROUND
-        fill.strokeJoin = Paint.Join.ROUND
+        fill.style = Paint.Style.FILL
         fill.color = ColorUtils.setAlphaComponent(tint, alpha)
         fill.colorFilter = suppliedFilter
-        canvas.drawCircle(11.55f, 12.45f, 8.3f, fill)
-        fill.style = Paint.Style.FILL
-        canvas.drawCircle(8.7f, 10.1f, .95f, fill)
-        canvas.drawCircle(14.4f, 10.1f, .95f, fill)
-        fill.style = Paint.Style.STROKE
-        fill.strokeWidth = 1.7f
+        // Transparent cutouts show the existing glass, not an assumed background.
         canvas.drawPath(Path().apply {
-            moveTo(8.25f, 14.35f)
-            quadTo(11.55f, 17.65f, 14.85f, 14.35f)
+            fillType = Path.FillType.EVEN_ODD
+            addCircle(12f, 12f, 9.5f, Path.Direction.CW)
+            addCircle(8.4f, 10f, 1.05f, Path.Direction.CW)
+            addCircle(15.6f, 10f, 1.05f, Path.Direction.CW)
+            moveTo(6f, 12.8f)
+            quadTo(12f, 15.1f, 18f, 12.8f)
+            quadTo(16.8f, 19.2f, 12f, 19.2f)
+            quadTo(7.2f, 19.2f, 6f, 12.8f)
+            close()
+        }, fill)
+        canvas.drawPath(Path().apply {
+            moveTo(7.5f, 14.2f)
+            quadTo(12f, 16.4f, 16.5f, 14.2f)
+            lineTo(15.9f, 15.6f)
+            quadTo(12f, 17.2f, 8.1f, 15.6f)
+            close()
         }, fill)
         if (frame.glow > .001f) {
             fill.style = Paint.Style.STROKE
             fill.strokeWidth = .75f
             fill.color = ColorUtils.setAlphaComponent(FooterPrivacyPalette.HIGHLIGHT,
                 (70f * frame.glow * alphaValue / 255f).roundToInt())
-            canvas.drawCircle(11.55f, 12.45f, 9.35f, fill)
+            canvas.drawCircle(12f, 12f, 10.1f, fill)
         }
     }
 

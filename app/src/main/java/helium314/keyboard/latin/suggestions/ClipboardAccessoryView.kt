@@ -8,9 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
-import android.graphics.drawable.ScaleDrawable
 import android.view.animation.DecelerateInterpolator
 import android.util.AttributeSet
 import android.view.Gravity
@@ -44,9 +42,9 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var prefersProminent = true
     var isVerificationCode = false
     private var intentEmphasized = false
-    private var capsuleMotion: ValueAnimator? = null
     private var chromeRevealed = false
-    private val capsuleFills = ArrayList<ScaleDrawable>(3)
+    private var separatorInk = Color.TRANSPARENT
+    private val separatorPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     val hasLiveChrome: Boolean get() = !retired && chrome.isVisible && chrome.isEnabled
 
     fun updateIntentEmphasis(value: Boolean) {
@@ -65,15 +63,13 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         image = imagePreview
         val ink = colors.get(ColorType.SUGGESTION_AUTO_CORRECT)
         val lightInk = ColorUtils.calculateLuminance(ColorUtils.setAlphaComponent(ink, 255)) >= .35
-        val fill = Color.TRANSPARENT
-        val pressed = if (lightInk) 0x28FFFFFF else 0x19000000
-        val edge = Color.TRANSPARENT
-        capsuleFills.clear()
-        paste.background = capsule(fill, pressed, edge)
-        chrome.background = capsule(fill, pressed, edge)
-        close.background = capsule(Color.TRANSPARENT, pressed, Color.TRANSPARENT)
+        val pressed = if (lightInk) 0x18FFFFFF else 0x10000000
+        separatorInk = ColorUtils.setAlphaComponent(ink, 35)
+        paste.background = feedback(pressed)
+        chrome.background = feedback(pressed)
+        close.background = feedback(pressed)
         paste.setPadding(0, 0, 0, 0)
-        chrome.setPaddingRelative(dp(9), 0, dp(10), 0)
+        chrome.setPaddingRelative(dp(11), 0, dp(11), 0)
         close.setPadding(dp(9), dp(9), dp(9), dp(9))
         label.setTextColor(ink)
         chrome.setTextColor(ink)
@@ -90,27 +86,35 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         close.isVisible = false
         clipChildren = true
         clipToPadding = true
-        if (image) label.setPaddingRelative(dp(4), 0, dp(8), 0)
+        label.setPaddingRelative(dp(if (image) 6 else 0), 0, 0, 0)
         preview.clipToOutline = true
         preview.background = GradientDrawable().apply {
-            cornerRadius = dp(6).toFloat()
+            cornerRadius = dp(4).toFloat()
             setColor(Color.TRANSPARENT)
         }
     }
 
-    private fun capsule(fill: Int, pressed: Int, edge: Int): RippleDrawable {
-        fun shape(color: Int, stroke: Boolean) = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(100).toFloat()
-            setColor(color)
-            if (stroke && edge != Color.TRANSPARENT) setStroke(dp(1).coerceAtLeast(1), edge)
+    private fun feedback(pressed: Int): RippleDrawable =
+        RippleDrawable(ColorStateList.valueOf(pressed), null, GradientDrawable().apply {
+            cornerRadius = dp(8).toFloat()
+            setColor(Color.WHITE)
+        })
+
+    override fun dispatchDraw(canvas: android.graphics.Canvas) {
+        super.dispatchDraw(canvas)
+        if (retired) return
+        separatorPaint.color = separatorInk
+        separatorPaint.strokeWidth = resources.displayMetrics.density
+        val cy = height / 2f
+        val half = dp(11).toFloat()
+        if (!compact) {
+            canvas.drawLine(dp(8).toFloat(), cy - half, dp(8).toFloat(), cy + half, separatorPaint)
+            if (!chrome.isVisible) canvas.drawLine(width - dp(8).toFloat(), cy - half, width - dp(8).toFloat(), cy + half, separatorPaint)
         }
-        val vertical = dp(4)
-        val scaled = ScaleDrawable(InsetDrawable(shape(fill, true), 0, vertical, 0, vertical),
-            Gravity.CENTER, 1f, 0f).apply { level = 10000 }
-        capsuleFills.add(scaled)
-        return RippleDrawable(ColorStateList.valueOf(pressed), scaled,
-            InsetDrawable(shape(Color.WHITE, false), 0, vertical, 0, vertical)).apply { level = 10000 }
+        if (chrome.isVisible) {
+            val x = if (layoutDirection == View.LAYOUT_DIRECTION_RTL) chrome.right.toFloat() else chrome.left.toFloat()
+            canvas.drawLine(x, cy - half, x, cy + half, separatorPaint)
+        }
     }
 
     fun setCompactMode(value: Boolean) {
@@ -132,58 +136,55 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         label.text = if (value) "" else fullLabel
         label.isVisible = !(value && image)
         label.gravity = Gravity.CENTER
-        label.setPaddingRelative(dp(if (value) 10 else if (image) 4 else 10), 0, dp(if (value) 10 else 8), 0)
+        label.setPaddingRelative(dp(if (image) 6 else 0), 0, 0, 0)
         label.compoundDrawablePadding = if (value) 0 else dp(6)
         chrome.text = ""
-        chrome.compoundDrawablePadding = if (value) 0 else dp(5)
-        chrome.setPaddingRelative(dp(if (value) 10 else 9), 0, dp(10), 0)
+        chrome.compoundDrawablePadding = 0
+        chrome.setPaddingRelative(dp(11), 0, dp(11), 0)
         close.isVisible = false
         // The empty center has no click listener and lets prediction taps pass through.
     }
 
-    /** Morph capsule fills inside their final bounds. No per-frame layout or blur recreation. */
+    /** Move only the accessory, leaving the keyboard and prediction surface stationary. */
     fun reveal() {
-        animate().cancel()
-        capsuleMotion?.cancel()
-        if (retired || (Build.VERSION.SDK_INT >= 26 && !ValueAnimator.areAnimatorsEnabled())) {
-            capsuleFills.forEach { it.level = 10000 }
-            alpha = 1f
-            return
-        }
-        if (chrome.isVisible && !chromeRevealed) {
-            chromeRevealed = true
-            chrome.translationX = dp(34).toFloat()
-            chrome.alpha = 0f
-            chrome.animate().translationX(0f).alpha(1f).setDuration(210L).setInterpolator(DecelerateInterpolator()).start()
-        }
-        alpha = .84f
-        animate().alpha(1f).setDuration(140L).start()
-        capsuleMotion = ValueAnimator.ofInt(7900,10000).apply {
-            duration = 150L
-            interpolator = DecelerateInterpolator()
-            addUpdateListener { animation ->
-                if (!retired) capsuleFills.forEach { it.level = animation.animatedValue as Int }
-            }
-            start()
-        }
+        if (retired || !chrome.isVisible || chromeRevealed) return
+        chromeRevealed = true
+        chrome.animate().cancel()
+        val motion = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled()
+        val direction = if (layoutDirection == View.LAYOUT_DIRECTION_RTL) -1 else 1
+        chrome.translationX = if (motion) direction * dp(34).toFloat() else 0f
+        chrome.alpha = if (motion) 0f else 1f
+        if (motion) chrome.animate().translationX(0f).alpha(1f)
+            .setInterpolator(DecelerateInterpolator()).setDuration(210L).start()
+        invalidate()
     }
 
     fun hideChrome() {
         val wasVisible = chrome.isVisible
         chrome.animate().cancel()
         chrome.isEnabled = false
+        // Disable taps at the exact deadline, even if the icon is exiting.
+        val motion = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled()
+        if (wasVisible && chromeRevealed && !retired && motion && !compact) {
+            val direction = if (layoutDirection == View.LAYOUT_DIRECTION_RTL) -1 else 1
+            chrome.animate().translationX(direction * dp(34).toFloat()).alpha(0f)
+                .setDuration(160L).withEndAction {
+                    if (!retired) finishChromeExit()
+                }.start()
+        } else finishChromeExit()
+    }
+
+    private fun finishChromeExit() {
         chrome.isVisible = false
         if (!compact) gap.isVisible = false
         onAccessoryChanged?.invoke()
-        // Chrome itself vanishes at the deadline; only the surviving capsule morphs.
-        if (wasVisible && !retired) reveal()
+        invalidate()
     }
 
     fun retire() {
         if (retired) return
         retired = true
-        capsuleMotion?.cancel()
-        capsuleMotion = null
+        chrome.animate().cancel()
         animate().cancel()
         paste.isEnabled = false
         chrome.isEnabled = false

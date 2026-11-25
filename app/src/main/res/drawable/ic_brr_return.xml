@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icon geometry: Ionicons (MIT); return-down-back-outline.svg. See LICENSE_IONIC_IONICONS.txt. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="512" android:viewportHeight="512">
-    <path android:pathData="M 112 352 L 48 288 L 112 224" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
-    <path android:pathData="M64,288H358c58.76,0,106-49.33,106-108V160" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="32" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+<!-- Original reference-inspired geometry; SPDX-License-Identifier: GPL-3.0-only -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:pathData="M13.5,4.5 H19 Q21,4.5 21,7 V12 Q21,15 18,15 H3.5 M9,9.5 L3.5,15 L9,20.5" android:fillColor="#00000000" android:strokeColor="#FF252B36" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round"/>
 </vector>

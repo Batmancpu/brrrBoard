@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Smart Paste privacy · iOS-style paste and password-manager presentation",
+  "summary": "BR Brain · iOS paste, Chrome and keyboard icon refinements",
   "changes": [
     {
       "title": "Intelligent paste",
@@ -29,6 +29,14 @@
     {
       "title": "Password manager presentation",
       "detail": "Request transparent inline autofill chip backgrounds, larger readable text and centered layout while preserving genuine Android provider-owned content, actions and editor-generation checks."
+    },
+    {
+      "title": "Reference-inspired keyboard icons",
+      "detail": "Reconstructed return, filled smile and microphone glyphs in both themes, including the dynamic privacy smile; retain voice and privacy state animations."
+    },
+    {
+      "title": "Subtle suggestion-strip motion",
+      "detail": "Replace invisible capsule animation with flat press feedback, faint separators and a clipped right-edge Chrome exit; disable action immediately on expiry."
     }
   ]
 }
