@@ -1279,7 +1279,9 @@ class ClipboardHistoryManager(
                 val pm = latinIME.packageManager
                 val chromeIcon = runCatching {
                     val app = pm.getApplicationInfo("com.android.chrome", 0)
-                    if (app.enabled) pm.getApplicationIcon(app) else null
+                    // The launcher icon may include a white adaptive plate. Use the
+                    // independent inline brand glyph only when Chrome really exists.
+                    if (app.enabled) ContextCompat.getDrawable(latinIME, R.drawable.ic_board_chrome_inline)?.mutate() else null
                 }.getOrNull()
                 if (chromeIcon != null) {
                     val size = (22 * latinIME.resources.displayMetrics.density).toInt()

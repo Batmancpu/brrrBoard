@@ -2075,7 +2075,8 @@ public class LatinIME extends InputMethodService implements
     public InlineSuggestionsRequest onCreateInlineSuggestionsRequest(@NonNull Bundle uiExtras) {
         Log.d(TAG, "onCreateInlineSuggestionsRequest called");
         if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())
-                || Settings.getValues().mSuggestionStripHiddenPerUserSettings) {
+                || Settings.getValues().mToolbarMode == ToolbarMode.HIDDEN
+                || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) {
             return null;
         }
         mInlineRequestEpoch = mEditorFocusEpoch;
@@ -2087,7 +2088,8 @@ public class LatinIME extends InputMethodService implements
     public boolean onInlineSuggestionsResponse(InlineSuggestionsResponse response) {
         Log.d(TAG, "onInlineSuggestionsResponse called");
         if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())
-                || Settings.getValues().mSuggestionStripHiddenPerUserSettings
+                || Settings.getValues().mToolbarMode == ToolbarMode.HIDDEN
+                || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)
                 || !AccessoryPriorityPolicy.responseBelongsToVisibleEditor(
                         mInlineRequestEpoch, mEditorFocusEpoch, isInputViewShown())) {
             return false;

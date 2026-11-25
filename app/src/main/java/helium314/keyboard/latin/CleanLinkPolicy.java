@@ -16,7 +16,11 @@ public final class CleanLinkPolicy {
         "utm_source","utm_medium","utm_campaign","utm_content","utm_term","utm_id",
         "utm_source_platform","utm_creative_format","utm_marketing_tactic",
         "fbclid","gclid","dclid","gbraid","wbraid","msclkid","ttclid","twclid",
-        "yclid","li_fat_id","mc_cid","mc_eid","mkt_tok","_hsenc","_hsmi"));
+        "yclid","li_fat_id","mc_cid","mc_eid","mkt_tok","_hsenc","_hsmi",
+        // Audited narrow subset of ClearURLs globalRules (see docs/URL_CLEANING_RULES.md).
+        "srsltid","_ga","_gl","__twitter_impression","__hsfp","__hssc","__hstc",
+        "vero_id","vero_conv","rb_clickid","wickedid","oly_anon_id","oly_enc_id",
+        "mtm_campaign","mtm_source","mtm_medium","mtm_content","mtm_keyword"));
     private static final Set<String> SECRET = new HashSet<>(Arrays.asList(
         "token","access_token","accesstoken","refresh_token","refreshtoken","id_token",
         "api_key","apikey","password","passwd","secret","signature","sig","auth","code",
@@ -62,7 +66,23 @@ public final class CleanLinkPolicy {
         return GLOBAL.contains(n)
             || (hostIs(host,"youtube.com") || host.equals("youtu.be") || host.equals("open.spotify.com")) && n.equals("si")
             || hostIs(host,"instagram.com") && (n.equals("igsh") || n.equals("igshid"))
-            || hostIs(host,"facebook.com") && n.equals("mibextid");
+            || hostIs(host,"facebook.com") && n.equals("mibextid")
+            || (hostIs(host,"youtube.com") || host.equals("youtu.be")) && n.equals("pp")
+            || hostIs(host,"linkedin.com") && (n.equals("trackingid") || n.equals("trk"))
+            || (hostIs(host,"twitter.com") || hostIs(host,"x.com")) && (n.equals("ref_src") || n.equals("ref_url"));
+    }
+    // Conservative exceptions: retain original URL instead of trying to rewrite
+    // application-specific navigation, signed resources or sensitive endpoints.
+    private static boolean preserveAll(URI uri) {
+        String host = uri.getHost().toLowerCase(Locale.ROOT);
+        String path = uri.getPath().toLowerCase(Locale.ROOT);
+        return hostIs(host,"github.com") || hostIs(host,"gitlab.com") ||
+            hostIs(host,"cloudflare.com") || hostIs(host,"prismic.io") ||
+            hostIs(host,"stripe.com") || hostIs(host,"paypal.com") ||
+            hostIs(host,"accounts.google.com") || hostIs(host,"myaccount.google.com") ||
+            hostIs(host,"docs.google.com") || hostIs(host,"drive.google.com") ||
+            hostIs(host,"matrix.org") && path.startsWith("/_matrix/") ||
+            path.matches(".*(?:^|/)(?:payment|payments|checkout|billing|purchase|pay|download|api)(?:/|$).*");
     }
     private static URI parse(String url) {
         if (url == null || url.isEmpty() || url.length() > MAX_LENGTH) return null;
@@ -106,7 +126,7 @@ public final class CleanLinkPolicy {
         URI original = parse(url);
         if (original == null) return null;
         String query = original.getRawQuery();
-        if (query == null || query.isEmpty()) return url;
+        if (query == null || query.isEmpty() || preserveAll(original)) return url;
         ArrayList<String> retained = new ArrayList<>();
         boolean changed = false;
         String host = original.getHost().toLowerCase(Locale.ROOT);

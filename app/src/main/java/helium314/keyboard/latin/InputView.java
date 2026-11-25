@@ -441,7 +441,7 @@ public final class InputView extends FrameLayout {
             // Forwards a {link MotionEvent} only if both <code>SenderView</code> and
             // <code>ReceiverView</code> are visible.
             if (mSenderView.getVisibility() != View.VISIBLE ||
-                    mReceiverView.getVisibility() != View.VISIBLE) {
+                    mReceiverView.getVisibility() != View.VISIBLE || mReceiverView.getHeight() <= 0) {
                 return false;
             }
             mSenderView.getGlobalVisibleRect(mEventSendingRect);

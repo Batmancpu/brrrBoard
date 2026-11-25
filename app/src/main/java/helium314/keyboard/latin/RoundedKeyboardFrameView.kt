@@ -123,6 +123,23 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
                 }
             }
         }
+        // Preserve the measured key body; only the optional header shrinks.
+        // Keep the strip attached so a late provider response can expand it.
+        val stripContainer = findViewById<android.widget.FrameLayout>(R.id.strip_container)
+        val strip = stripContainer?.findViewById<helium314.keyboard.latin.suggestions.SuggestionStripView>(R.id.suggestion_strip_view)
+        if (stripContainer != null && strip != null) {
+            val compact = !exclusivePanelVisible && stripContainer.visibility == View.VISIBLE &&
+                strip.visibility == View.VISIBLE && strip.shouldCollapseUnusedStrip()
+            val fullHeight = resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
+            val density = resources.displayMetrics.density
+            val compactHeight = AccessoryHeaderGeometry.topClearancePx(keyboardCornerRadiusPx(), density)
+            stripContainer.layoutParams.height = if (compact) compactHeight else fullHeight
+            strip.layoutParams.height = if (compact) 0 else LayoutParams.MATCH_PARENT
+            stripContainer.clipChildren = compact
+            stripContainer.clipToPadding = compact
+            strip.importantForAccessibility = if (compact) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+        }
         if (emoji?.visibility == View.VISIBLE) {
             val currentWidth = MeasureSpec.getSize(widthMeasureSpec)
             val footer = findViewById<View>(R.id.board_footer)

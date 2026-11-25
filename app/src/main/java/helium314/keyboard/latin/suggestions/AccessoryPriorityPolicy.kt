@@ -5,6 +5,12 @@ package helium314.keyboard.latin.suggestions
 object AccessoryPriorityPolicy {
     enum class Incoming { WORDS, CLIPBOARD, INLINE_AUTOFILL }
 
+    /** Explicit toolbar-only mode is a deliberate visible row, not a prediction. */
+    @JvmStatic
+    fun collapseUnusedHeader(wordsEnabled: Boolean, appCompletions: Boolean,
+                             externalContent: Boolean, explicitToolbar: Boolean): Boolean =
+        !wordsEnabled && !appCompletions && !externalContent && !explicitToolbar
+
     @JvmStatic
     fun canReplaceVisible(providerActive: Boolean, incoming: Incoming): Boolean =
         !providerActive || incoming == Incoming.INLINE_AUTOFILL

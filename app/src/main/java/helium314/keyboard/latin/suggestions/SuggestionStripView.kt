@@ -260,8 +260,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     private fun setAccessoryMargin(target: View, inset: Int) {
         val params = target.layoutParams as FrameLayout.LayoutParams
-        if (params.marginStart == inset && params.marginEnd == inset) return
-        params.marginStart = inset
+        // Only the live right-edge action needs space. No phantom left paste slot.
+        if (params.marginStart == 0 && params.marginEnd == inset) return
+        params.marginStart = 0
         params.marginEnd = inset
         target.layoutParams = params
     }
@@ -844,11 +845,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         updateSuggestionContainersVisibility(true)
 
         if (addCloseButton) {
-            val wrapper = LinearLayout(context)
-            suggestionsStrip.doOnNextLayout {
-                wrapper.layoutParams = LinearLayout.LayoutParams(suggestionsStrip.width - 30.dpToPx(resources), LayoutParams.MATCH_PARENT)
+            val wrapper = LinearLayout(context).apply {
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
             }
-            wrapper.addView(view)
+            wrapper.addView(view, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             suggestionsStrip.addView(wrapper)
 
             val closeButton = createToolbarKey(context, ToolbarKey.CLOSE_HISTORY)
@@ -1188,7 +1189,26 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         return false
     }
 
+    private var lastCompactHeader: Boolean? = null
+
+    /** A disabled prediction row is not a reservation for an empty toolbar.
+     * Genuine provider/clipboard content and explicitly selected toolbar-only mode win. */
+    fun shouldCollapseUnusedStrip(): Boolean {
+        val settings = Settings.getValues() ?: return false
+        return AccessoryPriorityPolicy.collapseUnusedHeader(
+            settings.isSuggestionsEnabledPerUserSettings(),
+            settings.isApplicationSpecifiedCompletionsOn(),
+            isExternalSuggestionVisible || clipboardAccessory?.hasLiveChrome == true,
+            settings.mToolbarMode == ToolbarMode.TOOLBAR_KEYS ||
+                toolbarContainer.isVisible || isPinnedToolbarDragActive || isAccessPointMenuShowing())
+    }
+
     private fun updateSuggestionContainersVisibility(showSuggestions: Boolean) {
+        val compactHeader = shouldCollapseUnusedStrip()
+        if (lastCompactHeader != compactHeader) {
+            lastCompactHeader = compactHeader
+            requestLayout()
+        }
         if (isPinnedToolbarDragActive) {
             updateCompactAccessory(false)
             suggestionsStrip.isVisible = false

@@ -25,6 +25,16 @@ public class CleanLinkPolicyTest {
             "https://example.com/?q=x;token=abc", "https://example.com/\\evil", "https://example.com/ hello"})
             assertNull(url, CleanLinkPolicy.cleanForNavigation(url));
     }
+    @Test public void auditedSubsetAndExceptions() {
+        assertEquals("https://example.com/?q=a%2Bb#anchor", CleanLinkPolicy.cleanForNavigation("https://example.com/?q=a%2Bb&srsltid=x&__hstc=x&mtm_campaign=x#anchor"));
+        assertEquals("https://www.linkedin.com/posts/item?id=7", CleanLinkPolicy.cleanForNavigation("https://www.linkedin.com/posts/item?id=7&trackingId=abc&trk=x"));
+        assertEquals("https://www.youtube.com/watch?v=abc&t=90", CleanLinkPolicy.cleanForNavigation("https://www.youtube.com/watch?v=abc&pp=abc&t=90"));
+        assertEquals("https://x.com/a/status/1?t=7", CleanLinkPolicy.cleanForNavigation("https://x.com/a/status/1?t=7&ref_src=x"));
+        for (String url : new String[]{"https://github.com/a/b?utm_source=x", "https://example.com/checkout?gclid=x",
+                "https://docs.google.com/document/d/a/edit?_ga=x", "https://example.com/download?utm_source=x"})
+            assertEquals(url, CleanLinkPolicy.cleanForNavigation(url));
+        assertNull(CleanLinkPolicy.cleanForNavigation("https://example.com/download?X-Amz-Signature=abc&utm_source=x"));
+    }
     @Test public void exactTenSecondWindow() {
         assertEquals(10000L, CleanLinkPolicy.remaining(100L,100L));
         assertEquals(1L, CleanLinkPolicy.remaining(100L,10099L));
