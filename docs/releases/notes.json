@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Smart Paste and secure OTP accessories · credential safety fix",
+  "summary": "BR Brain · Smart Paste privacy · iOS-style paste and password-manager presentation",
   "changes": [
     {
       "title": "Intelligent paste",
@@ -17,6 +17,18 @@
     {
       "title": "OTP credential safety",
       "detail": "Card security and verification codes, CVV/CVC and recovery credentials are excluded from automatic OTP suggestions and clipboard history. Expanded regression tests."
+    },
+    {
+      "title": "Centered paste previews",
+      "detail": "Flat regular-weight clipboard previews replace the prominent capsule fill. Dismiss by long-press; compact typing no longer displays a persistent paste icon."
+    },
+    {
+      "title": "Chrome shortcut",
+      "detail": "Use the installed Chrome icon without a text label, with a right-edge reveal and the existing copy-age limit and click-only local URL cleaning. The system clipboard is not rewritten."
+    },
+    {
+      "title": "Password manager presentation",
+      "detail": "Request transparent inline autofill chip backgrounds, larger readable text and centered layout while preserving genuine Android provider-owned content, actions and editor-generation checks."
     }
   ]
 }
