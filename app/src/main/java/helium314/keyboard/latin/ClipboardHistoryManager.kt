@@ -804,7 +804,20 @@ class ClipboardHistoryManager(
         return ClipboardPrivacyPolicy.boundedPlainText(clip)
     }
 
-    fun requestExtractCurrentClip() {
+    private data class ExtractOption(val label: String, val start: Int, val end: Int)
+
+    private fun extractOptions(text: String, contextual: Boolean): List<ExtractOption> {
+        if (!contextual) return ClipboardEntityExtractor.extract(text).map { ExtractOption(it.kind.label, it.start, it.end) }
+        if (ClipboardEntityExtractor.excludeFromAutomaticHistory(text)) return emptyList()
+        return SmartPastePolicy.classify(text).drop(1).filter {
+            it.kind != SmartPastePolicy.Kind.OTP && it.kind != SmartPastePolicy.Kind.RICH &&
+                it.end - it.start in 1..512
+        }.distinctBy { it.start to it.end }.map { ExtractOption(it.kind.name.lowercase(java.util.Locale.ROOT), it.start, it.end) }
+    }
+
+    fun requestExtractCurrentClip() = requestExtractCurrentClip(false)
+
+    private fun requestExtractCurrentClip(contextual: Boolean) {
         dismissExtraction()
         val values = latinIME.mSettings.current
         if (isHistoryPrivate() || !latinIME.isInputViewShown ||
@@ -819,13 +832,13 @@ class ClipboardHistoryManager(
         val clip = try { clipboardManager.primaryClip } catch (_: Exception) { null } ?: return
         val source = extractionText(clip) ?: return
         val receipt = clipReceipt(clip, requireReliableTimestamp = false) ?: return
-        val entities = ClipboardEntityExtractor.extract(source)
+        val entities = extractOptions(source, contextual)
         if (entities.isEmpty()) {
             latinIME.mKeyboardSwitcher.showToast("No supported extractable items", false)
             return
         }
         // Keep only kind/ranges, a digest receipt and masked labels in the dialog.
-        val labels = entities.mapIndexed { i, entity -> "${i + 1}. ${entity.kind.label} •••• (paste)" }.toTypedArray()
+        val labels = entities.mapIndexed { i, entity -> "${i + 1}. ${entity.label} •••• (paste)" }.toTypedArray()
         val created = android.os.SystemClock.elapsedRealtime()
         try {
             val dialog = AlertDialog.Builder(getPlatformDialogThemeContext(latinIME))
@@ -842,7 +855,7 @@ class ClipboardHistoryManager(
                     if (liveReceipt != receipt) return@setItems
                     val text = extractionText(current) ?: return@setItems
                     val entity = entities[index]
-                    if (entity !in ClipboardEntityExtractor.extract(text)) return@setItems
+                    if (entity !in extractOptions(text, contextual)) return@setItems
                     latinIME.insertExtractedClipboardText(text.substring(entity.start, entity.end), epoch, ic)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
@@ -1288,6 +1301,31 @@ class ClipboardHistoryManager(
                     chromeIcon.setBounds(0, 0, size, size)
                     chrome.setCompoundDrawablesRelative(chromeIcon, null, null, null)
                     chrome.isGone = false
+                    // A secondary explicit gesture copies the cleaned URL rather than opening it.
+                    val copyClean: () -> Boolean = {
+                        if (!chrome.isShown || !chrome.isEnabled || clipboardSuggestionView !== root || root.retired ||
+                            !latinIME.isInputViewShown || chromePrivate() || latinIME.editorGeneration() != editorEpoch ||
+                            latinIME.currentInputConnection !== connection || chromeRemaining(receipt.timestamp) <= 0L ||
+                            strictTextReceipt() != receipt || currentTextSuggestionChanged(clip)) false
+                        else {
+                            val clean = CleanLinkPolicy.cleanForNavigation(clip.content.toString())
+                            if (clean == null) false else {
+                                try {
+                                    if (clean != clip.content.toString()) {
+                                        clipboardManager.setPrimaryClip(android.content.ClipData.newPlainText("brrBoard", clean))
+                                        rememberOwnedCopy()
+                                    }
+                                    chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
+                                    cancelChromeExpiry()
+                                    root.hideChrome()
+                                    true
+                                } catch (_: RuntimeException) { false }
+                            }
+                        }
+                    }
+                    chrome.setOnLongClickListener { copyClean() }
+                    androidx.core.view.ViewCompat.addAccessibilityAction(chrome,
+                        latinIME.getString(R.string.board_context_copy_clean)) { _, _ -> copyClean() }
                     chrome.setOnClickListener {
                         if (!chrome.isShown || clipboardSuggestionView !== binding.root ||
                             !latinIME.isInputViewShown || chromePrivate() ||
@@ -1338,12 +1376,30 @@ class ClipboardHistoryManager(
                     ContextualAccessoryPolicy.Kind.MAIL -> R.drawable.ic_board_context_mail to R.string.board_context_mail
                     ContextualAccessoryPolicy.Kind.MAP -> R.drawable.ic_board_context_map to R.string.board_context_map
                     ContextualAccessoryPolicy.Kind.CLEAN_TEXT -> R.drawable.ic_board_context_clean to R.string.board_context_clean
+                    ContextualAccessoryPolicy.Kind.CASE -> R.drawable.ic_board_context_clean to R.string.board_context_case
+                    ContextualAccessoryPolicy.Kind.CALENDAR -> R.drawable.ic_board_context_calendar to R.string.board_context_calendar
+                    ContextualAccessoryPolicy.Kind.TRACK -> R.drawable.ic_board_context_track to R.string.board_context_track
+                    ContextualAccessoryPolicy.Kind.EXTRACT -> R.drawable.ic_board_context_extract to R.string.board_context_extract
                 }
                 val intent = when (action.kind) {
                     ContextualAccessoryPolicy.Kind.DIAL -> Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", action.value, null))
                     ContextualAccessoryPolicy.Kind.MAIL -> Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", action.value, null))
                     ContextualAccessoryPolicy.Kind.MAP -> Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(action.value)))
-                    ContextualAccessoryPolicy.Kind.CLEAN_TEXT -> null
+                    ContextualAccessoryPolicy.Kind.CALENDAR -> {
+                        val date = action.value.split("-").map { it.toInt() }
+                        val begin = java.util.GregorianCalendar(java.util.TimeZone.getTimeZone("UTC")).apply {
+                            clear(); set(date[0], date[1] - 1, date[2], 0, 0, 0)
+                        }.timeInMillis
+                        Intent(Intent.ACTION_INSERT, android.provider.CalendarContract.Events.CONTENT_URI)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, begin + 86_400_000L)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, true)
+                    }
+                    ContextualAccessoryPolicy.Kind.TRACK -> Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://www.ups.com/track?tracknum=" + Uri.encode(action.value)))
+                        .addCategory(Intent.CATEGORY_BROWSABLE)
+                    ContextualAccessoryPolicy.Kind.CLEAN_TEXT, ContextualAccessoryPolicy.Kind.CASE,
+                    ContextualAccessoryPolicy.Kind.EXTRACT -> null
                 }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 val available = intent == null || runCatching {
                     intent.resolveActivity(latinIME.packageManager) != null
@@ -1356,6 +1412,31 @@ class ClipboardHistoryManager(
                     chrome.setCompoundDrawablesRelative(icon, null, null, null)
                     chrome.contentDescription = latinIME.getString(labelId)
                     chrome.isGone = false
+                    if (action.kind == ContextualAccessoryPolicy.Kind.DIAL || action.kind == ContextualAccessoryPolicy.Kind.MAIL) {
+                        val contact = Intent(Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI)
+                            .setType(android.provider.ContactsContract.Contacts.CONTENT_TYPE)
+                            .putExtra(if (action.kind == ContextualAccessoryPolicy.Kind.DIAL)
+                                android.provider.ContactsContract.Intents.Insert.PHONE
+                                else android.provider.ContactsContract.Intents.Insert.EMAIL, action.value)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        if (runCatching { contact.resolveActivity(latinIME.packageManager) != null }.getOrDefault(false)) {
+                            val saveContact: () -> Boolean = {
+                                if (!chrome.isShown || !chrome.isEnabled || clipboardSuggestionView !== root || root.retired ||
+                                    !latinIME.isInputViewShown || chromePrivate() || latinIME.editorGeneration() != editorEpoch ||
+                                    latinIME.currentInputConnection !== connection || chromeRemaining(receipt.timestamp) <= 0L ||
+                                    strictTextReceipt() != receipt || currentTextSuggestionChanged(clip)) false
+                                else {
+                                    chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
+                                    cancelChromeExpiry()
+                                    root.hideChrome()
+                                    runCatching { latinIME.startActivity(contact) }.isSuccess
+                                }
+                            }
+                            chrome.setOnLongClickListener { saveContact() }
+                            androidx.core.view.ViewCompat.addAccessibilityAction(chrome,
+                                latinIME.getString(R.string.board_context_contact)) { _, _ -> saveContact() }
+                        }
+                    }
                     chrome.setOnClickListener {
                         if (!chrome.isShown || clipboardSuggestionView !== root || root.retired ||
                             !latinIME.isInputViewShown || chromePrivate() ||
@@ -1378,6 +1459,8 @@ class ClipboardHistoryManager(
                             } catch (_: SecurityException) {
                                 android.widget.Toast.makeText(latinIME, R.string.board_context_unavailable, android.widget.Toast.LENGTH_SHORT).show()
                             }
+                        } else if (action.kind == ContextualAccessoryPolicy.Kind.EXTRACT) {
+                            requestExtractCurrentClip(true)
                         } else if (latinIME.insertSmartPasteEntity(action.value, editorEpoch, connection)) {
                             markClipDismissed(clip)
                             releaseClipboardAccessory()

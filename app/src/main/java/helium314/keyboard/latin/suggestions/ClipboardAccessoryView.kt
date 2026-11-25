@@ -187,6 +187,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         paste.setOnClickListener(null)
         paste.setOnLongClickListener(null)
         chrome.setOnClickListener(null)
+        chrome.setOnLongClickListener(null)
         preview.setImageDrawable(null)
         onAccessoryChanged?.invoke()
     }

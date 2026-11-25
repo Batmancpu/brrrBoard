@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "iOS dividers · intelligent clipboard actions",
+  "summary": "iOS dividers · contextual clipboard actions",
   "changes": [
     {
       "title": "Functional suggestion dividers",
@@ -9,6 +9,10 @@
     {
       "title": "Contextual action slot",
       "detail": "Fresh unambiguous copies can reveal dialer, email, Maps or whitespace-cleaned paste in the same animated slot. Explicit taps only; original paste, Chrome, provider actions and privacy controls retained."
+    },
+    {
+      "title": "More contextual clipboard actions",
+      "detail": "Long-press Chrome to copy a cleaned link; long-press phone or email to open the contact editor. Fresh ISO dates open an all-day calendar draft, recognizable UPS codes open the carrier tracking page, copied all-caps prose can paste in sentence case, and mixed text can open a masked entity picker. All actions require explicit user interaction."
     }
   ]
 }

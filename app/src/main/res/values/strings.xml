@@ -516,6 +516,12 @@
     <string name="board_context_map">Open address in maps</string>
     <string name="board_context_clean">Paste with extra spaces removed</string>
     <string name="board_context_unavailable">No app available for this action</string>
+    <string name="board_context_copy_clean">Copy cleaned link</string>
+    <string name="board_context_case">Paste in sentence case</string>
+    <string name="board_context_calendar">Create calendar event</string>
+    <string name="board_context_track">Open UPS tracking</string>
+    <string name="board_context_extract">Extract useful details</string>
+    <string name="board_context_contact">Create contact</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="board_footer_action_removed">Removed</string>
     <string name="board_footer_action_retry">Voice failed</string>
