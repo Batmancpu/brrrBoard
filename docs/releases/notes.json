@@ -12,7 +12,7 @@
     },
     {
       "title": "Native password managers",
-      "detail": "Allow genuine Android inline autofill in toolbar-only mode and center provider content; explicit hidden mode, private vault and locked-device exclusions remain. Provider supplies its own labels and actions."
+      "detail": "Allow genuine Android inline autofill in toolbar-only mode and center provider content; explicit hidden mode, private vault and locked-device exclusions remain. Provider supplies its own labels and actions. Centering uses the Android Gravity API with its explicit import."
     },
     {
       "title": "Local URL cleaning",

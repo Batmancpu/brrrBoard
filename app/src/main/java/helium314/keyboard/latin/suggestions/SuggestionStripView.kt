@@ -23,6 +23,7 @@ import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.DragEvent
 import android.view.View.DragShadowBuilder
