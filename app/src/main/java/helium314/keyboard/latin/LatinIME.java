@@ -284,6 +284,88 @@ public class LatinIME extends InputMethodService implements
     private final ClipboardHistoryManager mClipboardHistoryManager = new ClipboardHistoryManager(this);
     private final TextToolsController mTextTools = new TextToolsController(this);
     public void requestContextualTextActions() { mTextTools.request(); }
+
+    public void clearVerifiedEditAccessory() {
+        if (mSuggestionStripView == null) return;
+        mSuggestionStripView.clearEditorAccessoryIfLabel(R.string.board_context_undo);
+        mSuggestionStripView.clearEditorAccessoryIfLabel(R.string.board_context_redo);
+    }
+
+    public void showVerifiedEditAccessory(final boolean redo) {
+        if (mSuggestionStripView == null || mInlineProviderViewActive || !isInputViewShown()
+                || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return;
+        final long epoch = editorGeneration();
+        final android.view.inputmethod.InputConnection ic = getCurrentInputConnection();
+        mSuggestionStripView.showEditorAccessory(redo ? R.drawable.ic_redo : R.drawable.ic_undo,
+                redo ? R.string.board_context_redo : R.string.board_context_undo, () -> {
+                    if (epoch != editorGeneration() || ic != getCurrentInputConnection()
+                            || !isInputViewShown() || mInlineProviderViewActive
+                            || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return;
+                    final InputTransaction tx = mInputLogic.contextualVerifiedEdit(redo,
+                            mKeyboardSwitcher.getKeyboardShiftMode());
+                    if (tx != null) updateStateAfterInputTransaction(tx);
+                });
+    }
+
+    /** Voice failure occupies the same strip slot, never the footer or an extra button. */
+    public void clearVoiceRetryAccessory() {
+        if (mSuggestionStripView == null) return;
+        mSuggestionStripView.clearEditorAccessoryIfLabel(R.string.board_context_voice_retry);
+        mSuggestionStripView.clearEditorAccessoryIfLabel(R.string.board_context_voice_reinsert);
+    }
+
+    public void showVoiceRetryAccessory(final String recoverableText) {
+        if (mSuggestionStripView == null || mInlineProviderViewActive || !isInputViewShown()
+                || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return;
+        final long epoch = editorGeneration();
+        final android.view.inputmethod.InputConnection ic = getCurrentInputConnection();
+        final int start = mInputLogic.mConnection.getExpectedSelectionStart();
+        final int end = mInputLogic.mConnection.getExpectedSelectionEnd();
+        if (start < 0 || start != end) return;
+        // Keep only the repository ID in the callback, not a second transcript.
+        long recoveredId = -1;
+        if (recoverableText != null && !recoverableText.isEmpty()) {
+            mClipboardHistoryManager.rememberFinalVoiceTranscript(recoverableText);
+            final java.util.List<helium314.keyboard.latin.voice.RecoveredTranscript> items =
+                    mClipboardHistoryManager.getRecoveredTranscripts();
+            if (!items.isEmpty() && items.get(0).getText().equals(recoverableText))
+                recoveredId = items.get(0).getId();
+        }
+        final long id = recoveredId;
+        mSuggestionStripView.showEditorAccessory(R.drawable.ic_board_mic,
+                id >= 0 ? R.string.board_context_voice_reinsert : R.string.board_context_voice_retry, () -> {
+                    if (epoch != editorGeneration() || ic != getCurrentInputConnection() ||
+                            !isInputViewShown() || mInlineProviderViewActive ||
+                            !mayUseTransientCorrectionMemory(mSettings.getCurrent()) ||
+                            mInputLogic.mConnection.getExpectedSelectionStart() != start ||
+                            mInputLogic.mConnection.getExpectedSelectionEnd() != end) return;
+                    if (id >= 0) {
+                        final helium314.keyboard.latin.voice.RecoveredTranscript item =
+                                mClipboardHistoryManager.getRecoveredTranscript(id);
+                        if (item != null) insertRecoveredVoiceText(item.getText());
+                    } else {
+                        mOfflineDictation.start(mInputView, false);
+                    }
+                });
+    }
+
+    private void updateSelectionToolsAccessory(final int start, final int end) {
+        if (mSuggestionStripView == null) return;
+        mSuggestionStripView.clearEditorAccessoryIfLabel(R.string.board_context_edit_selection);
+        clearVoiceRetryAccessory();
+        if (start < 0 || end <= start || end - start > 2048 || mInlineProviderViewActive
+                || !isInputViewShown() || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return;
+        final long epoch = editorGeneration();
+        final android.view.inputmethod.InputConnection ic = getCurrentInputConnection();
+        mSuggestionStripView.showEditorAccessory(R.drawable.ic_board_context_clean,
+                R.string.board_context_edit_selection, () -> {
+                    if (epoch == editorGeneration() && ic == getCurrentInputConnection()
+                            && isInputViewShown() && !mInlineProviderViewActive
+                            && mayUseTransientCorrectionMemory(mSettings.getCurrent())
+                            && mInputLogic.mConnection.getExpectedSelectionStart() == start
+                            && mInputLogic.mConnection.getExpectedSelectionEnd() == end) mTextTools.request();
+                });
+    }
     private final EditorSessionGeneration mEditorSessionGeneration = new EditorSessionGeneration();
 
     public static final class UIHandler extends LeakGuardHandlerWrapper<LatinIME> {
@@ -1763,6 +1845,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void cleanupInternalStateForFinishInput() {
+        if (mSuggestionStripView != null) mSuggestionStripView.clearEditorAccessory();
         mClipboardHistoryManager.releaseClipboardAccessory();
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
@@ -1807,9 +1890,13 @@ public class LatinIME extends InputMethodService implements
 
         // This call happens whether our view is displayed or not, but if it's not then
         final SettingsValues settingsValues = mSettings.getCurrent();
-        if (isInputViewShown()
+        final boolean userSelectionChanged = isInputViewShown()
                 && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
-                        composingSpanStart, composingSpanEnd, settingsValues)) {
+                        composingSpanStart, composingSpanEnd, settingsValues);
+        if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) {
+            updateSelectionToolsAccessory(newSelStart, newSelEnd);
+        }
+        if (userSelectionChanged) {
             // we don't want to update a manually set shift state if selection changed
             // towards one side
             // because this may end the manual shift, which is unwanted in case of shift +
@@ -2480,6 +2567,7 @@ public class LatinIME extends InputMethodService implements
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
+        if (mSuggestionStripView != null) mSuggestionStripView.clearEditorAccessory();
         mClipboardHistoryManager.onClipboardPrivacyBoundary();
         mClipboardHistoryManager.clearRecoveredTranscripts();
         mTextTools.dismiss();

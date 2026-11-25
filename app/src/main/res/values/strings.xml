@@ -522,6 +522,11 @@
     <string name="board_context_track">Open UPS tracking</string>
     <string name="board_context_extract">Extract useful details</string>
     <string name="board_context_contact">Create contact</string>
+    <string name="board_context_undo">Undo verified keyboard edit</string>
+    <string name="board_context_redo">Redo verified keyboard edit</string>
+    <string name="board_context_edit_selection">Edit selected text</string>
+    <string name="board_context_voice_retry">Retry offline dictation</string>
+    <string name="board_context_voice_reinsert">Insert recovered transcription</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="board_footer_action_removed">Removed</string>
     <string name="board_footer_action_retry">Voice failed</string>

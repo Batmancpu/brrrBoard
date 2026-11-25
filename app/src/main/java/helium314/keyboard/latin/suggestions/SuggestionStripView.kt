@@ -177,6 +177,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
     fun onNewEditorSession() {
+        clearEditorAccessory()
         clearClipboardAccessory()
         hasTypedInCurrentSession = false
         wordMorph.cancel(wordViews)
@@ -264,6 +265,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private var suggestedWords = SuggestedWords.getEmptyInstance()
     private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
     private var clipboardAccessory: ClipboardAccessoryView? = null
+    private var editorAccessory: ClipboardAccessoryView? = null
+    private var editorAccessoryLabel = 0
+    private var editorAccessoryExpiry: Runnable? = null
 
     private fun setAccessoryMargin(target: View, inset: Int) {
         val params = target.layoutParams as FrameLayout.LayoutParams
@@ -305,17 +309,71 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         isExternalSuggestionVisible = false
     }
 
-    private fun updateCompactAccessory(show: Boolean) {
-        val accessory = clipboardAccessory
-        if (accessory == null || !accessory.compact || accessory.retired) {
-            setPredictionAccessoryMargins(0)
-            return
+    /** Reuse the same compact slot, with no clipboard payload or second action. */
+    fun showEditorAccessory(iconId: Int, labelId: Int, callback: Runnable) {
+        clearEditorAccessory()
+        if (!isShown || isExternalSuggestionVisible || clipboardAccessory?.hasLiveChrome == true ||
+            toolbarContainer.isVisible || isAccessPointMenuShowing() ||
+            !ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width, resources.displayMetrics.density)) return
+        val binding = helium314.keyboard.latin.databinding.ClipboardSuggestionBinding.inflate(
+            LayoutInflater.from(context), suggestionsMiddleContainer, false)
+        val accessory = binding.root
+        val colors = Settings.getValues().mColors
+        accessory.configure(colors, "", false)
+        val icon = androidx.core.content.ContextCompat.getDrawable(context, iconId)?.mutate() ?: return
+        val size = 22.dpToPx(resources)
+        icon.setBounds(0, 0, size, size)
+        colors.setColor(icon, ColorType.SUGGESTION_AUTO_CORRECT)
+        binding.clipboardSuggestionChrome.apply {
+            setCompoundDrawablesRelative(icon, null, null, null)
+            contentDescription = resources.getString(labelId)
+            isVisible = true
+            setOnClickListener {
+                if (editorAccessory === accessory && accessory.isShown && accessory.hasLiveChrome) {
+                    clearEditorAccessory()
+                    callback.run()
+                }
+            }
         }
+        accessory.setCompactMode(true)
+        editorAccessory = accessory
+        editorAccessoryLabel = labelId
+        suggestionsMiddleContainer.addView(accessory, FrameLayout.LayoutParams(
+            LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        updateSuggestionContainersVisibility(true)
+        if (accessory.isVisible) accessory.reveal()
+        val expiry = Runnable { if (editorAccessory === accessory) clearEditorAccessory() }
+        editorAccessoryExpiry = expiry
+        postDelayed(expiry, 10_000L)
+    }
+
+    fun clearEditorAccessoryIfLabel(labelId: Int) {
+        if (editorAccessoryLabel == labelId) clearEditorAccessory()
+    }
+
+    fun clearEditorAccessory() {
+        val accessory = editorAccessory ?: return
+        editorAccessory = null
+        editorAccessoryLabel = 0
+        editorAccessoryExpiry?.let { removeCallbacks(it) }
+        editorAccessoryExpiry = null
+        suggestionsMiddleContainer.removeView(accessory)
+        accessory.retire()
+        updateSuggestionContainersVisibility(!toolbarContainer.isVisible)
+    }
+
+    private fun updateCompactAccessory(show: Boolean) {
+        val clip = clipboardAccessory
+        val edit = editorAccessory
         val fits = ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width,
             resources.displayMetrics.density)
-        val visible = show && fits && accessory.hasLiveChrome
-        accessory.isVisible = visible
-        setPredictionAccessoryMargins(if (visible) accessory.sideWidth else 0)
+        val clipVisible = show && fits && clip != null && clip.compact && clip.hasLiveChrome
+        if (clip?.compact == true) clip.isVisible = clipVisible
+        val editVisible = show && fits && !clipVisible && !isExternalSuggestionVisible && edit?.hasLiveChrome == true
+        edit?.isVisible = editVisible
+        if (editVisible) edit?.reveal()
+        setPredictionAccessoryMargins(if (clipVisible) clip?.sideWidth ?: 0
+            else if (editVisible) edit?.sideWidth ?: 0 else 0)
     }
     private var isPinnedToolbarDragActive = false
     private var isAccessPointMenuOpen = false
@@ -799,6 +857,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {
+        if (view != null) clearEditorAccessory()
         if (view is ClipboardAccessoryView && !view.retired && !addCloseButton) {
             val same = clipboardAccessory === view
             if (same && view.parent === suggestionsStrip && !view.compact) {
@@ -941,6 +1000,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     override fun onDetachedFromWindow() {
+        clearEditorAccessory()
         clearClipboardAccessory()
         wordMorph.cancel(wordViews)
         super.onDetachedFromWindow()
@@ -1205,7 +1265,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         return AccessoryPriorityPolicy.collapseUnusedHeader(
             settings.isSuggestionsEnabledPerUserSettings(),
             settings.isApplicationSpecifiedCompletionsOn(),
-            isExternalSuggestionVisible || clipboardAccessory?.hasLiveChrome == true,
+            isExternalSuggestionVisible || clipboardAccessory?.hasLiveChrome == true || editorAccessory?.hasLiveChrome == true,
             settings.mToolbarMode == ToolbarMode.TOOLBAR_KEYS ||
                 toolbarContainer.isVisible || isPinnedToolbarDragActive || isAccessPointMenuShowing())
     }
@@ -1235,18 +1295,19 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val allowPinnedKeys = toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.TOOLBAR_KEYS
         val providerOwned = isExternalSuggestionVisible && clipboardAccessory == null
         val allowSuggestions = providerOwned || toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.SUGGESTION_STRIP
-        val preferPinnedKeys = showSuggestions &&
+        val preferPinnedKeys = editorAccessory?.hasLiveChrome != true && showSuggestions &&
                 allowPinnedKeys &&
                 hasPinnedKeys &&
                 !isExternalSuggestionVisible &&
                 shouldPreferPinnedKeysOverPredictions()
         val showSuggestionContent = showSuggestions && allowSuggestions &&
                 !preferPinnedKeys &&
-                (isExternalSuggestionVisible || shouldShowSuggestionContent())
+                (isExternalSuggestionVisible || shouldShowSuggestionContent() || editorAccessory?.hasLiveChrome == true)
         val showChips = showSuggestionContent && !isExternalSuggestionVisible && shouldUseChipSuggestions()
         suggestionsStrip.isVisible = showSuggestionContent && !showChips
         suggestionsChipScroll.isVisible = showChips
-        updateCompactAccessory(showSuggestionContent && !isExternalSuggestionVisible && shouldShowSuggestionContent())
+        updateCompactAccessory(showSuggestionContent && !isExternalSuggestionVisible &&
+            (shouldShowSuggestionContent() || editorAccessory?.hasLiveChrome == true))
         pinnedKeys.isVisible = showSuggestions && allowPinnedKeys && !showSuggestionContent && hasPinnedKeys
     }
 

@@ -357,12 +357,28 @@ public final class InputLogic {
         if (mEditJournal.isEmpty()) return;
         mEditJournal.clear();
         mLatinIME.mHandler.removeCallbacks(mExpireEditJournal);
+        mLatinIME.clearVerifiedEditAccessory();
     }
     private void scheduleVerifiedEditExpiry(long now) {
         mLatinIME.mHandler.removeCallbacks(mExpireEditJournal);
         long delay = mEditJournal.nextExpiry(now);
         if (delay != Long.MAX_VALUE) mLatinIME.mHandler.postDelayed(mExpireEditJournal, delay);
     }
+    private void publishVerifiedEditAccessory(boolean redo) {
+        if (!mLatinIME.isInputViewShown() || !mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues())) return;
+        if (mEditJournal.next(redo, SystemClock.elapsedRealtime(), mLatinIME.editorGeneration(),
+                mLatinIME.getCurrentInputConnection()) != null) mLatinIME.showVerifiedEditAccessory(redo);
+    }
+
+    /** Contextual action never falls through to generic host undo/redo. */
+    public InputTransaction contextualVerifiedEdit(boolean redo, int shiftState) {
+        final SettingsValues values = Settings.getValues();
+        final InputTransaction tx = new InputTransaction(values,
+                Event.createSoftwareTextEvent("", redo ? KeyCode.REDO : KeyCode.UNDO, null),
+                SystemClock.uptimeMillis(), mSpaceState, shiftState);
+        return applyVerifiedEdit(redo, tx) ? tx : null;
+    }
+
     private boolean editContextMatches(android.view.inputmethod.InputConnection ic, String prefix, String value, String suffix) {
         try {
             return TextUtils.equals(prefix + value, ic.getTextBeforeCursor(EditorEditJournal.CONTEXT + value.length(),0))
@@ -399,6 +415,7 @@ public final class InputLogic {
                 } else clearVerifiedEdits();
             } finally { mConnection.endBatchEdit(); }
             mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+            publishVerifiedEditAccessory(false);
             return true;
         } catch (RuntimeException ignored) { clearVerifiedEdits(); return attempted; }
     }
@@ -439,6 +456,7 @@ public final class InputLogic {
                 } else clearVerifiedEdits();
             } finally { mConnection.endBatchEdit(); }
             mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
+            publishVerifiedEditAccessory(false);
             return true;
         } catch (RuntimeException ignored) { clearVerifiedEdits(); return attempted; }
     }
@@ -466,8 +484,10 @@ public final class InputLogic {
                 clearVerifiedEdits();return true;
             }
             mConnection.commitText(to,1);
-            if(editContextMatches(ic,e.prefix(),to,e.suffix())) mEditJournal.applied(redo);
-            else clearVerifiedEdits();
+            if(editContextMatches(ic,e.prefix(),to,e.suffix())) {
+                mEditJournal.applied(redo);
+                publishVerifiedEditAccessory(!redo);
+            } else clearVerifiedEdits();
             mSpaceState=SpaceState.NONE;
             tx.setDidAffectContents();tx.setRequiresUpdateSuggestions();
             tx.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);

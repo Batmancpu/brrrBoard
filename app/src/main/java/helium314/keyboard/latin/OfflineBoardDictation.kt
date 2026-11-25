@@ -87,6 +87,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             Toast.makeText(ime, message, Toast.LENGTH_LONG).show()
             return
         }
+        ime.clearVoiceRetryAccessory()
         val selectedEngine = OfflineVoiceEngine.forKeyboard(ime, modelPack)
         VoiceStopMetrics.begin(!Settings.getValues().mIncognitoModeEnabled)
         generation++
@@ -217,6 +218,9 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
                 if (incomplete) statusFooter?.showDictationError(R.string.board_voice_partial_transcript)
             } else if (validEditor) {
                 statusFooter?.showDictationError(R.string.board_voice_offline_failed)
+                // Never retry automatically or retain PCM. A noninserted valid final
+                // result can be recovered explicitly in the same still-safe editor.
+                ime.showVoiceRetryAccessory(phrase.takeIf { it.isNotBlank() && !containsDevanagari(it) })
             }
     }
 
@@ -283,9 +287,11 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
 
     private fun fail(message: Int) {
         val f = footer
+        val eligible = originalConnection?.let { sameEditor(it) } == true
         VoiceSessionCrashTrail.note(ime, "FAILED")
         cancel()
         f?.showDictationError(message)
+        if (eligible && message == R.string.board_voice_offline_failed) ime.showVoiceRetryAccessory(null)
     }
 
     private fun sameEditor(connection: InputConnection): Boolean =

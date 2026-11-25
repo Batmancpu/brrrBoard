@@ -1,18 +1,14 @@
 {
   "schema": 1,
-  "summary": "iOS dividers · contextual clipboard actions",
+  "summary": "Unified right-edge contextual editing and voice recovery",
   "changes": [
     {
-      "title": "Functional suggestion dividers",
-      "detail": "Restore the Chrome accessory divider and ordinary prediction/punctuation dividers with their previous theme-aware styling. Keep the two unwanted outer paste-strip bars absent. Confidence-mode behavior, compact geometry, actions and clipboard privacy remain unchanged."
+      "title": "Selection tools and verified Undo/Redo",
+      "detail": "Use the same animated right suggestion slot as Chrome for selected text and verified keyboard-owned undo/redo. Retain existing provider/clipboard priority and no generic host fallback."
     },
     {
-      "title": "Contextual action slot",
-      "detail": "Fresh unambiguous copies can reveal dialer, email, Maps or whitespace-cleaned paste in the same animated slot. Explicit taps only; original paste, Chrome, provider actions and privacy controls retained."
-    },
-    {
-      "title": "More contextual clipboard actions",
-      "detail": "Long-press Chrome to copy a cleaned link; long-press phone or email to open the contact editor. Fresh ISO dates open an all-day calendar draft, recognizable UPS codes open the carrier tracking page, copied all-caps prose can paste in sentence case, and mixed text can open a masked entity picker. All actions require explicit user interaction."
+      "title": "Offline voice recovery shortcut",
+      "detail": "A failed transcription can offer an explicit fresh retry or a recoverable final result in the same right slot, bound to the safe current editor and existing RAM-only recovery window. Never record automatically or retain audio."
     }
   ]
 }
