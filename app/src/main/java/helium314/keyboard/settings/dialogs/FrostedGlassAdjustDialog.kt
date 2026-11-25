@@ -33,6 +33,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.PlatformImeOptions
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import helium314.keyboard.latin.common.Constants
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
@@ -87,13 +92,8 @@ fun FrostedGlassAdjustDialog(
     val contentScrollState = rememberScrollState()
     val density = LocalDensity.current
 
-    // Retain an accessible deep-link for the legacy reflection-style shortcut.
-    LaunchedEffect(startAtHighlight) {
-        if (startAtHighlight) {
-            kotlinx.coroutines.delay(150)
-            contentScrollState.animateScrollTo(with(density) { 175.dp.roundToPx() })
-        }
-    }
+    // The previous reflection deep link opens the Surface tab directly.
+    var editorSection by remember { mutableIntStateOf(0) }
 
     var activeProfile by remember { mutableStateOf(if (helium314.keyboard.latin.utils.ResourceUtils.isNight(context.resources)) "dark" else "light") }
 
@@ -133,7 +133,7 @@ fun FrostedGlassAdjustDialog(
     var snapshot by remember { mutableStateOf(initialSnapshot) }
     var isSaved by remember { mutableStateOf(false) }
     var previewTouched by remember { mutableStateOf(false) }
-    // Edge reflection is previewed on the real open IME, and rolled back on Cancel.
+    // Edge reflection uses a transient renderer override; Cancel/process death writes nothing.
     val initialHighlightStyle = remember {
         prefs.getInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
             Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE).coerceIn(0, 3)
@@ -144,10 +144,8 @@ fun FrostedGlassAdjustDialog(
         selectedHighlightStyle = style.coerceIn(0, 3)
         if (selectedHighlightStyle == initialHighlightStyle && !previewTouched) return
         previewTouched = true
-        prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
-            selectedHighlightStyle).apply()
-        // RoundedKeyboardFrameView observes this preference and redraws
-        // only its specular edge; the keyboard is never dismissed/recreated.
+        KeyboardTheme.livePreviewHighlightStyle = selectedHighlightStyle
+        LatinIME.getInstance()?.requestFrostedLivePreviewRefresh()
     }
 
 
@@ -170,7 +168,7 @@ fun FrostedGlassAdjustDialog(
         LatinIME.getInstance()?.requestFrostedLivePreviewRefresh()
     }
 
-    fun writeSnapshotToPrefs(values: FrostedSettingsSnapshot) {
+    fun writeSnapshotToPrefs(values: FrostedSettingsSnapshot, wallpaperUri: String?) {
         prefs.edit()
             .putInt(Settings.PREF_FROSTED_BLUR_RADIUS, values.light.blurRadius)
             .putInt(Settings.PREF_FROSTED_KEY_TRANSPARENCY, values.light.keyTransparency)
@@ -189,6 +187,8 @@ fun FrostedGlassAdjustDialog(
             .putInt(Settings.PREF_FROSTED_ALPHABET_VIBRANCY_NIGHT, values.dark.alphabetVibrancy)
             .putFloat(Settings.PREF_FROSTED_DUST_ALPHA_NIGHT, values.dark.dustAlpha.coerceIn(1f, 10f))
             .putBoolean(Settings.PREF_FROSTED_DUST_ENABLED, values.dustEnabled)
+            .putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE, selectedHighlightStyle)
+            .also { editor -> if (wallpaperUri == null) editor.remove("pref_frosted_preview_wallpaper_uri") else editor.putString("pref_frosted_preview_wallpaper_uri", wallpaperUri) }
             .apply()
     }
 
@@ -224,17 +224,27 @@ fun FrostedGlassAdjustDialog(
     // 3. The Tab Switch Effect is now handled explicitly in the Tab onClick to prevent "redraw floods"
     // during the unmounting process.
 
-    DisposableEffect(Unit) {
-        onDispose {
-            helium314.keyboard.settings.SettingsActivity.isTopBarHidden = false
-            if (!isSaved) {
-                // Sliders were staged: only the temporarily previewed reflection
-                // style touched preferences. Never write all other keys on Cancel.
-                if (selectedHighlightStyle != initialHighlightStyle)
-                    prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
-                        initialHighlightStyle).apply()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                KeyboardTheme.livePreviewHighlightStyle = null
+                KeyboardTheme.themeOverride = null
+                KeyboardTheme.livePreviewValues = null
+                if (previewTouched) requestFinalFrostedSync()
+            } else if (event == Lifecycle.Event.ON_RESUME && previewTouched && !isSaved) {
+                KeyboardTheme.themeOverride = activeProfile
+                KeyboardTheme.livePreviewHighlightStyle = selectedHighlightStyle
+                applyLivePreview(if (activeProfile == "light") snapshot.light else snapshot.dark)
             }
-            
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            helium314.keyboard.settings.SettingsActivity.isTopBarHidden = false
+            // Nothing was persisted by a preview, including reflections.
+            KeyboardTheme.livePreviewHighlightStyle = null
+
             // Clear spoofing state
             KeyboardTheme.themeOverride = null
             KeyboardTheme.livePreviewValues = null
@@ -435,8 +445,17 @@ fun FrostedGlassAdjustDialog(
                                 .padding(bottom = 12.dp),
                             placeholder = { Text(stringResource(R.string.frosted_glass_test_input_title)) },
                             lineLimits = TextFieldLineLimits.SingleLine,
+                            keyboardOptions = KeyboardOptions(platformImeOptions = PlatformImeOptions(
+                                privateImeOptions = "${context.packageName}.${Constants.ImeOption.NO_PERSONALIZED_LEARNING}")),
                         )
 
+                        TabRow(selectedTabIndex = editorSection, containerColor = Color.Transparent) {
+                            listOf("Surface", "Keys", "Accent").forEachIndexed { index, name ->
+                                Tab(selected = editorSection == index, onClick = { editorSection = index }, text = { Text(name) })
+                            }
+                        }
+                        when (editorSection) {
+                            0 -> {
                         Text("Light & reflection", style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         Column(
@@ -595,21 +614,6 @@ fun FrostedGlassAdjustDialog(
                             )
                         }
 
-                        // Slider 2: Key Transparency
-                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                            Text(
-                                text = "${stringResource(R.string.pref_frosted_key_transparency_title)}: ${(100 * currentValues.keyTransparency / 255)}%",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            SettingsSlider(
-                                value = currentValues.keyTransparency.toFloat(),
-                                onValueChange = { newValue ->
-                                    updateCurrentProfile { it.copy(keyTransparency = newValue.toInt()) }
-                                },
-                                valueRange = 0f..255f
-                            )
-                        }
-
                         // Slider 3: Background Transparency
                         Column(modifier = Modifier.padding(vertical = 8.dp)) {
                             Text(
@@ -657,36 +661,6 @@ fun FrostedGlassAdjustDialog(
                             )
                         }
 
-                        // Slider 6: Special Key Vibrance
-                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                            Text(
-                                text = "${stringResource(R.string.pref_frosted_special_vibrancy_title)}: ${currentValues.specialVibrancy}%",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            SettingsSlider(
-                                value = currentValues.specialVibrancy.toFloat(),
-                                onValueChange = { newValue ->
-                                    updateCurrentProfile { it.copy(specialVibrancy = newValue.toInt()) }
-                                },
-                                valueRange = 0f..500f
-                            )
-                        }
-
-                        // Slider 7: Alphabet Key Vibrance
-                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                            Text(
-                                text = "${stringResource(R.string.pref_frosted_alphabet_vibrancy_title)}: ${currentValues.alphabetVibrancy}%",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            SettingsSlider(
-                                value = currentValues.alphabetVibrancy.toFloat(),
-                                onValueChange = { newValue ->
-                                    updateCurrentProfile { it.copy(alphabetVibrancy = newValue.toInt()) }
-                                },
-                                valueRange = 0f..500f
-                            )
-                        }
-
                         if (!Defaults.LIMIT_EXPENSIVE_RENDERING) {
                             Text("Surface detail", style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.padding(top = 18.dp, bottom = 4.dp))
@@ -725,6 +699,59 @@ fun FrostedGlassAdjustDialog(
                                     valueRange = 1f..10f,
                                     enabled = snapshot.dustEnabled
                                 )
+                            }
+                        }
+                            }
+                            1 -> {
+                        // Slider 2: Key Transparency
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Text(
+                                text = "${stringResource(R.string.pref_frosted_key_transparency_title)}: ${(100 * currentValues.keyTransparency / 255)}%",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            SettingsSlider(
+                                value = currentValues.keyTransparency.toFloat(),
+                                onValueChange = { newValue ->
+                                    updateCurrentProfile { it.copy(keyTransparency = newValue.toInt()) }
+                                },
+                                valueRange = 0f..255f
+                            )
+                        }
+
+                        // Slider 7: Alphabet Key Vibrance
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Text(
+                                text = "${stringResource(R.string.pref_frosted_alphabet_vibrancy_title)}: ${currentValues.alphabetVibrancy}%",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            SettingsSlider(
+                                value = currentValues.alphabetVibrancy.toFloat(),
+                                onValueChange = { newValue ->
+                                    updateCurrentProfile { it.copy(alphabetVibrancy = newValue.toInt()) }
+                                },
+                                valueRange = 0f..500f
+                            )
+                        }
+
+
+                            }
+                            2 -> {
+                        // Slider 6: Special Key Vibrance
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Text(
+                                text = "${stringResource(R.string.pref_frosted_special_vibrancy_title)}: ${currentValues.specialVibrancy}%",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            SettingsSlider(
+                                value = currentValues.specialVibrancy.toFloat(),
+                                onValueChange = { newValue ->
+                                    updateCurrentProfile { it.copy(specialVibrancy = newValue.toInt()) }
+                                },
+                                valueRange = 0f..500f
+                            )
+                        }
+
+
                             }
                         }
                     }
@@ -825,14 +852,7 @@ fun FrostedGlassAdjustDialog(
 
                             Button(
                                 onClick = {
-                                    writeSnapshotToPrefs(snapshot)
-                                    prefs.edit().putInt(Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
-                                        selectedHighlightStyle).apply()
-                                    if (selectedImageUri == null)
-                                        prefs.edit().remove("pref_frosted_preview_wallpaper_uri").apply()
-                                    else
-                                        prefs.edit().putString("pref_frosted_preview_wallpaper_uri",
-                                            selectedImageUri.toString()).apply()
+                                    writeSnapshotToPrefs(snapshot, selectedImageUri?.toString())
                                     isSaved = true
                                     onDismissRequest()
                                 },
@@ -846,7 +866,7 @@ fun FrostedGlassAdjustDialog(
                                 )
                             ) {
                                 Text(
-                                    text = stringResource(R.string.save),
+                                    text = "Apply",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold
                                 )

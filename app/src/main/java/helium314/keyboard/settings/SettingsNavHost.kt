@@ -2,6 +2,11 @@
 package helium314.keyboard.settings
 
 import helium314.keyboard.settings.screens.TypingSettingsHub
+import helium314.keyboard.settings.screens.KeyboardSettingsHub
+import helium314.keyboard.settings.screens.InteractionsSettingsHub
+import helium314.keyboard.settings.screens.ToolsSettingsHub
+import helium314.keyboard.settings.screens.TextToolsScreen
+import helium314.keyboard.settings.screens.ResetOnlyScreen
 import helium314.keyboard.settings.screens.AdvancedSettingsHub
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -150,8 +155,34 @@ fun SettingsNavHost(
                 onClickBack = ::goBack,
                 onClickTypingHub = { navController.navigate(SettingsDestination.TypingHub) },
                 onClickAdvancedHub = { navController.navigate(SettingsDestination.AdvancedHub) },
+                onClickKeyboardHub = { navController.navigate(SettingsDestination.KeyboardHub) },
+                onClickInteractionsHub = { navController.navigate(SettingsDestination.InteractionsHub) },
+                onClickToolsHub = { navController.navigate(SettingsDestination.ToolsHub) },
             )
         }
+        composable(SettingsDestination.KeyboardHub) { KeyboardSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
+        composable(SettingsDestination.InteractionsHub) { InteractionsSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
+        composable(SettingsDestination.ToolsHub) { ToolsSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
+        composable(SettingsDestination.GlassEditor) {
+            if (helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(LocalContext.current)) {
+                helium314.keyboard.settings.dialogs.FrostedGlassAdjustDialog(
+                    hazeState = remember { dev.chrisbanes.haze.HazeState() }, onDismissRequest = ::goBack)
+            } else AppearanceScreen(onClickBack = ::goBack, section = "glass")
+        }
+        composable(SettingsDestination.Glass) { AppearanceScreen(onClickBack = ::goBack, section = "glass") }
+        composable(SettingsDestination.Size) { AppearanceScreen(onClickBack = ::goBack, section = "size") }
+        composable(SettingsDestination.Lettering) { AppearanceScreen(onClickBack = ::goBack, section = "lettering") }
+        composable(SettingsDestination.Emoji) { AppearanceScreen(onClickBack = ::goBack, section = "emoji") }
+        composable(SettingsDestination.Motion) { AppearanceScreen(onClickBack = ::goBack, section = "motion") }
+        composable(SettingsDestination.KeySymbols) { KeysLayoutScreen(onClickBack = ::goBack, section = "keys") }
+        composable(SettingsDestination.GestureAssignments) { KeysLayoutScreen(onClickBack = ::goBack, section = "gestures") }
+        composable(SettingsDestination.Correction) { TextCorrectionScreen(onClickBack = ::goBack, section = "correction") }
+        composable(SettingsDestination.Suggestions) { TextCorrectionScreen(onClickBack = ::goBack, section = "suggestions") }
+        composable(SettingsDestination.Writing) { TextCorrectionScreen(onClickBack = ::goBack, section = "writing") }
+        composable(SettingsDestination.TextTools) { TextToolsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Reset) { ResetOnlyScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.Compatibility) { AdvancedSettingsScreen(onClickBack = ::goBack, section = "compatibility") }
+        composable(SettingsDestination.Diagnostics) { AboutScreen(onClickBack = ::goBack, section = "diagnostics") }
         composable(SettingsDestination.TypingHub) {
             TypingSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) })
         }
@@ -159,7 +190,7 @@ fun SettingsNavHost(
             AdvancedSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) })
         }
         composable(SettingsDestination.About) {
-            AboutScreen(onClickBack = ::goBack)
+            AboutScreen(onClickBack = ::goBack, section = "about")
         }
         composable(SettingsDestination.VersionHistory) {
             VersionHistoryScreen(onClickBack = ::goBack)
@@ -203,7 +234,7 @@ fun SettingsNavHost(
         composable(SettingsDestination.BrainDashboard) {
             BrainDashboardScreen(
                 onClickBack = ::goBack,
-                onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
+                onOpenCorrection = { navController.navigate(SettingsDestination.Correction) },
                 onOpenDetails = if (currentAuthorization) {
                     { navController.navigate(SettingsDestination.ProtectedBrain) }
                 } else null,
@@ -213,7 +244,7 @@ fun SettingsNavHost(
             if (currentAuthorization) BrainDashboardScreen(
                 onClickBack = ::goBack,
                 showDetailedStats = true,
-                onOpenCorrection = { navController.navigate(SettingsDestination.TextCorrection) },
+                onOpenCorrection = { navController.navigate(SettingsDestination.Correction) },
             ) else LaunchedEffect(Unit) {
                 if (!navController.popBackStack(SettingsDestination.Settings, false))
                     navController.navigate(SettingsDestination.Settings) { launchSingleTop = true }
@@ -281,6 +312,24 @@ fun SettingsNavHost(
 
 object SettingsDestination {
     const val Settings = "settings"
+    const val KeyboardHub = "keyboard_hub"
+    const val InteractionsHub = "interactions_hub"
+    const val ToolsHub = "tools_hub"
+    const val Glass = "glass_studio"
+    const val GlassEditor = "glass_editor"
+    const val Size = "keyboard_dimensions"
+    const val Lettering = "lettering_fonts"
+    const val Emoji = "emoji_settings"
+    const val KeySymbols = "keys_symbols"
+    const val GestureAssignments = "gesture_assignments"
+    const val Motion = "motion_settings"
+    const val Correction = "correction"
+    const val Suggestions = "suggestions"
+    const val Writing = "writing_conventions"
+    const val TextTools = "text_tools"
+    const val Reset = "reset_settings"
+    const val Compatibility = "compatibility"
+    const val Diagnostics = "diagnostics"
     const val TypingHub = "typing_hub"
     const val AdvancedHub = "advanced_hub"
     const val WelcomeWizard = "welcome_wizard"

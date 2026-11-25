@@ -58,6 +58,7 @@ import helium314.keyboard.latin.utils.getActivity
 @Composable
 fun AdvancedSettingsScreen(
     onClickBack: () -> Unit,
+    section: String = "legacy",
 ) {
     val prefs = LocalContext.current.prefs()
     val b = (LocalContext.current.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
@@ -78,8 +79,8 @@ fun AdvancedSettingsScreen(
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
-        title = stringResource(R.string.settings_screen_advanced),
-        settings = items
+        title = if (section == "compatibility") "Compatibility" else stringResource(R.string.settings_screen_advanced),
+        settings = if (section == "compatibility") items.filterNot { it in listOf(Settings.PREF_TIMESTAMP_FORMAT, Settings.PREF_URL_DETECTION, Settings.PREF_EMOJI_MAX_SDK) } else items
     )
 }
 
@@ -303,7 +304,7 @@ private fun Preview() {
     SettingsActivity.settingsContainer = SettingsContainer(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            AdvancedSettingsScreen { }
+            AdvancedSettingsScreen(onClickBack = {})
         }
     }
 }

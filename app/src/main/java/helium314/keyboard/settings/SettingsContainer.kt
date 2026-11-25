@@ -35,6 +35,11 @@ class SettingsContainer(context: Context) {
                 Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.Voice) }, description = it.description)
             }
         ),
+        SettingsDestination.Reset to listOf(
+            Setting(context, "reset_settings_page", R.string.brr_workspace_reset_title) {
+                Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.Reset) })
+            }
+        ),
         SettingsDestination.BrainDashboard to listOf(
             Setting(context, SettingsWithoutKey.BRAIN_PAGE, R.string.brr_brain_page_title, R.string.brr_brain_page_summary) {
                 Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.BrainDashboard) }, description = it.description)
@@ -52,6 +57,8 @@ class SettingsContainer(context: Context) {
         ),
     )
     private val list = sections.flatMap { it.second }
+    // Legacy cloud definitions stay compatible but are not public settings in the offline app.
+    private val hiddenSearchKeys = createCloudSettings(context).map { it.key }.toSet()
     private val routes = sections.flatMap { (route, settings) -> settings.map { it.key to route } }.toMap()
     private val map: Map<String, Setting> = HashMap<String, Setting>(list.size).apply {
         list.forEach {
@@ -63,7 +70,9 @@ class SettingsContainer(context: Context) {
     operator fun get(key: Any): Setting? = map[key]
 
     /** Context-aware destinations reuse the original preference objects without duplicating them. */
-    fun routeFor(key: String): String = when (key) {
+    fun routeFor(key: String): String = WorkspaceSettings.destination(key, originalRouteFor(key))
+
+    private fun originalRouteFor(key: String): String = when (key) {
         SettingsWithoutKey.VERSION_HISTORY -> SettingsDestination.VersionHistory
         SettingsWithoutKey.BACKUP_RESTORE -> SettingsDestination.Backup
         helium314.keyboard.latin.settings.Settings.PREF_ALWAYS_INCOGNITO_MODE,
@@ -93,22 +102,33 @@ class SettingsContainer(context: Context) {
     }
 
     fun breadcrumbFor(key: String): String = when (routeFor(key)) {
-        SettingsDestination.Appearance -> "Appearance · Glass & layout"
-        SettingsDestination.Keys -> "Typing · Keys & interactions"
-        SettingsDestination.Layouts -> "Typing · Languages & layouts"
-        SettingsDestination.Toolbar -> "Typing · Toolbar"
-        SettingsDestination.TextCorrection -> "Typing · Correction & suggestions"
-        SettingsDestination.GestureTyping -> "Typing · Swipe typing"
-        SettingsDestination.BrainDashboard -> "BR Brain"
-        SettingsDestination.Languages -> "Typing · Languages & layouts"
+        SettingsDestination.GlassEditor -> "Keyboard · Glass Studio"
+        SettingsDestination.Glass -> "Keyboard · Appearance & accent"
+        SettingsDestination.Size -> "Keyboard · Size & positioning"
+        SettingsDestination.Lettering -> "Keyboard · Lettering & fonts"
+        SettingsDestination.KeySymbols -> "Keyboard · Keys & symbols"
+        SettingsDestination.Layouts, SettingsDestination.Languages -> "Keyboard · Languages & layouts"
+        SettingsDestination.Correction -> "Typing & intelligence · Autocorrection"
+        SettingsDestination.Suggestions -> "Typing & intelligence · Predictions & suggestions"
+        SettingsDestination.Writing -> "Typing & intelligence · Writing conventions"
+        SettingsDestination.GestureTyping -> "Typing & intelligence · Swipe typing"
+        SettingsDestination.PersonalDictionaries -> "Typing & intelligence · Personal dictionary"
+        SettingsDestination.BrainDashboard -> "Typing & intelligence · BR Brain"
+        SettingsDestination.GestureAssignments -> "Interactions · Gesture assignments"
+        SettingsDestination.Motion -> "Interactions · Motion"
+        SettingsDestination.Sound -> "Interactions · Sound & haptics"
         SettingsDestination.Voice -> "Voice · On-device dictation"
-        SettingsDestination.Sound -> "Sound & haptics"
-        SettingsDestination.Clipboard -> "Clipboard · History"
-        SettingsDestination.Privacy -> "Privacy & security · Protected apps"
-        SettingsDestination.Backup -> "Advanced · Backup & restore"
-        SettingsDestination.About -> "More · About brrBoard"
-        SettingsDestination.VersionHistory -> "More · About brrBoard · Version history"
-        else -> "More · Advanced controls"
+        SettingsDestination.Toolbar -> "Tools · Toolbar"
+        SettingsDestination.Clipboard -> "Tools · Clipboard"
+        SettingsDestination.Emoji -> "Tools · Emoji"
+        SettingsDestination.TextTools -> "Tools · Text tools"
+        SettingsDestination.Privacy -> "Privacy & app profiles"
+        SettingsDestination.Backup -> "Manage brrBoard · Backup & restore"
+        SettingsDestination.Reset -> "Manage brrBoard · Reset settings"
+        SettingsDestination.Diagnostics -> "Manage brrBoard · Troubleshooting"
+        SettingsDestination.About -> "Manage brrBoard · About"
+        SettingsDestination.VersionHistory -> "Manage brrBoard · Version history"
+        else -> "Manage brrBoard · Compatibility"
     }
 
     // Offline, deterministic ranking. Matching aliases are scoped to known settings only.
@@ -119,7 +139,7 @@ class SettingsContainer(context: Context) {
         val matchedIntents = CONTEXT_INTENTS.filter { intent ->
             intent.terms.all { wanted -> queryTokens.any { tokenMatches(it, wanted) } }
         }
-        return list.mapNotNull { setting ->
+        return list.filterNot { it.key in hiddenSearchKeys }.mapNotNull { setting ->
             val title = normalize(setting.title)
             val description = normalize(setting.description.orEmpty())
             val category = normalize(breadcrumbFor(setting.key))
@@ -161,9 +181,9 @@ class SettingsContainer(context: Context) {
             "me", "my", "of", "on", "or", "please", "the", "this", "to", "want", "what", "with",
         )
         private val SEARCH_ALIASES = mapOf(
-            "glass" to SettingsDestination.Appearance,
-            "blur" to SettingsDestination.Appearance,
-            "frosted" to SettingsDestination.Appearance,
+            "glass" to SettingsDestination.Glass,
+            "blur" to SettingsDestination.Glass,
+            "frosted" to SettingsDestination.Glass,
             "haptic" to SettingsDestination.Sound,
             "vibrate" to SettingsDestination.Sound,
             "dnd" to SettingsDestination.Sound,
@@ -176,17 +196,17 @@ class SettingsContainer(context: Context) {
             "private" to SettingsDestination.Privacy,
             "incognito" to SettingsDestination.Privacy,
             "swipe" to SettingsDestination.GestureTyping,
-            "height" to SettingsDestination.Appearance,
+            "height" to SettingsDestination.Size,
             "clipboard" to SettingsDestination.Clipboard,
-            "reset settings" to SettingsDestination.Backup,
+            "reset settings" to SettingsDestination.Reset,
             "backup" to SettingsDestination.Backup,
         )
         private val CONTEXT_INTENTS = listOf(
-            ContextIntent(setOf("suggestion", "animation"), SettingsDestination.Appearance,
+            ContextIntent(setOf("suggestion", "animation"), SettingsDestination.Motion,
                 helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
-            ContextIntent(setOf("keyboard", "animation"), SettingsDestination.Appearance,
+            ContextIntent(setOf("keyboard", "animation"), SettingsDestination.Motion,
                 helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
-            ContextIntent(setOf("suggestion", "ios"), SettingsDestination.Appearance,
+            ContextIntent(setOf("suggestion", "ios"), SettingsDestination.Motion,
                 helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE),
             ContextIntent(setOf("smart", "emoji"), SettingsDestination.BrainDashboard),
             ContextIntent(setOf("emoji", "suggestion"), SettingsDestination.BrainDashboard),
@@ -195,7 +215,7 @@ class SettingsContainer(context: Context) {
             ContextIntent(setOf("voice", "clean"), SettingsDestination.Voice),
             ContextIntent(setOf("voice", "noise"), SettingsDestination.Voice),
             ContextIntent(setOf("typing", "private"), SettingsDestination.Privacy),
-            ContextIntent(setOf("settings", "reset"), SettingsDestination.Backup),
+            ContextIntent(setOf("settings", "reset"), SettingsDestination.Reset),
         )
         private val SETTING_SYNONYMS = mapOf(
             helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE to
@@ -205,7 +225,8 @@ class SettingsContainer(context: Context) {
                     "suggestions", "nextword", "smart", "contextual"),
             SettingsWithoutKey.VOICE_PAGE to
                 setOf("microphone", "speech", "transcription", "noise", "cleaning", "parakeet"),
-            SettingsWithoutKey.BACKUP_RESTORE to setOf("reset", "defaults", "restore", "backup"),
+            SettingsWithoutKey.BACKUP_RESTORE to setOf("restore", "backup"),
+            "reset_settings_page" to setOf("reset", "defaults"),
         )
 
         private fun normalize(value: String): String = Normalizer.normalize(

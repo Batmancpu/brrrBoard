@@ -51,6 +51,7 @@ import helium314.keyboard.settings.preferences.TextInputPreference
 @Composable
 fun TextCorrectionScreen(
     onClickBack: () -> Unit,
+    section: String = "legacy",
 ) {
     val prefs = LocalContext.current.prefs()
     val b = (LocalContext.current.getActivity() as? SettingsActivity)?.prefChanged?.collectAsState()
@@ -60,6 +61,7 @@ fun TextCorrectionScreen(
     val suggestionsVisible = Settings.readToolbarMode(prefs).let { it == ToolbarMode.SUGGESTION_STRIP || it == ToolbarMode.EXPANDABLE }
     val suggestionsEnabled = suggestionsVisible && prefs.getBoolean(Settings.PREF_SHOW_SUGGESTIONS, Defaults.PREF_SHOW_SUGGESTIONS)
     val gestureEnabled = JniUtils.sHaveGestureLib && prefs.getBoolean(Settings.PREF_GESTURE_INPUT, Defaults.PREF_GESTURE_INPUT)
+    var showPrecise by remember { mutableStateOf(false) }
     val items = listOf(
         R.string.settings_category_correction,
         Settings.PREF_BLOCK_POTENTIALLY_OFFENSIVE,
@@ -104,8 +106,25 @@ fun TextCorrectionScreen(
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
-        title = stringResource(R.string.settings_screen_correction),
-        settings = items
+        title = when (section) {
+            "correction" -> "Autocorrection"
+            "suggestions" -> "Predictions & suggestions"
+            "writing" -> "Writing conventions"
+            else -> stringResource(R.string.settings_screen_correction)
+        },
+        settings = if (section == "legacy") items else items.filter { item ->
+            item != null && item !is Int && helium314.keyboard.settings.WorkspaceSettings.correctionSection(item.toString()) == section &&
+                (section != "correction" || showPrecise || item !in listOf(Settings.PREF_AUTO_CORRECTION,
+                    Settings.PREF_AUTO_CORRECT_THRESHOLD, Settings.PREF_MORE_AUTO_CORRECTION)) &&
+                (section != "suggestions" || item !in listOf(Settings.PREF_SHOW_SUGGESTIONS, Settings.PREF_ALWAYS_SHOW_SUGGESTIONS))
+        },
+        header = {
+            if (section == "correction") {
+                CorrectionPresetControl { showPrecise = true }
+                Preference(name = if (showPrecise) "Hide custom correction controls" else "Custom correction controls",
+                    onClick = { showPrecise = !showPrecise })
+            } else if (section == "suggestions" && suggestionsVisible) SuggestionVisibilityControl()
+        }
     )
 }
 
@@ -337,7 +356,7 @@ private fun PreferencePreview() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            TextCorrectionScreen {  }
+            TextCorrectionScreen(onClickBack = {})
         }
     }
 }

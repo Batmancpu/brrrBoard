@@ -67,6 +67,10 @@ private constructor(val themeId: Int, @JvmField val mStyleId: Int) {
         @JvmStatic
         var livePreviewValues: FrostedLiveValues? = null
 
+        /** Transient Settings preview; never persisted before Apply. */
+        @Volatile
+        var livePreviewHighlightStyle: Int? = null
+
         @JvmStatic
         fun isDarkThemeActive(context: Context): Boolean {
             if (themeOverride == "dark") return true

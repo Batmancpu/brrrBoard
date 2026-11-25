@@ -44,6 +44,7 @@ import helium314.keyboard.settings.dialogs.ThreeButtonAlertDialog
 @Composable
 fun AppearanceScreen(
     onClickBack: () -> Unit,
+    section: String = "legacy",
 ) {
     val ctx = LocalContext.current
     val prefs = ctx.prefs()
@@ -100,8 +101,17 @@ fun AppearanceScreen(
 
     SearchSettingsScreen(
         onClickBack = onClickBack,
-        title = stringResource(R.string.settings_screen_appearance),
-        settings = items,
+        title = when (section) {
+            "glass" -> "Appearance & accent"
+            "size" -> "Size & positioning"
+            "lettering" -> "Lettering & fonts"
+            "emoji" -> "Emoji"
+            "motion" -> "Motion"
+            else -> stringResource(R.string.settings_screen_appearance)
+        },
+        settings = if (section == "legacy") items else items.filter { item ->
+            item != null && item !is Int && item != "adjust_frosted_glass_dialog" && helium314.keyboard.settings.WorkspaceSettings.appearanceSection(item.toString()) == section
+        } + if (section == "emoji") listOf(Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, Settings.PREF_EMOJI_MAX_SDK, Settings.PREF_ABC_AFTER_EMOJI) else emptyList(),
         header = { KeyboardTryoutCard() }
     )
 }
@@ -335,7 +345,7 @@ private fun Preview() {
     initPreview(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            AppearanceScreen { }
+            AppearanceScreen(onClickBack = {})
         }
     }
 }

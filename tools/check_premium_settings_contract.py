@@ -30,7 +30,14 @@ assert not re.search(r"(?m)^\s*QuickSetupCard\(", HOME), "Finished-setup card st
 assert "brandIcon = true" in HOME and "mangoloads_brand_small" in HOME
 assert "SettingsWithoutKey.SETUP_WIZARD" in ABOUT
 assert "Settings.PREF_SECURE_APPS" in FOCUSED and "Settings.PREF_ENABLE_CLIPBOARD_HISTORY" in FOCUSED
-assert "Settings.PREF_SOUND_ON" in FOCUSED and "SettingsWithoutKey.BACKUP_RESTORE" in FOCUSED
+ADAPTERS = (SETTINGS / "screens/FunctionalControlAdapters.kt").read_text()
+assert "Settings.PREF_SOUND_ON" in ADAPTERS and "Settings.PREF_VIBRATE_ON" in ADAPTERS
+assert "SettingsWithoutKey.BACKUP_RESTORE" in FOCUSED
+for name in ("KeyboardHub", "InteractionsHub", "ToolsHub", "GlassEditor", "Size", "Correction", "Suggestions", "Writing", "TextTools", "Reset", "Diagnostics", "Compatibility"):
+    assert f"composable(SettingsDestination.{name})" in NAV, name
+assert "livePreviewHighlightStyle = selectedHighlightStyle" in GLASS
+assert "KeyboardTheme.livePreviewHighlightStyle = null" in GLASS
+assert "WorkspaceSettings.destination(key, originalRouteFor(key))" in SEARCH
 assert "fun breadcrumbFor" in SEARCH and "fun routeFor" in SEARCH
 assert "import helium314.keyboard.latin.R" in SEARCH, "Resource ID use requires generated R import"
 assert "inJustDecodeBounds = true" in GLASS and "inSampleSize = sample" in GLASS

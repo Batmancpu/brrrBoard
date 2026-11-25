@@ -62,13 +62,13 @@ import kotlinx.coroutines.withContext
  *  No migration, duplicate store, or change to how the typing engine reads a preference.
  */
 @Composable
-fun KeysLayoutScreen(onClickBack: () -> Unit) {
+fun KeysLayoutScreen(onClickBack: () -> Unit, section: String = "legacy") {
     val ctx = LocalContext.current
     val prefs = ctx.prefs()
     val change by (ctx.getActivity() as SettingsActivity).prefChanged.collectAsState()
     val subtypes = remember(change) { SubtypeSettings.getEnabledSubtypes(true) }
     val languagesWithLocalNumbers = setOf("ar", "bn", "fa", "gu", "hi", "kn", "mr", "ne", "ur")
-    SearchSettingsScreen(onClickBack, "Keys & layout", listOf(
+    val items = listOf(
         SettingsWithoutKey.SECONDARY_LAYOUTS_PAGE,
         R.string.settings_category_additional_keys,
         Settings.PREF_SHOW_NUMBER_ROW,
@@ -102,7 +102,10 @@ fun KeysLayoutScreen(onClickBack: () -> Unit) {
         Settings.PREF_ABC_AFTER_CLIP,
         Settings.PREF_CUSTOM_CURRENCY_KEY,
         Settings.PREF_MORE_POPUP_KEYS,
-    ))
+    )
+    SearchSettingsScreen(onClickBack, if (section == "gestures") "Gesture assignments" else "Keys & symbols",
+        if (section == "legacy") items else items.filter { item -> item != null && item !is Int && helium314.keyboard.settings.WorkspaceSettings.keysSection(item.toString()) == section },
+        footer = { if (section == "gestures") EditingGestureControls() })
 }
 
 @Composable
@@ -112,15 +115,9 @@ fun SoundFeedbackScreen(onClickBack: () -> Unit) {
     val change by (ctx.getActivity() as SettingsActivity).prefChanged.collectAsState()
     // Read change so dependent options appear/disappear as a parent toggle changes.
     val vibrationEnabled = remember(change) { prefs.getBoolean(Settings.PREF_VIBRATE_ON, Defaults.PREF_VIBRATE_ON) }
-    val soundEnabled = remember(change) { prefs.getBoolean(Settings.PREF_SOUND_ON, Defaults.PREF_SOUND_ON) }
     SearchSettingsScreen(onClickBack, "Sound & haptics", listOf(
-        R.string.settings_category_input,
-        if (AudioAndHapticFeedbackManager.getInstance().hasVibrator()) Settings.PREF_VIBRATE_ON else null,
-        if (vibrationEnabled) Settings.PREF_VIBRATION_DURATION_SETTINGS else null,
-        if (vibrationEnabled) Settings.PREF_IMPORTANT_HAPTICS_IN_DND else null,
-        Settings.PREF_SOUND_ON,
-        if (soundEnabled) Settings.PREF_KEYPRESS_SOUND_VOLUME else null,
-    ))
+        if (vibrationEnabled && AudioAndHapticFeedbackManager.getInstance().hasVibrator()) Settings.PREF_IMPORTANT_HAPTICS_IN_DND else null,
+    ), header = { FeedbackIntensityControls() })
 }
 
 @Composable
@@ -155,15 +152,9 @@ fun ClipboardSettingsScreen(onClickBack: () -> Unit) {
         if (historyOn) Settings.PREF_CLIPBOARD_HISTORY_RETENTION_TIME else null,
         if (historyOn) Settings.PREF_CLIPBOARD_HISTORY_PINNED_FIRST else null,
         Settings.PREF_SUGGEST_CLIPBOARD_CONTENT,
-    ), footer = {
-        if (historyOn) Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Voice recovery", style = MaterialTheme.typography.titleMedium)
-                Text("The last dictation stays in memory for 60 seconds. Never saved to clipboard history storage.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        Settings.PREF_ABC_AFTER_CLIP,
+    ), header = { if (historyOn) ClipboardRetentionPresets() }, footer = {
+        Column(Modifier.padding(horizontal = 16.dp)) { ClipboardTextVaultControls() }
     })
 }
 
@@ -176,20 +167,41 @@ private fun hasScreenshotFolderAccess(context: Context): Boolean {
 }
 
 @Composable
-fun PrivacySettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
-    onClickBack, "Privacy & protected apps", listOf(
+fun PrivacySettingsScreen(onClickBack: () -> Unit) {
+    val prefs = LocalContext.current.prefs()
+    val change by (LocalContext.current.getActivity() as SettingsActivity).prefChanged.collectAsState()
+    val learning = remember(change) { prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS) }
+    SearchSettingsScreen(onClickBack, "Privacy & app profiles", listOf(
         Settings.PREF_ALWAYS_INCOGNITO_MODE,
         Settings.PREF_SECURE_APPS,
         Settings.PREF_KEY_USE_PERSONALIZED_DICTS,
         Settings.PREF_USE_CONTACTS,
         Settings.PREF_USE_APPS,
-    )
-)
+        Settings.PREF_SAVE_SUBTYPE_PER_APP,
+        if (learning) Settings.PREF_ADD_TO_PERSONAL_DICTIONARY else null,
+        SettingsWithoutKey.CLEAR_LEARNED_TYPING_HISTORY,
+    ), footer = { Text("Per-app override details remain in the protected BR Brain dashboard.", Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall) })
+}
 
 @Composable
 fun BackupSettingsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
     onClickBack, "Backup & restore", listOf(SettingsWithoutKey.BACKUP_RESTORE),
-    footer = { ResetSettingsControl() },
+)
+
+@Composable
+internal fun ResetOnlyScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
+    onClickBack, "Reset settings", emptyList(), footer = { ResetSettingsControl() },
+)
+
+@Composable
+internal fun TextToolsScreen(onClickBack: () -> Unit) = SearchSettingsScreen(
+    onClickBack, "Text tools", listOf(Settings.PREF_TIMESTAMP_FORMAT, Settings.PREF_URL_DETECTION),
+    footer = {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextTemplateControls()
+            TextReplacementControls()
+        }
+    },
 )
 
 @Composable
@@ -216,7 +228,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    SearchSettingsScreen(onClickBack, "Offline voice", emptyList()) {
+    SearchSettingsScreen(onClickBack, "Voice", emptyList()) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
@@ -224,6 +236,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("On-device dictation", style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold)
+                    Text(if (ctx.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) "Microphone permission granted" else "Microphone permission needed when recording", style = MaterialTheme.typography.bodySmall)
                     Text(selected?.let { "Keyboard model: ${modelTitle(it)}" }
                         ?: "No verified offline model is installed",
                         style = MaterialTheme.typography.titleMedium)
@@ -265,7 +278,7 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Text("Keyboard transcription model", style = MaterialTheme.typography.titleMedium,
+            Text("Offline models", style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold)
             if (installed.isEmpty()) {
                 Text("Voice models stay in private app storage. Lightweight updates do not bundle model weights.",
@@ -344,6 +357,11 @@ fun VoiceSettingsScreen(onClickBack: () -> Unit) {
                 }
             }
 
+            SettingsActivity.settingsContainer[SettingsWithoutKey.INLINE_VOICE]?.Preference()
+            SettingsActivity.settingsContainer[SettingsWithoutKey.VOICE_SERVICE]?.Preference()
+            VoiceTestField()
+            Text("Voice recovery", style = MaterialTheme.typography.titleMedium)
+            Text("Last dictation is kept in RAM for 60 seconds; never saved to clipboard storage.", style = MaterialTheme.typography.bodySmall)
             installMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
             if (ultraBundled && UltraVoiceModelManifest.pack !in installed) {
                 Button(onClick = {

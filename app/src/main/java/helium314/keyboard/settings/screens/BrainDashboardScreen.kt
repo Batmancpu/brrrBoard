@@ -106,19 +106,7 @@ fun BrainDashboardScreen(
                     }) { Text("Reset") } },
                     dismissButton = { OutlinedButton(onClick = { eraseAdaptive = false }) { Text("Cancel") } })
                 Text("Per-app profile details are available in the protected BR Brain dashboard.", style = MaterialTheme.typography.bodySmall)
-                var showManualControls by remember { mutableStateOf(false) }
-                OutlinedButton(onClick = { showManualControls = !showManualControls },
-                    modifier = Modifier.fillMaxWidth()) {
-                    Text(if (showManualControls) "Hide manual controls" else "Manual controls")
-                }
-                if (showManualControls) {
-                    Text("Optional configuration. Automatic phrase and replacement learning and default text encryption are not yet implemented.",
-                        style = MaterialTheme.typography.bodySmall)
-                    TextTemplateControls()
-                    TextReplacementControls()
-                    ClipboardTextVaultControls()
-                    EditingGestureControls()
-                }
+                Text("Templates and replacements are under Tools. Editing gestures are under Interactions.", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = onOpenCorrection, modifier = Modifier.fillMaxWidth()) {
                     Text("Correction & suggestion controls")
                 }

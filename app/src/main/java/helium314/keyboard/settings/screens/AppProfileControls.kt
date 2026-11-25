@@ -102,10 +102,12 @@ internal fun AppProfileControls() {
 }
 
 @Composable private fun ProfileChoice(label: String, value: Boolean?, change: (Boolean?) -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, Modifier.weight(1f))
-        TextButton(onClick = { change(when(value) { null -> true; true -> false; false -> null }) }) {
-            Text(when(value) { null -> "Inherit"; true -> "On"; false -> "Off" })
+    Column {
+        Text(label)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(null to "Inherit", true to "On", false to "Off").forEach { (choice, name) ->
+                FilterChip(selected = value == choice, onClick = { change(choice) }, label = { Text(name) })
+            }
         }
     }
 }

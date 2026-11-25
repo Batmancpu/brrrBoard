@@ -254,10 +254,10 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
 
         val isDark = KeyboardTheme.isDarkThemeActive(context)
         val baseAlpha = if (isDark) 0x52 else 0x30
-        val style = context.prefs().getInt(
+        val style = (KeyboardTheme.livePreviewHighlightStyle ?: context.prefs().getInt(
             Settings.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE,
             Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE
-        ).coerceIn(0, 3)
+        )).coerceIn(0, 3)
 
         // Every style is an OPEN reflection, never a border around the slab.
         // Fade out before the very left/right edges so the specular reflection

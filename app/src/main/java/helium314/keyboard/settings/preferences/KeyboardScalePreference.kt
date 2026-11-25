@@ -5,6 +5,16 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import helium314.keyboard.latin.settings.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -93,11 +103,23 @@ private fun KeyboardScaleDialog(
     val ctx = LocalContext.current
     var checked by remember { mutableStateOf(dimensions.map { FoldableUtils.isFoldable || !it.contains(foldedString) }) }
     val prefs = ctx.prefs()
-    val done = remember { mutableMapOf<String, () -> Unit>() }
+    val original = remember(keys) { keys.mapIndexed { index, key -> prefs.getFloat(key, defaultValues[index]).let { if (it.isFinite()) it.coerceIn(range) else defaultValues[index].coerceIn(range) } } }
+    var draft by remember(keys) { mutableStateOf(original) }
 
     ThreeButtonAlertDialog(
         onDismissRequest = onDismissRequest,
-        onConfirmed = { done.values.forEach { it.invoke() }; onDone() },
+        onConfirmed = {
+            if (draft != original) {
+                prefs.edit {
+                    draft.forEachIndexed { index, value ->
+                        if (value != original[index]) {
+                            if (value == defaultValues[index]) remove(keys[index]) else putFloat(keys[index], value)
+                        }
+                    }
+                }
+                onDone()
+            }
+        },
         modifier = modifier,
         title = title,
         content = {
@@ -116,23 +138,19 @@ private fun KeyboardScaleDialog(
                         }
                     }
                     variants.forEachIndexed { i, variant ->
-                        val key = keys[i]
-                        var sliderPosition by remember { mutableFloatStateOf(prefs.getFloat(key, defaultValues[i])) }
-                        if (!done.contains(variant))
-                            done[variant] = {
-                                if (sliderPosition == defaultValues[i])
-                                    prefs.edit { remove(key) }
-                                else
-                                    prefs.edit { putFloat(key, sliderPosition) }
-                            }
+                        val sliderPosition = draft[i]
+                        fun setPosition(value: Float) {
+                            draft = draft.mapIndexed { index, old -> if (index == i) value.coerceIn(range) else old }
+                        }
                         val forbiddenDimensions = dimensions.filterIndexed { index, _ -> !checked[index] }
                         val visible = variant.split(SPLIT).none { it in forbiddenDimensions }
                         // default animations make the dialog flash (see also DictionaryDialog)
                         AnimatedVisibility(visible, exit = fadeOut(), enter = fadeIn()) {
                             WithSmallTitle(variant.ifEmpty { stringResource(R.string.button_default) }) {
+                                GeometryDragPreview(baseKey, sliderPosition, range, ::setPosition)
                                 SettingsSlider(
                                     value = sliderPosition,
-                                    onValueChange = { sliderPosition = it },
+                                    onValueChange = ::setPosition,
                                     valueRange = range,
                                 )
                                 Row(
@@ -141,7 +159,7 @@ private fun KeyboardScaleDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(positionString(sliderPosition))
-                                    TextButton({ sliderPosition = defaultValues[i] }) { Text(stringResource(R.string.button_default)) }
+                                    TextButton({ setPosition(defaultValues[i]) }) { Text(stringResource(R.string.button_default)) }
                                 }
                                 Spacer(Modifier.height(6.dp))
                             }
@@ -151,6 +169,61 @@ private fun KeyboardScaleDialog(
             }
         },
     )
+}
+
+/** Schematic direct manipulation shares the exact precision slider draft.
+ *  The existing IME tryout shows the real geometry after Apply; never writes during drag. */
+@Composable
+private fun GeometryDragPreview(baseKey: String, value: Float, range: ClosedFloatingPointRange<Float>, onChange: (Float) -> Unit) {
+    val horizontal = baseKey == Settings.PREF_SIDE_PADDING_SCALE_PREFIX || baseKey == Settings.PREF_SPLIT_SPACER_SCALE_PREFIX
+    val current by rememberUpdatedState(value)
+    val change by rememberUpdatedState(onChange)
+    val accent = MaterialTheme.colorScheme.primary
+    val panel = MaterialTheme.colorScheme.surfaceVariant
+    val keyColor = MaterialTheme.colorScheme.surface
+    val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
+    Text(if (horizontal) "Drag the side handle or use the slider" else "Drag the top handle or use the slider",
+        style = MaterialTheme.typography.labelSmall)
+    Canvas(Modifier.fillMaxWidth().height(108.dp)
+        .semantics { contentDescription = "Keyboard geometry preview; precise adjustment available below" }
+        .pointerInput(baseKey, range) {
+            var start = 0f
+            var distance = 0f
+            detectDragGestures(onDragStart = { start = current; distance = 0f }) { pointer, delta ->
+                pointer.consume()
+                distance += if (horizontal) delta.x else -delta.y
+                val length = (if (horizontal) size.width else size.height).coerceAtLeast(1)
+                change((start + distance / length * (range.endInclusive - range.start)).coerceIn(range))
+            }
+        }) {
+        val outerPad = if (baseKey == Settings.PREF_SIDE_PADDING_SCALE_PREFIX) size.width * (.04f + .24f * fraction) else size.width * .04f
+        val top = if (baseKey == Settings.PREF_KEYBOARD_HEIGHT_SCALE_PREFIX) size.height * (.45f - .4f * fraction) else size.height * .07f
+        val bottom = size.height * (if (baseKey == Settings.PREF_BOTTOM_PADDING_SCALE_PREFIX) .03f + .35f * fraction else .03f)
+        val h = (size.height - top - bottom).coerceAtLeast(1f)
+        val w = (size.width - 2 * outerPad).coerceAtLeast(1f)
+        drawRoundRect(panel, Offset(outerPad, top), Size(w, h), CornerRadius(10.dp.toPx()))
+        val gap = 3.dp.toPx()
+        val split = if (baseKey == Settings.PREF_SPLIT_SPACER_SCALE_PREFIX) w * (.025f + .18f * fraction) else 0f
+        val bottomFraction = if (baseKey == Settings.PREF_BOTTOM_ROW_SCALE_PREFIX) .14f + .24f * fraction else .24f
+        val rowH = h * (1f - bottomFraction) / 3f
+        repeat(3) { row ->
+            val count = 10 - row
+            val cell = ((w - split) / count).coerceAtLeast(1f)
+            repeat(count) { column ->
+                val left = outerPad + column * cell + (if (column >= count / 2) split else 0f) + gap / 2
+                drawRoundRect(keyColor, Offset(left, top + row * rowH + gap / 2),
+                    Size((cell - gap).coerceAtLeast(1f), (rowH - gap).coerceAtLeast(1f)), CornerRadius(4.dp.toPx()))
+            }
+        }
+        drawRoundRect(keyColor, Offset(outerPad + w * .2f, top + rowH * 3 + gap / 2),
+            Size(w * .6f, (h * bottomFraction - gap).coerceAtLeast(1f)), CornerRadius(4.dp.toPx()))
+        if (horizontal) drawRoundRect(accent, Offset(if (baseKey == Settings.PREF_SPLIT_SPACER_SCALE_PREFIX) outerPad + w / 2 + split / 2 else outerPad, top + h * .34f), Size(4.dp.toPx(), h * .32f), CornerRadius(2.dp.toPx()))
+        else drawRoundRect(accent, Offset(outerPad + w * .42f, when (baseKey) {
+            Settings.PREF_BOTTOM_ROW_SCALE_PREFIX -> top + rowH * 3
+            Settings.PREF_BOTTOM_PADDING_SCALE_PREFIX -> top + h - 4.dp.toPx()
+            else -> top
+        }), Size(w * .16f, 4.dp.toPx()), CornerRadius(2.dp.toPx()))
+    }
 }
 
 @Composable

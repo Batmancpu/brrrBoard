@@ -4,6 +4,9 @@ package helium314.keyboard.settings.screens
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
+import helium314.keyboard.latin.utils.SafeCrashReport
 import android.content.Intent
 import android.provider.Settings as AndroidSettings
 import android.text.method.LinkMovementMethod
@@ -50,6 +53,7 @@ import java.util.Locale
 @Composable
 fun AboutScreen(
     onClickBack: () -> Unit,
+    section: String = "legacy",
 ) {
     val items = listOf(
         SettingsWithoutKey.APP,
@@ -70,8 +74,22 @@ fun AboutScreen(
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
-        title = stringResource(R.string.settings_screen_about),
-        settings = items
+        title = if (section == "diagnostics") "Troubleshooting" else stringResource(R.string.settings_screen_about),
+        settings = when (section) {
+            "diagnostics" -> items.filter { it in helium314.keyboard.settings.WorkspaceSettings.diagnosticKeys }
+            "about" -> items.filterNot { it in helium314.keyboard.settings.WorkspaceSettings.diagnosticKeys || it == SettingsWithoutKey.INLINE_VOICE || it == SettingsWithoutKey.VOICE_SERVICE || it == SettingsWithoutKey.VERSION_HISTORY }
+            else -> items
+        },
+        footer = {
+            if (section == "diagnostics") {
+                val context = LocalContext.current
+                Preference(name = "Copy safe crash report", description = "Code frames and crash type only", onClick = {
+                    context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(
+                        ClipData.newPlainText("brrBoard safe crash report", SafeCrashReport.copyText(context)))
+                    Toast.makeText(context, "Safe report copied", Toast.LENGTH_SHORT).show()
+                })
+            }
+        }
     )
 }
 
@@ -294,7 +312,7 @@ private fun Preview() {
     SettingsActivity.settingsContainer = SettingsContainer(LocalContext.current)
     Theme(previewDark) {
         Surface {
-            AboutScreen {  }
+            AboutScreen(onClickBack = {})
         }
     }
 }

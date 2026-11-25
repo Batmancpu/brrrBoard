@@ -3,6 +3,15 @@ package helium314.keyboard.settings.screens
 
 import android.content.Context
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import helium314.keyboard.latin.common.Constants.Separators
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -63,7 +72,27 @@ fun ToolbarScreen(
     SearchSettingsScreen(
         onClickBack = onClickBack,
         title = stringResource(R.string.settings_screen_toolbar),
-        settings = items
+        settings = items,
+        header = {
+            if (toolbarMode != ToolbarMode.HIDDEN) {
+                val persistent = prefs.getString(Settings.PREF_PERSISTENT_TOOLBAR_KEY, Defaults.PREF_PERSISTENT_TOOLBAR_KEY)
+                fun enabled(key: String, fallback: String) = prefs.getString(key, fallback).orEmpty().split(Separators.ENTRY).mapNotNull { entry ->
+                    val pair = entry.split(Separators.KV)
+                    if (pair.last() == "true") runCatching { ToolbarKey.valueOf(pair.first()) }.getOrNull()?.takeIf { it.isAvailableInToolbarUi() } else null
+                }.distinct()
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Toolbar order", style = MaterialTheme.typography.titleMedium)
+                    enabled(Settings.PREF_TOOLBAR_KEYS, Defaults.PREF_TOOLBAR_KEYS).chunked(4).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { key -> Text(key.name.lowercase().getStringResourceOrName("", LocalContext.current), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall) } }
+                    }
+                    if (toolbarMode == ToolbarMode.EXPANDABLE || toolbarMode == ToolbarMode.TOOLBAR_KEYS) {
+                        Text("Pinned row", style = MaterialTheme.typography.titleMedium)
+                        Text(enabled(Settings.PREF_PINNED_TOOLBAR_KEYS, Defaults.PREF_PINNED_TOOLBAR_KEYS).filterNot { it.name == persistent }.take(MAX_PINNED_TOOLBAR_KEYS).joinToString(" · ") { it.name.lowercase().replace("_", " ") }.ifEmpty { "No pinned keys" })
+                    }
+                    Text("Use the toolbar and pinned keys editors below to reorder and enable actions.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
     )
 }
 

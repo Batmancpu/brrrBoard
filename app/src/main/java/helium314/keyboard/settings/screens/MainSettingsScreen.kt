@@ -158,6 +158,9 @@ fun MainSettingsScreen(
     onClickBack: () -> Unit,
     onClickTypingHub: () -> Unit = onClickTextCorrection,
     onClickAdvancedHub: () -> Unit = onClickAdvanced,
+    onClickKeyboardHub: () -> Unit = onClickAppearance,
+    onClickInteractionsHub: () -> Unit = onClickSound,
+    onClickToolsHub: () -> Unit = onClickToolbar,
 ) {
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -215,42 +218,22 @@ fun MainSettingsScreen(
             }
         }
 
-        Md3ePreferenceGroup("Personalization") {
-            Md3ePreference(icon = "psychology", title = "BR Brain",
-                onClick = onClickBrainDashboard, isFirst = true, isLast = true)
+        Md3ePreferenceGroup("Your keyboard") {
+            Md3ePreference("keyboard", "Keyboard", "Glass, size, keys, languages and fonts", onClickKeyboardHub, isFirst = true)
+            Md3ePreference("psychology", "Typing & intelligence", "Correction, predictions, swipe and BR Brain", onClickTypingHub)
+            Md3ePreference("graphic_eq", "Interactions", "Gestures, haptics, sound and motion", onClickInteractionsHub)
+            Md3ePreference("mic", "Voice",
+                if (offlineVoiceReady) "On-device dictation ready" else when (offlineInstallState) {
+                    VoiceModelInstaller.InstallState.INSTALLING -> "Preparing model · $offlineInstallPercent%"
+                    VoiceModelInstaller.InstallState.FAILED -> "Model unavailable"
+                    else -> "Models and microphone"
+                }, onClickVoice, isLast = true)
         }
-        Md3ePreferenceGroup("Your experience") {
-            Md3ePreference(icon = "palette", title = "Appearance",
-                onClick = onClickAppearance, isFirst = true)
-            Md3ePreference(icon = "keyboard", title = "Typing",
-                onClick = onClickTypingHub)
-            Md3ePreference(icon = "mic", title = "Voice",
-                description = if (offlineVoiceReady) "On-device dictation ready"
-                    else when (offlineInstallState) {
-                        VoiceModelInstaller.InstallState.INSTALLING -> "Preparing model · $offlineInstallPercent%"
-                        VoiceModelInstaller.InstallState.FAILED -> "Model unavailable"
-                        else -> "Model & microphone settings"
-                    }, onClick = onClickVoice)
-            Md3ePreference(icon = "content_paste", title = "Clipboard",
-                onClick = onClickClipboard)
-            Md3ePreference(icon = "graphic_eq", title = "Sound & haptics",
-                onClick = onClickSound, isLast = true)
-        }
-        Md3ePreferenceGroup("More control") {
-            Md3ePreference(icon = "shield", title = "Privacy & security",
-                onClick = onClickPrivacy, isFirst = true)
-            Md3ePreference(icon = "tune", title = "Advanced",
-                onClick = onClickAdvancedHub, isLast = true)
-        }
-
-        Md3ePreferenceGroup("About") {
-                Md3ePreference(
-                    icon = R.drawable.mangoloads_brand_small,
-                    title = "About brrBoard",
-                    onClick = onClickAbout,
-                    brandIcon = true,
-                    isLast = true,
-                )
+        Md3ePreferenceGroup("Tools & management") {
+            Md3ePreference("content_paste", "Tools", "Toolbar, clipboard, emoji and text tools", onClickToolsHub, isFirst = true)
+            Md3ePreference("shield", "Privacy & app profiles", "Personal learning, secure apps and permissions", onClickPrivacy)
+            Md3ePreference(R.drawable.mangoloads_brand_small, "Manage brrBoard",
+                "Updates, backup, resources and troubleshooting", onClickAdvancedHub, isLast = true, brandIcon = true)
         }
 
         Spacer(modifier = Modifier.height(24.dp))

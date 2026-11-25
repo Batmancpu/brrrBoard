@@ -1441,4 +1441,5 @@ New dictionary:
     <string name="copy_diagnostic_report_summary">Copy recent keyboard transition timings, icon visibility and safe crash details. No typed text or clipboard contents.</string>
     <string name="diagnostic_report_copied">Diagnostic report copied</string>
     <string name="diagnostic_report_copy_failed">Could not copy diagnostic report</string>
+    <string name="brr_workspace_reset_title">Reset settings</string>
 </resources>
