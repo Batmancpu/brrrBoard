@@ -155,6 +155,10 @@ SPDX-License-Identifier: Apache-2.0 AND GPL-3.0-only
     <queries>
         <!-- Explicit user-triggered clean-link navigation; no network permission. -->
         <package android:name="com.android.chrome" />
+        <!-- Scoped visibility for explicit contextual handoffs; no permissions. -->
+        <intent><action android:name="android.intent.action.DIAL"/><data android:scheme="tel"/></intent>
+        <intent><action android:name="android.intent.action.SENDTO"/><data android:scheme="mailto"/></intent>
+        <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="geo"/></intent>
         <!-- Verify the exact focused WhatsApp UID; no network or broad package permission. -->
         <package android:name="com.whatsapp" />
         <!-- Optional launch shortcut in password-only footer. No credentials passed. -->

@@ -14,6 +14,7 @@ import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import android.database.ContentObserver
 import helium314.keyboard.latin.suggestions.ClipboardAccessoryView
+import helium314.keyboard.latin.suggestions.ContextualAccessoryPolicy
 import helium314.keyboard.latin.brain.SmartPastePolicy
 import helium314.keyboard.latin.brain.SmartPasteLearning
 import android.net.Uri
@@ -1319,6 +1320,71 @@ class ClipboardHistoryManager(
                     val expire = Runnable {
                         if (clipboardSuggestionView === root) root.hideChrome()
                     }
+                    chromeExpiry = expire
+                    latinIME.mHandler.postDelayed(expire, remaining)
+                }
+            }
+        }
+
+        // Reuse the existing one-slot animation and strict copy receipt for other actions.
+        if (chrome.isGone && clip != null && !isOtp && !chromePrivate()) {
+            val action = ContextualAccessoryPolicy.choose(clip.content.toString(), dest)
+            val receipt = strictTextReceipt()
+            val remaining = if (receipt != null && receipt.timestamp == clip.timeStamp)
+                chromeRemaining(receipt.timestamp) else 0L
+            if (action != null && receipt != null && remaining > 0L) {
+                val (iconId, labelId) = when (action.kind) {
+                    ContextualAccessoryPolicy.Kind.DIAL -> R.drawable.ic_board_context_dial to R.string.board_context_dial
+                    ContextualAccessoryPolicy.Kind.MAIL -> R.drawable.ic_board_context_mail to R.string.board_context_mail
+                    ContextualAccessoryPolicy.Kind.MAP -> R.drawable.ic_board_context_map to R.string.board_context_map
+                    ContextualAccessoryPolicy.Kind.CLEAN_TEXT -> R.drawable.ic_board_context_clean to R.string.board_context_clean
+                }
+                val intent = when (action.kind) {
+                    ContextualAccessoryPolicy.Kind.DIAL -> Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", action.value, null))
+                    ContextualAccessoryPolicy.Kind.MAIL -> Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", action.value, null))
+                    ContextualAccessoryPolicy.Kind.MAP -> Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(action.value)))
+                    ContextualAccessoryPolicy.Kind.CLEAN_TEXT -> null
+                }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val available = intent == null || runCatching {
+                    intent.resolveActivity(latinIME.packageManager) != null
+                }.getOrDefault(false)
+                val icon = ContextCompat.getDrawable(latinIME, iconId)?.mutate()
+                if (available && icon != null) {
+                    val size = (22 * latinIME.resources.displayMetrics.density).toInt()
+                    icon.setBounds(0, 0, size, size)
+                    colors.setColor(icon, ColorType.SUGGESTION_AUTO_CORRECT)
+                    chrome.setCompoundDrawablesRelative(icon, null, null, null)
+                    chrome.contentDescription = latinIME.getString(labelId)
+                    chrome.isGone = false
+                    chrome.setOnClickListener {
+                        if (!chrome.isShown || clipboardSuggestionView !== root || root.retired ||
+                            !latinIME.isInputViewShown || chromePrivate() ||
+                            latinIME.editorGeneration() != editorEpoch ||
+                            latinIME.currentInputConnection !== connection ||
+                            chromeRemaining(receipt.timestamp) <= 0L ||
+                            strictTextReceipt() != receipt || currentTextSuggestionChanged(clip)) {
+                            root.hideChrome()
+                            return@setOnClickListener
+                        }
+                        chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
+                        chromeDeadline = 0L
+                        cancelChromeExpiry()
+                        root.hideChrome()
+                        if (intent != null) {
+                            try {
+                                latinIME.startActivity(intent)
+                            } catch (_: android.content.ActivityNotFoundException) {
+                                android.widget.Toast.makeText(latinIME, R.string.board_context_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                            } catch (_: SecurityException) {
+                                android.widget.Toast.makeText(latinIME, R.string.board_context_unavailable, android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else if (latinIME.insertSmartPasteEntity(action.value, editorEpoch, connection)) {
+                            markClipDismissed(clip)
+                            releaseClipboardAccessory()
+                            latinIME.mHandler.postResumeSuggestions(false)
+                        }
+                    }
+                    val expire = Runnable { if (clipboardSuggestionView === root) root.hideChrome() }
                     chromeExpiry = expire
                     latinIME.mHandler.postDelayed(expire, remaining)
                 }

@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "Restore iOS internal suggestion separators",
+  "summary": "iOS dividers · intelligent clipboard actions",
   "changes": [
     {
       "title": "Functional suggestion dividers",
       "detail": "Restore the Chrome accessory divider and ordinary prediction/punctuation dividers with their previous theme-aware styling. Keep the two unwanted outer paste-strip bars absent. Confidence-mode behavior, compact geometry, actions and clipboard privacy remain unchanged."
+    },
+    {
+      "title": "Contextual action slot",
+      "detail": "Fresh unambiguous copies can reveal dialer, email, Maps or whitespace-cleaned paste in the same animated slot. Explicit taps only; original paste, Chrome, provider actions and privacy controls retained."
     }
   ]
 }

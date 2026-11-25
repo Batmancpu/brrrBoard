@@ -511,6 +511,11 @@
     <string name="board_paste_verification_code">Paste verification code</string>
     <string name="board_chrome_open_clean_link">Open cleaned link in Chrome</string>
     <string name="board_chrome_unavailable">Unable to open Chrome</string>
+    <string name="board_context_dial">Open phone dialer</string>
+    <string name="board_context_mail">Compose email</string>
+    <string name="board_context_map">Open address in maps</string>
+    <string name="board_context_clean">Paste with extra spaces removed</string>
+    <string name="board_context_unavailable">No app available for this action</string>
     <string name="board_toolbar">Toolbar</string>
     <string name="board_footer_action_removed">Removed</string>
     <string name="board_footer_action_retry">Voice failed</string>
