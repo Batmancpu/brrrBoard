@@ -39,6 +39,17 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var compact = false
         private set
     var onAccessoryChanged: (() -> Unit)? = null
+    var prefersProminent = true
+    var isVerificationCode = false
+    private var intentEmphasized = false
+
+    fun updateIntentEmphasis(value: Boolean) {
+        if (retired || intentEmphasized == value || isVerificationCode) return
+        intentEmphasized = value
+        // Keep geometry and word tap targets stable; use a restrained state highlight.
+        paste.isSelected = value
+        paste.alpha = if (value) 1f else .94f
+    }
     private fun dp(value: Int) = (value * resources.displayMetrics.density + .5f).toInt()
     val sideWidth: Int get() = dp(42)
 

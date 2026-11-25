@@ -972,6 +972,16 @@ public final class RichInputConnection implements PrivateCommandPerformer {
         if (DEBUG_PREVIOUS_TEXT) checkConsistencyForDebug();
     }
 
+    /** Bounded main-thread snapshot only; never asks the host editor for more text. */
+    public String cachedSmartPasteSuffix() {
+        final int composing = mComposingText.length();
+        final int committed = mCommittedTextBeforeComposingText.length();
+        final int take = Math.min(96, composing);
+        final int before = Math.min(96 - take, committed);
+        return mCommittedTextBeforeComposingText.substring(committed-before)
+                + mComposingText.substring(composing-take);
+    }
+
     @NonNull
     public NgramContext getNgramContextFromNthPreviousWord(
             final SpacingAndPunctuations spacingAndPunctuations, final int n) {

@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Apple-inspired clipboard accessories · refined transitions",
+  "summary": "BR Brain · Smart Paste and verification codes",
   "changes": [
     {
-      "title": "A coherent suggestion strip",
-      "detail": "Independent adaptive paste and Chrome capsules, quieter dismissal, matching typography and domain-only previews."
+      "title": "Destination-aware Smart Paste",
+      "detail": "Bounded recognition and compatible entity choices with freshness, local phrase intent and category feedback."
     },
     {
-      "title": "Paste alongside typing",
-      "detail": "Fresh full actions survive idle prediction refreshes, then become compact beside centered words. Short accessory-only reveal. Neutral fallback restores a full action without resetting its expiry."
+      "title": "Copied verification codes",
+      "detail": "Temporary masked code action in recognized OTP fields; no code history or learning."
     },
     {
-      "title": "Privacy and stability",
-      "detail": "Original clipboard preserved; Chrome clean-on-tap and expiry unchanged. Explicit incognito and Autofill transitions revoke accessories."
+      "title": "Password-manager compatibility",
+      "detail": "Android inline Autofill remains exclusive and provider-owned. No SMS or notification access."
     }
   ]
 }

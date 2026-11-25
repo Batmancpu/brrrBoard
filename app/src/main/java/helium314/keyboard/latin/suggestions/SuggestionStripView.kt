@@ -656,7 +656,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         // Do not collapse a fresh full capsule before the user can see it.
         val accessory = clipboardAccessory
         if (accessory != null && !accessory.retired && !accessory.compact &&
-            ClipboardAccessoryPolicy.keepFullForIdle(hasTypedInCurrentSession, suggestions.mInputStyle)) return
+            (accessory.isVerificationCode || accessory.prefersProminent &&
+                ClipboardAccessoryPolicy.keepFullForIdle(hasTypedInCurrentSession, suggestions.mInputStyle))) return
         if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_UPDATE_BATCH ||
             suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH)
             hasTypedInCurrentSession = true

@@ -2399,6 +2399,37 @@ public class LatinIME extends InputMethodService implements
         });
     }
 
+    /** Clipboard ranking may inspect only the already-maintained editor cache, never IPC. */
+    public String cachedSmartPasteSuffix() {
+        return ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(),
+                mSettings.getCurrent().mIncognitoModeEnabled) ? "" : mInputLogic.mConnection.cachedSmartPasteSuffix();
+    }
+    public boolean smartPasteIsComposing() { return mInputLogic.getComposingLength() > 0; }
+
+    /** Explicit compatible entity insertion. Provider priority is absolute. */
+    public boolean insertSmartPasteEntity(final String text, final long epoch,
+            final android.view.inputmethod.InputConnection connection) {
+        if (text == null || text.isEmpty() || text.length() > 4096 || !isInputViewShown()
+                || mInlineProviderViewActive || connection == null || connection != getCurrentInputConnection()
+                || epoch != editorGeneration() || WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())
+                || ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(), mSettings.getCurrent().mIncognitoModeEnabled)
+                || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) return false;
+        mInputLogic.preparePrivateCredential();
+        if (connection != getCurrentInputConnection() || epoch != editorGeneration()
+                || mInlineProviderViewActive) return false;
+        try {
+            return connection.commitText(text, 1);
+        } catch (RuntimeException ignored) { return false; }
+    }
+
+    /** Only a deliberate tap in a recognized OTP field; never pass digits to the decoder. */
+    public boolean insertCopiedVerificationCode(final String code, final long epoch,
+            final android.view.inputmethod.InputConnection connection) {
+        if (code == null || !code.matches("[0-9]{4,8}")
+                || !helium314.keyboard.latin.brain.SmartPastePolicy.isOtpEditor(getCurrentInputEditorInfo())) return false;
+        return insertSmartPasteEntity(code, epoch, connection);
+    }
+
     /** Explicit extracted text insertion; never train the dictionaries or add history. */
     public boolean insertExtractedClipboardText(final String text, final long epoch,
             final android.view.inputmethod.InputConnection connection) {
@@ -2442,6 +2473,7 @@ public class LatinIME extends InputMethodService implements
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
         mClipboardHistoryManager.onClipboardPrivacyBoundary();
+        helium314.keyboard.latin.brain.SmartPasteLearning.reset();
         mClipboardHistoryManager.clearRecoveredTranscripts();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
@@ -2656,6 +2688,7 @@ public class LatinIME extends InputMethodService implements
                 // We should clear the contextual strip if there is no suggestion from
                 // dictionaries.
                 || noSuggestionsFromDictionaries) {
+            mClipboardHistoryManager.updateSmartPasteIntent(cachedSmartPasteSuffix(), smartPasteIsComposing());
             mSuggestionStripView.setSuggestions(suggestedWords,
                     mRichImm.getCurrentSubtype().isRtlSubtype());
             // Auto hide the toolbar if dictionary suggestions are available

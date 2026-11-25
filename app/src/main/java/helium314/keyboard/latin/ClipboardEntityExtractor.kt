@@ -44,6 +44,22 @@ object ClipboardEntityExtractor {
         return code.containsMatchIn(text) || reverseCode.containsMatchIn(text) || bareCode.matches(text) || hasSecret(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }
     }
+    /** Explicitly copied OTP only; ordinary history and ambient suggestions still reject codes. */
+    fun verificationCodeRange(text: String): IntRange? {
+        if (text.isBlank() || text.length > 512 || hasSecret(text) ||
+            card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }) return null
+        if (bareCode.matches(text)) {
+            val start = text.indexOfFirst { it in '0'..'9' }
+            val end = text.indexOfLast { it in '0'..'9' }
+            return if (start >= 0 && end >= start) start..end else null
+        }
+        // Do not surface a code from a link, credential-bearing message or multiple candidate codes.
+        if (link.containsMatchIn(text)) return null
+        val ranges = (code.findAll(text).mapNotNull { it.groups[1]?.range } +
+            reverseCode.findAll(text).mapNotNull { it.groups[1]?.range }).distinct().take(2).toList()
+        return ranges.singleOrNull()
+    }
+
     fun extract(text: CharSequence): List<Entity> {
         if (text.isEmpty() || text.length > MAX_CHARS || hasSecret(text)) return emptyList()
         val out = ArrayList<Entity>(MAX_ENTITIES)

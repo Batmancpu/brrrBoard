@@ -14,6 +14,8 @@ import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import android.database.ContentObserver
 import helium314.keyboard.latin.suggestions.ClipboardAccessoryView
+import helium314.keyboard.latin.brain.SmartPastePolicy
+import helium314.keyboard.latin.brain.SmartPasteLearning
 import android.net.Uri
 import android.os.Build
 import android.os.UserManager
@@ -69,7 +71,34 @@ class ClipboardHistoryManager(
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: ClipboardAccessoryView? = null
     private data class AccessoryKey(val clip: RecentClip.Text?, val rich: RichPaste?,
-        val epoch: Long, val connection: android.view.inputmethod.InputConnection)
+        val epoch: Long, val connection: android.view.inputmethod.InputConnection,
+        val candidate: SmartPastePolicy.Candidate?)
+    private data class ClassifiedCopy(val clip: RecentClip.Text, val candidates: List<SmartPastePolicy.Candidate>)
+    private var classifiedCopy: ClassifiedCopy? = null
+    private var activeDecision: SmartPastePolicy.Decision? = null
+    private var pasteDeadline = 0L
+    private var otpBlockedThrough = 0L
+    private fun learningAllowed() = !chromePrivate() &&
+        latinIME.mSettings.current.mUsePersonalizedDicts
+    private fun recordPasteDecision(accepted: Boolean) {
+        val d = activeDecision ?: return
+        if (learningAllowed()) SmartPasteLearning.record(d.candidate.kind,d.destination,accepted)
+    }
+    /** Only reads the already-cached editor suffix supplied by InputLogic, never the OS clipboard. */
+    fun updateSmartPasteIntent(suffix: String, typing: Boolean) {
+        val current = accessoryKey ?: return
+        val clip = current.clip ?: return
+        val root = clipboardSuggestionView ?: return
+        val decision = activeDecision ?: return
+        if (root.retired || decision.destination == SmartPastePolicy.Destination.OTP) return
+        if (chromePrivate() || latinIME.editorGeneration() != current.epoch ||
+            latinIME.currentInputConnection !== current.connection || SystemClock.elapsedRealtime() >= pasteDeadline) {
+            releaseClipboardAccessory()
+            return
+        }
+        val intent = SmartPastePolicy.intent(decision.candidate.kind, suffix)
+        root.updateIntentEmphasis(intent && typing)
+    }
     private var accessoryKey: AccessoryKey? = null
     private var pasteExpiry: Runnable? = null
 
@@ -80,6 +109,9 @@ class ClipboardHistoryManager(
         val old = clipboardSuggestionView
         clipboardSuggestionView = null
         accessoryKey = null
+        classifiedCopy = null
+        activeDecision = null
+        pasteDeadline = 0L
         old?.retire()
     }
     private var chromeCopyTimestamp = 0L
@@ -92,6 +124,7 @@ class ClipboardHistoryManager(
     }
     private fun invalidateChrome() {
         chromeBlockedThrough = maxOf(chromeBlockedThrough, System.currentTimeMillis(), chromeCopyTimestamp)
+        otpBlockedThrough = maxOf(otpBlockedThrough, System.currentTimeMillis())
         chromeDeadline = 0L
         cancelChromeExpiry()
     }
@@ -1020,14 +1053,18 @@ class ClipboardHistoryManager(
     private fun recentTextClip(editorInfo: EditorInfo?): RecentClip.Text? {
         if (isHistoryPrivate()) return null
         val editor = editorInfo ?: return null
-        val type = editor.inputType
-        if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT ||
-            ClipboardPrivacyPolicy.isPrivateEditor(editor, latinIME.mSettings.current.mIncognitoModeEnabled)) return null
-        val clip = clipboardManager.primaryClip ?: return null
+        val dest = SmartPastePolicy.destination(editor)
+        if (dest == SmartPastePolicy.Destination.UNSUPPORTED) return null
+        val clip = runCatching { clipboardManager.primaryClip }.getOrNull() ?: return null
         val content = ClipboardPrivacyPolicy.boundedPlainText(clip) ?: return null
-        val timeStamp = ClipboardManagerCompat.getClipTimestamp(clip)
-        if (System.currentTimeMillis() - timeStamp >= RECENT_TIME_MILLIS) return null
-        if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return null
+        // A fallback read timestamp would let an ancient OTP or copy appear newly fresh.
+        val timeStamp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) clip.description.timestamp else 0L
+        val age = System.currentTimeMillis() - timeStamp
+        if (timeStamp <= 0L || age !in 0L until RECENT_TIME_MILLIS) return null
+        if (dest == SmartPastePolicy.Destination.OTP) {
+            if (timeStamp <= otpBlockedThrough || age >= 60_000L ||
+                SmartPastePolicy.copiedOtp(content) == null) return null
+        } else if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return null
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
 
@@ -1072,22 +1109,47 @@ class ClipboardHistoryManager(
             releaseClipboardAccessory()
             return null
         }
-        val screenshot = recentScreenshotPaste(editorInfo)
+        val dest = SmartPastePolicy.destination(editorInfo)
+        val screenshot = if (dest == SmartPastePolicy.Destination.GENERAL) recentScreenshotPaste(editorInfo) else null
         val recentText = recentTextClip(editorInfo)
-        // Never displace a newer copied text item with an older screenshot.
-        val clip = recentText?.takeUnless { screenshot != null && screenshot.timestamp >= it.timeStamp }
-        val rich = if (clip == null) screenshot ?: recentRichPaste(editorInfo) else null
+        val classification = recentText?.let { text ->
+            classifiedCopy?.takeIf { it.clip == text } ?: ClassifiedCopy(text,
+                if (dest == SmartPastePolicy.Destination.OTP)
+                    listOfNotNull(SmartPastePolicy.copiedOtp(text.content.toString()))
+                else SmartPastePolicy.classify(text.content.toString()))
+        }
+        val candidateDecision = classification?.let { snapshot ->
+            val age = System.currentTimeMillis() - snapshot.clip.timeStamp
+            val kind = snapshot.candidates.firstOrNull()?.kind ?: SmartPastePolicy.Kind.TEXT
+            SmartPastePolicy.decide(snapshot.candidates, dest, age, latinIME.cachedSmartPasteSuffix(),
+                latinIME.smartPasteIsComposing(), if (learningAllowed()) SmartPasteLearning.bias(kind,dest) else 0,
+                age < CleanLinkPolicy.WINDOW_MS && CleanLinkPolicy.eligible(snapshot.clip.content.toString()))
+        }
+        // Never displace a newer eligible text item with an older screenshot.
+        val clip = recentText?.takeIf { candidateDecision != null &&
+            (screenshot == null || screenshot.timestamp < it.timeStamp) }
+        val decision = candidateDecision?.takeIf { clip != null }
+        val rich = if (clip == null && dest == SmartPastePolicy.Destination.GENERAL)
+            screenshot ?: recentRichPaste(editorInfo) else null
         if (clip == null && rich == null) {
             releaseClipboardAccessory()
             return null
         }
         val connection = latinIME.currentInputConnection ?: return null
         val editorEpoch = latinIME.editorGeneration()
-        val key = AccessoryKey(clip, rich, editorEpoch, connection)
+        val key = AccessoryKey(clip, rich, editorEpoch, connection, decision?.candidate)
         val existing = clipboardSuggestionView
         if (existing != null && !existing.retired && accessoryKey == key &&
-            accessoryKey?.connection === connection) return existing
+            accessoryKey?.connection === connection) {
+            if (SystemClock.elapsedRealtime() >= pasteDeadline) {
+                releaseClipboardAccessory()
+                return null
+            }
+            existing.prefersProminent = decision?.prominent ?: true
+            return existing
+        }
         releaseClipboardAccessory()
+        classifiedCopy = classification?.takeIf { clip != null }
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
         val textView = binding.clipboardSuggestionText
@@ -1110,8 +1172,14 @@ class ClipboardHistoryManager(
         val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())?.let {
             it.constantState?.newDrawable(latinIME.resources)?.mutate() ?: it.mutate()
         }
-        val label = clip?.let {
-            helium314.keyboard.latin.suggestions.ClipboardPreviewPolicy.label(it.content.toString())
+        val chosen = decision?.candidate
+        val insertion = clip?.let { text ->
+            chosen?.let { text.content.subSequence(it.start, it.end).toString() } ?: text.content.toString()
+        }
+        val isOtp = chosen?.kind == SmartPastePolicy.Kind.OTP
+        val label = insertion?.let {
+            if (isOtp) latinIME.getString(R.string.board_paste_verification_code)
+            else helium314.keyboard.latin.suggestions.ClipboardPreviewPolicy.label(it)
         } ?: latinIME.getString(
             if (rich?.isScreenshot == true) R.string.board_paste_from_screenshots
             else if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image
@@ -1120,6 +1188,8 @@ class ClipboardHistoryManager(
         val colors = latinIME.mSettings.current.mColors
         val root = binding.root
         root.configure(colors, label, isImageChip)
+        root.prefersProminent = decision?.prominent ?: true
+        root.isVerificationCode = isOtp
         clipIcon?.let {
             val size = (18 * latinIME.resources.displayMetrics.density).toInt()
             it.setBounds(0, 0, size, size)
@@ -1128,7 +1198,8 @@ class ClipboardHistoryManager(
         textView.setCompoundDrawablesRelative(if (isImageChip) null else clipIcon, null, null, null)
         binding.clipboardSuggestionPaste.setOnClickListener {
             if (clipboardSuggestionView !== root || root.retired || !root.isShown ||
-                !latinIME.isInputViewShown || isHistoryPrivate() || latinIME.editorGeneration() != editorEpoch ||
+                !latinIME.isInputViewShown || isHistoryPrivate() || SystemClock.elapsedRealtime() >= pasteDeadline ||
+                latinIME.editorGeneration() != editorEpoch ||
                 ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo,
                     latinIME.mSettings.current.mIncognitoModeEnabled) ||
                 latinIME.currentInputConnection !== connection ||
@@ -1140,9 +1211,19 @@ class ClipboardHistoryManager(
                 return@setOnClickListener
             }
             if (clip != null) {
+                if (isOtp) {
+                    if (!latinIME.insertCopiedVerificationCode(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
+                    otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
+                } else {
+                    if (chosen != null && (chosen.start != 0 || chosen.end != clip.content.length)) {
+                        if (!latinIME.insertSmartPasteEntity(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
+                    } else {
+                        latinIME.onTextInput(clip.content.toString())
+                    }
+                    recordPasteDecision(true)
+                }
                 markClipDismissed(clip)
                 releaseClipboardAccessory()
-                latinIME.onTextInput(clip.content.toString())
             } else if (rich != null) {
                 if (!latinIME.commitKlipyContent(rich.uri, label.toString(), rich.mimeType)) return@setOnClickListener
                 dontShowCurrentSuggestion = true
@@ -1157,7 +1238,7 @@ class ClipboardHistoryManager(
         val closeButton = binding.clipboardSuggestionClose
         val chrome = binding.clipboardSuggestionChrome
         chrome.isGone = true
-        if (clip != null && !chromePrivate() && CleanLinkPolicy.eligible(clip.content.toString())) {
+        if (clip != null && !isOtp && !chromePrivate() && CleanLinkPolicy.eligible(clip.content.toString())) {
             val receipt = strictTextReceipt()
             val remaining = if (receipt != null && receipt.timestamp == clip.timeStamp)
                 chromeRemaining(receipt.timestamp) else 0L
@@ -1220,6 +1301,8 @@ class ClipboardHistoryManager(
         closeButton.setOnClickListener {
             if (clipboardSuggestionView !== root || !root.isShown || root.retired) return@setOnClickListener
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
+            if (isOtp && clip != null) otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
+            else recordPasteDecision(false)
             if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
             removeClipboardSuggestion()
         }
@@ -1227,17 +1310,22 @@ class ClipboardHistoryManager(
         binding.clipboardSuggestionPaste.setOnLongClickListener {
             if (!root.compact || clipboardSuggestionView !== root || !root.isShown) false
             else {
+                if (!isOtp) recordPasteDecision(false)
                 removeClipboardSuggestion()
                 true
             }
         }
         clipboardSuggestionView = root
         accessoryKey = key
+        activeDecision = decision
         val age = System.currentTimeMillis() - (clip?.timeStamp ?: rich!!.timestamp)
-        val lifetime = if (rich?.isScreenshot == true) ScreenshotSuggestionPolicy.MAX_AGE_MILLIS else RECENT_TIME_MILLIS
+        val lifetime = decision?.lifetime ?: if (rich?.isScreenshot == true)
+            ScreenshotSuggestionPolicy.MAX_AGE_MILLIS else RECENT_TIME_MILLIS
         val remainingPaste = (lifetime - age).coerceIn(0L, lifetime)
+        pasteDeadline = SystemClock.elapsedRealtime() + remainingPaste
         val expirePaste = Runnable {
             if (clipboardSuggestionView === root) {
+                if (isOtp && clip != null) otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
                 releaseClipboardAccessory()
                 latinIME.mHandler.postResumeSuggestions(false)
             }
