@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Smart Paste and secure OTP accessories",
+  "summary": "BR Brain · Smart Paste and secure OTP accessories · credential safety fix",
   "changes": [
     {
       "title": "Intelligent paste",
@@ -13,6 +13,10 @@
     {
       "title": "Private learning and fluid chips",
       "detail": "Encrypted category-only feedback, reset control and 150ms capsule geometry motion; no new permissions."
+    },
+    {
+      "title": "OTP credential safety",
+      "detail": "Card security and verification codes, CVV/CVC and recovery credentials are excluded from automatic OTP suggestions and clipboard history. Expanded regression tests."
     }
   ]
 }
