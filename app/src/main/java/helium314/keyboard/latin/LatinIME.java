@@ -1217,6 +1217,8 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDestroy() {
+        mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         mInlineDictation.cancel();
         mOfflineDictation.cancel();
         mIsDestroyed = true;
@@ -1373,6 +1375,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onStartInput(final EditorInfo editorInfo, final boolean restarting) {
+        BrContextLmExperiment.clearContextCache();
         helium314.keyboard.latin.brain.BrainPerformanceMetrics
                 .cancelPendingKeyToSuggestionPreDraw();
         mEditorFocusEpoch++;
@@ -1415,6 +1418,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInputView(final boolean finishingInput) {
+        BrContextLmExperiment.clearContextCache();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();
@@ -1436,6 +1440,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        BrContextLmExperiment.clearContextCache();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();
@@ -1513,6 +1518,7 @@ public class LatinIME extends InputMethodService implements
     private void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         mHandler.cancelUpdateSuggestionStrip();
         mHandler.removeCallbacks(mFlushChatGptVoiceSuggestions);
         mPendingChatGptVoiceSuggestions = null;
@@ -1794,6 +1800,7 @@ public class LatinIME extends InputMethodService implements
         SecureAppTemporaryOptOut.clear();
         if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
         mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         mKeyboardSwitcher.cancelPanelTransition();
         // Hiding the IME also ends the visible typing session, including OEMs
         // that reopen without a fresh onStartInputView callback.
@@ -1826,6 +1833,7 @@ public class LatinIME extends InputMethodService implements
     void onFinishInputInternal() {
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onFinishInput();
         Log.i(TAG, "onFinishInput");
@@ -1849,6 +1857,7 @@ public class LatinIME extends InputMethodService implements
         mClipboardHistoryManager.releaseClipboardAccessory();
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         // Remove pending messages related to update suggestions
         mHandler.cancelUpdateSuggestionStrip();
         // Should do the following in onFinishInputInternal but until JB MR2 it's not
@@ -1897,6 +1906,7 @@ public class LatinIME extends InputMethodService implements
             updateSelectionToolsAccessory(newSelStart, newSelEnd);
         }
         if (userSelectionChanged) {
+            BrContextLmExperiment.clearContextCache();
             // we don't want to update a manually set shift state if selection changed
             // towards one side
             // because this may end the manual shift, which is unwanted in case of shift +
@@ -2575,6 +2585,7 @@ public class LatinIME extends InputMethodService implements
         mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
         mEditorSessionGeneration.invalidate();
+        BrContextLmExperiment.clearContextCache();
         mHandler.cancelUpdateSuggestionStrip();
         mHandler.cancelResumeSuggestions();
         mInputLogic.clearPendingPrivateLearning();

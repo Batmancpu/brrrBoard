@@ -1,26 +1,22 @@
 {
   "schema": 1,
-  "summary": "Complete functional settings architecture remake",
+  "summary": "BR Brain critical optimization batch: native-first ranking, context reuse and swipe recall",
   "changes": [
     {
-      "title": "Seven focused workspaces",
-      "detail": "Keyboard, Typing & intelligence, Interactions, Voice, Tools, Privacy and Manage consolidate navigation, search breadcrumbs and existing preference ownership; legacy routes retained."
+      "title": "Native-first experimental hybrid ranking",
+      "detail": "Keep automatic correction and protected suggestions native; permit only one adjacent near-tied manual candidate swap with known vocabulary, decisive neural evidence, and an 8 ms result-acceptance budget. ContextLM remains opt-in and unapproved."
     },
     {
-      "title": "Glass Studio and geometry",
-      "detail": "Dedicated Surface, Keys and Accent editor with separate light/dark drafts, transient renderer preview and Apply/Cancel; direct geometry schematic and exact values."
+      "title": "Reuse unchanged context",
+      "detail": "Memoize exact token-context encoding within the eligible editor/model scope, detach on privacy, editor, cursor and IME lifecycle boundaries, preserve scorer math and avoid per-candidate feature arrays."
     },
     {
-      "title": "Simpler controls without changing the typing engine",
-      "detail": "Correction and suggestion presets, gesture assignments, feedback modes, clipboard retention presets, ordered toolbar preview, on-device voice test and explicit inherited app-profile choices. Existing permissions and protected routes retained."
+      "title": "Bounded swipe recall",
+      "detail": "Try one nearby ambiguous endpoint, lazily verify lexical alternatives in original primary order within the previous 28-word budget, retain native top result and avoid native decoder reentry."
     },
     {
-      "title": "Management and regression coverage",
-      "detail": "Separate backup, reset, compatibility, version history and troubleshooting; preserve safe crash report and add preset tests and settings source checks."
-    },
-    {
-      "title": "Keep the brand regression contract",
-      "detail": "Use the explicit untinted logo argument for Manage brrBoard."
+      "title": "Regression tests",
+      "detail": "Add hybrid guardrail, exact-context parity and bounded recall tests. No new models, dependencies, permissions or signer changes."
     }
   ]
 }

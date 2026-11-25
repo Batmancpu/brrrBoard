@@ -43,7 +43,8 @@ object SwipeGeometryRescue {
 
     /** Deterministic and testable without an Android IME or native decoder. */
     fun hints(points: List<Point>, keyCenters: Map<Char, Point>, keyPitch: Double): List<String> {
-        if (points.size < 3 || keyCenters.size < 4 || keyPitch <= 0) return emptyList()
+        if (points.size !in 3..1024 || keyCenters.size < 4 || !keyPitch.isFinite() || keyPitch <= 0
+            || points.any { !it.x.isFinite() || !it.y.isFinite() }) return emptyList()
         // Never treat a tap, a tiny jitter or a massive accidental swipe as a word.
         var length = 0.0
         for (i in 1 until points.size) {
@@ -83,9 +84,10 @@ object SwipeGeometryRescue {
             val y = point.y - center.y
             x * x + y * y
         }?.key
-        fun collapse(path: List<Point>): String = buildString {
-            for (point in path) {
-                val letter = nearest(point) ?: continue
+        fun collapse(path: List<Point>, endpointOverride: Char? = null): String = buildString {
+            for ((index, point) in path.withIndex()) {
+                val letter = (if (index == path.lastIndex) endpointOverride else null)
+                    ?: nearest(point) ?: continue
                 if (isEmpty() || last() != letter) append(letter)
             }
         }
@@ -99,7 +101,36 @@ object SwipeGeometryRescue {
             val short = corners.dropLast(1)
             if (short.length >= 3) results.add(short)
         }
-        return results.take(2)
+        // A thumb ending between two adjacent keys may erase the final letter
+        // from the collapsed skeleton. Try one alternative only when both are close.
+        if (corners.length >= 3) {
+            val end = points.last()
+            var firstDistanceSq = Double.POSITIVE_INFINITY
+            var secondDistanceSq = Double.POSITIVE_INFINITY
+            var firstKey: Char? = null
+            var secondKey: Char? = null
+            for ((key, center) in keyCenters) {
+                val dx = end.x - center.x
+                val dy = end.y - center.y
+                val distanceSq = dx * dx + dy * dy
+                if (distanceSq < firstDistanceSq) {
+                    secondDistanceSq = firstDistanceSq
+                    secondKey = firstKey
+                    firstDistanceSq = distanceSq
+                    firstKey = key
+                } else if (distanceSq < secondDistanceSq) {
+                    secondDistanceSq = distanceSq
+                    secondKey = key
+                }
+            }
+            val alternate = secondKey
+            if (alternate != null && secondDistanceSq <= keyPitch * keyPitch * .75 * .75
+                && kotlin.math.sqrt(secondDistanceSq) - kotlin.math.sqrt(firstDistanceSq) <= keyPitch * .25) {
+                val variant = collapse(salient, alternate)
+                if (variant.length in 3..18) results.add(variant)
+            }
+        }
+        return results.take(3)
     }
 
     fun hints(pointers: InputPointers, keyboard: Keyboard): List<String> {
@@ -124,6 +155,26 @@ object SwipeGeometryRescue {
         }
         for (suffix in listOf("y", "e", "s", "py", "ly", "ed", "er", "ing")) words.add(seed + suffix)
         return words.take(14)
+    }
+
+    /** Lazy, native-priority lexical alternatives; reserve at most four checks for a third seed. */
+    internal fun recallCandidates(seeds: List<String>, learned: (String) -> String?): Sequence<Pair<String, String>> = sequence {
+        val seen = HashSet<String>()
+        var emitted = 0
+        val primaryBudget = if (seeds.size >= 3) 24 else 28
+        for ((index, seed) in seeds.take(3).withIndex()) {
+            val limit = if (index < 2) primaryBudget else 28
+            if (emitted >= limit) continue
+            val words = LinkedHashSet<String>()
+            learned(seed)?.let { words.add(it) }
+            words.addAll(lexicalVariants(seed))
+            for (word in words) {
+                if (!couldMatchSeed(seed, word) || !seen.add(word.lowercase(java.util.Locale.ROOT))) continue
+                emitted++
+                yield(seed to word)
+                if (emitted >= limit) break
+            }
+        }
     }
 
     /** Filter unrelated lexical completions without a full decoder on the hot path. */

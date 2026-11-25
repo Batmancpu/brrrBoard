@@ -61,6 +61,33 @@ class SwipeGeometryRescueTest {
         assertTrue(SwipeGeometryRescue.lexicalVariants("ha!").isEmpty())
     }
 
+    @Test fun additionalSeedSharesExistingDictionaryWorkBudget() {
+        val candidates = SwipeGeometryRescue.recallCandidates(listOf("hapy", "hap", "hapt")) { null }.toList()
+        assertTrue(candidates.size <= 28)
+        assertEquals(candidates.size, candidates.map { it.second }.distinct().size)
+        assertTrue(candidates.any { it.first == "hapt" })
+        assertTrue(candidates.any { it.second == "happy" })
+    }
+
+    @Test fun unambiguousPrimaryIsTriedBeforeAdditionalSeedsAndGenerationIsLazy() {
+        val visited = mutableListOf<String>()
+        val first = SwipeGeometryRescue.recallCandidates(listOf("hapy", "hap", "hapt")) {
+            visited.add(it)
+            null
+        }.first()
+        assertEquals("hapy" to "hapy", first)
+        assertEquals(listOf("hapy"), visited)
+    }
+
+    @Test fun ambiguousEndpointAllowsOneNearbyAlternative() {
+        val trace = listOf(keys.getValue('h'), keys.getValue('a'),
+            keys.getValue('p'), SwipeGeometryRescue.Point(7.1, 0.0))
+            .zipWithNext().flatMap { (a, b) -> segment(a, b) }
+        val hints = SwipeGeometryRescue.hints(trace, keys, 4.0)
+        assertTrue("expected hapy alternative, got $hints", hints.contains("hapy"))
+        assertTrue(hints.size <= 3)
+    }
+
     @Test fun independentLexicalRescueMayRecoverMissingHappy() {
         assertTrue(SwipeGeometryRescue.couldMatchSeed("hapy", "happy"))
         assertTrue(SwipeGeometryRescue.couldMatchSeed("hap", "happy"))

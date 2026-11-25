@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -223,8 +224,36 @@ public final class BrContextLmInt8 {
         return expected.contentEquals(actual);
     }
 
+    /** One exact-context memo, owned by the experimental editor scope, never persisted. */
+    static final class ContextCache {
+        private volatile Encoding last;
+        private int computations;
+        int computationsForTesting() { return computations; }
+    }
+
+    private static final class Encoding {
+        final int[] tokenIds;
+        final float[] latest;
+        final float[] personalWeights;
+        Encoding(int[] tokenIds, float[] latest, float[] personalWeights) {
+            this.tokenIds = tokenIds;
+            this.latest = latest;
+            this.personalWeights = personalWeights;
+        }
+    }
+
+    boolean knowsWord(String word) {
+        final Integer id = vocabulary.get(word.toLowerCase(Locale.ROOT));
+        return id != null && id >= 4;
+    }
+
     /** Scores existing native candidate words without generating a new auto-correction. */
     @NonNull public float[] score(@NonNull final BrPersonalContextFeatures.Snapshot snapshot) {
+        return score(snapshot, null);
+    }
+
+    @NonNull float[] score(@NonNull final BrPersonalContextFeatures.Snapshot snapshot,
+                           final ContextCache cache) {
         if (snapshot.candidates.size() > BrPersonalContextFeatures.MAX_CANDIDATES) {
             throw new IllegalArgumentException("Too many candidate words");
         }
@@ -238,6 +267,35 @@ public final class BrContextLmInt8 {
             final String word = recent.get(recent.size() - 1 - i).toLowerCase(Locale.ROOT);
             tokenIds[CONTEXT_TOKENS - 1 - i] = vocabulary.getOrDefault(word, 1);
         }
+        Encoding encoding = cache == null ? null : cache.last;
+        if (encoding == null || !Arrays.equals(encoding.tokenIds, tokenIds)) {
+            encoding = encodeContext(tokenIds);
+            if (cache != null) {
+                cache.last = encoding;
+                cache.computations++;
+            }
+        }
+        final float[] latest = encoding.latest;
+        final float[] personalWeights = encoding.personalWeights;
+        final float[] scores = new float[snapshot.candidates.size()];
+        for (int i = 0; i < scores.length; i++) {
+            final BrPersonalContextFeatures.Candidate candidate = snapshot.candidates.get(i);
+            final int wordId = vocabulary.getOrDefault(candidate.word.toLowerCase(Locale.ROOT), 1);
+            float sum = 0;
+            for (int channel = 0; channel < CHANNELS; channel++) {
+                sum += latest[channel] * embedding[wordId * CHANNELS + channel];
+            }
+            sum /= (float) Math.sqrt(CHANNELS);
+            sum += personalWeights[0] * candidate.nativeScore;
+            sum += personalWeights[1] * candidate.nativeRank;
+            sum += personalWeights[2] * candidate.learnedHistory;
+            sum += personalWeights[3] * candidate.personalWord;
+            scores[i] = Float.isFinite(sum) ? sum : Float.NEGATIVE_INFINITY;
+        }
+        return scores;
+    }
+
+    private Encoding encodeContext(final int[] tokenIds) {
         float[][] states = new float[CONTEXT_TOKENS][CHANNELS];
         for (int i = 0; i < CONTEXT_TOKENS; i++) {
             final int index = tokenIds[i] * CHANNELS;
@@ -271,21 +329,6 @@ public final class BrContextLmInt8 {
             }
             personalWeights[feature] = personalBase[feature] + (float) Math.tanh(gate);
         }
-        final float[] scores = new float[snapshot.candidates.size()];
-        for (int i = 0; i < scores.length; i++) {
-            final BrPersonalContextFeatures.Candidate candidate = snapshot.candidates.get(i);
-            final int wordId = vocabulary.getOrDefault(candidate.word.toLowerCase(Locale.ROOT), 1);
-            float sum = 0;
-            for (int channel = 0; channel < CHANNELS; channel++) {
-                sum += latest[channel] * embedding[wordId * CHANNELS + channel];
-            }
-            sum /= (float) Math.sqrt(CHANNELS);
-            final float[] modelFeatures = candidate.numericModelInputs();
-            for (int feature = 0; feature < modelFeatures.length; feature++) {
-                sum += personalWeights[feature] * modelFeatures[feature];
-            }
-            scores[i] = Float.isFinite(sum) ? sum : Float.NEGATIVE_INFINITY;
-        }
-        return scores;
+        return new Encoding(tokenIds, latest, personalWeights);
     }
 }

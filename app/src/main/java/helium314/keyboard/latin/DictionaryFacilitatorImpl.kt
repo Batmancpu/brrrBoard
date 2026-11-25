@@ -574,23 +574,17 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             activeIme, activeIme?.currentInputEditorInfo, sv
         )
         val types = arrayOf(Dictionary.TYPE_MAIN, Dictionary.TYPE_BRR_PERSONAL, Dictionary.TYPE_USER)
-        for (seed in seeds) {
-            val words = LinkedHashSet<String>()
-            learner?.suggest(seed)?.let { words.add(it) }
-            words.addAll(SwipeGeometryRescue.lexicalVariants(seed))
-            for (word in words) {
-                if (word.lowercase(Locale.ROOT) in existing
-                    || BrrPersonalDictionary.isNoSuggestionWord(word)
-                    || !SwipeGeometryRescue.couldMatchSeed(seed, word)) continue
-                for (group in dictionaryGroups) {
-                    for (type in types) {
-                        val dictionary = group.getSubDict(type) ?: continue
-                        if (!dictionary.isInDictionary(word)) continue
-                        results.add(SuggestedWordInfo(word, "", rescueScore,
-                            SuggestedWordInfo.KIND_CORRECTION, dictionary,
-                            SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
-                        return
-                    }
+        for ((_, word) in SwipeGeometryRescue.recallCandidates(seeds) { learner?.suggest(it) }) {
+            if (word.lowercase(Locale.ROOT) in existing
+                || BrrPersonalDictionary.isNoSuggestionWord(word)) continue
+            for (group in dictionaryGroups) {
+                for (type in types) {
+                    val dictionary = group.getSubDict(type) ?: continue
+                    if (!dictionary.isInDictionary(word)) continue
+                    results.add(SuggestedWordInfo(word, "", rescueScore,
+                        SuggestedWordInfo.KIND_CORRECTION, dictionary,
+                        SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
+                    return
                 }
             }
         }

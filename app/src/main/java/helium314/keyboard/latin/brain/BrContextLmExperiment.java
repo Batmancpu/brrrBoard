@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +44,37 @@ public final class BrContextLmExperiment {
     private static long loadFailures;
     private static volatile BrContextLmInt8 model;
     private static volatile String loadState = "Not loaded";
+    private static final Object CONTEXT_LOCK = new Object();
+    private static EditorCache editorCache;
+    private static final long MAX_RERANK_NS = 8_000_000L;
+
+    private static final class EditorCache {
+        final long generation;
+        final BrContextLmInt8 owner;
+        final BrContextLmInt8.ContextCache context = new BrContextLmInt8.ContextCache();
+        EditorCache(long generation, BrContextLmInt8 owner) {
+            this.generation = generation;
+            this.owner = owner;
+        }
+    }
+
+    /** Detach the memo at editor/privacy boundaries; in-flight work cannot republish it. */
+    public static void clearContextCache() {
+        synchronized (CONTEXT_LOCK) { editorCache = null; }
+    }
+
+    private static EditorCache cacheFor(LatinIME ime, long generation, BrContextLmInt8 owner) {
+        synchronized (CONTEXT_LOCK) {
+            if (ime.editorGeneration() != generation || model != owner) return null;
+            if (editorCache == null || editorCache.generation != generation || editorCache.owner != owner)
+                editorCache = new EditorCache(generation, owner);
+            return editorCache;
+        }
+    }
+
+    private static boolean cacheIsCurrent(EditorCache cache) {
+        synchronized (CONTEXT_LOCK) { return editorCache == cache; }
+    }
 
     private BrContextLmExperiment() { }
 
@@ -63,6 +93,7 @@ public final class BrContextLmExperiment {
         final long generation = LOAD_GENERATION.incrementAndGet();
         if (!enabled) {
             model = null;
+            clearContextCache();
             loadState = "Not loaded";
             return;
         }
@@ -114,6 +145,8 @@ public final class BrContextLmExperiment {
         if (!eligible || !isEnabled(context) || activeModel == null || ime == null
                 || requestEditorGeneration < 0
                 || ime.editorGeneration() != requestEditorGeneration) return original;
+        final EditorCache cache = cacheFor(ime, requestEditorGeneration, activeModel);
+        if (cache == null) return original;
 
         final ArrayList<Integer> slots = new ArrayList<>();
         final ArrayList<SuggestedWordInfo> candidates = new ArrayList<>();
@@ -122,12 +155,19 @@ public final class BrContextLmExperiment {
             final SuggestedWordInfo info = original.get(i);
             if (info == null || info.mSourceDict == null || info.isEmoji()
                     || info.isKindOf(SuggestedWordInfo.KIND_TYPED)
-                    || info.isKindOf(SuggestedWordInfo.KIND_BLACKLIST)) continue;
+                    || info.isKindOf(SuggestedWordInfo.KIND_BLACKLIST)
+                    || info.isPossiblyOffensive() || info.isExactMatch()
+                    || info.isExactMatchWithIntentionalOmission()
+                    || info.mScore <= 0 || info.mScore == SuggestedWordInfo.MAX_SCORE
+                    || !(info.isKindOf(SuggestedWordInfo.KIND_PREDICTION)
+                         || info.isKindOf(SuggestedWordInfo.KIND_COMPLETION)
+                         || info.isKindOf(SuggestedWordInfo.KIND_CORRECTION))) continue;
             final String type = info.mSourceDict.mDictType;
             // Public-corpus-trained weights do not contain personal-history labels. Keep those
             // candidates native-ranked until a model has consented, measured personal features.
             if (!Dictionary.TYPE_MAIN.equals(type) && !Dictionary.TYPE_BRR_PERSONAL.equals(type)) continue;
             if (!BrPersonalContextFeatures.isSafeRomanWord(info.mWord)
+                    || !activeModel.knowsWord(info.mWord)
                     || !seen.add(info.mWord.toLowerCase(Locale.ROOT))) continue;
             candidates.add(info);
             slots.add(i);
@@ -140,7 +180,7 @@ public final class BrContextLmExperiment {
         final long started = System.nanoTime();
         final float[] scores;
         try {
-            scores = activeModel.score(featureSnapshot);
+            scores = activeModel.score(featureSnapshot, cache.context);
         } catch (RuntimeException ignored) {
             return original;
         } finally {
@@ -148,20 +188,21 @@ public final class BrContextLmExperiment {
         }
         synchronized (METRICS_LOCK) { requestsScored++; }
         if (ime.editorGeneration() != requestEditorGeneration || !isEnabled(context)
+                || model != activeModel || !cacheIsCurrent(cache)
+                || System.nanoTime() - started > MAX_RERANK_NS
                 || scores.length != slots.size()) return original;
 
-        final ArrayList<Integer> order = new ArrayList<>(scores.length);
-        for (int i = 0; i < scores.length; i++) order.add(i);
-        order.sort(Comparator.<Integer>comparingDouble(i -> scores[i]).reversed()
-                .thenComparingInt(i -> i));
-        boolean changed = false;
-        for (int i = 0; i < order.size(); i++) {
-            if (order.get(i) != i) { changed = true; break; }
+        final int[] nativeScores = new int[scores.length];
+        final int[] nativeSlots = new int[scores.length];
+        for (int i = 0; i < scores.length; i++) {
+            nativeScores[i] = candidates.get(i).mScore;
+            nativeSlots[i] = slots.get(i);
         }
-        if (!changed) return original;
-
+        final int swap = BrHybridRankingPolicy.adjacentSwap(nativeScores, nativeSlots, scores);
+        if (swap < 0) return original;
         final ArrayList<SuggestedWordInfo> result = new ArrayList<>(original);
-        for (int i = 0; i < order.size(); i++) result.set(slots.get(i), candidates.get(order.get(i)));
+        result.set(slots.get(swap), candidates.get(swap + 1));
+        result.set(slots.get(swap + 1), candidates.get(swap));
         synchronized (METRICS_LOCK) { batchesReranked++; }
         return result;
     }

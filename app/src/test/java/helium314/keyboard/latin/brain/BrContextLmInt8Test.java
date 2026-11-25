@@ -86,22 +86,24 @@ public class BrContextLmInt8Test {
                 .put("scale", 1).put("bytes", elements).put("offset", offset));
     }
 
-    private static ModelBytes fixture() throws Exception {
+    private static ModelBytes fixture() throws Exception { return fixture(false); }
+
+    private static ModelBytes fixture(boolean nonzeroContext) throws Exception {
         final JSONObject words = new JSONObject();
         words.put("<pad>", 0).put("<unk>", 1).put("<bos>", 2).put("<eos>", 3)
                 .put("kal", 4).put("meeting", 5).put("office", 6);
         final byte[] vocab = words.toString().getBytes(StandardCharsets.UTF_8);
         final ByteArrayOutputStream weights = new ByteArrayOutputStream();
         final JSONArray params = new JSONArray();
-        add(params, weights, "embedding.weight", -1, 7, 128);
+        add(params, weights, "embedding.weight", nonzeroContext ? 4 * 128 : -1, 7, 128);
         add(params, weights, "memories", -1, 5, 4, 128);
         for (int i = 0; i < 5; i++) {
-            add(params, weights, "projections." + i + ".weight", -1, 128, 128);
+            add(params, weights, "projections." + i + ".weight", nonzeroContext ? 0 : -1, 128, 128);
             add(params, weights, "projections." + i + ".bias", -1, 128);
         }
         // A model can trust inherited native history directly, even with no lexical weights.
         add(params, weights, "personal_base", 2, 4);
-        add(params, weights, "personal_gate.weight", -1, 4, 128);
+        add(params, weights, "personal_gate.weight", nonzeroContext ? 128 : -1, 4, 128);
         add(params, weights, "personal_gate.bias", -1, 4);
         final byte[] raw = weights.toByteArray();
         final byte[] manifest = new JSONObject()
@@ -138,6 +140,28 @@ public class BrContextLmInt8Test {
                         word("office", Dictionary.TYPE_MAIN)), true, false);
         assertFalse(off.hasInheritedPersonalSignals);
         assertEquals(1, reference.score(off).length);
+    }
+
+    @Test public void exactContextCacheReusesOnlySameTokenSequenceAndPreservesScores() throws Exception {
+        final BrContextLmInt8 reference = fixture(true).load();
+        final BrContextLmInt8.ContextCache cache = new BrContextLmInt8.ContextCache();
+        final NgramContext previous = new NgramContext(new NgramContext.WordInfo("kal"));
+        final NgramContext different = new NgramContext(new NgramContext.WordInfo("office"));
+        final BrPersonalContextFeatures.Snapshot first = BrPersonalContextFeatures.fromNative(
+                previous, Arrays.asList(word("meeting", Dictionary.TYPE_USER_HISTORY),
+                        word("office", Dictionary.TYPE_MAIN)), true, true);
+        final BrPersonalContextFeatures.Snapshot second = BrPersonalContextFeatures.fromNative(
+                previous, Arrays.asList(word("office", Dictionary.TYPE_MAIN)), true, true);
+        final BrPersonalContextFeatures.Snapshot third = BrPersonalContextFeatures.fromNative(
+                different, Arrays.asList(word("office", Dictionary.TYPE_MAIN)), true, true);
+        org.junit.Assert.assertArrayEquals(reference.score(first), reference.score(first, cache), 0f);
+        org.junit.Assert.assertArrayEquals(reference.score(second), reference.score(second, cache), 0f);
+        assertEquals(1, cache.computationsForTesting());
+        org.junit.Assert.assertArrayEquals(reference.score(third), reference.score(third, cache), 0f);
+        assertEquals(2, cache.computationsForTesting());
+        assertTrue(reference.score(second)[0] != reference.score(third)[0]);
+        assertTrue(reference.knowsWord("meeting"));
+        assertFalse(reference.knowsWord("unseenword"));
     }
 
     @Test(expected = IOException.class)

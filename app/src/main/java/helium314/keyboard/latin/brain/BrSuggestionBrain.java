@@ -18,6 +18,7 @@ import helium314.keyboard.keyboard.emoji.EmojiContextEligibility;
 import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.NgramContext;
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo;
+import helium314.keyboard.latin.settings.Settings;
 import helium314.keyboard.latin.settings.SettingsValues;
 import helium314.keyboard.latin.utils.NoBackupStorageMigration;
 
@@ -101,10 +102,26 @@ public final class BrSuggestionBrain {
             @Nullable final SettingsValues values, @NonNull final NgramContext context,
             @NonNull final List<SuggestedWordInfo> nativeSuggestions,
             final long editorGeneration) {
-        if (!isEligible(ime, editor, values) || !BrContextLmExperiment.isEnabled(ime))
+        // The disabled production path must not acquire new locks or call device services.
+        if (!BrContextLmExperiment.isEnabled(ime)) return nativeSuggestions;
+        if (!contextLmEditorIsCurrent(ime, editor, values, editorGeneration)) {
+            BrContextLmExperiment.clearContextCache();
             return nativeSuggestions;
-        return BrContextLmExperiment.rerankManualSuggestions(
+        }
+        final List<SuggestedWordInfo> reranked = BrContextLmExperiment.rerankManualSuggestions(
                 ime, context, new ArrayList<>(nativeSuggestions), editorGeneration, true);
+        if (!contextLmEditorIsCurrent(ime, editor, values, editorGeneration)) {
+            BrContextLmExperiment.clearContextCache();
+            return nativeSuggestions;
+        }
+        return reranked;
+    }
+
+    private static boolean contextLmEditorIsCurrent(LatinIME ime, EditorInfo editor,
+            SettingsValues values, long generation) {
+        return ime.editorGeneration() == generation && ime.getCurrentInputEditorInfo() == editor
+                && Settings.getValues() == values && isEligible(ime, editor, values)
+                && userUnlocked(ime) && !helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(ime);
     }
 
     /** Returns the existing confirmed-swipe adapter only for an eligible editor. */
