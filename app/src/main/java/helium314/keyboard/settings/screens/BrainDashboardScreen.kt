@@ -413,6 +413,12 @@ fun BrainDashboardScreen(
                 }) { Text("Reset speed stats") }
             }
             OutlinedButton(onClick = { confirmErase = true }) { Text("Erase swipe learning") }
+            OutlinedButton(onClick = {
+                helium314.keyboard.latin.brain.SmartPasteLearning.reset(context)
+                refresh++
+            }) { Text("Reset clipboard learning") }
+            Text("Smart Paste stores only encrypted category acceptance and dismissal counts, never copied text or verification codes.",
+                color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text("Swipe correction storage: " + snapshot.storageStatus + ". This dashboard never records raw typing. Session counters restart when the keyboard service restarts.",
                 color = palette.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }

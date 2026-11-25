@@ -47,6 +47,7 @@ object ClipboardEntityExtractor {
     /** Explicitly copied OTP only; ordinary history and ambient suggestions still reject codes. */
     fun verificationCodeRange(text: String): IntRange? {
         if (text.isBlank() || text.length > 512 || hasSecret(text) ||
+            Regex("(?i)\\b(?:credit card|debit card|cvv|cvc|card pin|recovery|backup code|api key)\\b").containsMatchIn(text) ||
             card.findAll(text).any { luhn(it.value.filter { c -> c in '0'..'9' }) }) return null
         if (bareCode.matches(text)) {
             val start = text.indexOfFirst { it in '0'..'9' }

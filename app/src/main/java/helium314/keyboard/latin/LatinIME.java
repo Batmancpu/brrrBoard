@@ -2473,7 +2473,6 @@ public class LatinIME extends InputMethodService implements
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
         mClipboardHistoryManager.onClipboardPrivacyBoundary();
-        helium314.keyboard.latin.brain.SmartPasteLearning.reset();
         mClipboardHistoryManager.clearRecoveredTranscripts();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
@@ -2688,7 +2687,8 @@ public class LatinIME extends InputMethodService implements
                 // We should clear the contextual strip if there is no suggestion from
                 // dictionaries.
                 || noSuggestionsFromDictionaries) {
-            mClipboardHistoryManager.updateSmartPasteIntent(cachedSmartPasteSuffix(), smartPasteIsComposing());
+            if (mClipboardHistoryManager.hasActiveSmartPaste())
+                mClipboardHistoryManager.updateSmartPasteIntent(cachedSmartPasteSuffix(), smartPasteIsComposing());
             mSuggestionStripView.setSuggestions(suggestedWords,
                     mRichImm.getCurrentSubtype().isRtlSubtype());
             // Auto hide the toolbar if dictionary suggestions are available

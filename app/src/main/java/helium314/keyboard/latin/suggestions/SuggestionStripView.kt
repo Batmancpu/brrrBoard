@@ -811,7 +811,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             // must not retain disabled words indefinitely. Re-expand the same
             // bound view when there are no live word targets; never renew timers.
             val liveWords = wordViews.any { it.isEnabled && it.tag is Int }
-            if (ClipboardAccessoryPolicy.preferCompact(hasTypedInCurrentSession,
+            if (!view.isVerificationCode && ClipboardAccessoryPolicy.preferCompact(hasTypedInCurrentSession,
                     shouldShowSuggestionContent(), liveWords, isExternalSuggestionVisible)) {
                 moveClipboardToCompact()
                 updateSuggestionContainersVisibility(true)

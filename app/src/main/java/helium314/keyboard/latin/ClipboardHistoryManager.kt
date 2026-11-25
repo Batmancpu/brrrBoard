@@ -82,9 +82,14 @@ class ClipboardHistoryManager(
         latinIME.mSettings.current.mUsePersonalizedDicts
     private fun recordPasteDecision(accepted: Boolean) {
         val d = activeDecision ?: return
-        if (learningAllowed()) SmartPasteLearning.record(d.candidate.kind,d.destination,accepted)
+        if (learningAllowed()) {
+            SmartPasteLearning.initialize(latinIME)
+            SmartPasteLearning.record(d.candidate.kind,d.destination,accepted)
+        }
     }
     /** Only reads the already-cached editor suffix supplied by InputLogic, never the OS clipboard. */
+    fun hasActiveSmartPaste(): Boolean = activeDecision != null && clipboardSuggestionView?.retired == false
+
     fun updateSmartPasteIntent(suffix: String, typing: Boolean) {
         val current = accessoryKey ?: return
         val clip = current.clip ?: return
@@ -96,8 +101,21 @@ class ClipboardHistoryManager(
             releaseClipboardAccessory()
             return
         }
-        val intent = SmartPastePolicy.intent(decision.candidate.kind, suffix)
-        root.updateIntentEmphasis(intent && typing)
+        val snapshot = classifiedCopy ?: return
+        val age = System.currentTimeMillis() - clip.timeStamp
+        val bias = if (learningAllowed()) SmartPasteLearning.bias(decision.candidate.kind, decision.destination) else 0
+        val updated = SmartPastePolicy.decide(snapshot.candidates, decision.destination, age, suffix, typing, bias,
+            age in 0L until CleanLinkPolicy.WINDOW_MS && root.hasLiveChrome)
+        if (updated == null) {
+            releaseClipboardAccessory()
+            return
+        }
+        activeDecision = updated
+        root.prefersProminent = updated.prominent
+        val intent = SmartPastePolicy.intent(decision.candidate.kind, suffix) ||
+            (decision.destination == SmartPastePolicy.Destination.GENERAL &&
+                snapshot.candidates.any { SmartPastePolicy.intent(it.kind, suffix) })
+        root.updateIntentEmphasis(intent)
     }
     private var accessoryKey: AccessoryKey? = null
     private var pasteExpiry: Runnable? = null
@@ -667,7 +685,10 @@ class ClipboardHistoryManager(
     }
 
     /** Explicit mode changes revoke both visual state and the previous Chrome receipt. */
-    fun onClipboardPrivacyBoundary() = suppressPrivateClipboardSuggestions()
+    fun onClipboardPrivacyBoundary() {
+        SmartPasteLearning.pause()
+        suppressPrivateClipboardSuggestions()
+    }
 
     private fun suppressPrivateClipboardSuggestions() {
         invalidateChrome()
@@ -1104,7 +1125,7 @@ class ClipboardHistoryManager(
     }
 
     fun getClipboardSuggestionView(editorInfo: EditorInfo?, parent: ViewGroup?): View? {
-        if (isHistoryPrivate() || !latinIME.mSettings.current.mSuggestClipboardContent ||
+        if (chromePrivate() || !latinIME.mSettings.current.mSuggestClipboardContent ||
             dontShowCurrentSuggestion || parent == null) {
             releaseClipboardAccessory()
             return null
@@ -1120,9 +1141,13 @@ class ClipboardHistoryManager(
         }
         val candidateDecision = classification?.let { snapshot ->
             val age = System.currentTimeMillis() - snapshot.clip.timeStamp
-            val kind = snapshot.candidates.firstOrNull()?.kind ?: SmartPastePolicy.Kind.TEXT
+            val kind = SmartPastePolicy.preferredCandidate(snapshot.candidates,dest)?.kind ?: SmartPastePolicy.Kind.TEXT
+            val bias = if (learningAllowed() && dest != SmartPastePolicy.Destination.OTP) {
+                SmartPasteLearning.initialize(latinIME)
+                SmartPasteLearning.bias(kind,dest)
+            } else 0
             SmartPastePolicy.decide(snapshot.candidates, dest, age, latinIME.cachedSmartPasteSuffix(),
-                latinIME.smartPasteIsComposing(), if (learningAllowed()) SmartPasteLearning.bias(kind,dest) else 0,
+                latinIME.smartPasteIsComposing(), bias,
                 age < CleanLinkPolicy.WINDOW_MS && CleanLinkPolicy.eligible(snapshot.clip.content.toString()))
         }
         // Never displace a newer eligible text item with an older screenshot.
@@ -1217,10 +1242,12 @@ class ClipboardHistoryManager(
                 } else {
                     if (chosen != null && (chosen.start != 0 || chosen.end != clip.content.length)) {
                         if (!latinIME.insertSmartPasteEntity(insertion ?: return@setOnClickListener, editorEpoch, connection)) return@setOnClickListener
+                        recordPasteDecision(true)
                     } else {
+                        // Record the explicit choice before onTextInput can re-enter the strip.
+                        recordPasteDecision(true)
                         latinIME.onTextInput(clip.content.toString())
                     }
-                    recordPasteDecision(true)
                 }
                 markClipDismissed(clip)
                 releaseClipboardAccessory()

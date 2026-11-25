@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Smart Paste and verification codes",
+  "summary": "BR Brain · Smart Paste, verification codes and private adaptation",
   "changes": [
     {
       "title": "Destination-aware Smart Paste",
-      "detail": "Bounded recognition and compatible entity choices with freshness, local phrase intent and category feedback."
+      "detail": "Unique compatible entity selection, copy freshness and cached typing intent; ordinary paste remains original."
     },
     {
-      "title": "Copied verification codes",
-      "detail": "Temporary masked code action in recognized OTP fields; no code history or learning."
+      "title": "Verification-code and Autofill compatibility",
+      "detail": "Recognized OTP fields can offer a masked manually copied code; Android provider suggestions keep exclusive priority."
     },
     {
-      "title": "Password-manager compatibility",
-      "detail": "Android inline Autofill remains exclusive and provider-owned. No SMS or notification access."
+      "title": "Private adaptation and motion",
+      "detail": "Encrypted category-only feedback with reset control and short capsule-fill transitions; no network or new permissions."
     }
   ]
 }
