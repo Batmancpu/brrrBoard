@@ -13,7 +13,6 @@ import android.view.animation.DecelerateInterpolator
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -30,7 +29,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     private val label by lazy { findViewById<TextView>(R.id.clipboard_suggestion_text) }
     private val preview by lazy { findViewById<ImageView>(R.id.clipboard_suggestion_preview) }
     private val chrome by lazy { findViewById<TextView>(R.id.clipboard_suggestion_chrome) }
-    private val close by lazy { findViewById<ImageButton>(R.id.clipboard_suggestion_close) }
     private val gap by lazy { findViewById<View>(R.id.clipboard_suggestion_gap) }
     private var fullLabel: CharSequence = ""
     private var image = false
@@ -43,8 +41,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var isVerificationCode = false
     private var intentEmphasized = false
     private var chromeRevealed = false
-    private var separatorInk = Color.TRANSPARENT
-    private val separatorPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     val hasLiveChrome: Boolean get() = !retired && chrome.isVisible && chrome.isEnabled
 
     fun updateIntentEmphasis(value: Boolean) {
@@ -56,7 +52,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         if (value && compact) reveal()
     }
     private fun dp(value: Int) = (value * resources.displayMetrics.density + .5f).toInt()
-    val sideWidth: Int get() = dp(42)
+    val sideWidth: Int get() = dp(ClipboardAccessoryPolicy.CHROME_SLOT_DP) + paddingLeft + paddingRight
 
     fun configure(colors: Colors, content: CharSequence, imagePreview: Boolean) {
         fullLabel = content
@@ -64,17 +60,12 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         val ink = colors.get(ColorType.SUGGESTION_AUTO_CORRECT)
         val lightInk = ColorUtils.calculateLuminance(ColorUtils.setAlphaComponent(ink, 255)) >= .35
         val pressed = if (lightInk) 0x18FFFFFF else 0x10000000
-        separatorInk = ColorUtils.setAlphaComponent(ink, 35)
         paste.background = feedback(pressed)
         chrome.background = feedback(pressed)
-        close.background = feedback(pressed)
         paste.setPadding(0, 0, 0, 0)
         chrome.setPaddingRelative(dp(11), 0, dp(11), 0)
-        close.setPadding(dp(9), dp(9), dp(9), dp(9))
         label.setTextColor(ink)
         chrome.setTextColor(ink)
-        close.setColorFilter(ink)
-        close.imageAlpha = 166
         val medium = Typeface.create("sans-serif", Typeface.NORMAL)
         KeyboardTypeface.applyToTextView(label, content, medium)
         KeyboardTypeface.applyToTextView(chrome, chrome.text, medium)
@@ -83,7 +74,8 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         label.gravity = Gravity.CENTER
         label.textSize = 16f
         chrome.text = ""
-        close.isVisible = false
+        chrome.compoundDrawablePadding = 0
+        gap.isVisible = false
         clipChildren = true
         clipToPadding = true
         label.setPaddingRelative(dp(if (image) 6 else 0), 0, 0, 0)
@@ -100,23 +92,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
             setColor(Color.WHITE)
         })
 
-    override fun dispatchDraw(canvas: android.graphics.Canvas) {
-        super.dispatchDraw(canvas)
-        if (retired) return
-        separatorPaint.color = separatorInk
-        separatorPaint.strokeWidth = resources.displayMetrics.density
-        val cy = height / 2f
-        val half = dp(11).toFloat()
-        if (!compact) {
-            canvas.drawLine(dp(8).toFloat(), cy - half, dp(8).toFloat(), cy + half, separatorPaint)
-            if (!chrome.isVisible) canvas.drawLine(width - dp(8).toFloat(), cy - half, width - dp(8).toFloat(), cy + half, separatorPaint)
-        }
-        if (chrome.isVisible) {
-            val x = if (layoutDirection == View.LAYOUT_DIRECTION_RTL) chrome.right.toFloat() else chrome.left.toFloat()
-            canvas.drawLine(x, cy - half, x, cy + half, separatorPaint)
-        }
-    }
-
     fun setCompactMode(value: Boolean) {
         if (retired || compact == value) return
         compact = value
@@ -129,9 +104,9 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         gapParams.width = 0
         gapParams.weight = if (value) 1f else 0f
         gap.layoutParams = gapParams
-        gap.isVisible = value || chrome.isVisible
+        gap.isVisible = value && chrome.isVisible
         val chromeParams = chrome.layoutParams as LayoutParams
-        chromeParams.width = dp(44)
+        chromeParams.width = dp(ClipboardAccessoryPolicy.CHROME_SLOT_DP)
         chrome.layoutParams = chromeParams
         label.text = if (value) "" else fullLabel
         label.isVisible = !(value && image)
@@ -141,7 +116,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         chrome.text = ""
         chrome.compoundDrawablePadding = 0
         chrome.setPaddingRelative(dp(11), 0, dp(11), 0)
-        close.isVisible = false
         // The empty center has no click listener and lets prediction taps pass through.
     }
 
@@ -188,7 +162,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         animate().cancel()
         paste.isEnabled = false
         chrome.isEnabled = false
-        close.isEnabled = false
         visibility = GONE
         fullLabel = ""
         label.text = ""
@@ -196,7 +169,6 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         paste.setOnClickListener(null)
         paste.setOnLongClickListener(null)
         chrome.setOnClickListener(null)
-        close.setOnClickListener(null)
         preview.setImageDrawable(null)
         onAccessoryChanged?.invoke()
     }

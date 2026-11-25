@@ -14,14 +14,10 @@
             android:drawablePadding="6dp" android:gravity="center" android:includeFontPadding="false"
             android:singleLine="true" android:ellipsize="end" android:textSize="16sp" android:importantForAccessibility="no"/>
     </LinearLayout>
-    <View android:id="@+id/clipboard_suggestion_gap" android:layout_width="6dp" android:layout_height="1dp"/>
+    <View android:id="@+id/clipboard_suggestion_gap" android:layout_width="0dp" android:layout_height="1dp" android:visibility="gone" android:importantForAccessibility="no"/>
     <TextView android:id="@+id/clipboard_suggestion_chrome" android:layout_width="44dp" android:layout_height="match_parent"
         android:paddingStart="11dp" android:paddingEnd="11dp" android:drawablePadding="5dp" android:gravity="center"
         android:includeFontPadding="false" android:singleLine="true" android:clickable="true" android:focusable="true"
         android:hapticFeedbackEnabled="false" android:soundEffectsEnabled="false" android:textSize="13sp"
         android:contentDescription="@string/board_chrome_open_clean_link" android:visibility="gone"/>
-    <ImageButton android:id="@+id/clipboard_suggestion_close" android:layout_width="32dp" android:layout_height="match_parent"
-        android:layout_marginStart="2dp" android:padding="9dp" android:scaleType="centerInside"
-        android:minWidth="0dp" android:minHeight="0dp" android:hapticFeedbackEnabled="false" android:soundEffectsEnabled="false"
-        android:contentDescription="@string/clipboard_dismiss_suggestion" android:visibility="gone"/>
 </helium314.keyboard.latin.suggestions.ClipboardAccessoryView>

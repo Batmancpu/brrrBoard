@@ -3,6 +3,9 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import helium314.keyboard.latin.SuggestedWords;
 public class ClipboardAccessoryPolicyTest {
+    @Test public void chromeHasAFullSizeTouchSlot() {
+        assertEquals(44, ClipboardAccessoryPolicy.CHROME_SLOT_DP);
+    }
     @Test public void protectsWordSlotsOnNarrowKeyboards() {
         assertFalse(ClipboardAccessoryPolicy.compactFits(0, 3));
         assertFalse(ClipboardAccessoryPolicy.compactFits(731, 3));

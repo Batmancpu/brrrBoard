@@ -180,6 +180,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         clearClipboardAccessory()
         hasTypedInCurrentSession = false
         wordMorph.cancel(wordViews)
+        // A provider's old remote view must not remain on the next field,
+        // even before the first new prediction or provider callback arrives.
+        if (isExternalSuggestionVisible) {
+            isExternalSuggestionVisible = false
+            suggestedWords = SuggestedWords.getEmptyInstance()
+            clear()
+        }
     }
 
     init {
@@ -204,13 +211,12 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             colors.setBackground(word, ColorType.STRIP_BACKGROUND)
             wordViews.add(word)
             val divider = inflater.inflate(R.layout.suggestion_divider, null) as ImageView
-            // iOS-like separators: brighter in dark mode, with explicit optical
-            // weight. The old #26080B0B drawable was almost invisible on glass.
+            // Retain the measured spacer for stable word slots, but draw no
+            // decorative bars. Clipboard, prediction and punctuation share
+            // the same quiet surface in all themes.
             val separator = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                setColor(if (KeyboardTheme.isDarkThemeActive(context))
-                    0x6AFFFFFF else 0x56000000)
-                // 20dp vs 22dp: 9.1% shorter, still centered in the strip.
+                setColor(android.graphics.Color.TRANSPARENT)
                 setSize(1.dpToPx(resources), 20.dpToPx(resources))
             }
             divider.setImageDrawable(separator)

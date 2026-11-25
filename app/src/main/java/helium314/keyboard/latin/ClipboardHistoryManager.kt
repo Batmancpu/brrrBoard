@@ -1268,7 +1268,6 @@ class ClipboardHistoryManager(
             latinIME.mHandler.postResumeSuggestions(false)
         }
 
-        val closeButton = binding.clipboardSuggestionClose
         val chrome = binding.clipboardSuggestionChrome
         chrome.isGone = true
         if (clip != null && !isOtp && !chromePrivate() && CleanLinkPolicy.eligible(clip.content.toString())) {
@@ -1326,34 +1325,28 @@ class ClipboardHistoryManager(
             }
         }
 
-        // Quiet independent dismissal; no nested functional-key surface.
+        // One visible paste action, no redundant X. Long press and TalkBack's
+        // explicit dismiss action share exactly the same receipt-aware behavior.
         if (chrome.isGone) root.hideChrome()
-        closeButton.contentDescription = latinIME.getString(R.string.clipboard_dismiss_suggestion)
-        val closeIcon = KeyboardIconsSet.instance.getNewDrawable("ic_close", latinIME)
-            ?: keyboard.mIconsSet.getIconDrawable(ToolbarKey.CLOSE_HISTORY.name.lowercase())
-        closeButton.setImageDrawable(closeIcon)
-        closeButton.setColorFilter(colors.get(ColorType.SUGGESTION_AUTO_CORRECT))
-        closeButton.setOnClickListener {
-            if (clipboardSuggestionView !== root || !root.isShown || root.retired) return@setOnClickListener
-            AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
-            if (isOtp && clip != null) {
-                otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
-                dontShowCurrentSuggestion = true
-            } else {
-                recordPasteDecision(false)
-                if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
-            }
-            removeClipboardSuggestion()
-        }
-
-        binding.clipboardSuggestionPaste.setOnLongClickListener {
+        val dismissPaste: () -> Boolean = {
             if (clipboardSuggestionView !== root || !root.isShown || root.retired) false
             else {
-                if (!isOtp) recordPasteDecision(false)
+                if (isOtp && clip != null) {
+                    otpBlockedThrough = maxOf(otpBlockedThrough, clip.timeStamp)
+                    dontShowCurrentSuggestion = true
+                } else {
+                    recordPasteDecision(false)
+                    if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
+                }
                 removeClipboardSuggestion()
                 true
             }
         }
+        binding.clipboardSuggestionPaste.setOnLongClickListener { dismissPaste() }
+        androidx.core.view.ViewCompat.addAccessibilityAction(
+            binding.clipboardSuggestionPaste,
+            latinIME.getString(R.string.clipboard_dismiss_suggestion)
+        ) { _, _ -> dismissPaste() }
         clipboardSuggestionView = root
         accessoryKey = key
         activeDecision = decision

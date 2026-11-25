@@ -5,6 +5,7 @@ import helium314.keyboard.latin.SuggestedWords;
 /** Geometry/idle decision only; never access clipboard or editor contents. */
 public final class ClipboardAccessoryPolicy {
     private ClipboardAccessoryPolicy() {}
+    public static final int CHROME_SLOT_DP = 44;
     public static boolean compactFits(int middleWidthPx, float density) {
         return density > 0 && middleWidthPx >= Math.round(244f * density);
     }
