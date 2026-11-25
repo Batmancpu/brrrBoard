@@ -519,7 +519,8 @@
     <string name="board_context_copy_clean">Copy cleaned link</string>
     <string name="board_context_case">Paste in sentence case</string>
     <string name="board_context_calendar">Create calendar event</string>
-    <string name="board_context_track">Open UPS tracking</string>
+    <string name="board_context_track">Open parcel tracking</string>
+    <string name="board_context_track_carrier">Open %1$s tracking</string>
     <string name="board_context_extract">Extract useful details</string>
     <string name="board_context_contact">Create contact</string>
     <string name="board_context_undo">Undo verified keyboard edit</string>

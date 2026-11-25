@@ -332,7 +332,7 @@ public class LatinIME extends InputMethodService implements
                 recoveredId = items.get(0).getId();
         }
         final long id = recoveredId;
-        mSuggestionStripView.showEditorAccessory(R.drawable.ic_board_mic,
+        mSuggestionStripView.showEditorAccessory(R.drawable.ic_board_context_voice_retry,
                 id >= 0 ? R.string.board_context_voice_reinsert : R.string.board_context_voice_retry, () -> {
                     if (epoch != editorGeneration() || ic != getCurrentInputConnection() ||
                             !isInputViewShown() || mInlineProviderViewActive ||

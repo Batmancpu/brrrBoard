@@ -1396,7 +1396,7 @@ class ClipboardHistoryManager(
                             .putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, true)
                     }
                     ContextualAccessoryPolicy.Kind.TRACK -> Intent(Intent.ACTION_VIEW,
-                        Uri.parse("https://www.ups.com/track?tracknum=" + Uri.encode(action.value)))
+                        Uri.parse(action.value))
                         .addCategory(Intent.CATEGORY_BROWSABLE)
                     ContextualAccessoryPolicy.Kind.CLEAN_TEXT, ContextualAccessoryPolicy.Kind.CASE,
                     ContextualAccessoryPolicy.Kind.EXTRACT -> null
@@ -1410,7 +1410,9 @@ class ClipboardHistoryManager(
                     icon.setBounds(0, 0, size, size)
                     colors.setColor(icon, ColorType.SUGGESTION_AUTO_CORRECT)
                     chrome.setCompoundDrawablesRelative(icon, null, null, null)
-                    chrome.contentDescription = latinIME.getString(labelId)
+                    chrome.contentDescription = if (action.kind == ContextualAccessoryPolicy.Kind.TRACK && action.carrier != null)
+                        latinIME.getString(R.string.board_context_track_carrier, action.carrier)
+                    else latinIME.getString(labelId)
                     chrome.isGone = false
                     if (action.kind == ContextualAccessoryPolicy.Kind.DIAL || action.kind == ContextualAccessoryPolicy.Kind.MAIL) {
                         val contact = Intent(Intent.ACTION_INSERT, android.provider.ContactsContract.Contacts.CONTENT_URI)

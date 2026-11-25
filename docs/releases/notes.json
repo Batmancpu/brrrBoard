@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Unified right-edge contextual editing and voice recovery",
+  "summary": "Microphone redo icon and expanded parcel tracking",
   "changes": [
     {
-      "title": "Selection tools and verified Undo/Redo",
-      "detail": "Use the same animated right suggestion slot as Chrome for selected text and verified keyboard-owned undo/redo. Retain existing provider/clipboard priority and no generic host fallback."
+      "title": "More parcel carriers",
+      "detail": "Recognize explicitly labelled FedEx, DHL Express, Blue Dart and Delhivery tracking numbers; preserve distinctive UPS recognition. Explicit taps open official carrier destinations. DHL and Delhivery open their tracking forms without speculative prefill."
     },
     {
-      "title": "Offline voice recovery shortcut",
-      "detail": "A failed transcription can offer an explicit fresh retry or a recoverable final result in the same right slot, bound to the safe current editor and existing RAM-only recovery window. Never record automatically or retain audio."
+      "title": "Microphone and redo recovery icon",
+      "detail": "Failed transcription retry or reinsertion uses a single microphone-plus-redo glyph in the same animated contextual slot as Chrome."
     }
   ]
 }

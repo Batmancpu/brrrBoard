@@ -9,12 +9,13 @@ import java.util.Locale
 /** Explicit actions only for an unambiguous whole copy. No mixed-message extraction. */
 object ContextualAccessoryPolicy {
     enum class Kind { DIAL, MAIL, MAP, CLEAN_TEXT, CASE, CALENDAR, TRACK, EXTRACT }
-    data class Action(val kind: Kind, val value: String)
+    data class Action(val kind: Kind, val value: String, val carrier: String? = null)
     fun choose(text: String, destination: SmartPastePolicy.Destination): Action? {
         if (destination != SmartPastePolicy.Destination.GENERAL &&
             destination != SmartPastePolicy.Destination.SEARCH) return null
         if (text.isBlank() || text.length > 2048 ||
             ClipboardEntityExtractor.excludeFromAutomaticHistory(text)) return null
+        ParcelAccessoryPolicy.choose(text)?.let { return Action(Kind.TRACK, it.url, it.carrier) }
         val candidates = SmartPastePolicy.classify(text)
         val whole = candidates.firstOrNull() ?: return null
         return when (whole.kind) {
@@ -27,8 +28,7 @@ object ContextualAccessoryPolicy {
             }
             SmartPastePolicy.Kind.ADDRESS -> if (text.length <= 160) Action(Kind.MAP, text) else null
             SmartPastePolicy.Kind.DATE -> Action(Kind.CALENDAR, text)
-            SmartPastePolicy.Kind.TRACKING ->
-                if (text.matches(Regex("(?i)1Z[A-Z0-9]{16}"))) Action(Kind.TRACK, text.uppercase(Locale.ROOT)) else null
+            SmartPastePolicy.Kind.TRACKING -> null
             SmartPastePolicy.Kind.TEXT -> {
                 if (destination == SmartPastePolicy.Destination.GENERAL && candidates.drop(1).any {
                         it.kind != SmartPastePolicy.Kind.OTP && it.kind != SmartPastePolicy.Kind.RICH &&
