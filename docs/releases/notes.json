@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Adaptive contextual relevance without content logging",
+  "summary": "Contextual action slot reliability and visual polish",
   "changes": [
     {
-      "title": "Personalized contextual entity order",
-      "detail": "Rank already-validated extraction choices using bounded category preference counts from existing encrypted BR Brain Smart Paste learning. No change to the set of eligible entities, provider precedence, expiry or explicit tap requirement."
+      "title": "Single-slot priority and expiry",
+      "detail": "Centralize compact action ownership, exclude provider/full-paste content and explicit toolbar states, enforce monotonic editor action expiry at tap time, and retain RTL geometry. Add exhaustive ownership and deadline regression tests."
     },
     {
-      "title": "Learn from successful contextual actions",
-      "detail": "Successful link, dialer, email, Maps, calendar, parcel, formatting and selected entity actions can contribute category-only counts when personalized learning is enabled and the original safe editor still matches. No raw clipboard values, app identifiers or new storage format."
+      "title": "Clean action transitions and accessibility",
+      "detail": "Keep functional dividers only while the action is live; avoid restarting an exiting animation, remove expired actions from accessibility, clear retired drawable and label, and exclude the hidden paste area from accessibility. Preserve the existing design and motion timing."
     }
   ]
 }

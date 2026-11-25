@@ -41,6 +41,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var isVerificationCode = false
     private var intentEmphasized = false
     private var chromeRevealed = false
+    private var chromeExiting = false
     private var separatorInk = Color.TRANSPARENT
     private val separatorPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     val hasLiveChrome: Boolean get() = !retired && chrome.isVisible && chrome.isEnabled
@@ -100,13 +101,13 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         // Only a functional boundary between an action and the content.
         // Never draw decorative lines at either outer edge of the strip.
         val x = ClipboardAccessoryPolicy.chromeDividerX(
-            !retired && chrome.isVisible, layoutDirection == View.LAYOUT_DIRECTION_RTL,
+            hasLiveChrome, layoutDirection == View.LAYOUT_DIRECTION_RTL,
             chrome.left, chrome.right)
         if (x < 0) return
         separatorPaint.color = separatorInk
         separatorPaint.strokeWidth = resources.displayMetrics.density
         val cy = height / 2f
-        val half = dp(11).toFloat()
+        val half = minOf(dp(11).toFloat(), height / 2f)
         canvas.drawLine(x.toFloat(), cy - half, x.toFloat(), cy + half, separatorPaint)
     }
 
@@ -118,6 +119,8 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         pasteParams.weight = if (value) 0f else 1f
         paste.layoutParams = pasteParams
         paste.isVisible = !value
+        paste.importantForAccessibility = if (value) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
         val gapParams = gap.layoutParams as LayoutParams
         gapParams.width = 0
         gapParams.weight = if (value) 1f else 0f
@@ -139,7 +142,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
 
     /** Move only the accessory, leaving the keyboard and prediction surface stationary. */
     fun reveal() {
-        if (retired || !chrome.isVisible || chromeRevealed) return
+        if (!hasLiveChrome || chromeRevealed || chromeExiting) return
         chromeRevealed = true
         chrome.animate().cancel()
         val motion = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled()
@@ -152,9 +155,13 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     }
 
     fun hideChrome() {
+        if (retired || chromeExiting) return
         val wasVisible = chrome.isVisible
+        chromeExiting = true
         chrome.animate().cancel()
         chrome.isEnabled = false
+        chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        invalidate()
         // Disable taps at the exact deadline, even if the icon is exiting.
         val motion = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled()
         if (wasVisible && chromeRevealed && !retired && motion && !compact) {
@@ -168,7 +175,9 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
 
     private fun finishChromeExit() {
         chrome.isVisible = false
-        if (!compact) gap.isVisible = false
+        gap.isVisible = false
+        chrome.translationX = 0f
+        chrome.alpha = 1f
         onAccessoryChanged?.invoke()
         invalidate()
     }
@@ -188,6 +197,9 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         paste.setOnLongClickListener(null)
         chrome.setOnClickListener(null)
         chrome.setOnLongClickListener(null)
+        chrome.contentDescription = null
+        chrome.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        chrome.setCompoundDrawablesRelative(null, null, null, null)
         preview.setImageDrawable(null)
         onAccessoryChanged?.invoke()
     }

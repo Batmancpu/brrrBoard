@@ -268,6 +268,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private var editorAccessory: ClipboardAccessoryView? = null
     private var editorAccessoryLabel = 0
     private var editorAccessoryExpiry: Runnable? = null
+    private var editorAccessoryDeadline = 0L
 
     private fun setAccessoryMargin(target: View, inset: Int) {
         val params = target.layoutParams as FrameLayout.LayoutParams
@@ -312,13 +313,16 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     /** Reuse the same compact slot, with no clipboard payload or second action. */
     fun showEditorAccessory(iconId: Int, labelId: Int, callback: Runnable) {
         clearEditorAccessory()
+        val mode = Settings.getValues().mToolbarMode
         if (!isShown || isExternalSuggestionVisible || clipboardAccessory?.hasLiveChrome == true ||
-            toolbarContainer.isVisible || isAccessPointMenuShowing() ||
+            (mode != ToolbarMode.EXPANDABLE && mode != ToolbarMode.SUGGESTION_STRIP) ||
+            toolbarContainer.isVisible || isAccessPointMenuShowing() || isPinnedToolbarDragActive ||
             !ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width, resources.displayMetrics.density)) return
         val binding = helium314.keyboard.latin.databinding.ClipboardSuggestionBinding.inflate(
             LayoutInflater.from(context), suggestionsMiddleContainer, false)
         val accessory = binding.root
         val colors = Settings.getValues().mColors
+        accessory.layoutDirection = layoutDirection
         accessory.configure(colors, "", false)
         val icon = androidx.core.content.ContextCompat.getDrawable(context, iconId)?.mutate() ?: return
         val size = 22.dpToPx(resources)
@@ -329,15 +333,20 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             contentDescription = resources.getString(labelId)
             isVisible = true
             setOnClickListener {
-                if (editorAccessory === accessory && accessory.isShown && accessory.hasLiveChrome) {
-                    clearEditorAccessory()
-                    callback.run()
-                }
+                if (editorAccessory !== accessory || !accessory.isShown || !accessory.hasLiveChrome) return@setOnClickListener
+                val fresh = AccessoryPriorityPolicy.actionIsFresh(android.os.SystemClock.elapsedRealtime(), editorAccessoryDeadline)
+                val owner = AccessoryPriorityPolicy.compactOwner(
+                    !toolbarContainer.isVisible && !isAccessPointMenuShowing() && !isPinnedToolbarDragActive,
+                    ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width, resources.displayMetrics.density),
+                    isExternalSuggestionVisible, clipboardAccessory?.hasLiveChrome == true, true)
+                clearEditorAccessory()
+                if (fresh && owner == AccessoryPriorityPolicy.CompactOwner.EDITOR) callback.run()
             }
         }
         accessory.setCompactMode(true)
         editorAccessory = accessory
         editorAccessoryLabel = labelId
+        editorAccessoryDeadline = android.os.SystemClock.elapsedRealtime() + 10_000L
         suggestionsMiddleContainer.addView(accessory, FrameLayout.LayoutParams(
             LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         updateSuggestionContainersVisibility(true)
@@ -355,6 +364,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val accessory = editorAccessory ?: return
         editorAccessory = null
         editorAccessoryLabel = 0
+        editorAccessoryDeadline = 0L
         editorAccessoryExpiry?.let { removeCallbacks(it) }
         editorAccessoryExpiry = null
         suggestionsMiddleContainer.removeView(accessory)
@@ -367,9 +377,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val edit = editorAccessory
         val fits = ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width,
             resources.displayMetrics.density)
-        val clipVisible = show && fits && clip != null && clip.compact && clip.hasLiveChrome
+        val owner = AccessoryPriorityPolicy.compactOwner(show, fits, isExternalSuggestionVisible,
+            clip?.compact == true && clip.hasLiveChrome,
+            edit?.hasLiveChrome == true &&
+                AccessoryPriorityPolicy.actionIsFresh(android.os.SystemClock.elapsedRealtime(), editorAccessoryDeadline))
+        val clipVisible = owner == AccessoryPriorityPolicy.CompactOwner.CLIPBOARD
         if (clip?.compact == true) clip.isVisible = clipVisible
-        val editVisible = show && fits && !clipVisible && !isExternalSuggestionVisible && edit?.hasLiveChrome == true
+        val editVisible = owner == AccessoryPriorityPolicy.CompactOwner.EDITOR
         edit?.isVisible = editVisible
         if (editVisible) edit?.reveal()
         setPredictionAccessoryMargins(if (clipVisible) clip?.sideWidth ?: 0
@@ -687,6 +701,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         suggestionsChipStrip.layoutDirection = newLayoutDirection
         pinnedKeys.layoutDirection = newLayoutDirection
         clipboardAccessory?.layoutDirection = newLayoutDirection
+        editorAccessory?.layoutDirection = newLayoutDirection
     }
 
     fun setToolbarVisibility(toolbarVisible: Boolean) {

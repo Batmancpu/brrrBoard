@@ -4,6 +4,19 @@ package helium314.keyboard.latin.suggestions
 /** Provider-owned credentials take precedence until the provider closes or focus changes. */
 object AccessoryPriorityPolicy {
     enum class Incoming { WORDS, CLIPBOARD, INLINE_AUTOFILL }
+    enum class CompactOwner { NONE, CLIPBOARD, EDITOR }
+
+    /** Full paste/provider content and explicit toolbar states never share the compact slot. */
+    fun compactOwner(show: Boolean, fits: Boolean, external: Boolean,
+                     clipboard: Boolean, editor: Boolean): CompactOwner = when {
+        !show || !fits || external -> CompactOwner.NONE
+        clipboard -> CompactOwner.CLIPBOARD
+        editor -> CompactOwner.EDITOR
+        else -> CompactOwner.NONE
+    }
+
+    /** Elapsed realtime is independent of wall-clock changes and delayed UI callbacks. */
+    fun actionIsFresh(now: Long, deadline: Long): Boolean = deadline > 0 && now >= 0 && now < deadline
 
     /** Explicit toolbar-only mode is a deliberate visible row, not a prediction. */
     @JvmStatic
