@@ -468,7 +468,7 @@ final class SuggestionStripLayoutHelper {
         // Confidence is a decoder decision, never a visual heuristic.
         final boolean centerConfidence = isCenterConfidenceActive(
                 suggestedWords.mWillAutoCorrect, (Integer) centerWordView.getTag());
-        final int stripWidth = stripView.getWidth();
+        final int stripWidth = measuredPredictionWidth(stripView);
         // Never collapse a one-word decoder response into a different layout.
         // Empty neighbors retain their real-sized (disabled) touch regions so
         // the next result can morph into them without removing attached views.
@@ -510,6 +510,17 @@ final class SuggestionStripLayoutHelper {
      * used for punctuation, chips and genuine changes of presentation mode.
      * Returns -1 when structural layout is required.
      */
+    private static int measuredPredictionWidth(final ViewGroup stripView) {
+        if (stripView.getParent() instanceof ViewGroup
+                && stripView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            final ViewGroup parent = (ViewGroup) stripView.getParent();
+            final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) stripView.getLayoutParams();
+            final int available = parent.getWidth() - lp.getMarginStart() - lp.getMarginEnd();
+            if (available > 0) return available;
+        }
+        return stripView.getWidth();
+    }
+
     public int updateAttachedWordSlots(final Context context, final SuggestedWords words,
             final ViewGroup stripView) {
         if (SuggestionStripView.DEBUG_SUGGESTIONS || words.isEmpty()
@@ -535,7 +546,7 @@ final class SuggestionStripLayoutHelper {
                 > mSuggestionsCountInStrip;
         for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
             if (i > 0) mDividerViews.get(i).setVisibility(confidence ? View.INVISIBLE : View.VISIBLE);
-            layoutWord(context, i, getSuggestionWidth(i, stripView.getWidth()),
+            layoutWord(context, i, getSuggestionWidth(i, measuredPredictionWidth(stripView)),
                     words.mWillAutoCorrect);
         }
         if (shouldShowTypedFallback(words)) {

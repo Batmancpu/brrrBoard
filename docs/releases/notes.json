@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "BR Brain · Clean Link first phase",
+  "summary": "Apple-inspired clipboard accessories",
   "changes": [
     {
-      "title": "Open cleaned links in Chrome",
-      "detail": "Eligible fresh clipboard links offer an explicit Chrome action within ten seconds; original clipboard remains unchanged."
+      "title": "Coherent suggestion strip",
+      "detail": "Independent adaptive paste and Chrome capsules, quieter dismissal, matching typography and compact URL previews."
     },
     {
-      "title": "Conservative tracking removal",
-      "detail": "Known tracking identifiers are removed only on Chrome tap; unknown functional parameters are retained and sensitive URLs are refused."
+      "title": "Paste while typing",
+      "detail": "Compact actions share the strip with centered predictions where space allows."
     },
     {
-      "title": "Safety and tests",
-      "detail": "Live receipt and editor checks, strict timestamps, monotonic deadline and pure URL policy tests. No network permission or signing changes."
+      "title": "Preserved privacy",
+      "detail": "Original clipboard, strict Chrome expiry, clean-on-tap navigation and editor receipts remain protected."
     }
   ]
 }

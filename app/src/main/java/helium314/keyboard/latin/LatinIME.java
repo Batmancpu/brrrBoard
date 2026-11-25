@@ -1762,6 +1762,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void cleanupInternalStateForFinishInput() {
+        mClipboardHistoryManager.releaseClipboardAccessory();
         SecureAppTemporaryOptOut.clear();
         mEditorSessionGeneration.invalidate();
         // Remove pending messages related to update suggestions
@@ -2809,10 +2810,19 @@ public class LatinIME extends InputMethodService implements
      * returns whether a clipboard suggestion has been set.
      */
     public boolean tryShowClipboardSuggestion() {
-        if (!hasSuggestionStripView() || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) return false;
-        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())) return false;
+        if (!hasSuggestionStripView() || helium314.keyboard.compat.IsLockedCompatKt.isDeviceLocked(this)) {
+            mClipboardHistoryManager.releaseClipboardAccessory();
+            return false;
+        }
+        if (WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), getCurrentInputEditorInfo())) {
+            mClipboardHistoryManager.releaseClipboardAccessory();
+            return false;
+        }
         if (!AccessoryPriorityPolicy.canReplaceVisible(mInlineProviderViewActive,
-                AccessoryPriorityPolicy.Incoming.CLIPBOARD)) return false;
+                AccessoryPriorityPolicy.Incoming.CLIPBOARD)) {
+            mClipboardHistoryManager.releaseClipboardAccessory();
+            return false;
+        }
         final View clipboardView = mClipboardHistoryManager.getClipboardSuggestionView(getCurrentInputEditorInfo(),
                 mSuggestionStripView);
         if (clipboardView != null) {

@@ -13,7 +13,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import android.database.ContentObserver
-import android.graphics.drawable.GradientDrawable
+import helium314.keyboard.latin.suggestions.ClipboardAccessoryView
 import android.net.Uri
 import android.os.Build
 import android.os.UserManager
@@ -67,7 +67,21 @@ class ClipboardHistoryManager(
 ) : ClipboardManager.OnPrimaryClipChangedListener {
 
     private lateinit var clipboardManager: ClipboardManager
-    private var clipboardSuggestionView: View? = null
+    private var clipboardSuggestionView: ClipboardAccessoryView? = null
+    private data class AccessoryKey(val clip: RecentClip.Text?, val rich: RichPaste?,
+        val epoch: Long, val connection: android.view.inputmethod.InputConnection)
+    private var accessoryKey: AccessoryKey? = null
+    private var pasteExpiry: Runnable? = null
+
+    fun releaseClipboardAccessory() {
+        cancelChromeExpiry()
+        pasteExpiry?.let { latinIME.mHandler.removeCallbacks(it) }
+        pasteExpiry = null
+        val old = clipboardSuggestionView
+        clipboardSuggestionView = null
+        accessoryKey = null
+        old?.retire()
+    }
     private var chromeCopyTimestamp = 0L
     private var chromeDeadline = 0L
     private var chromeBlockedThrough = 0L
@@ -145,7 +159,7 @@ class ClipboardHistoryManager(
             if (intent?.action == Intent.ACTION_SCREEN_OFF) {
                 clearRecoveredTranscripts()
                 invalidateChrome()
-                clipboardSuggestionView?.isGone = true
+                releaseClipboardAccessory()
             }
         }
     }
@@ -173,7 +187,7 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
-        cancelChromeExpiry()
+        releaseClipboardAccessory()
         setVoiceRecoveryChangeListener(null)
         clearRecoveredTranscripts()
         if (recoveryReceiverRegistered) {
@@ -583,6 +597,7 @@ class ClipboardHistoryManager(
     }
 
     override fun onPrimaryClipChanged() {
+        releaseClipboardAccessory()
         dismissExtraction()
         if (isHistoryPrivate()) {
             suppressPrivateClipboardSuggestions()
@@ -620,6 +635,7 @@ class ClipboardHistoryManager(
 
     private fun suppressPrivateClipboardSuggestions() {
         invalidateChrome()
+        releaseClipboardAccessory()
         clearDecryptedHistory()
         ownedPrimaryClip = null
         latestImageSuggestion = null
@@ -1007,7 +1023,7 @@ class ClipboardHistoryManager(
         val clip = clipboardManager.primaryClip ?: return null
         val content = ClipboardPrivacyPolicy.boundedPlainText(clip) ?: return null
         val timeStamp = ClipboardManagerCompat.getClipTimestamp(clip)
-        if (System.currentTimeMillis() - timeStamp > RECENT_TIME_MILLIS) return null
+        if (System.currentTimeMillis() - timeStamp >= RECENT_TIME_MILLIS) return null
         if (ClipboardEntityExtractor.excludeFromAutomaticHistory(content)) return null
         return RecentClip.Text(content, timeStamp).takeUnless { isClipDismissed(it) }
     }
@@ -1040,7 +1056,7 @@ class ClipboardHistoryManager(
         val clip = clipboardManager.primaryClip ?: return null
         if (ClipboardManagerCompat.getClipSensitivity(clip.description) == true) return null
         val timestamp = ClipboardManagerCompat.getClipTimestamp(clip)
-        if (System.currentTimeMillis() - timestamp > RECENT_TIME_MILLIS) return null
+        if (System.currentTimeMillis() - timestamp >= RECENT_TIME_MILLIS) return null
         val uri = clip.imageUri()?.takeIf { it.scheme == "content" } ?: return null
         val mime = runCatching { latinIME.contentResolver.getType(uri) }.getOrNull() ?: return null
         if (supported.none { ClipDescription.compareMimeTypes(mime, it) }) return null
@@ -1048,23 +1064,26 @@ class ClipboardHistoryManager(
     }
 
     fun getClipboardSuggestionView(editorInfo: EditorInfo?, parent: ViewGroup?): View? {
-        // maybe no need to create a new view
-        // but a cache has to consider a few possible changes, so better don't implement without need
-        cancelChromeExpiry()
-        clipboardSuggestionView = null
-
-        // get the content, or return null
-        if (isHistoryPrivate() || !latinIME.mSettings.current.mSuggestClipboardContent) return null
-        if (dontShowCurrentSuggestion) return null
-        if (parent == null) return null
+        if (isHistoryPrivate() || !latinIME.mSettings.current.mSuggestClipboardContent ||
+            dontShowCurrentSuggestion || parent == null) {
+            releaseClipboardAccessory()
+            return null
+        }
         val screenshot = recentScreenshotPaste(editorInfo)
         val recentText = recentTextClip(editorInfo)
         // Never displace a newer copied text item with an older screenshot.
         val clip = recentText?.takeUnless { screenshot != null && screenshot.timestamp >= it.timeStamp }
         val rich = if (clip == null) screenshot ?: recentRichPaste(editorInfo) else null
-        if (clip == null && rich == null) return null
+        if (clip == null && rich == null) {
+            releaseClipboardAccessory()
+            return null
+        }
         val connection = latinIME.currentInputConnection ?: return null
         val editorEpoch = latinIME.editorGeneration()
+        val key = AccessoryKey(clip, rich, editorEpoch, connection)
+        val existing = clipboardSuggestionView
+        if (existing != null && !existing.retired && accessoryKey == key) return existing
+        releaseClipboardAccessory()
         val keyboard = latinIME.mKeyboardSwitcher.keyboard ?: return null
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(latinIME), parent, false)
         val textView = binding.clipboardSuggestionText
@@ -1084,40 +1103,51 @@ class ClipboardHistoryManager(
                 }
             }
         }
-        KeyboardTypeface.applyToTextView(textView)
         val clipIcon = keyboard.mIconsSet.getIconDrawable(ToolbarKey.PASTE.name.lowercase())
-        textView.text = clip?.content?.take(40) ?: latinIME.getString(
+        val label = clip?.let {
+            helium314.keyboard.latin.suggestions.ClipboardPreviewPolicy.label(it.content.toString())
+        } ?: latinIME.getString(
             if (rich?.isScreenshot == true) R.string.board_paste_from_screenshots
             else if (rich?.mimeType?.startsWith("image/") == true) R.string.board_paste_image
             else R.string.board_paste_file,
         )
-        textView.setCompoundDrawablesRelativeWithIntrinsicBounds(if (isImageChip) null else clipIcon, null, null, null)
-        textView.setOnClickListener {
-            if (isDeviceLocked(latinIME) || latinIME.editorGeneration() != editorEpoch ||
+        val colors = latinIME.mSettings.current.mColors
+        val root = binding.root
+        root.configure(colors, label, isImageChip)
+        clipIcon?.let {
+            val size = (18 * latinIME.resources.displayMetrics.density).toInt()
+            it.setBounds(0, 0, size, size)
+            colors.setColor(it, ColorType.SUGGESTION_AUTO_CORRECT)
+        }
+        textView.setCompoundDrawablesRelative(if (isImageChip) null else clipIcon, null, null, null)
+        binding.clipboardSuggestionPaste.setOnClickListener {
+            if (clipboardSuggestionView !== root || root.retired || !root.isShown ||
+                !latinIME.isInputViewShown || isHistoryPrivate() || latinIME.editorGeneration() != editorEpoch ||
                 ClipboardPrivacyPolicy.isPrivateEditor(latinIME.currentInputEditorInfo,
                     latinIME.mSettings.current.mIncognitoModeEnabled) ||
                 latinIME.currentInputConnection !== connection ||
                 (if (clip != null) currentTextSuggestionChanged(clip)
                 else (if (rich?.isScreenshot == true) recentScreenshotPaste(latinIME.currentInputEditorInfo)
                       else recentRichPaste(latinIME.currentInputEditorInfo)) != rich)) {
-                binding.root.isGone = true
+                root.retire()
                 return@setOnClickListener
             }
             if (clip != null) {
                 markClipDismissed(clip)
+                releaseClipboardAccessory()
                 latinIME.onTextInput(clip.content.toString())
             } else if (rich != null) {
-                if (!latinIME.commitKlipyContent(rich.uri, textView.text.toString(), rich.mimeType)) return@setOnClickListener
+                if (!latinIME.commitKlipyContent(rich.uri, label.toString(), rich.mimeType)) return@setOnClickListener
                 dontShowCurrentSuggestion = true
+                releaseClipboardAccessory()
             }
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(
                 KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS,
             )
-            binding.root.isGone = true
+            latinIME.mHandler.postResumeSuggestions(false)
         }
 
         val closeButton = binding.clipboardSuggestionClose
-        val colors = latinIME.mSettings.current.mColors
         val chrome = binding.clipboardSuggestionChrome
         chrome.isGone = true
         if (clip != null && !chromePrivate() && CleanLinkPolicy.eligible(clip.content.toString())) {
@@ -1131,11 +1161,9 @@ class ClipboardHistoryManager(
                     if (app.enabled) pm.getApplicationIcon(app) else null
                 }.getOrNull()
                 if (chromeIcon != null) {
-                    val size = (20 * latinIME.resources.displayMetrics.density).toInt()
+                    val size = (18 * latinIME.resources.displayMetrics.density).toInt()
                     chromeIcon.setBounds(0, 0, size, size)
                     chrome.setCompoundDrawablesRelative(chromeIcon, null, null, null)
-                    chrome.setTextColor(colors.get(ColorType.KEY_TEXT))
-                    KeyboardTypeface.applyToTextView(chrome)
                     chrome.isGone = false
                     chrome.setOnClickListener {
                         if (!chrome.isShown || clipboardSuggestionView !== binding.root ||
@@ -1144,7 +1172,7 @@ class ClipboardHistoryManager(
                             latinIME.currentInputConnection !== connection ||
                             chromeRemaining(receipt.timestamp) <= 0L ||
                             strictTextReceipt() != receipt || currentTextSuggestionChanged(clip)) {
-                            chrome.isGone = true
+                            root.hideChrome()
                             return@setOnClickListener
                         }
                         // Only this explicit tap runs the sanitizer. Never replace the clipboard.
@@ -1152,7 +1180,7 @@ class ClipboardHistoryManager(
                         chromeBlockedThrough = maxOf(chromeBlockedThrough, receipt.timestamp)
                         chromeDeadline = 0L
                         cancelChromeExpiry()
-                        chrome.isGone = true
+                        root.hideChrome()
                         if (clean == null) return@setOnClickListener
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(clean))
                             .addCategory(Intent.CATEGORY_BROWSABLE)
@@ -1167,8 +1195,7 @@ class ClipboardHistoryManager(
                         }
                     }
                     val expire = Runnable {
-                        chrome.isEnabled = false
-                        chrome.isGone = true
+                        if (clipboardSuggestionView === root) root.hideChrome()
                     }
                     chromeExpiry = expire
                     latinIME.mHandler.postDelayed(expire, remaining)
@@ -1176,30 +1203,41 @@ class ClipboardHistoryManager(
             }
         }
 
-        // Dismissing a chip is a neutral utility, not an Enter/Search action.
-        val closeBg = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = 11f * latinIME.resources.displayMetrics.density
-            setColor(colors.get(ColorType.FUNCTIONAL_KEY_BACKGROUND))
-        }
-        closeButton.background = closeBg
+        // Quiet independent dismissal; no nested functional-key surface.
+        if (chrome.isGone) root.hideChrome()
         closeButton.contentDescription = latinIME.getString(R.string.clipboard_dismiss_suggestion)
         val closeIcon = KeyboardIconsSet.instance.getNewDrawable("ic_close", latinIME)
             ?: keyboard.mIconsSet.getIconDrawable(ToolbarKey.CLOSE_HISTORY.name.lowercase())
         closeButton.setImageDrawable(closeIcon)
-        colors.setColor(closeButton, ColorType.FUNCTIONAL_KEY_TEXT)
+        closeButton.setColorFilter(colors.get(ColorType.SUGGESTION_AUTO_CORRECT))
         closeButton.setOnClickListener {
+            if (clipboardSuggestionView !== root || !root.isShown || root.retired) return@setOnClickListener
             AudioAndHapticFeedbackManager.getInstance().performHapticAndAudioFeedback(KeyCode.NOT_SPECIFIED, it, HapticEvent.KEY_PRESS)
             if (clip != null) markClipDismissed(clip) else dontShowCurrentSuggestion = true
             removeClipboardSuggestion()
         }
 
-        textView.setTextColor(colors.get(ColorType.KEY_TEXT))
-        clipIcon?.let { colors.setColor(it, ColorType.KEY_ICON) }
-        colors.setBackground(binding.root, ColorType.CLIPBOARD_SUGGESTION_BACKGROUND)
-
-        clipboardSuggestionView = binding.root
-        return clipboardSuggestionView
+        binding.clipboardSuggestionPaste.setOnLongClickListener {
+            if (!root.compact || clipboardSuggestionView !== root || !root.isShown) false
+            else {
+                removeClipboardSuggestion()
+                true
+            }
+        }
+        clipboardSuggestionView = root
+        accessoryKey = key
+        val age = System.currentTimeMillis() - (clip?.timeStamp ?: rich!!.timestamp)
+        val lifetime = if (rich?.isScreenshot == true) ScreenshotSuggestionPolicy.MAX_AGE_MILLIS else RECENT_TIME_MILLIS
+        val remainingPaste = (lifetime - age).coerceIn(0L, lifetime)
+        val expirePaste = Runnable {
+            if (clipboardSuggestionView === root) {
+                releaseClipboardAccessory()
+                latinIME.mHandler.postResumeSuggestions(false)
+            }
+        }
+        pasteExpiry = expirePaste
+        latinIME.mHandler.postDelayed(expirePaste, remainingPaste)
+        return root
     }
 
     private fun cacheImageClip(clip: RecentClip.Image): Uri? {
@@ -1249,12 +1287,12 @@ class ClipboardHistoryManager(
             dontShowCurrentSuggestion = true
         }
         val csv = clipboardSuggestionView ?: return
-        if (csv.parent != null && !csv.isGone) {
-            // clipboard view is shown ->
+        val wasVisible = csv.isShown
+        releaseClipboardAccessory()
+        if (wasVisible) {
             latinIME.setNeutralSuggestionStrip()
             latinIME.mHandler.postResumeSuggestions(false)
         }
-        csv.isGone = true
     }
 
     companion object {

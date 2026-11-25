@@ -32,6 +32,7 @@ import android.view.View
 import android.view.View.OnLongClickListener
 import android.view.ViewGroup
 import android.view.accessibility.AccessibilityEvent
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -175,6 +176,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
     fun onNewEditorSession() {
+        clearClipboardAccessory()
         hasTypedInCurrentSession = false
         wordMorph.cancel(wordViews)
     }
@@ -254,6 +256,54 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     private var suggestedWords = SuggestedWords.getEmptyInstance()
     private var isExternalSuggestionVisible = false // Required to disable the more suggestions if other suggestions are visible
+    private var clipboardAccessory: ClipboardAccessoryView? = null
+
+    private fun setPredictionAccessoryMargins(inset: Int) {
+        for (target in listOf(suggestionsStrip, suggestionsChipScroll)) {
+            val params = target.layoutParams as FrameLayout.LayoutParams
+            if (params.marginStart == inset && params.marginEnd == inset) continue
+            params.marginStart = inset
+            params.marginEnd = inset
+            target.layoutParams = params
+        }
+    }
+
+    private fun clearClipboardAccessory() {
+        val accessory = clipboardAccessory ?: return
+        clipboardAccessory = null
+        accessory.onAccessoryChanged = null
+        if (accessory.parent === suggestionsStrip) isExternalSuggestionVisible = false
+        (accessory.parent as? ViewGroup)?.removeView(accessory)
+        accessory.retire()
+        setPredictionAccessoryMargins(0)
+    }
+
+    private fun moveClipboardToCompact() {
+        val accessory = clipboardAccessory ?: return
+        if (accessory.retired) {
+            clearClipboardAccessory()
+            return
+        }
+        if (accessory.parent !== suggestionsMiddleContainer) {
+            (accessory.parent as? ViewGroup)?.removeView(accessory)
+            accessory.setCompactMode(true)
+            suggestionsMiddleContainer.addView(accessory, FrameLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        }
+        isExternalSuggestionVisible = false
+    }
+
+    private fun updateCompactAccessory(show: Boolean) {
+        val accessory = clipboardAccessory
+        if (accessory == null || !accessory.compact || accessory.retired) {
+            setPredictionAccessoryMargins(0)
+            return
+        }
+        val fits = suggestionsMiddleContainer.width >= 244.dpToPx(resources)
+        val visible = show && fits
+        accessory.isVisible = visible
+        setPredictionAccessoryMargins(if (visible) accessory.sideWidth else 0)
+    }
     private var isPinnedToolbarDragActive = false
     private var isAccessPointMenuOpen = false
     private var pinnedDropPreviewKey: ToolbarKey? = null
@@ -561,6 +611,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         suggestionsStrip.layoutDirection = newLayoutDirection
         suggestionsChipStrip.layoutDirection = newLayoutDirection
         pinnedKeys.layoutDirection = newLayoutDirection
+        clipboardAccessory?.layoutDirection = newLayoutDirection
     }
 
     fun setToolbarVisibility(toolbarVisible: Boolean) {
@@ -635,6 +686,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val wasAttachedChips = !isExternalSuggestionVisible && suggestionsChipScroll.isVisible &&
             shouldUseChipSuggestions() && suggestionsChipStrip.childCount > 0
         val previousLayoutDirection = suggestionsStrip.layoutDirection
+        if (shouldShowSuggestionContent(suggestionsForStrip)) moveClipboardToCompact()
         isExternalSuggestionVisible = false
         setRtl(isRtlLanguage)
         suggestedWords = suggestionsForStrip
@@ -719,6 +771,36 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     fun setExternalSuggestionView(view: View?, addCloseButton: Boolean) {
+        if (view is ClipboardAccessoryView && !view.retired && !addCloseButton) {
+            if (clipboardAccessory === view && view.parent != null) {
+                updateSuggestionContainersVisibility(true)
+                return
+            }
+            clearClipboardAccessory()
+            clipboardAccessory = view
+            view.onAccessoryChanged = {
+                if (clipboardAccessory === view) {
+                    if (view.retired) clearClipboardAccessory()
+                    updateSuggestionContainersVisibility(!toolbarContainer.isVisible)
+                }
+            }
+            if (hasTypedInCurrentSession && shouldShowSuggestionContent() && !isExternalSuggestionVisible) {
+                moveClipboardToCompact()
+                updateSuggestionContainersVisibility(true)
+                return
+            }
+            wordMorph.cancel(wordViews)
+            clear()
+            isExternalSuggestionVisible = true
+            view.setCompactMode(false)
+            suggestionsStrip.addView(view, LinearLayout.LayoutParams(
+                LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+            updateSuggestionContainersVisibility(true)
+            if (Settings.getValues().mAutoHideToolbar) setToolbarVisibility(false)
+            return
+        }
+        // Provider-owned external content is exclusive.
+        clearClipboardAccessory()
         wordMorph.cancel(wordViews)
         clear()
         if (view == null) {
@@ -819,6 +901,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     override fun onDetachedFromWindow() {
+        clearClipboardAccessory()
         wordMorph.cancel(wordViews)
         super.onDetachedFromWindow()
         isAccessPointMenuOpen = false
@@ -1075,6 +1158,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     private fun updateSuggestionContainersVisibility(showSuggestions: Boolean) {
         if (isPinnedToolbarDragActive) {
+            updateCompactAccessory(false)
             suggestionsStrip.isVisible = false
             suggestionsChipScroll.isVisible = false
             pinnedKeys.isVisible = true
@@ -1082,6 +1166,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         val hasPinnedKeys = slotsState.value.isNotEmpty()
         if (isAccessPointMenuShowing()) {
+            updateCompactAccessory(false)
             suggestionsStrip.isVisible = false
             suggestionsChipScroll.isVisible = false
             pinnedKeys.isVisible = hasPinnedKeys
@@ -1101,6 +1186,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         val showChips = showSuggestionContent && !isExternalSuggestionVisible && shouldUseChipSuggestions()
         suggestionsStrip.isVisible = showSuggestionContent && !showChips
         suggestionsChipScroll.isVisible = showChips
+        updateCompactAccessory(showSuggestionContent && !isExternalSuggestionVisible && shouldShowSuggestionContent())
         pinnedKeys.isVisible = showSuggestions && allowPinnedKeys && !showSuggestionContent && hasPinnedKeys
     }
 
