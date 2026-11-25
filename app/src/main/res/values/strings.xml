@@ -571,6 +571,8 @@
     <string name="version_history_published_at">Published on GitHub · shown in your local time</string>
     <string name="version_history_prepared_at">Release build started · shown in your local time</string>
     <string name="version_history_empty">No version history is bundled in this build yet.</string>
+    <string name="board_voice_recovery_title">Voice recovery · temporary</string>
+    <string name="board_voice_recovery_insert">Insert last voice transcript</string>
     <string name="board_recovered_transcripts">Recovered transcripts · newest first</string>
     <string name="board_recovered_transcript_insert_a11y">Insert recovered transcript from %1$s</string>
     <string name="board_recovered_transcript_remove_a11y">Remove recovered transcript</string>

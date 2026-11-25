@@ -86,7 +86,7 @@ internal class InlineDictation(private val ime: LatinIME) {
         ) { phrase ->
             if (generation == currentGeneration && isOriginalEditor(connection, editor)) {
                 cancel() // End the server session before inserting locally; never duplicate words.
-                ime.onPrivateVoiceTextInput(phrase)
+                ime.onFinalizedVoiceTextInput(phrase, false)
             }
         } else null
         offlineBackup = backup
@@ -191,7 +191,7 @@ internal class InlineDictation(private val ime: LatinIME) {
                     cancel()
                     if (originalEditorActive) {
                         when {
-                            accepted != null && canCommit -> ime.onPrivateVoiceTextInput(accepted)
+                            accepted != null && canCommit -> ime.onFinalizedVoiceTextInput(accepted, false)
                             accepted != null -> Unit // User had already chosen Paste offline.
                             rejectedHindi -> report(R.string.inline_voice_hindi_result, statusFooter)
                             else -> report(R.string.inline_voice_no_speech, statusFooter)

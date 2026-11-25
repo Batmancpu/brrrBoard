@@ -1314,9 +1314,10 @@ public class LatinIME extends InputMethodService implements
                 || ClipboardPrivacyPolicy.isPrivateEditor(editorInfo,
                 mSettings.getCurrent().mIncognitoModeEnabled)
                 || SecureAppsPolicy.isSecure(KtxKt.prefs(this),
-                        editorInfo == null ? null : editorInfo.packageName))
+                        editorInfo == null ? null : editorInfo.packageName)) {
+            if (editorInfo != null) mClipboardHistoryManager.clearRecoveredTranscripts();
             mOfflineDictation.cancel();
-        else mOfflineDictation.onEditorLost();
+        } else mOfflineDictation.onEditorLost();
         mHandler.onStartInput(editorInfo, restarting);
     }
 
@@ -2280,6 +2281,13 @@ public class LatinIME extends InputMethodService implements
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
     }
 
+    /** Actual final dictation only; never called by credential or recovery paste paths. */
+    void onFinalizedVoiceTextInput(final String text, final boolean replaceVoiceDraft) {
+        // Capture before dispatch: a host editor can disappear during commitText.
+        mClipboardHistoryManager.rememberFinalVoiceTranscript(text);
+        onPrivateVoiceTextInput(text, replaceVoiceDraft);
+    }
+
     /** Inserts a dictated phrase with native suggestion refresh but without transcript learning. */
     void onPrivateVoiceTextInput(final String text) {
         onPrivateVoiceTextInput(text, false);
@@ -2408,12 +2416,10 @@ public class LatinIME extends InputMethodService implements
         return true;
     }
 
-    /** Only a deliberate tap in Clipboard may place an undelivered transcript. */
+    /** Only a deliberate tap in Clipboard may place a temporary voice transcript. */
     public boolean insertRecoveredVoiceText(final String text) {
         if (text == null || text.isEmpty() || !isInputViewShown()
-                || getCurrentInputConnection() == null
-                || ClipboardPrivacyPolicy.isPrivateEditor(getCurrentInputEditorInfo(),
-                        mSettings.getCurrent().mIncognitoModeEnabled)) return false;
+                || !mayUseTransientCorrectionMemory(mSettings.getCurrent())) return false;
         onPrivateVoiceTextInput(text);
         return true;
     }
@@ -2433,6 +2439,7 @@ public class LatinIME extends InputMethodService implements
 
     /** Manual incognito switch: forget any unfinished cross-mode swipe receipts. */
     void clearPendingPrivateLearning() {
+        mClipboardHistoryManager.clearRecoveredTranscripts();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();

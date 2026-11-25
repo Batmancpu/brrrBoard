@@ -8,6 +8,10 @@ import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.ContentUris
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
+import androidx.core.content.ContextCompat
 import android.database.ContentObserver
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -98,13 +102,24 @@ class ClipboardHistoryManager(
     // means the system clipboard is never cleared when history is cleared.
     private data class OwnedClip(val fingerprint: String, val timestamp: Long)
     private var ownedPrimaryClip: OwnedClip? = null
-    // Recognized but undelivered speech is not an OS clip and must not enter
-    // the ordinary plaintext SQLite clipboard table.
+    // Finalized voice text is a separate RAM-only recovery item, never an OS clip.
     private val recoveryRepository by lazy { RecoveredTranscriptRepository(latinIME) }
+    private val recoveryScreenOff = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) clearRecoveredTranscripts()
+        }
+    }
+    private var recoveryReceiverRegistered = false
+    fun setVoiceRecoveryChangeListener(listener: (() -> Unit)?) {
+        recoveryRepository.onChanged = listener
+    }
 
     fun onCreate() {
-        // Purge any legacy encrypted voice-recovery file; transcripts are never retained.
+        // Purge any legacy encrypted voice-recovery file; new recovery is RAM-only.
         clearRecoveredTranscripts()
+        ContextCompat.registerReceiver(latinIME, recoveryScreenOff,
+            IntentFilter(Intent.ACTION_SCREEN_OFF), ContextCompat.RECEIVER_NOT_EXPORTED)
+        recoveryReceiverRegistered = true
         clipboardManager = latinIME.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener(this)
         clipboardDao // attempt once now; getter retries on later access if still locked
@@ -118,6 +133,12 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
+        setVoiceRecoveryChangeListener(null)
+        clearRecoveredTranscripts()
+        if (recoveryReceiverRegistered) {
+            latinIME.unregisterReceiver(recoveryScreenOff)
+            recoveryReceiverRegistered = false
+        }
         clearDecryptedHistory()
         dismissExtraction()
         clipboardManager.removePrimaryClipChangedListener(this)
@@ -539,11 +560,10 @@ class ClipboardHistoryManager(
     fun updatePrimaryClip() {
         if (!latinIME.mSettings.current.mClipboardHistoryEnabled) clearRecoveredTranscripts()
         if (isHistoryPrivate()) {
-            // A secure *destination* should hide recovery, not erase a result
-            // saved in an earlier ordinary editor. Explicit global incognito
-            // is a different privacy boundary and purges the encrypted cache.
-            if (latinIME.prefs().getBoolean(Settings.PREF_ALWAYS_INCOGNITO_MODE,
-                    Defaults.PREF_ALWAYS_INCOGNITO_MODE)) clearRecoveredTranscripts()
+            // An absent editor is a normal hide/reopen; an actual protected
+            // editor or lock is a privacy boundary and erases voice recovery.
+            if (latinIME.currentInputEditorInfo != null || isDeviceLocked(latinIME))
+                clearRecoveredTranscripts()
             suppressPrivateClipboardSuggestions()
             syncScreenshotObserver()
             return
@@ -814,21 +834,22 @@ class ClipboardHistoryManager(
     // when history is about to be shown
     fun prepareClipboardHistory() = clipboardDao?.clearOldClips(true)
 
-    /** Only a successful recognition with a stale destination enters this area. */
-    fun saveUndeliveredTranscript(text: String): Boolean {
-        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled) return false
-        return recoveryRepository.add(text) != null
+    /** Only the actual final recognition dispatch may populate recovery. */
+    fun rememberFinalVoiceTranscript(text: String) {
+        if (mayAccessVoiceRecovery()) recoveryRepository.add(text)
     }
 
+    private fun mayAccessVoiceRecovery(): Boolean =
+        latinIME.mSettings.current.mClipboardHistoryEnabled &&
+            latinIME.mayUseTransientCorrectionMemory(latinIME.mSettings.current)
+
     fun getRecoveredTranscripts(): List<RecoveredTranscript> =
-        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled)
-            emptyList() else recoveryRepository.all()
+        if (mayAccessVoiceRecovery()) recoveryRepository.all() else emptyList()
 
     fun getRecoveredTranscript(id: Long): RecoveredTranscript? =
-        if (isHistoryPrivate() || !latinIME.mSettings.current.mClipboardHistoryEnabled)
-            null else recoveryRepository.get(id)
+        if (mayAccessVoiceRecovery()) recoveryRepository.get(id) else null
 
-    /** Called only after the user has explicitly tapped and inserted this result. */
+    /** Explicit dismissal only. Paste does not consume or extend the fixed lifetime. */
     fun consumeRecoveredTranscript(id: Long): Boolean = recoveryRepository.consume(id)
 
     fun clearRecoveredTranscripts() = recoveryRepository.clear()

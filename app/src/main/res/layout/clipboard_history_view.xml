@@ -78,7 +78,7 @@
         <helium314.keyboard.keyboard.clipboard.RecoveredTranscriptSectionView
             android:id="@+id/clipboard_recovered_transcripts"
             android:layout_width="match_parent"
-            android:layout_height="118dp"
+            android:layout_height="88dp"
             android:layout_gravity="top"
             android:layout_marginTop="@dimen/panel_header_height"
             android:visibility="gone" />

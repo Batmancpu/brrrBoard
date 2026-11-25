@@ -1,14 +1,10 @@
 {
   "schema": 1,
-  "summary": "Instant alphabet and number switching; cold Emoji morph",
+  "summary": "One-minute private voice recovery",
   "changes": [
     {
-      "title": "Instant ABC ↔ 123",
-      "detail": "Removed the recent elastic alphabet/symbol transition in both directions. Long-press popup animation remains."
-    },
-    {
-      "title": "First-open Emoji morph",
-      "detail": "Wait for cold destination geometry with bounded pre-draw retries; keep the existing shared-key animation, no panel fade."
+      "title": "Voice Recovery",
+      "detail": "Automatically keeps the last finalized dictation in a temporary clipboard card for 60 seconds, with the existing microphone icon and a red glow. Tap to restore; no persistent storage or system clipboard write."
     }
   ]
 }

@@ -211,7 +211,7 @@ internal class OfflineBoardDictation(private val ime: LatinIME) {
             )
             finish(OfflineDictationExit.OTHER, clearDraft = outcome != VoiceTranscriptDeliveryPolicy.Outcome.INSERT)
             if (outcome == VoiceTranscriptDeliveryPolicy.Outcome.INSERT) {
-                ime.onPrivateVoiceTextInput(phrase, hadLiveDraft)
+                ime.onFinalizedVoiceTextInput(phrase, hadLiveDraft)
                 VoiceStopMetrics.dispatchReturned()
                 if (shouldSend) connection.performEditorAction(EditorInfo.IME_ACTION_SEND)
                 if (incomplete) statusFooter?.showDictationError(R.string.board_voice_partial_transcript)

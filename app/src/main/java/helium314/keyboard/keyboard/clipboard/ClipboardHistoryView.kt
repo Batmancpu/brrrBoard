@@ -266,6 +266,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         if (::clipboardHistoryManager.isInitialized) clipboardHistoryManager.dismissExtraction()
+        if (::recoveredSection.isInitialized) recoveredSection.bind(emptyList(), {}, {})
         cancelHeightMotion()
         super.onDetachedFromWindow()
     }
@@ -563,6 +564,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         this.keyboardActionListener = keyboardActionListener
         clipboardHistoryManager = historyManager
         initialize()
+        historyManager.setVoiceRecoveryChangeListener(::refreshRecoveredTranscriptSection)
         refreshRecoveredTranscriptSection()
         val settings = Settings.getInstance()
         setupHeader(settings.current.mColors)
@@ -610,7 +612,10 @@ class ClipboardHistoryView @JvmOverloads constructor(
     }
 
     fun stopClipboardHistory() {
-        if (::clipboardHistoryManager.isInitialized) clipboardHistoryManager.dismissExtraction()
+        if (::clipboardHistoryManager.isInitialized) {
+            clipboardHistoryManager.dismissExtraction()
+            clipboardHistoryManager.setVoiceRecoveryChangeListener(null)
+        }
         cancelHeightMotion()
         if (searchMode) closeSearch(animate = false)
         hideUndoBar()
@@ -838,7 +843,8 @@ class ClipboardHistoryView @JvmOverloads constructor(
         val typing = switcher.mainKeyboardView ?: return
         prepareHeightMotion()
         searchMode = true
-        recoveredSection.visibility = View.GONE
+        recoveredSection.bind(emptyList(), {}, {})
+        clipboardRecyclerView.hasExternalContent = false
         searchShifted = false
         applySearchTheme(Settings.getValues().mColors)
         applySearchResultsLayout(true)
@@ -1070,7 +1076,6 @@ class ClipboardHistoryView @JvmOverloads constructor(
         // The tap is an explicit new destination choice. Unlike a delayed
         // decoder callback, it may commit only to the *current* eligible field.
         if (ime.insertRecoveredVoiceText(item.text)) {
-            clipboardHistoryManager.consumeRecoveredTranscript(id)
             refreshRecoveredTranscriptSection()
             announceForAccessibility(context.getString(R.string.board_recovered_transcript_inserted))
             if (Settings.getValues().mAlphaAfterClipHistoryEntry) {
