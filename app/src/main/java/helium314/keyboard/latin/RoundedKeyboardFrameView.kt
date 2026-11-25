@@ -125,8 +125,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         }
         // Preserve the measured key body; only the optional header shrinks.
         // Keep the strip attached so a late provider response can expand it.
-        val stripContainer = findViewById<android.widget.FrameLayout>(R.id.strip_container)
-        val strip = stripContainer?.findViewById<helium314.keyboard.latin.suggestions.SuggestionStripView>(R.id.suggestion_strip_view)
+        val stripContainer = findViewById<View>(R.id.strip_container) as? android.widget.FrameLayout
+        val strip = stripContainer?.findViewById<View>(R.id.suggestion_strip_view) as? helium314.keyboard.latin.suggestions.SuggestionStripView
         if (stripContainer != null && strip != null) {
             val compact = !exclusivePanelVisible && stripContainer.visibility == View.VISIBLE &&
                 strip.visibility == View.VISIBLE && strip.shouldCollapseUnusedStrip()

@@ -107,3 +107,6 @@ Owner device screenshot confirmed flat paste, right Chrome, filled emoji and rev
 
 ### 2026-11-25 — batch 3 compile repair
 Both exact-source runs 45600917361/45600917450 failed compiling Kotlin: SuggestionStripView.kt:849:27 unresolved reference Gravity. Inspected debug and release logs; imported android.view.Gravity, retained cumulative release delta since v1.0.320. No release safeguards changed. Exact-parent non-force main commit; retest both workflows and confirm actual APK publication. Owner requests direct polling, no hourly iOS automation (paused). Physical validation pending.
+
+### 2026-11-25 — batch 3 layout regression repair
+Exact 70dc8b0 debug 45601527532 compiled but 3 of 681 tests failed: RoundedKeyboardFrameEmojiHeaderTest ClassCastException on all three fixtures; release 45601527359 blocked by required debug gate. Source inspection found unchecked FrameLayout generic lookup against fixture's plain View header. Use View lookup and safe casts for container and strip, preserving alternate header hierarchies without modifying tests. No signing or CI changes. Notes updated cumulatively, rerun both and verify published signed APK.

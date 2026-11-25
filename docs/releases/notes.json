@@ -8,7 +8,7 @@
     },
     {
       "title": "Compact keyboard",
-      "detail": "When word suggestions are disabled or not required and no contextual action is active, the suggestion header shrinks to rounded-corner clearance without changing key height."
+      "detail": "When word suggestions are disabled or not required and no contextual action is active, the suggestion header shrinks to rounded-corner clearance without changing key height. Header measurement handles alternate panel/view hierarchies safely."
     },
     {
       "title": "Native password managers",
