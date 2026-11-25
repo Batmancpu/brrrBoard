@@ -45,6 +45,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var isVerificationCode = false
     private var intentEmphasized = false
     private var capsuleMotion: ValueAnimator? = null
+    private var chromeRevealed = false
     private val capsuleFills = ArrayList<ScaleDrawable>(3)
     val hasLiveChrome: Boolean get() = !retired && chrome.isVisible && chrome.isEnabled
 
@@ -64,9 +65,9 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         image = imagePreview
         val ink = colors.get(ColorType.SUGGESTION_AUTO_CORRECT)
         val lightInk = ColorUtils.calculateLuminance(ColorUtils.setAlphaComponent(ink, 255)) >= .35
-        val fill = if (lightInk) 0x24FFFFFF else 0xA6FFFFFF.toInt()
+        val fill = Color.TRANSPARENT
         val pressed = if (lightInk) 0x28FFFFFF else 0x19000000
-        val edge = if (lightInk) 0x1AFFFFFF else 0x82FFFFFF.toInt()
+        val edge = Color.TRANSPARENT
         capsuleFills.clear()
         paste.background = capsule(fill, pressed, edge)
         chrome.background = capsule(fill, pressed, edge)
@@ -78,11 +79,17 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         chrome.setTextColor(ink)
         close.setColorFilter(ink)
         close.imageAlpha = 166
-        val medium = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        val medium = Typeface.create("sans-serif", Typeface.NORMAL)
         KeyboardTypeface.applyToTextView(label, content, medium)
         KeyboardTypeface.applyToTextView(chrome, chrome.text, medium)
         paste.contentDescription = resources.getString(R.string.board_accessory_paste_preview, content)
         label.text = content
+        label.gravity = Gravity.CENTER
+        label.textSize = 16f
+        chrome.text = ""
+        close.isVisible = false
+        clipChildren = true
+        clipToPadding = true
         if (image) label.setPaddingRelative(dp(4), 0, dp(8), 0)
         preview.clipToOutline = true
         preview.background = GradientDrawable().apply {
@@ -110,26 +117,27 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         if (retired || compact == value) return
         compact = value
         val pasteParams = paste.layoutParams as LayoutParams
-        pasteParams.width = if (value) dp(38) else 0
+        pasteParams.width = 0
         pasteParams.weight = if (value) 0f else 1f
         paste.layoutParams = pasteParams
+        paste.isVisible = !value
         val gapParams = gap.layoutParams as LayoutParams
-        gapParams.width = if (value) 0 else dp(6)
+        gapParams.width = 0
         gapParams.weight = if (value) 1f else 0f
         gap.layoutParams = gapParams
         gap.isVisible = value || chrome.isVisible
         val chromeParams = chrome.layoutParams as LayoutParams
-        chromeParams.width = if (value) dp(38) else LayoutParams.WRAP_CONTENT
+        chromeParams.width = dp(44)
         chrome.layoutParams = chromeParams
         label.text = if (value) "" else fullLabel
         label.isVisible = !(value && image)
-        label.gravity = if (value) Gravity.CENTER else Gravity.CENTER_VERTICAL or Gravity.START
+        label.gravity = Gravity.CENTER
         label.setPaddingRelative(dp(if (value) 10 else if (image) 4 else 10), 0, dp(if (value) 10 else 8), 0)
         label.compoundDrawablePadding = if (value) 0 else dp(6)
-        chrome.text = if (value) "" else resources.getString(R.string.board_chrome_label)
+        chrome.text = ""
         chrome.compoundDrawablePadding = if (value) 0 else dp(5)
         chrome.setPaddingRelative(dp(if (value) 10 else 9), 0, dp(10), 0)
-        close.isVisible = !value
+        close.isVisible = false
         // The empty center has no click listener and lets prediction taps pass through.
     }
 
@@ -141,6 +149,12 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
             capsuleFills.forEach { it.level = 10000 }
             alpha = 1f
             return
+        }
+        if (chrome.isVisible && !chromeRevealed) {
+            chromeRevealed = true
+            chrome.translationX = dp(34).toFloat()
+            chrome.alpha = 0f
+            chrome.animate().translationX(0f).alpha(1f).setDuration(210L).setInterpolator(DecelerateInterpolator()).start()
         }
         alpha = .84f
         animate().alpha(1f).setDuration(140L).start()
@@ -156,6 +170,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
 
     fun hideChrome() {
         val wasVisible = chrome.isVisible
+        chrome.animate().cancel()
         chrome.isEnabled = false
         chrome.isVisible = false
         if (!compact) gap.isVisible = false
@@ -185,15 +200,5 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         onAccessoryChanged?.invoke()
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        if (!retired && !compact && chrome.isVisible) {
-            val narrow = MeasureSpec.getSize(widthMeasureSpec) < dp(250)
-            val target = if (narrow) "" else resources.getString(R.string.board_chrome_label)
-            if (chrome.text.toString() != target) {
-                chrome.text = target
-                chrome.compoundDrawablePadding = if (narrow) 0 else dp(5)
-            }
-        }
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-    }
+
 }

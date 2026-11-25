@@ -54,7 +54,7 @@ public class InlineAutofillUtils {
     public static InlineSuggestionsRequest createInlineSuggestionRequest(final Context context) {
         final Colors colors = Settings.getValues().mColors;
         final int chipBgDrawableId = androidx.autofill.R.drawable.autofill_inline_suggestion_chip_background;
-        final int chipBgColor = colors.get(ColorType.AUTOFILL_BACKGROUND_CHIP);
+        final int chipBgColor = android.graphics.Color.TRANSPARENT;
         final int chipTextColor = colors.get(ColorType.KEY_TEXT);
         final int chipTextHintColor = colors.get(ColorType.KEY_HINT_TEXT);
 
@@ -73,12 +73,12 @@ public class InlineAutofillUtils {
                 .setTitleStyle(
                         new TextViewStyle.Builder()
                                 .setTextColor(chipTextColor)
-                                .setTextSize(12)
+                                .setTextSize(15)
                                 .build())
                 .setSubtitleStyle(
                         new TextViewStyle.Builder()
                                 .setTextColor(chipTextHintColor)
-                                .setTextSize(10)
+                                .setTextSize(11)
                                 .build())
                 .setEndIconStyle(new ImageViewStyle.Builder().setLayoutMargin(0, 0, 0, 0).build())
                 .build();
@@ -105,6 +105,7 @@ public class InlineAutofillUtils {
                                                    final java.util.function.BooleanSupplier stillCurrent,
                                                    final Runnable onAllUnavailable) {
         LinearLayout container = new LinearLayout(context);
+        container.setGravity(android.view.Gravity.CENTER);
         final int[] pending = {inlineSuggestions.size()};
         final int[] rendered = {0};
         for (InlineSuggestion inlineSuggestion : inlineSuggestions) {
@@ -131,6 +132,7 @@ public class InlineAutofillUtils {
 
         HorizontalScrollView inlineSuggestionView = new HorizontalScrollView(context);
         inlineSuggestionView.setHorizontalScrollBarEnabled(false);
+        inlineSuggestionView.setFillViewport(true);
         inlineSuggestionView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         inlineSuggestionView.addView(container);
 

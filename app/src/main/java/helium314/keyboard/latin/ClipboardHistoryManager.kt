@@ -1282,7 +1282,7 @@ class ClipboardHistoryManager(
                     if (app.enabled) pm.getApplicationIcon(app) else null
                 }.getOrNull()
                 if (chromeIcon != null) {
-                    val size = (18 * latinIME.resources.displayMetrics.density).toInt()
+                    val size = (22 * latinIME.resources.displayMetrics.density).toInt()
                     chromeIcon.setBounds(0, 0, size, size)
                     chrome.setCompoundDrawablesRelative(chromeIcon, null, null, null)
                     chrome.isGone = false
@@ -1345,7 +1345,7 @@ class ClipboardHistoryManager(
         }
 
         binding.clipboardSuggestionPaste.setOnLongClickListener {
-            if (!root.compact || clipboardSuggestionView !== root || !root.isShown) false
+            if (clipboardSuggestionView !== root || !root.isShown || root.retired) false
             else {
                 if (!isOtp) recordPasteDecision(false)
                 removeClipboardSuggestion()

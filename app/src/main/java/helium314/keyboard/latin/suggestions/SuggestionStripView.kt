@@ -305,7 +305,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         val fits = ClipboardAccessoryPolicy.compactFits(suggestionsMiddleContainer.width,
             resources.displayMetrics.density)
-        val visible = show && fits
+        val visible = show && fits && accessory.hasLiveChrome
         accessory.isVisible = visible
         setPredictionAccessoryMargins(if (visible) accessory.sideWidth else 0)
     }
