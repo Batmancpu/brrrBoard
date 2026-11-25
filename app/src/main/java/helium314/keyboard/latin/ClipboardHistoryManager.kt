@@ -809,10 +809,8 @@ class ClipboardHistoryManager(
     private fun extractOptions(text: String, contextual: Boolean): List<ExtractOption> {
         if (!contextual) return ClipboardEntityExtractor.extract(text).map { ExtractOption(it.kind.label, it.start, it.end) }
         if (ClipboardEntityExtractor.excludeFromAutomaticHistory(text)) return emptyList()
-        return SmartPastePolicy.classify(text).drop(1).filter {
-            it.kind != SmartPastePolicy.Kind.OTP && it.kind != SmartPastePolicy.Kind.RICH &&
-                it.end - it.start in 1..512
-        }.distinctBy { it.start to it.end }.map { ExtractOption(it.kind.name.lowercase(java.util.Locale.ROOT), it.start, it.end) }
+        return ContextualAccessoryPolicy.extractCandidates(text)
+            .map { ExtractOption(it.kind.name.lowercase(java.util.Locale.ROOT), it.start, it.end) }
     }
 
     fun requestExtractCurrentClip() = requestExtractCurrentClip(false)
@@ -1366,10 +1364,15 @@ class ClipboardHistoryManager(
 
         // Reuse the existing one-slot animation and strict copy receipt for other actions.
         if (chrome.isGone && clip != null && !isOtp && !chromePrivate()) {
-            val action = ContextualAccessoryPolicy.choose(clip.content.toString(), dest)
             val receipt = strictTextReceipt()
             val remaining = if (receipt != null && receipt.timestamp == clip.timeStamp)
                 chromeRemaining(receipt.timestamp) else 0L
+            // Anchor relative dates to the copy receipt; midnight must not change a revealed event.
+            val action = if (receipt != null && remaining > 0L) {
+                val zone = java.time.ZoneId.systemDefault()
+                val today = java.time.Instant.ofEpochMilli(receipt.timestamp).atZone(zone).toLocalDate()
+                ContextualAccessoryPolicy.choose(clip.content.toString(), dest, today, zone)
+            } else null
             if (action != null && receipt != null && remaining > 0L) {
                 val (iconId, labelId) = when (action.kind) {
                     ContextualAccessoryPolicy.Kind.DIAL -> R.drawable.ic_board_context_dial to R.string.board_context_dial
@@ -1386,14 +1389,12 @@ class ClipboardHistoryManager(
                     ContextualAccessoryPolicy.Kind.MAIL -> Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", action.value, null))
                     ContextualAccessoryPolicy.Kind.MAP -> Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(action.value)))
                     ContextualAccessoryPolicy.Kind.CALENDAR -> {
-                        val date = action.value.split("-").map { it.toInt() }
-                        val begin = java.util.GregorianCalendar(java.util.TimeZone.getTimeZone("UTC")).apply {
-                            clear(); set(date[0], date[1] - 1, date[2], 0, 0, 0)
-                        }.timeInMillis
+                        val draft = requireNotNull(action.calendar)
                         Intent(Intent.ACTION_INSERT, android.provider.CalendarContract.Events.CONTENT_URI)
-                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, begin)
-                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, begin + 86_400_000L)
-                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, true)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, draft.beginMillis)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, draft.endMillis)
+                            .putExtra(android.provider.CalendarContract.EXTRA_EVENT_ALL_DAY, draft.allDay)
+                            .apply { draft.title?.let { putExtra(android.provider.CalendarContract.Events.TITLE, it) } }
                     }
                     ContextualAccessoryPolicy.Kind.TRACK -> Intent(Intent.ACTION_VIEW,
                         Uri.parse(action.value))

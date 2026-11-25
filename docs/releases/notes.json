@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Microphone redo icon and expanded parcel tracking",
+  "summary": "Intelligent calendar drafts and more precise entity extraction",
   "changes": [
     {
-      "title": "More parcel carriers",
-      "detail": "Recognize explicitly labelled FedEx, DHL Express, Blue Dart and Delhivery tracking numbers; preserve distinctive UPS recognition. Explicit taps open official carrier destinations. DHL and Delhivery open their tracking forms without speculative prefill."
+      "title": "Contextual calendar events",
+      "detail": "Recognize unambiguous ISO or English month-name dates, today/tomorrow and explicit times, ranges and short event titles. Timed events use local device time, default to a one-hour editable draft, and all-day dates use calendar UTC conventions. Ambiguous and invalid dates or repeated DST times are rejected."
     },
     {
-      "title": "Microphone and redo recovery icon",
-      "detail": "Failed transcription retry or reinsertion uses a single microphone-plus-redo glyph in the same animated contextual slot as Chrome."
+      "title": "Focused entity extraction",
+      "detail": "Rank specific email, link and tracking entities before other supported details; suppress ambiguous numeric phone fragments. Keep masked explicit selection, original copy receipt, expiry and privacy checks."
     }
   ]
 }
