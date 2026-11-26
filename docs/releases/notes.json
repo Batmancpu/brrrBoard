@@ -1,10 +1,18 @@
 {
   "schema": 1,
-  "summary": "Personalize touch estimates by key",
+  "summary": "Stabilize parallel dictionary suggestions",
   "changes": [
     {
-      "title": "Use confirmed per-key touch evidence",
-      "detail": "Derive bounded individual-letter touch offsets from the existing encrypted aggregate histograms when immutable snapshots are published, and use them in the existing adaptive chooser. Sparse evidence falls back to regional estimates; no raw touch traces or storage-format change is introduced."
+      "title": "Isolate locale suggestion state",
+      "detail": "Use the captured dictionary-group set for each request and give parallel locale decoders separate native language/spatial weight state. The single active dictionary path retains one weight array."
+    },
+    {
+      "title": "Contain decoder failures and protect reloads",
+      "detail": "A failed or cancelled locale query releases its completion slot and leaves other native results available. Dictionary replacement, close and history mutation wait for active native queries; stale asynchronous dictionaries are closed instead of installed."
+    },
+    {
+      "title": "Avoid repeated language validity queries",
+      "detail": "Reuse each active group's original and decapitalized validity result while adjusting multilingual confidence, preserving the existing confidence rules."
     }
   ]
 }

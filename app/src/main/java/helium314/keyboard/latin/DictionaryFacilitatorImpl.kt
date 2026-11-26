@@ -42,6 +42,7 @@ import helium314.keyboard.latin.utils.getSecondaryLocales
 import helium314.keyboard.latin.utils.locale
 import helium314.keyboard.latin.utils.prefs
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -50,6 +51,8 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Facilitates interaction with different kinds of dictionaries. Provides APIs
@@ -61,7 +64,42 @@ import java.util.concurrent.TimeUnit
  * a client for interacting with dictionaries.
  */
 class DictionaryFacilitatorImpl : DictionaryFacilitator {
+    @Volatile
     private var dictionaryGroups = listOf(DictionaryGroup())
+    /** Serializes reset, close and asynchronous reload without reversing the lifecycle-lock order. */
+    private val dictionaryResetLock = Any()
+    /** Suggestion readers finish before reload/close touches their native dictionary objects. */
+    private val dictionaryLifecycleLock = ReentrantReadWriteLock()
+
+    private inline fun <T> withDictionaryReadLock(action: () -> T): T {
+        val lock = dictionaryLifecycleLock.readLock()
+        lock.lock()
+        try { return action() } finally { lock.unlock() }
+    }
+
+    private inline fun <T> withDictionaryWriteLock(action: () -> T): T {
+        val lock = dictionaryLifecycleLock.writeLock()
+        lock.lock()
+        try { return action() } finally { lock.unlock() }
+    }
+
+    private inline fun <T> withDictionaryResetLock(action: () -> T): T =
+        synchronized(dictionaryResetLock, action)
+
+    private fun awaitDictionaryQueries(latch: CountDownLatch?) {
+        if (latch == null) return
+        var interrupted = false
+        while (true) {
+            try {
+                latch.await()
+                break
+            } catch (_: InterruptedException) {
+                // Keep the lifecycle read lock until native workers finish, then restore status.
+                interrupted = true
+            }
+        }
+        if (interrupted) Thread.currentThread().interrupt()
+    }
 
     @Volatile
     private var mLatchForWaitingLoadingMainDictionaries = CountDownLatch(0)
@@ -94,33 +132,29 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     // judging by usage before adding multilingual typing, this should check primary group locale only
     override fun isForLocale(locale: Locale?): Boolean {
-        return locale != null && locale == dictionaryGroups.firstOrNull()?.locale
+        return withDictionaryReadLock { locale != null && locale == dictionaryGroups.firstOrNull()?.locale }
     }
 
     override fun onStartInput() {
     }
 
-    override fun onFinishInput() {
+    override fun onFinishInput() = withDictionaryWriteLock {
         for (dictGroup in dictionaryGroups) {
             DictionaryFacilitator.ALL_DICTIONARY_TYPES.forEach { dictGroup.getDict(it)?.onFinishInput() }
         }
     }
 
-    override fun isActive(): Boolean {
-        return dictionaryGroups[0].locale.language.isNotEmpty()
+    override fun isActive(): Boolean = withDictionaryReadLock {
+        dictionaryGroups[0].locale.language.isNotEmpty()
     }
 
-    override fun getMainLocale(): Locale {
-        return dictionaryGroups[0].locale
-    }
+    override fun getMainLocale(): Locale = withDictionaryReadLock { dictionaryGroups[0].locale }
 
-    override fun getCurrentLocale(): Locale {
-        return currentlyPreferredDictionaryGroup.locale
-    }
+    override fun getCurrentLocale(): Locale = withDictionaryReadLock { currentlyPreferredDictionaryGroup.locale }
 
-    override fun usesSameSettings(locales: List<Locale>, contacts: Boolean, apps: Boolean, personalization: Boolean): Boolean {
+    override fun usesSameSettings(locales: List<Locale>, contacts: Boolean, apps: Boolean, personalization: Boolean): Boolean = withDictionaryReadLock {
         val dictGroup = dictionaryGroups[0] // settings are the same for all groups
-        return contacts == dictGroup.hasDict(Dictionary.TYPE_CONTACTS)
+        contacts == dictGroup.hasDict(Dictionary.TYPE_CONTACTS)
                 && apps == dictGroup.hasDict(Dictionary.TYPE_APPS)
                 && personalization == dictGroup.hasDict(Dictionary.TYPE_USER_HISTORY)
                 && locales.size == dictionaryGroups.size
@@ -138,7 +172,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         forceReloadMainDictionary: Boolean,
         dictNamePrefix: String,
         listener: DictionaryInitializationListener?
-    ) {
+    ) = withDictionaryResetLock {
         Log.i(TAG, "resetDictionaries, force reloading main dictionary: $forceReloadMainDictionary")
 
         val locales = getUsedLocales(newLocale, context)
@@ -153,31 +187,32 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 Dictionary.TYPE_CONTACTS else null
         )
 
-        val (newDictionaryGroups, existingDictsToCleanup) =
-            getNewDictGroupsAndDictsToCleanup(locales, subDictTypesToUse, forceReloadMainDictionary, dictNamePrefix, context)
+        val (newDictionaryGroups, existingDictsToCleanup) = getNewDictGroupsAndDictsToCleanup(
+            locales, subDictTypesToUse, forceReloadMainDictionary, dictNamePrefix, context
+        )
 
-        // Replace Dictionaries.
-        val oldDictionaryGroups: List<DictionaryGroup>
-        synchronized(this) {
-            oldDictionaryGroups = dictionaryGroups
-            dictionaryGroups = newDictionaryGroups
-            if (hasAtLeastOneUninitializedMainDictionary()) {
-                asyncReloadUninitializedMainDictionaries(context, locales, listener)
+        withDictionaryWriteLock {
+            // Replace Dictionaries only after all suggestion requests using the old natives finish.
+            val oldDictionaryGroups = dictionaryGroups
+            synchronized(this) {
+                dictionaryGroups = newDictionaryGroups
+                if (hasAtLeastOneUninitializedMainDictionary()) {
+                    asyncReloadUninitializedMainDictionaries(context, locales, listener)
+                }
             }
+
+            // Clean up old dictionaries after the swap, while no suggestion reader can use them.
+            existingDictsToCleanup.forEach { (locale, dictTypes) ->
+                val dictGroupToCleanup = findDictionaryGroupWithLocale(oldDictionaryGroups, locale) ?: return@forEach
+                for (dictType in dictTypes) {
+                    dictGroupToCleanup.closeDict(dictType)
+                }
+            }
+            mValidSpellingWordWriteCache?.evictAll()
+            mValidSpellingWordReadCache?.evictAll()
         }
 
         listener?.onUpdateMainDictionaryAvailability(hasAtLeastOneInitializedMainDictionary())
-
-        // Clean up old dictionaries.
-        existingDictsToCleanup.forEach { (locale, dictTypes) ->
-            val dictGroupToCleanup = findDictionaryGroupWithLocale(oldDictionaryGroups, locale) ?: return@forEach
-            for (dictType in dictTypes) {
-                dictGroupToCleanup.closeDict(dictType)
-            }
-        }
-
-        mValidSpellingWordWriteCache?.evictAll()
-        mValidSpellingWordReadCache?.evictAll()
     }
 
     /** creates dictionaryGroups for [newLocales] with given [newSubDictTypes], trying to re-use existing dictionaries.
@@ -245,28 +280,55 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private fun asyncReloadUninitializedMainDictionaries(
         context: Context, locales: Collection<Locale>, listener: DictionaryInitializationListener?
     ) {
+        val targetGroups = dictionaryGroups
         val latchForWaitingLoadingMainDictionary = CountDownLatch(1)
         mLatchForWaitingLoadingMainDictionaries = latchForWaitingLoadingMainDictionary
         scope.launch {
+            val loadedMainDictionaries = mutableListOf<Pair<DictionaryGroup, Dictionary>>()
+            var installed = false
             try {
+                if (dictionaryGroups !== targetGroups) return@launch
                 val useEmojiDict = Settings.getValues()?.mSuggestEmojis ?: true
-                val dictGroupsWithNewMainDict = locales.mapNotNull {
-                    val dictionaryGroup = findDictionaryGroupWithLocale(dictionaryGroups, it)
-                    if (dictionaryGroup == null) {
-                        Log.w(TAG, "Expected a dictionary group for $it but none found")
-                        return@mapNotNull null // This should never happen
+                val groupsToLoad = withDictionaryReadLock {
+                    locales.mapNotNull { locale ->
+                        val group = findDictionaryGroupWithLocale(targetGroups, locale)
+                        if (group == null) {
+                            Log.w(TAG, "Expected a dictionary group for $locale but none found")
+                            null
+                        } else if (group.getDict(Dictionary.TYPE_MAIN)?.isInitialized == true) {
+                            null
+                        } else {
+                            locale to group
+                        }
                     }
-                    if (dictionaryGroup.getDict(Dictionary.TYPE_MAIN)?.isInitialized == true) null
-                    else dictionaryGroup to DictionaryFactory.createMainDictionaryCollection(context, it, useEmojiDict)
                 }
-                synchronized(this) {
-                    dictGroupsWithNewMainDict.forEach { (dictGroup, mainDict) ->
-                        dictGroup.setMainDict(mainDict)
+                for ((locale, group) in groupsToLoad) {
+                    loadedMainDictionaries.add(
+                        group to DictionaryFactory.createMainDictionaryCollection(context, locale, useEmojiDict)
+                    )
+                }
+                val wasInstalled = withDictionaryResetLock {
+                    withDictionaryWriteLock {
+                        if (dictionaryGroups !== targetGroups) {
+                            loadedMainDictionaries.forEach { (_, mainDict) -> mainDict.close() }
+                            false
+                        } else {
+                            synchronized(this) {
+                                loadedMainDictionaries.forEach { (group, mainDict) -> group.setMainDict(mainDict) }
+                            }
+                            true
+                        }
                     }
                 }
+                if (!wasInstalled) return@launch
+                installed = true
 
                 listener?.onUpdateMainDictionaryAvailability(hasAtLeastOneInitializedMainDictionary())
+            } catch (e: CancellationException) {
+                if (!installed) loadedMainDictionaries.forEach { (_, mainDict) -> mainDict.close() }
+                throw e
             } catch (e: Throwable) {
+                if (!installed) loadedMainDictionaries.forEach { (_, mainDict) -> mainDict.close() }
                 Log.e(TAG, "could not initialize main dictionaries for $locales", e)
             } finally {
                 latchForWaitingLoadingMainDictionary.countDown()
@@ -274,26 +336,27 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
     }
 
-    override fun closeDictionaries() {
-        onFinishInput() // the dictionaries will save updates to file
-        val dictionaryGroupsToClose: List<DictionaryGroup>
-        synchronized(this) {
-            dictionaryGroupsToClose = dictionaryGroups
-            dictionaryGroups = listOf(DictionaryGroup())
-        }
-        for (dictionaryGroup in dictionaryGroupsToClose) {
-            for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
-                dictionaryGroup.closeDict(dictType)
+    override fun closeDictionaries() = withDictionaryResetLock {
+        withDictionaryWriteLock {
+            onFinishInput() // the dictionaries will save updates to file
+            val dictionaryGroupsToClose = dictionaryGroups
+            synchronized(this) { dictionaryGroups = listOf(DictionaryGroup()) }
+            for (dictionaryGroup in dictionaryGroupsToClose) {
+                for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
+                    dictionaryGroup.closeDict(dictType)
+                }
             }
         }
     }
 
     // The main dictionaries are loaded asynchronously. Don't cache the return value of these methods.
-    override fun hasAtLeastOneInitializedMainDictionary(): Boolean =
+    override fun hasAtLeastOneInitializedMainDictionary(): Boolean = withDictionaryReadLock {
         dictionaryGroups.any { it.getDict(Dictionary.TYPE_MAIN)?.isInitialized == true }
+    }
 
-    override fun hasAtLeastOneUninitializedMainDictionary(): Boolean =
+    override fun hasAtLeastOneUninitializedMainDictionary(): Boolean = withDictionaryReadLock {
         dictionaryGroups.any { it.getDict(Dictionary.TYPE_MAIN)?.isInitialized != true }
+    }
 
     @Throws(InterruptedException::class)
     override fun waitForLoadingMainDictionaries(timeout: Long, unit: TimeUnit) {
@@ -305,7 +368,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override fun addToUserHistory(
         suggestion: String, wasAutoCapitalized: Boolean, ngramContext: NgramContext,
         timeStampInSeconds: Long, blockPotentiallyOffensive: Boolean
-    ) {
+    ) { withDictionaryWriteLock {
         if (suggestion.isBlank() || !UpstreamTypingPolicy.mayLearnCapitalization(
                 wasAutoCapitalized, ngramContext.isBeginningOfSentenceContext)) return
         // Update the spelling cache before learning. Words that are not yet added to user history
@@ -346,6 +409,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 it.removeFromBlacklist(currentWord)
             }
         }
+    }
     }
 
     private fun addWordToUserHistory(
@@ -447,27 +511,31 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         mValidSpellingWordWriteCache?.put(capitalWord, capitalValid)
     }
 
-    override fun adjustConfidences(word: String, wasAutoCapitalized: Boolean) {
+    override fun adjustConfidences(word: String, wasAutoCapitalized: Boolean) { withDictionaryWriteLock {
         if (dictionaryGroups.size == 1 || word.contains(Constants.WORD_SEPARATOR))
             return
 
         // if suggestion was auto-capitalized, check against both the suggestion and the de-capitalized suggestion
         val decapitalizedSuggestion = if (wasAutoCapitalized) word.decapitalize(currentLocale) else word
         val validWord = dictionaryGroups.map { isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it) }
-        dictionaryGroups.forEach {
-            if (isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it)) {
-                it.increaseConfidence()
-                return@forEach
+        val decapitalizedValidWord = if (wasAutoCapitalized) dictionaryGroups.map {
+            isValidWord(decapitalizedSuggestion, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it)
+        } else emptyList()
+        dictionaryGroups.forEachIndexed { index, group ->
+            if (validWord[index]) {
+                group.increaseConfidence()
+                return@forEachIndexed
             }
             // also increase confidence if suggestion was auto-capitalized and the lowercase variant it valid
-            if (wasAutoCapitalized && isValidWord(decapitalizedSuggestion, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it)) {
-                it.increaseConfidence()
+            if (wasAutoCapitalized && decapitalizedValidWord[index]) {
+                group.increaseConfidence()
             } else {
-                it.decreaseConfidence()
+                group.decreaseConfidence()
                 if (validWord.any { it })
-                    it.decreaseConfidence() // if the word is valid in another language decrease confidence even more
+                    group.decreaseConfidence() // if the word is valid in another language decrease confidence even more
             }
         }
+    }
     }
 
     /** the dictionaryGroup with most confidence, first group when tied  */
@@ -484,7 +552,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         return preferred
     }
 
-    override fun unlearnFromUserHistory(word: String, ngramContext: NgramContext, timeStampInSeconds: Long, eventType: Int) {
+    override fun unlearnFromUserHistory(word: String, ngramContext: NgramContext, timeStampInSeconds: Long, eventType: Int) = withDictionaryWriteLock {
         // TODO: Decide whether or not to remove the word on EVENT_BACKSPACE.
         if (eventType != Constants.EVENT_BACKSPACE) {
             currentlyPreferredDictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY)?.removeUnigramEntryDynamically(word)
@@ -499,25 +567,57 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override fun getSuggestionResults(
         composedData: ComposedData, ngramContext: NgramContext, keyboard: Keyboard,
         settingsValuesForSuggestion: SettingsValuesForSuggestion, sessionId: Int, inputStyle: Int
-    ): SuggestionResults {
+    ): SuggestionResults = withDictionaryReadLock {
+        val groups = dictionaryGroups
         val proximityInfoHandle = keyboard.proximityInfo.nativeProximityInfo
-        val weightOfLangModelVsSpatialModel = floatArrayOf(Dictionary.NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL)
+        // Native calls may update this out parameter. Keep the primary query's existing
+        // one-array path; parallel locale queries each get their own independent array.
+        val primaryWeights = floatArrayOf(Dictionary.NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL)
 
-        val waitForOtherDicts = if (dictionaryGroups.size == 1) null else CountDownLatch(dictionaryGroups.size - 1)
-        val suggestionsArray = Array<List<SuggestedWordInfo>?>(dictionaryGroups.size) { null }
-        for (i in 1..dictionaryGroups.lastIndex) {
-            scope.launch {
-                suggestionsArray[i] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
-                    proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[i])
-                waitForOtherDicts?.countDown()
+        val waitForOtherDicts = if (groups.size == 1) null else CountDownLatch(groups.size - 1)
+        val suggestionsArray = Array<List<SuggestedWordInfo>?>(groups.size) { null }
+        for (i in 1..groups.lastIndex) {
+            val latch = waitForOtherDicts!!
+            val localeWeights = floatArrayOf(Dictionary.NOT_A_WEIGHT_OF_LANG_MODEL_VS_SPATIAL_MODEL)
+            val completionSignalled = AtomicBoolean(false)
+            val signalCompletion = { if (completionSignalled.compareAndSet(false, true)) latch.countDown() }
+            val query = scope.launch {
+                try {
+                    suggestionsArray[i] = runDictionarySuggestionQuery(
+                        query = {
+                            getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
+                                proximityInfoHandle, localeWeights, groups[i], groups)
+                        },
+                        onFailure = { Log.e(TAG, "Suggestion query failed for ${groups[i].locale}", it) },
+                        onComplete = signalCompletion
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } finally {
+                    signalCompletion()
+                }
             }
+            // Covers a coroutine cancelled before its body starts; the atomic signal
+            // prevents the normal finally path and completion callback double-counting.
+            query.invokeOnCompletion { signalCompletion() }
         }
-        suggestionsArray[0] = getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
-            proximityInfoHandle, weightOfLangModelVsSpatialModel, dictionaryGroups[0])
+        try {
+            suggestionsArray[0] = runDictionarySuggestionQuery(
+                query = {
+                    getSuggestions(composedData, ngramContext, settingsValuesForSuggestion, sessionId,
+                        proximityInfoHandle, primaryWeights, groups[0], groups)
+                },
+                onFailure = { Log.e(TAG, "Suggestion query failed for ${groups[0].locale}", it) },
+                onComplete = {}
+            )
+        } finally {
+            // Do not release the lifecycle read lock while any native query can still use
+            // the captured dictionary groups, even if the primary query throws.
+            awaitDictionaryQueries(waitForOtherDicts)
+        }
         val suggestionResults = SuggestionResults(
             SuggestedWords.MAX_SUGGESTIONS, ngramContext.isBeginningOfSentenceContext, false
         )
-        waitForOtherDicts?.await()
 
         suggestionsArray.forEach {
             if (it == null) return@forEach
@@ -527,7 +627,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
         if (composedData.mIsBatchMode && inputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH) {
             addGeometricRecallCandidates(suggestionResults, composedData, ngramContext,
-                keyboard, settingsValuesForSuggestion, sessionId, proximityInfoHandle)
+                keyboard, settingsValuesForSuggestion, sessionId, proximityInfoHandle, groups)
         }
 
         // For a typed word, keep a text candidate in the center and let contextual Emoji use
@@ -542,7 +642,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
             suggestionResults, suggestionsArray, composedData.mTypedWord, minimumTextSuggestionCount
         )
 
-        return suggestionResults
+        suggestionResults
     }
 
     /**
@@ -555,7 +655,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private fun addGeometricRecallCandidates(
         results: SuggestionResults, composedData: ComposedData, ngramContext: NgramContext,
         keyboard: Keyboard, settings: SettingsValuesForSuggestion, sessionId: Int,
-        proximityInfoHandle: Long
+        proximityInfoHandle: Long, groups: List<DictionaryGroup>
     ) {
         val seeds = SwipeGeometryRescue.hints(composedData.mInputPointers, keyboard)
         if (seeds.isEmpty()) return
@@ -577,7 +677,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         for ((_, word) in SwipeGeometryRescue.recallCandidates(seeds) { learner?.suggest(it) }) {
             if (word.lowercase(Locale.ROOT) in existing
                 || BrrPersonalDictionary.isNoSuggestionWord(word)) continue
-            for (group in dictionaryGroups) {
+            for (group in groups) {
                 for (type in types) {
                     val dictionary = group.getSubDict(type) ?: continue
                     if (!dictionary.isInDictionary(word)) continue
@@ -593,10 +693,11 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     private fun getSuggestions(
         composedData: ComposedData, ngramContext: NgramContext,
         settingsValuesForSuggestion: SettingsValuesForSuggestion, sessionId: Int,
-        proximityInfoHandle: Long, weightOfLangModelVsSpatialModel: FloatArray, dictGroup: DictionaryGroup
+        proximityInfoHandle: Long, weightOfLangModelVsSpatialModel: FloatArray,
+        dictGroup: DictionaryGroup, groups: List<DictionaryGroup>
     ): List<SuggestedWordInfo> {
         val suggestions = ArrayList<SuggestedWordInfo>()
-        val weightForLocale = dictGroup.getWeightForLocale(dictionaryGroups, composedData.mIsBatchMode)
+        val weightForLocale = dictGroup.getWeightForLocale(groups, composedData.mIsBatchMode)
         for (dictType in DictionaryFacilitator.ALL_DICTIONARY_TYPES) {
             val dictionary = dictGroup.getDict(dictType) ?: continue
             val dictionarySuggestions = dictionary.getSuggestions(composedData, ngramContext, proximityInfoHandle,
@@ -612,7 +713,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
             for (info in dictionarySuggestions) {
                 val word = info.word
-                if (isBlacklisted(word) || SupportedEmojis.isUnsupported(word)) // don't add blacklisted words and unsupported emojis
+                if (isBlacklisted(word, groups) || SupportedEmojis.isUnsupported(word)) // don't add blacklisted words and unsupported emojis
                     continue
                 // Keep curated slang/profanity out of unsolicited completions and predictions.
                 // Deliberate swipe gestures may still resolve to these valid words.
@@ -642,17 +743,19 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     // meaning that it always has default mConfidence. So we cannot choose to only check preferred
     // locale, and instead simply return true if word is in any of the available dictionaries
     override fun isValidSpellingWord(word: String): Boolean {
-        if (BrrPersonalDictionary.isNoSuggestionWord(word)) return true
-        mValidSpellingWordReadCache?.get(word)?.let { return it }
-        val result = dictionaryGroups.any { isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it) }
-        mValidSpellingWordReadCache?.put(word, result)
-        return result
+        return withDictionaryReadLock {
+            if (BrrPersonalDictionary.isNoSuggestionWord(word)) return@withDictionaryReadLock true
+            mValidSpellingWordReadCache?.get(word)?.let { return@withDictionaryReadLock it }
+            val result = dictionaryGroups.any { isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it) }
+            mValidSpellingWordReadCache?.put(word, result)
+            result
+        }
     }
 
     // this is unused, so leave it for now (redirecting to isValidWord seems to defeat the purpose...)
-    override fun isValidSuggestionWord(word: String): Boolean {
-        if (BrrPersonalDictionary.isNoSuggestionWord(word)) return false
-        return isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, dictionaryGroups[0])
+    override fun isValidSuggestionWord(word: String): Boolean = withDictionaryReadLock {
+        if (BrrPersonalDictionary.isNoSuggestionWord(word)) return@withDictionaryReadLock false
+        isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, dictionaryGroups[0])
     }
 
     // todo: move into dictionaryGroup?
@@ -661,15 +764,16 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         return dictionariesToCheck.any { dictionaryGroup.getDict(it)?.isValidWord(word) == true }
     }
 
-    private fun isBlacklisted(word: String): Boolean = dictionaryGroups.any { it.isBlacklisted(word) }
+    private fun isBlacklisted(word: String, groups: List<DictionaryGroup> = dictionaryGroups): Boolean =
+        groups.any { it.isBlacklisted(word) }
 
-    override fun removeWord(word: String) {
+    override fun removeWord(word: String) = withDictionaryWriteLock {
         for (dictionaryGroup in dictionaryGroups) {
             dictionaryGroup.removeWord(word)
         }
     }
 
-    override fun clearUserHistoryDictionary(context: Context) {
+    override fun clearUserHistoryDictionary(context: Context) = withDictionaryWriteLock {
         for (dictionaryGroup in dictionaryGroups) {
             dictionaryGroup.getSubDict(Dictionary.TYPE_USER_HISTORY)?.clear()
         }
@@ -677,22 +781,25 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     override fun localesAndConfidences(): String? {
         if (dictionaryGroups.size < 2) return null
-        return dictionaryGroups.joinToString(", ") { "${it.locale} ${it.confidence}" }
+        return withDictionaryReadLock {
+            dictionaryGroups.joinToString(", ") { "${it.locale} ${it.confidence}" }
+        }
     }
 
-    override fun dumpDictionaryForDebug(dictName: String) {
+    override fun dumpDictionaryForDebug(dictName: String) = withDictionaryReadLock {
         val dictToDump = dictionaryGroups[0].getSubDict(dictName)
         if (dictToDump == null) {
             Log.e(TAG, ("Cannot dump $dictName. The dictionary is not being used for suggestion or cannot be dumped."))
-            return
+            return@withDictionaryReadLock
         }
         dictToDump.dumpAllWordsForDebug()
     }
 
-    override fun getDictionaryStats(context: Context): List<DictionaryStats> =
+    override fun getDictionaryStats(context: Context): List<DictionaryStats> = withDictionaryReadLock {
         DictionaryFacilitator.DYNAMIC_DICTIONARY_TYPES.flatMap { dictType ->
             dictionaryGroups.mapNotNull { it.getSubDict(dictType)?.dictionaryStats }
         }
+    }
 
     override fun dump(context: Context) = getDictionaryStats(context).joinToString("\n")
 
