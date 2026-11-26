@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Reduce optional ContextLM encoding allocations",
+  "summary": "Keep the experimental ContextLM embedding quantized",
   "changes": [
     {
-      "title": "Use a bounded flat inference workspace",
-      "detail": "ContextLM now encodes its fixed causal window with two invocation-local contiguous activation buffers and retains only the final state. The original floating-point accumulation order, cancellation points and default-disabled experimental gate are preserved; a deterministic nonzero-score fixture checks output."
+      "title": "Retain INT8 embedding bytes at runtime",
+      "detail": "The experimental ContextLM loader now retains its 1,048,576-byte embedding tensor in INT8 form and applies the manifest scale at bounded context and candidate lookups. This preserves the original float weight calculation while avoiding expansion to 4 MiB; the model remains disabled by default and fails production loading unless its independent quality gate passes."
     }
   ]
 }

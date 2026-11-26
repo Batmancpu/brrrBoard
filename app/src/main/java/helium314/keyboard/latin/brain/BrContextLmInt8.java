@@ -26,7 +26,8 @@ import java.util.function.LongSupplier;
  *
  * <p>All disk/asset reads, digest verification and model construction MUST happen on a bounded
  * background worker; never construct this object on the IME rendering/key thread. The INT8
- * weights are expanded once to floats, avoiding an extra native runtime or JNI crash surface.
+ * projection and small gate tensors are expanded once; the large embedding matrix remains in its
+ * verified INT8 representation and is dequantized with the same float scale at each lookup.
  * The production loader requires release approval. A separate explicit test loader accepts only
  * a manifest marked experimental, quality-gate-failed, and manual-suggestions-only.
  */
@@ -42,7 +43,8 @@ public final class BrContextLmInt8 {
     private static final String EXPECTED_ARCH = "causal_dfsmn_5x128_taps4_candidate_head";
 
     private final Map<String, Integer> vocabulary;
-    private final float[] embedding;
+    private final byte[] quantizedEmbedding;
+    private final float embeddingScale;
     private final float[][] projections;
     private final float[][] biases;
     private final float[][] memory;
@@ -55,7 +57,13 @@ public final class BrContextLmInt8 {
                             final Map<String, Weights> parameters) throws IOException {
         this.vocabulary = vocabulary;
         vocabSize = vocabulary.size();
-        embedding = parameter(parameters, "embedding.weight", vocabSize, CHANNELS);
+        final Weights embeddingWeights = parameterWeights(
+                parameters, "embedding.weight", vocabSize, CHANNELS);
+        if (embeddingWeights.quantizedValues == null) {
+            throw new IOException("ContextLM embedding must remain quantized");
+        }
+        quantizedEmbedding = embeddingWeights.quantizedValues;
+        embeddingScale = embeddingWeights.scale;
         projections = new float[LAYERS][];
         biases = new float[LAYERS][];
         for (int i = 0; i < LAYERS; i++) {
@@ -75,16 +83,27 @@ public final class BrContextLmInt8 {
 
     private static final class Weights {
         final float[] values;
+        final byte[] quantizedValues;
+        final float scale;
         final int[] shape;
 
         Weights(final float[] values, final int[] shape) {
             this.values = values;
+            quantizedValues = null;
+            scale = 1f;
+            this.shape = shape;
+        }
+
+        Weights(final byte[] quantizedValues, final float scale, final int[] shape) {
+            values = null;
+            this.quantizedValues = quantizedValues;
+            this.scale = scale;
             this.shape = shape;
         }
     }
 
-    private static float[] parameter(final Map<String, Weights> parameters,
-                                     final String name, final int... expectedShape) throws IOException {
+    private static Weights parameterWeights(final Map<String, Weights> parameters,
+                                           final String name, final int... expectedShape) throws IOException {
         final Weights result = parameters.get(name);
         if (result == null || result.shape.length != expectedShape.length) {
             throw new IOException("Missing/malformed ContextLM parameter: " + name);
@@ -94,7 +113,14 @@ public final class BrContextLmInt8 {
                 throw new IOException("Invalid ContextLM parameter shape: " + name);
             }
         }
-        return result.values;
+        return result;
+    }
+
+    private static float[] parameter(final Map<String, Weights> parameters,
+                                     final String name, final int... expectedShape) throws IOException {
+        final float[] result = parameterWeights(parameters, name, expectedShape).values;
+        if (result == null) throw new IOException("Invalid float ContextLM parameter: " + name);
+        return result;
     }
 
     /** Caller owns all streams; only an authorized background worker should invoke this. */
@@ -189,11 +215,19 @@ public final class BrContextLmInt8 {
                         || parameters.containsKey(name)) {
                     throw new IOException("Invalid ContextLM tensor boundary");
                 }
-                final float[] values = new float[bytes];
-                for (int j = 0; j < bytes; j++) {
-                    values[j] = modelBytes[offset + j] * (float) scale;
+                if ("embedding.weight".equals(name)) {
+                    // The candidate and context paths touch only a small portion of this
+                    // tensor. Keep its signed INT8 bytes and preserve loader float semantics
+                    // at lookup rather than retaining a 4x expanded embedding matrix.
+                    final byte[] values = Arrays.copyOfRange(modelBytes, offset, offset + bytes);
+                    parameters.put(name, new Weights(values, (float) scale, shape));
+                } else {
+                    final float[] values = new float[bytes];
+                    for (int j = 0; j < bytes; j++) {
+                        values[j] = modelBytes[offset + j] * (float) scale;
+                    }
+                    parameters.put(name, new Weights(values, shape));
                 }
-                parameters.put(name, new Weights(values, shape));
             }
             return new BrContextLmInt8(vocabulary, parameters);
         } catch (JSONException | NoSuchAlgorithmException | IllegalArgumentException e) {
@@ -295,7 +329,7 @@ public final class BrContextLmInt8 {
             final int wordId = vocabulary.getOrDefault(candidate.word.toLowerCase(Locale.ROOT), 1);
             float sum = 0;
             for (int channel = 0; channel < CHANNELS; channel++) {
-                sum += latest[channel] * embedding[wordId * CHANNELS + channel];
+                sum += latest[channel] * (quantizedEmbedding[wordId * CHANNELS + channel] * embeddingScale);
             }
             sum /= (float) Math.sqrt(CHANNELS);
             sum += personalWeights[0] * candidate.nativeScore;
@@ -315,7 +349,10 @@ public final class BrContextLmInt8 {
         for (int i = 0; i < CONTEXT_TOKENS; i++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final int index = tokenIds[i] * CHANNELS;
-            System.arraycopy(embedding, index, states, i * CHANNELS, CHANNELS);
+            final int stateOffset = i * CHANNELS;
+            for (int channel = 0; channel < CHANNELS; channel++) {
+                states[stateOffset + channel] = quantizedEmbedding[index + channel] * embeddingScale;
+            }
         }
         for (int layer = 0; layer < LAYERS; layer++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
@@ -354,6 +391,10 @@ public final class BrContextLmInt8 {
         }
         if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
         return new Encoding(tokenIds, latest, personalWeights);
+    }
+
+    int embeddingStorageBytesForTesting() {
+        return quantizedEmbedding.length;
     }
 
     private static boolean requestIsStale(@Nullable final LongSupplier requestSerialSupplier,

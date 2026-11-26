@@ -169,6 +169,17 @@ public class BrContextLmInt8Test {
         assertFalse(reference.knowsWord("unseenword"));
     }
 
+    @Test public void experimentalFixtureRetainsQuantizedEmbeddingAndExactExpectedScores() throws Exception {
+        final BrContextLmInt8 model = fixture(true).load();
+        assertEquals(7 * BrContextLmInt8.CHANNELS, model.embeddingStorageBytesForTesting());
+        final NgramContext previous = new NgramContext(new NgramContext.WordInfo("kal"));
+        final BrPersonalContextFeatures.Snapshot snapshot = BrPersonalContextFeatures.fromNative(
+                previous, Arrays.asList(word("meeting", Dictionary.TYPE_USER_HISTORY),
+                        word("office", Dictionary.TYPE_MAIN)), true, true);
+        org.junit.Assert.assertArrayEquals(new float[] {3.9949017f, 0.49745077f},
+                model.score(snapshot), 0.00001f);
+    }
+
     @Test public void canceledEncodingStopsAndNeverPublishesPartialContext() throws Exception {
         final BrContextLmInt8 reference = fixture(true).load();
         final BrContextLmInt8.ContextCache cache = new BrContextLmInt8.ContextCache();
@@ -230,7 +241,9 @@ public class BrContextLmInt8Test {
         try (java.io.InputStream manifest = context.getAssets().open("contextlm/experimental/manifest.json");
              java.io.InputStream vocab = context.getAssets().open("contextlm/experimental/vocab.json");
              java.io.InputStream weights = context.getAssets().open("contextlm/experimental/weights.int8")) {
-            BrContextLmInt8.loadExperimentalForTesting(manifest, vocab, weights);
+            final BrContextLmInt8 model = BrContextLmInt8.loadExperimentalForTesting(
+                    manifest, vocab, weights);
+            assertEquals(1_048_576, model.embeddingStorageBytesForTesting());
         }
         try (java.io.InputStream manifest = context.getAssets().open("contextlm/experimental/manifest.json");
              java.io.InputStream vocab = context.getAssets().open("contextlm/experimental/vocab.json");
