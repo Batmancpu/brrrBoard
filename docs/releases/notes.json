@@ -1,18 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keep native suggestions stable and skip ineffective optional reranking",
+  "summary": "Preserve rejected-correction expiry across unrelated input",
   "changes": [
     {
-      "title": "Isolate parallel dictionary work",
-      "detail": "Keep locale decoder weight state independent and hold dictionary lifetimes stable until active native suggestion queries finish. Recoverable failures leave the remaining native suggestions available."
-    },
-    {
-      "title": "Avoid redundant language lookups",
-      "detail": "Reuse each active dictionary group's word-validity results when updating multilingual confidence."
-    },
-    {
-      "title": "Skip optional model work when order cannot change",
-      "detail": "When the experimental ContextLM is explicitly enabled, skip context encoding and candidate scoring unless an eligible adjacent native near-tie can legally move under the existing ranking policy. The native order and disabled-by-default setting remain unchanged."
+      "title": "Keep short-lived rejection protection intact",
+      "detail": "An unrelated word or different proposed correction no longer cancels a confirmed rejection's scheduled cleanup. Exact matching feedback, editor or connection changes, privacy clears, and the original 30-second deadline continue to clear the session-only receipt."
     }
   ]
 }

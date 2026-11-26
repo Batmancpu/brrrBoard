@@ -140,15 +140,12 @@ public final class InputLogic {
     private String mWordBeingCorrectedByCursor = null;
 
     private boolean mJustRevertedACommit = false;
-    private final CorrectionRejectionPolicy mCorrectionRejection = new CorrectionRejectionPolicy();
-    private final Runnable mExpireCorrectionRejection = this::clearTransientCorrectionMemory;
+    private final CorrectionRejectionSession mCorrectionRejection;
 
     /** Only the transient correction receipt; do not reset normal composition or swipe state. */
     public void clearTransientCorrectionMemory() {
         clearAdaptiveTouchProof();
-        if (!mCorrectionRejection.hasReceipt()) return;
         mCorrectionRejection.clear();
-        mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
     }
 
     // Proof is limited to the existing composing word. Raw tap positions never leave this UI thread.
@@ -307,11 +304,6 @@ public final class InputLogic {
         if (!mLatinIME.mayUseTransientCorrectionMemory(sv)) return;
         mCorrectionRejection.reject(typed, corrected, mLatinIME.getCurrentInputEditorInfo(),
                 mLatinIME.getCurrentInputConnection(), SystemClock.elapsedRealtime());
-        if (mCorrectionRejection.hasReceipt()) {
-            mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
-            mLatinIME.mHandler.postDelayed(mExpireCorrectionRejection,
-                    CorrectionRejectionPolicy.MAX_AGE_MS);
-        }
     }
 
     private InputTransaction pickCorrectionRecall(SettingsValues sv, SuggestedWordInfo info,
@@ -584,6 +576,7 @@ public final class InputLogic {
             final SuggestionStripViewAccessor suggestionStripViewAccessor,
             final DictionaryFacilitator dictionaryFacilitator) {
         mLatinIME = latinIME;
+        mCorrectionRejection = new CorrectionRejectionSession(mLatinIME.mHandler);
         mSuggestionStripViewAccessor = suggestionStripViewAccessor;
         mWordComposer = new WordComposer();
         mConnection = new RichInputConnection(latinIME);
@@ -3411,9 +3404,6 @@ public final class InputLogic {
             } else {
                 mCorrectionRejection.clear();
             }
-            // Keep the original deadline while unrelated input leaves the receipt alive.
-            if (!mCorrectionRejection.hasReceipt())
-                mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
         }
         final String stringToCommit = rejectRepeatedCorrection ? typedWord : proposedCorrection;
         if (stringToCommit != null) {
