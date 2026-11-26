@@ -45,6 +45,36 @@ public class CorrectionRejectionPolicyTest {
         assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 110L));
     }
 
+    @Test public void multiplePairsAreConsumedIndependentlyWithoutRefreshingDuplicateExpiry() {
+        final var policy = new CorrectionRejectionPolicy();
+        final var editor = new Object();
+        final var connection = new Object();
+        policy.reject("teh", "the", editor, connection, 100L);
+        policy.reject("wurld", "world", editor, connection, 200L);
+        assertEquals(2, policy.receiptCount());
+        policy.reject("teh", "the", editor, connection, 20_000L);
+        assertEquals(30_100L, policy.nextExpiryAt());
+        assertTrue(policy.consumeIfMatches("teh", "the", editor, connection, 30_099L));
+        assertEquals(1, policy.receiptCount());
+        assertFalse(policy.consumeIfMatches("wurld", "world", editor, connection, 30_200L));
+        assertFalse(policy.hasReceipt());
+    }
+
+    @Test public void receiptCountIsBoundedAndEvictsTheOldestPair() {
+        final var policy = new CorrectionRejectionPolicy();
+        final var editor = new Object();
+        final var connection = new Object();
+        for (int i = 0; i < CorrectionRejectionPolicy.MAX_RECEIPTS + 1; i++) {
+            policy.reject("typed" + i, "fixed" + i, editor, connection, 100L + i);
+        }
+        assertEquals(CorrectionRejectionPolicy.MAX_RECEIPTS, policy.receiptCount());
+        assertFalse(policy.consumeIfMatches("typed0", "fixed0", editor, connection, 200L));
+        for (int i = 1; i <= CorrectionRejectionPolicy.MAX_RECEIPTS; i++) {
+            assertTrue(policy.consumeIfMatches("typed" + i, "fixed" + i, editor, connection, 200L));
+        }
+        assertFalse(policy.hasReceipt());
+    }
+
     @Test public void unrelatedAttemptsDoNotRefreshOriginalExpiry() {
         final var policy = new CorrectionRejectionPolicy();
         final var editor = new Object();

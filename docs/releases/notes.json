@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Require confirmed corrections for language preference updates",
+  "summary": "Keep a bounded set of correction rejections in session memory",
   "changes": [
     {
-      "title": "Keep changed automatic corrections out of language-confidence feedback",
-      "detail": "Changed automatic corrections continue through native user-history learning but do not shift multi-dictionary language confidence without explicit confirmation. Manual picks, explicitly typed words and unchanged automatic commits retain the existing confidence path. The normal and slow-connection paths honor the same gate; single-dictionary behavior and privacy protections are unchanged."
+      "title": "Retain distinct rejected correction pairs briefly",
+      "detail": "Up to four distinct explicitly rejected typed-word/replacement pairs remain in RAM until each pair’s original 30-second deadline. An unrelated later word or different replacement cannot consume another pair; exact matches are suppressed once. Privacy and editor/connection boundaries clear all receipts, and nothing is persisted."
     }
   ]
 }

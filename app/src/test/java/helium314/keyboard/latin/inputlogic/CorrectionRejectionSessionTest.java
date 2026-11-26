@@ -38,6 +38,37 @@ public class CorrectionRejectionSessionTest {
         assertFalse(session.hasReceipt());
     }
 
+    @Test public void newerRejectionDoesNotExtendOrEraseTheEarlierHandlerDeadline() {
+        final var looper = shadowOf(Looper.getMainLooper());
+        final var session = new CorrectionRejectionSession(new Handler(Looper.getMainLooper()));
+        final Object editor = new Object();
+        final Object connection = new Object();
+        session.reject("teh", "the", editor, connection, SystemClock.elapsedRealtime());
+
+        looper.idleFor(10_000L, TimeUnit.MILLISECONDS);
+        session.reject("wurld", "world", editor, connection, SystemClock.elapsedRealtime());
+        looper.idleFor(20_000L, TimeUnit.MILLISECONDS);
+
+        assertFalse(session.consumeIfEligible(true, "teh", "the", editor, connection,
+                SystemClock.elapsedRealtime()));
+        assertTrue(session.hasReceipt());
+        assertTrue(session.consumeIfEligible(true, "wurld", "world", editor, connection,
+                SystemClock.elapsedRealtime()));
+        assertFalse(session.hasReceipt());
+    }
+
+    @Test public void privacyTransitionClearsAllBoundedReceipts() {
+        final var session = new CorrectionRejectionSession(new Handler(Looper.getMainLooper()));
+        final Object editor = new Object();
+        final Object connection = new Object();
+        session.reject("teh", "the", editor, connection, SystemClock.elapsedRealtime());
+        session.reject("wurld", "world", editor, connection, SystemClock.elapsedRealtime());
+        assertTrue(session.hasReceipt());
+        assertFalse(session.consumeIfEligible(false, "teh", "the", editor, connection,
+                SystemClock.elapsedRealtime()));
+        assertFalse(session.hasReceipt());
+    }
+
     @Test public void exactMatchAndPrivacyOrConnectionBoundariesClearScheduledReceipt() {
         final var looper = shadowOf(Looper.getMainLooper());
         final var session = new CorrectionRejectionSession(new Handler(Looper.getMainLooper()));

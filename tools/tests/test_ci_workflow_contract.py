@@ -53,7 +53,11 @@ class CiWorkflowContractTest(unittest.TestCase):
 
     def test_test_only_changes_do_not_require_application_release_notes(self):
         debug = DEBUG.read_text()
-        self.assertIn("grep -Ev '^app/src/test/'", debug)
+        self.assertIn("sed '/^app\\/src\\/test\\//d' <<< \"$changes\"", debug)
+        gate = debug.partition("name: Require per-release change notes")[2].partition(
+            "name: Validate bundled Version History catalog"
+        )[0]
+        self.assertNotIn("|| true", gate)
         self.assertIn("docs/releases/notes.json", debug)
 
     def test_obtainium_skips_publication_for_test_and_documentation_only_pushes(self):

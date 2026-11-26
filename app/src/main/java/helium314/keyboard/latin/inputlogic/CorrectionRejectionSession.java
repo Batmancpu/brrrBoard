@@ -4,7 +4,7 @@ package helium314.keyboard.latin.inputlogic;
 import android.os.Handler;
 import android.os.SystemClock;
 
-/** Owns the one session-local rejection receipt and its original Handler expiry deadline. */
+/** Owns bounded session-local rejection receipts and their original Handler deadlines. */
 final class CorrectionRejectionSession {
     private final CorrectionRejectionPolicy policy = new CorrectionRejectionPolicy();
     private final Handler handler;
@@ -27,16 +27,10 @@ final class CorrectionRejectionSession {
 
     void reject(String typed, String replacement, Object editor, Object connection, long now) {
         policy.reject(typed, replacement, editor, connection, now);
-        if (!policy.hasReceipt()) {
-            clear();
-            return;
-        }
-        handler.removeCallbacks(expiry);
-        expiresAtElapsedRealtime = now + CorrectionRejectionPolicy.MAX_AGE_MS;
         scheduleExpiry();
     }
 
-    /** Applies the live privacy eligibility decision and clears the scheduled receipt when ineligible. */
+    /** Applies the live privacy eligibility decision and clears receipts when ineligible. */
     boolean consumeIfEligible(boolean eligible, String typed, String replacement, Object editor,
             Object connection, long now) {
         if (!eligible) {
@@ -48,29 +42,20 @@ final class CorrectionRejectionSession {
 
     boolean consumeIfMatches(String typed, String replacement, Object editor, Object connection, long now) {
         final boolean rejected = policy.consumeIfMatches(typed, replacement, editor, connection, now);
-        if (!policy.hasReceipt()) {
-            expiresAtElapsedRealtime = 0L;
-            handler.removeCallbacks(expiry);
-        }
+        scheduleExpiry();
         return rejected;
     }
 
     private void scheduleExpiry() {
+        handler.removeCallbacks(expiry);
+        expiresAtElapsedRealtime = policy.nextExpiryAt();
+        if (expiresAtElapsedRealtime == 0L) return;
         final long remaining = expiresAtElapsedRealtime - SystemClock.elapsedRealtime();
         handler.postDelayed(expiry, Math.max(0L, remaining));
     }
 
     private void expireAtOriginalDeadline() {
-        if (!policy.hasReceipt()) {
-            expiresAtElapsedRealtime = 0L;
-            return;
-        }
-        if (SystemClock.elapsedRealtime() >= expiresAtElapsedRealtime) {
-            clear();
-        } else {
-            // Handler uses uptimeMillis, which pauses during deep sleep. Recheck elapsed time
-            // after wake and keep the receipt only until its original elapsed-realtime deadline.
-            scheduleExpiry();
-        }
+        policy.expire(SystemClock.elapsedRealtime());
+        scheduleExpiry();
     }
 }

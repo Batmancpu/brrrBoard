@@ -1,52 +1,103 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package helium314.keyboard.latin.inputlogic;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
 /**
- * One-use, in-memory suppression of an immediately rejected autocorrection.
+ * Bounded, one-use in-memory suppression of explicitly rejected autocorrections.
  * It never persists words, logs their contents, or changes dictionary scores.
  */
 final class CorrectionRejectionPolicy {
     static final long MAX_AGE_MS = 30_000L;
-    private String original;
-    private String corrected;
-    private Object editor;
-    private Object connection;
-    private long rejectedAt;
+    static final int MAX_RECEIPTS = 4;
+
+    private static final class Receipt {
+        final String original;
+        final String corrected;
+        final Object editor;
+        final Object connection;
+        final long rejectedAt;
+
+        Receipt(String original, String corrected, Object editor, Object connection, long rejectedAt) {
+            this.original = original;
+            this.corrected = corrected;
+            this.editor = editor;
+            this.connection = connection;
+            this.rejectedAt = rejectedAt;
+        }
+
+        long expiryAt() {
+            return rejectedAt > Long.MAX_VALUE - MAX_AGE_MS
+                    ? Long.MAX_VALUE : rejectedAt + MAX_AGE_MS;
+        }
+    }
+
+    private final ArrayList<Receipt> receipts = new ArrayList<>(MAX_RECEIPTS);
 
     void reject(String typed, String replacement, Object currentEditor,
             Object currentConnection, long now) {
-        clear();
+        expire(now);
+        if (currentEditor == null || currentConnection == null) {
+            clear();
+            return;
+        }
+        if (!receipts.isEmpty() && (receipts.get(0).editor != currentEditor
+                || receipts.get(0).connection != currentConnection)) {
+            clear();
+        }
         if (typed == null || replacement == null || typed.isEmpty() || typed.length() > 64
-                || replacement.length() > 64 || currentEditor == null || currentConnection == null
-                || typed.equals(replacement)) return;
-        original = typed;
-        corrected = replacement;
-        editor = currentEditor;
-        connection = currentConnection;
-        rejectedAt = now;
+                || replacement.length() > 64 || typed.equals(replacement)) return;
+
+        // A duplicate rejection must not restart an earlier receipt's lifetime.
+        for (Receipt receipt : receipts) {
+            if (receipt.original.equals(typed) && receipt.corrected.equals(replacement)) return;
+        }
+        if (receipts.size() == MAX_RECEIPTS) receipts.remove(0);
+        receipts.add(new Receipt(typed, replacement, currentEditor, currentConnection, now));
     }
 
-    /** Keeps an unrelated receipt until an exact pair, expiry, or editor boundary. */
+    /** Keeps unrelated pairs until their original expiry or a genuine editor boundary. */
     boolean consumeIfMatches(String typed, String replacement, Object currentEditor,
             Object currentConnection, long now) {
-        if (original == null) return false;
-        if (now < rejectedAt || now - rejectedAt >= MAX_AGE_MS
-                || editor != currentEditor || connection != currentConnection) {
+        expire(now);
+        if (receipts.isEmpty()) return false;
+        final Receipt first = receipts.get(0);
+        if (first.editor != currentEditor || first.connection != currentConnection) {
             clear();
             return false;
         }
-        if (!original.equals(typed) || !corrected.equals(replacement)) return false;
-        clear();
-        return true;
+        for (Iterator<Receipt> iterator = receipts.iterator(); iterator.hasNext();) {
+            final Receipt receipt = iterator.next();
+            if (receipt.original.equals(typed) && receipt.corrected.equals(replacement)) {
+                iterator.remove();
+                return true;
+            }
+        }
+        return false;
     }
 
-    boolean hasReceipt() { return original != null; }
+    /** Removes receipts that reached their original monotonic deadline. */
+    void expire(long now) {
+        for (Iterator<Receipt> iterator = receipts.iterator(); iterator.hasNext();) {
+            final Receipt receipt = iterator.next();
+            if (now < receipt.rejectedAt || now - receipt.rejectedAt >= MAX_AGE_MS) {
+                iterator.remove();
+            }
+        }
+    }
+
+    long nextExpiryAt() {
+        long earliest = Long.MAX_VALUE;
+        for (Receipt receipt : receipts) earliest = Math.min(earliest, receipt.expiryAt());
+        return receipts.isEmpty() ? 0L : earliest;
+    }
+
+    boolean hasReceipt() { return !receipts.isEmpty(); }
+
+    int receiptCount() { return receipts.size(); }
 
     void clear() {
-        original = null;
-        corrected = null;
-        editor = null;
-        connection = null;
-        rejectedAt = 0L;
+        receipts.clear();
     }
 }
