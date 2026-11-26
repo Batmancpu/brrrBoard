@@ -79,7 +79,12 @@ public final class AdaptiveTouchModel {
     }
 
     public Snapshot snapshot() {
-        return new Snapshot(count.clone(), sumX.clone(), sumY.clone());
+        return snapshot(null);
+    }
+
+    /** Derive key-local priors once when immutable storage snapshots are published. */
+    public Snapshot snapshot(AdaptiveTouchEvidence keyEvidence) {
+        return new Snapshot(count.clone(), sumX.clone(), sumY.clone(), keyEvidence);
     }
 
     public void clear() {
@@ -103,15 +108,49 @@ public final class AdaptiveTouchModel {
         private final double[] sumY;
         private final double[] meanX = new double[CLUSTERS];
         private final double[] meanY = new double[CLUSTERS];
+        private final int[] keyCount = new int[AdaptiveTouchEvidence.LETTERS];
+        private final int[] keyRegion = new int[AdaptiveTouchEvidence.LETTERS];
+        private final double[] keyMeanX = new double[AdaptiveTouchEvidence.LETTERS];
+        private final double[] keyMeanY = new double[AdaptiveTouchEvidence.LETTERS];
 
-        private Snapshot(int[] count, double[] sumX, double[] sumY) {
+        private Snapshot(int[] count, double[] sumX, double[] sumY,
+                         AdaptiveTouchEvidence keyEvidence) {
             this.count = count;
             this.sumX = sumX;
             this.sumY = sumY;
+            java.util.Arrays.fill(keyRegion, -1);
             for (int i = 0; i < CLUSTERS; i++) {
                 if (count[i] >= MIN_EVIDENCE) {
                     meanX[i] = clamp(sumX[i] / (count[i] + PRIOR_WEIGHT));
                     meanY[i] = clamp(sumY[i] / (count[i] + PRIOR_WEIGHT));
+                }
+            }
+            if (keyEvidence != null) {
+                for (int key = 0; key < AdaptiveTouchEvidence.LETTERS; key++) {
+                    final int samples = keyEvidence.count(key);
+                    keyCount[key] = samples;
+                    if (samples == 0) continue;
+                    final int region = keyEvidence.region(key);
+                    if (samples < MIN_EVIDENCE || !valid(region) || count[region] < MIN_EVIDENCE)
+                        continue;
+                    double x = 0, y = 0;
+                    for (int cell = 0; cell < AdaptiveTouchEvidence.CELLS; cell++) {
+                        final int bin = keyEvidence.countAt(key, cell);
+                        final double centerX = ((cell % AdaptiveTouchEvidence.SIDE) + .5)
+                                * (1.6 / AdaptiveTouchEvidence.SIDE) - .8;
+                        final double centerY = ((cell / AdaptiveTouchEvidence.SIDE) + .5)
+                                * (1.6 / AdaptiveTouchEvidence.SIDE) - .8;
+                        x += centerX * bin;
+                        y += centerY * bin;
+                    }
+                    final double reliability = samples / (samples + PRIOR_WEIGHT);
+                    final double observedX = x / samples;
+                    final double observedY = y / samples;
+                    keyMeanX[key] = clamp(meanX[region]
+                            + reliability * (observedX - meanX[region]));
+                    keyMeanY[key] = clamp(meanY[region]
+                            + reliability * (observedY - meanY[region]));
+                    keyRegion[key] = region;
                 }
             }
         }
@@ -120,6 +159,17 @@ public final class AdaptiveTouchModel {
         public int evidence(int group) { return valid(group) ? count[group] : 0; }
         public double offsetX(int group) { return valid(group) ? meanX[group] : 0; }
         public double offsetY(int group) { return valid(group) ? meanY[group] : 0; }
+        public int keyEvidence(int key) {
+            return key >= 0 && key < keyCount.length ? keyCount[key] : 0;
+        }
+        public double keyOffsetX(int group, int key) {
+            return keyEvidence(key) >= MIN_EVIDENCE && valid(group) && keyRegion[key] == group
+                    ? keyMeanX[key] : offsetX(group);
+        }
+        public double keyOffsetY(int group, int key) {
+            return keyEvidence(key) >= MIN_EVIDENCE && valid(group) && keyRegion[key] == group
+                    ? keyMeanY[key] : offsetY(group);
+        }
 
         /** Negative log likelihood up to the constant shared by all keys. */
         public double cost(int group, double rx, double ry) {
@@ -130,6 +180,15 @@ public final class AdaptiveTouchModel {
             return (dx * dx + dy * dy) / (2 * VARIANCE);
         }
 
+        /** Fixed-covariance likelihood using a published, shrunk per-key mean when ready. */
+        public double cost(int group, int key, double rx, double ry) {
+            if (!valid(group) || !Double.isFinite(rx) || !Double.isFinite(ry))
+                return Double.POSITIVE_INFINITY;
+            final double dx = rx - keyOffsetX(group, key);
+            final double dy = ry - keyOffsetY(group, key);
+            return (dx * dx + dy * dy) / (2 * VARIANCE);
+        }
+
         /**
          * Conservative adjacent-key preference. A confident literal center,
          * untrained cluster, distant key or near tie remains unchanged.
@@ -137,13 +196,21 @@ public final class AdaptiveTouchModel {
          */
         public boolean preferNeighbor(int literalGroup, double literalX, double literalY,
                                       int neighborGroup, double neighborX, double neighborY) {
+            return preferNeighbor(literalGroup, -1, literalX, literalY,
+                    neighborGroup, -1, neighborX, neighborY);
+        }
+
+        public boolean preferNeighbor(int literalGroup, int literalKey,
+                                      double literalX, double literalY,
+                                      int neighborGroup, int neighborKey,
+                                      double neighborX, double neighborY) {
             if (!ready(literalGroup) || !ready(neighborGroup)
                     || !finiteBound(literalX, .8) || !finiteBound(literalY, .8)
                     || !finiteBound(neighborX, .68) || !finiteBound(neighborY, .68)
                     || (Math.abs(literalX) <= .30 && Math.abs(literalY) <= .30))
                 return false;
-            final double adapted = cost(literalGroup, literalX, literalY)
-                    - cost(neighborGroup, neighborX, neighborY);
+            final double adapted = cost(literalGroup, literalKey, literalX, literalY)
+                    - cost(neighborGroup, neighborKey, neighborX, neighborY);
             // Require an actual personalization benefit, not just a generic
             // reimplementation of the existing geometric nearest-key choice.
             final double baseline = (literalX * literalX + literalY * literalY

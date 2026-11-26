@@ -89,7 +89,8 @@ public final class AdaptiveTouchStore {
         Map<Long, AdaptiveTouchModel.Snapshot> next = new HashMap<>();
         List<Inspection> detail = new ArrayList<>();
         for (Map.Entry<Long, AdaptiveTouchModel> entry : models.entrySet()) {
-            AdaptiveTouchModel.Snapshot snap=entry.getValue().snapshot();
+            // Histogram-derived key priors are computed here, off the tap path.
+            AdaptiveTouchModel.Snapshot snap=entry.getValue().snapshot(evidence.get(entry.getKey()));
             next.put(entry.getKey(),snap);
             detail.add(new Inspection(entry.getKey(),snap,evidence.get(entry.getKey())));
         }

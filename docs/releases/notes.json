@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Learn from verified correction recall",
+  "summary": "Personalize touch estimates by key",
   "changes": [
     {
-      "title": "Use verified recall as correction rejection feedback",
-      "detail": "When correction recall restores the exact original word, record the rejected correction pair only after the host confirms the restored suffix, editor connection, cursor and privacy eligibility. The decision remains in bounded RAM-only correction memory with its existing 30-second expiry; no persistent rejection history is added."
+      "title": "Use confirmed per-key touch evidence",
+      "detail": "Derive bounded individual-letter touch offsets from the existing encrypted aggregate histograms when immutable snapshots are published, and use them in the existing adaptive chooser. Sparse evidence falls back to regional estimates; no raw touch traces or storage-format change is introduced."
     }
   ]
 }

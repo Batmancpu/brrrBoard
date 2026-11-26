@@ -103,11 +103,12 @@ public final class AdaptiveTouchGeometry {
         int i=index(literal);
         if (s==null || i<0 || !s.ready(groups[i])) return literal;
         double a=rx(i,x), b=ry(i,y);
-        int best=i; double cost=s.cost(groups[i],a,b);
+        int best=i; double cost=s.cost(groups[i],i,a,b);
         for(int j=0;j<26;j++) if(j!=i && adjacent(i,j)) {
             double u=rx(j,x),v=ry(j,y);
-            if(s.preferNeighbor(groups[i],a,b,groups[j],u,v) && s.cost(groups[j],u,v)<cost) {
-                best=j; cost=s.cost(groups[j],u,v);
+            if(s.preferNeighbor(groups[i],i,a,b,groups[j],j,u,v)
+                    && s.cost(groups[j],j,u,v)<cost) {
+                best=j; cost=s.cost(groups[j],j,u,v);
             }
         }
         return best==i ? literal : codes[best];
