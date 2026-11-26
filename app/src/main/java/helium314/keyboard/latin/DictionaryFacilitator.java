@@ -125,6 +125,17 @@ public interface DictionaryFacilitator {
             @NonNull final NgramContext ngramContext, final long timeStampInSeconds,
             final boolean blockPotentiallyOffensive);
 
+    /**
+     * Adds native user history while optionally suppressing multilingual confidence changes
+     * when the committed word has not been explicitly confirmed.
+     */
+    default void addToUserHistory(final String suggestion, final boolean wasAutoCapitalized,
+            @NonNull final NgramContext ngramContext, final long timeStampInSeconds,
+            final boolean blockPotentiallyOffensive, final boolean updateLanguageConfidence) {
+        addToUserHistory(suggestion, wasAutoCapitalized, ngramContext, timeStampInSeconds,
+                blockPotentiallyOffensive);
+    }
+
     /** adjust confidences for multilingual typing */
     void adjustConfidences(final String word, final boolean wasAutoCapitalized);
 

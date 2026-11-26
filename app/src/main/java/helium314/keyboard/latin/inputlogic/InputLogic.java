@@ -2497,6 +2497,13 @@ public final class InputLogic {
 
     private void performAdditionToUserHistoryDictionary(final SettingsValues settingsValues,
             final String suggestion, @NonNull final NgramContext ngramContext) {
+        performAdditionToUserHistoryDictionary(settingsValues, suggestion, ngramContext,
+                true /* updateLanguageConfidence */);
+    }
+
+    private void performAdditionToUserHistoryDictionary(final SettingsValues settingsValues,
+            final String suggestion, @NonNull final NgramContext ngramContext,
+            final boolean updateLanguageConfidence) {
         // If correction is not enabled, we don't add words to the user history
         // dictionary.
         // That's to avoid unintended additions in some sensitive fields, or fields that
@@ -2519,13 +2526,15 @@ public final class InputLogic {
             // Since we don't unlearn when the user backspaces on a slow InputConnection,
             // turn off learning to guard against adding typos that the user later deletes.
             Log.w(TAG, "Skipping learning due to slow InputConnection.");
-            // but we still want to adjust confidences for multilingual typing
-            mDictionaryFacilitator.adjustConfidences(word, wasAutoCapitalized);
+            // Multilingual adaptation also requires actual user confirmation.
+            if (updateLanguageConfidence)
+                mDictionaryFacilitator.adjustConfidences(word, wasAutoCapitalized);
             return;
         }
         final int timeStampInSeconds = (int) TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         mDictionaryFacilitator.addToUserHistory(word, wasAutoCapitalized, ngramContext,
-                timeStampInSeconds, settingsValues.mBlockPotentiallyOffensive);
+                timeStampInSeconds, settingsValues.mBlockPotentiallyOffensive,
+                updateLanguageConfidence);
         // Invalidate at accepted word boundaries, never per-key. The next
         // post-Space query must see newly learned unigrams and bigrams.
         if (mSuggest != null) {
@@ -3548,8 +3557,13 @@ public final class InputLogic {
                     + "Connection.commitText");
             startTimeMillis = SystemClock.elapsedRealtime();
         }
+        // Keep native history behavior, but a changed automatic correction is not
+        // confirmed evidence for switching the active language preference.
+        final boolean updateLanguageConfidence = LanguageConfidenceEvidencePolicy.shouldUse(
+                commitType, chosenWord, mWordComposer.getTypedWord());
         // Add the word to the user history dictionary
-        performAdditionToUserHistoryDictionary(settingsValues, chosenWord, ngramContext);
+        performAdditionToUserHistoryDictionary(settingsValues, chosenWord, ngramContext,
+                updateLanguageConfidence);
         mIgnoreOldContextUntilWordCommit = false;
         if (DebugFlags.DEBUG_ENABLED) {
             long runTimeMillis = SystemClock.elapsedRealtime() - startTimeMillis;

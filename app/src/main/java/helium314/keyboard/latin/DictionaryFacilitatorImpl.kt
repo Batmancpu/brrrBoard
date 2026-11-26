@@ -369,6 +369,15 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     override fun addToUserHistory(
         suggestion: String, wasAutoCapitalized: Boolean, ngramContext: NgramContext,
         timeStampInSeconds: Long, blockPotentiallyOffensive: Boolean
+    ) = addToUserHistory(
+        suggestion, wasAutoCapitalized, ngramContext, timeStampInSeconds,
+        blockPotentiallyOffensive, true
+    )
+
+    override fun addToUserHistory(
+        suggestion: String, wasAutoCapitalized: Boolean, ngramContext: NgramContext,
+        timeStampInSeconds: Long, blockPotentiallyOffensive: Boolean,
+        updateLanguageConfidence: Boolean
     ) { withDictionaryWriteLock {
         if (suggestion.isBlank() || !UpstreamTypingPolicy.mayLearnCapitalization(
                 wasAutoCapitalized, ngramContext.isBeginningOfSentenceContext)) return
@@ -379,7 +388,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         val words = suggestion.splitOnWhitespace().dropLastWhile { it.isEmpty() }
 
         // increase / decrease confidence
-        if (words.size == 1) // ignore if more than a single word, which only happens with (badly working) spaceAwareGesture
+        if (updateLanguageConfidence && words.size == 1) // ignore if more than a single word, which only happens with (badly working) spaceAwareGesture
             adjustConfidences(suggestion, wasAutoCapitalized)
 
         // Add word to user dictionary if it is in no other dictionary except user history dictionary (i.e. typed again).

@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keep correction rejection cleanup tied to live privacy eligibility",
+  "summary": "Require confirmed corrections for language preference updates",
   "changes": [
     {
-      "title": "Exercise the privacy gate through the rejection session",
-      "detail": "InputLogic now routes correction-rejection attempts through the session’s eligibility method. Eligible unrelated pairs preserve the original 30-second Handler expiry; an ineligible privacy transition clears both the receipt and callback immediately. No persistence or deadline changes."
+      "title": "Keep changed automatic corrections out of language-confidence feedback",
+      "detail": "Changed automatic corrections continue through native user-history learning but no longer shift multi-dictionary language confidence without explicit confirmation. Manual picks, explicitly typed words and unchanged automatic commits retain the existing confidence path; single-dictionary behavior and privacy gates are unchanged."
     }
   ]
 }
