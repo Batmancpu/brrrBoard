@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "Keep correction rejection cleanup on its original deadline",
-      "detail": "Leave the scheduled expiry callback active when an unrelated word or a different proposed replacement is encountered. Consume and cancel it only for the exact rejected pair; clear it on expiry or when transient correction memory becomes ineligible. The receipt remains RAM-only and is not extended by unrelated input."
+      "detail": "Keep the original 30-second correction rejection deadline scheduled across unrelated words and different proposed replacements. Consume the receipt only for the exact rejected pair; editor, connection, expiry and privacy invalidation clear it. The receipt remains RAM-only and unrelated input never extends its lifetime."
     }
   ]
 }
