@@ -43,6 +43,7 @@ object Defaults {
     const val PREF_THEME_COLORS = KeyboardTheme.THEME_FROSTED_GLASS
     const val PREF_THEME_COLORS_NIGHT = KeyboardTheme.THEME_FROSTED_GLASS
     const val PREF_MOTION_PROFILE = "ios27"
+    const val PREF_SUGGESTION_MOTION_STYLE = "scale"
     const val PREF_THEME_ACTION_TINT = true
     const val PREF_THEME_KEY_BORDERS = true
     @JvmField

@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * off as an already-finalized file, which can be opened read-only for the brrSpeak Binder receiver.
  */
 internal class KeyboardRecordedAudioSource(
-    context: Context,
+    private val context: Context,
     private val onRecordingStarted: () -> Unit,
     private val onRecordingFinished: (File, Long) -> Unit,
     private val onCaptureFailure: (Failure) -> Unit,
@@ -44,6 +44,7 @@ internal class KeyboardRecordedAudioSource(
         wanted.set(true)
         Thread({
             var microphone: AudioRecord? = null
+            var audioFocus: VoiceCaptureAudioFocus? = null
             var stage = Failure.INITIALIZE
             var written = 0L
             var nonzero = false
@@ -68,6 +69,8 @@ internal class KeyboardRecordedAudioSource(
                 recorder = microphone
                 if (!wanted.get() || cancelled.get()) return@Thread
                 stage = Failure.START
+                audioFocus = VoiceCaptureAudioFocus.acquire(context)
+                if (!wanted.get() || cancelled.get()) return@Thread
                 microphone.startRecording()
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("audio start")
@@ -122,6 +125,7 @@ internal class KeyboardRecordedAudioSource(
                     if (microphone?.recordingState == AudioRecord.RECORDSTATE_RECORDING) microphone.stop()
                 }
                 runCatching { microphone?.release() }
+                audioFocus?.close()
                 if (recorder === microphone) recorder = null
                 if (cancelled.get() || !finished.get()) audioFile.delete()
             }

@@ -33,6 +33,39 @@ class QuickTypeMotionPolicyTest {
                 QuickTypeMotionPolicy.progress(60f, duration))
         }
     }
+    @Test fun stylesAreIndependentAndHaveBoundedProgress() {
+        assertEquals(SuggestionMotionPreset.SCALE, SuggestionMotionPreset.fromId(null))
+        assertEquals(SuggestionMotionPreset.SCALE, SuggestionMotionPreset.fromId("invalid"))
+        assertEquals(4, SuggestionMotionPreset.values().map { it.id }.distinct().size)
+        for (style in SuggestionMotionPreset.values()) {
+            assertEquals(style, SuggestionMotionPreset.fromId(style.id))
+            assertEquals(0f, QuickTypeMotionPolicy.glyphProgress(style, 0f, style.glyphMs), .0001f)
+            assertEquals(1f, QuickTypeMotionPolicy.glyphProgress(style, style.glyphMs.toFloat(), style.glyphMs), .0001f)
+            val values = (0..100).map {
+                QuickTypeMotionPolicy.glyphProgress(style, style.glyphMs * it / 100f, style.glyphMs)
+            }
+            assertTrue(values.all { it in 0f..1.0001f })
+            assertTrue(values.zipWithNext().all { (a, b) -> b >= a })
+        }
+        assertEquals(1f, SuggestionMotionPreset.CLASSIC.entryScale, 0f)
+        assertTrue(SuggestionMotionPreset.SCALE.entryScale < .2f)
+        assertEquals(30L, QuickTypeMotionPolicy.delay(SuggestionMotionPreset.RIPPLE, 100))
+        assertEquals(0L, QuickTypeMotionPolicy.delay(SuggestionMotionPreset.SCALE, 100))
+    }
+
+    @Test fun springRetargetStartsAtTheVisiblePositionAndVelocity() {
+        val style = SuggestionMotionPreset.SPRING
+        val duration = style.glyphMs
+        val position = QuickTypeMotionPolicy.position(style, 0f, 60f, 0f, 40f, duration)
+        val velocity = QuickTypeMotionPolicy.velocity(style, 0f, 60f, 0f, 40f, duration)
+        assertTrue(position in 0f..60f)
+        assertTrue(velocity > 0f)
+        assertEquals(position, QuickTypeMotionPolicy.position(style, position, 100f, velocity, 0f, duration), 0f)
+        assertEquals(velocity, QuickTypeMotionPolicy.velocity(style, position, 100f, velocity, 0f, duration), .001f)
+        assertEquals(100f, QuickTypeMotionPolicy.position(style, position, 100f, velocity, duration.toFloat(), duration), 0f)
+        assertEquals(0f, QuickTypeMotionPolicy.velocity(style, position, 100f, velocity, duration.toFloat(), duration), 0f)
+    }
+
     @Test fun confidenceCapsuleIsSlotSizedAndBounded() {
         assertEquals(178f, SuggestionConfidencePillGeometry.fixedWidth(180f, 1f), 0f)
         assertEquals(1f, SuggestionConfidencePillGeometry.fixedWidth(0f, 1f), 0f)

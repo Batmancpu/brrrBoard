@@ -28,17 +28,33 @@ import helium314.keyboard.latin.KeyboardMotionSpec
  * Only their ink is suppressed during a supported visual transition; no cloned Views,
  * bitmap capture, cross-slot movement, model calls or per-frame layout requests.
  */
-internal class QuickTypeMotion(private val owner: ViewGroup, private val dividers: List<View>) {
+internal class QuickTypeMotion(
+    private val owner: ViewGroup,
+    private val dividers: List<View>,
+    private val presetProvider: (() -> SuggestionMotionPreset)? = null,
+) {
+    private fun selectedPreset() = presetProvider?.invoke() ?: SuggestionMotionPreset.selected(owner.context)
     data class Ink(val character: String, val x: Float, val y: Float,
-                   val opacity: Float, val paint: TextPaint, val color: Int)
+                   val opacity: Float, val paint: TextPaint, val color: Int,
+                   val scale: Float = 1f, val advance: Float = 0f,
+                   val velocityX: Float = 0f, val velocityY: Float = 0f)
     data class Slot(val label: String, val clip: Rect, val ink: List<Ink>)
     data class Frame(val slots: List<Slot?>, val confidence: Float, val dividerAlpha: List<Float>)
-    private data class Track(val from: Ink, val to: Ink, val duration: Long) {
+    private data class Track(val from: Ink, val to: Ink, val duration: Long,
+                             val preset: SuggestionMotionPreset, val delay: Long = 0L) {
+        fun local(elapsed: Float) = (elapsed - delay).coerceAtLeast(0f)
+        fun progress(elapsed: Float) = QuickTypeMotionPolicy.glyphProgress(preset, local(elapsed), duration)
+        fun x(elapsed: Float) = QuickTypeMotionPolicy.position(preset, from.x, to.x,
+            from.velocityX, local(elapsed), duration)
+        fun y(elapsed: Float) = QuickTypeMotionPolicy.position(preset, from.y, to.y,
+            from.velocityY, local(elapsed), duration)
         fun at(elapsed: Float): Ink {
-            val p = QuickTypeMotionPolicy.progress(elapsed, duration)
-            return to.copy(x = QuickTypeMotionPolicy.interpolate(from.x, to.x, p),
-                y = QuickTypeMotionPolicy.interpolate(from.y, to.y, p),
-                opacity = QuickTypeMotionPolicy.interpolate(from.opacity, to.opacity, p))
+            val p = progress(elapsed)
+            return to.copy(x = x(elapsed), y = y(elapsed),
+                opacity = QuickTypeMotionPolicy.interpolate(from.opacity, to.opacity, p),
+                scale = QuickTypeMotionPolicy.interpolate(from.scale, to.scale, p),
+                velocityX = QuickTypeMotionPolicy.velocity(preset, from.x, to.x, from.velocityX, local(elapsed), duration),
+                velocityY = QuickTypeMotionPolicy.velocity(preset, from.y, to.y, from.velocityY, local(elapsed), duration))
         }
     }
     private data class MotionSlot(val index: Int, val target: Slot, val tracks: List<Track>)
@@ -79,6 +95,7 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
         if (chips || !KeyboardMotionSpec.isIos27(owner.context) ||
             !KeyboardMotionSpec.optionalMotion(owner.context) || !owner.isShown ||
             words.size < 3 || owner.width <= 0 || owner.height <= 0) return
+        val preset = selectedPreset()
         val plans = ArrayList<MotionSlot>(3)
         for (index in 0..2) {
             val view = words[index]
@@ -86,7 +103,7 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
             val after = snapshot(view) ?: continue
             if (before.clip != after.clip) continue // geometry/panel changes snap natively
             if (before.label == after.label && sameInk(before, after)) continue
-            val tracks = makeTracks(before, after)
+            val tracks = makeTracks(before, after, preset)
             if (tracks.isEmpty()) continue
             plans.add(MotionSlot(index, after, tracks))
             hidden.add(NativeInk(view, view.textColors))
@@ -126,15 +143,24 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
                         canvas.clipRect(slot.target.clip)
                         for (track in slot.tracks) {
                             // No per-frame layout or glyph-list allocation.
-                            val p = QuickTypeMotionPolicy.progress(elapsed, track.duration)
+                            val p = track.progress(elapsed)
                             val a = QuickTypeMotionPolicy.interpolate(track.from.opacity, track.to.opacity, p)
                             if (a <= .005f) continue
                             val ink = track.to
                             ink.paint.color = ink.color
                             ink.paint.alpha = (Color.alpha(ink.color) * a).toInt().coerceIn(0, 255)
-                            canvas.drawText(ink.character,
-                                QuickTypeMotionPolicy.interpolate(track.from.x, ink.x, p),
-                                QuickTypeMotionPolicy.interpolate(track.from.y, ink.y, p), ink.paint)
+                            val x = track.x(elapsed)
+                            val y = track.y(elapsed)
+                            val scale = QuickTypeMotionPolicy.interpolate(track.from.scale, ink.scale, p)
+                            if (kotlin.math.abs(scale - 1f) < .001f) {
+                                canvas.drawText(ink.character, x, y, ink.paint)
+                            } else {
+                                val glyphSave = canvas.save()
+                                canvas.scale(scale, scale, x + ink.advance / 2f,
+                                    y + (ink.paint.ascent() + ink.paint.descent()) / 2f)
+                                canvas.drawText(ink.character, x, y, ink.paint)
+                                canvas.restoreToCount(glyphSave)
+                            }
                         }
                         canvas.restoreToCount(save)
                     }
@@ -150,7 +176,7 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
         }
         val duration = maxOf(if (pill != null || dividerMotion.isNotEmpty())
             QuickTypeMotionPolicy.CHROME_MS else 0L,
-            motion.maxOfOrNull { slot -> slot.tracks.maxOf { it.duration } } ?: 0L)
+            motion.maxOfOrNull { slot -> slot.tracks.maxOf { it.duration + it.delay } } ?: 0L)
         val budget = MorphFrameBudget(owner.display?.refreshRate ?: 60f)
         animator = ValueAnimator.ofFloat(0f, duration.toFloat()).apply {
             this.duration = duration
@@ -237,34 +263,53 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
         val color = paint.color
         val glyphs = label.indices.map { i ->
             Ink(label.substring(i, i + 1), x + paint.measureText(label, 0, i),
-                baseline, 1f, paint, color)
+                baseline, 1f, paint, color, advance = paint.measureText(label, i, i + 1))
         }
         return Slot(label, clip, glyphs)
     }
 
     private fun sameInk(before: Slot, after: Slot): Boolean =
         before.ink.size == after.ink.size && before.ink.zip(after.ink).all { (a, b) ->
-            a.character == b.character && a.opacity >= .995f &&
+            a.character == b.character && a.opacity >= .995f && a.scale >= .995f &&
                 kotlin.math.abs(a.x - b.x) < .5f && a.color == b.color
         }
 
-    private fun makeTracks(before: Slot, after: Slot): List<Track> {
+    /** Compress/expand only a contiguous unmatched run, not adjacent retained letters. */
+    private fun anchor(index: Int, glyphs: List<Ink>, retained: Set<Int>): Float {
+        var first = index
+        var last = index
+        while (first > 0 && first - 1 !in retained) first--
+        while (last + 1 < glyphs.size && last + 1 !in retained) last++
+        return (glyphs[first].x + glyphs[last].x + glyphs[last].advance) / 2f -
+            glyphs[index].advance / 2f
+    }
+
+    private fun makeTracks(before: Slot, after: Slot, preset: SuggestionMotionPreset): List<Track> {
         val old = before.ink
         val next = after.ink
         val matches = QuickTypeMotionPolicy.matches(old.joinToString("") { it.character }, after.label)
-        val duration = if (matches.isEmpty()) QuickTypeMotionPolicy.REPLACEMENT_MS
-            else QuickTypeMotionPolicy.GLYPH_MS
+        val duration = if (matches.isEmpty()) preset.replacementMs else preset.glyphMs
         val byNew = matches.associate { it.second to it.first }
         val used = matches.map { it.first }.toHashSet()
         val result = ArrayList<Track>(old.size + next.size)
         // Draw disappearing ink first, then matched and arriving glyphs above it.
-        old.indices.filterNot { it in used }.forEach { i ->
+        old.indices.filterNot { it in used }.forEachIndexed { ordinal, i ->
             val ink = old[i]
-            result.add(Track(ink, ink.copy(opacity = 0f), duration))
+            val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, old, used), preset.compression)
+            result.add(Track(ink, ink.copy(x = x, opacity = 0f, scale = preset.entryScale,
+                velocityX = 0f, velocityY = 0f), duration, preset,
+                QuickTypeMotionPolicy.delay(preset, ordinal)))
         }
+        var arriving = 0
         next.forEachIndexed { i, ink ->
-            val from = byNew[i]?.let { old[it] } ?: ink.copy(opacity = 0f)
-            result.add(Track(from, ink, duration))
+            val retained = byNew[i]?.let { old[it] }
+            if (retained != null) {
+                result.add(Track(retained, ink, duration, preset))
+            } else {
+                val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, next, byNew.keys), preset.compression)
+                result.add(Track(ink.copy(x = x, opacity = 0f, scale = preset.entryScale), ink,
+                    duration, preset, QuickTypeMotionPolicy.delay(preset, arriving++)))
+            }
         }
         return result
     }

@@ -55,6 +55,7 @@ internal class KeyboardPcmAudioSource(
         Thread({
             var microphone: AudioRecord? = null
             var suppression: NoiseSuppressor? = null
+            var audioFocus: VoiceCaptureAudioFocus? = null
             try {
                 if (!wanted.get() || closed.get()) return@Thread
                 // Capture must outrank background model initialization and inference.
@@ -103,6 +104,8 @@ internal class KeyboardPcmAudioSource(
                 if (!toBrrSpeak && VoiceCaptureNoiseReduction.callIsActive(context)) {
                     throw IOException("Call took microphone ownership")
                 }
+                audioFocus = VoiceCaptureAudioFocus.acquire(context)
+                if (!wanted.get() || closed.get()) return@Thread
                 microphone.startRecording()
                 if (microphone.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     throw IOException("Microphone could not start")
@@ -171,6 +174,7 @@ internal class KeyboardPcmAudioSource(
                 }
                 runCatching { suppression?.release() }
                 runCatching { microphone?.release() }
+                audioFocus?.close()
                 if (!toBrrSpeak) VoiceDenoiseMetrics.blueCaptureStopped()
                 if (recorder === microphone) recorder = null
                 if (!closed.get()) mainHandler.post {

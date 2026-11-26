@@ -56,6 +56,7 @@ fun AppearanceScreen(
         R.string.brr_category_visual_material,
         if (isFrostedActive) "adjust_frosted_glass_dialog" else null,
         Settings.PREF_MOTION_PROFILE,
+        Settings.PREF_SUGGESTION_MOTION_STYLE,
         Settings.PREF_THEME_ACTION_TINT,
         FrostAccentRoles.PREF_APPLE_PALETTE,
         FrostAccentRoles.PREF_ROUNDED_KEYCAPS,
@@ -110,13 +111,21 @@ fun AppearanceScreen(
             else -> stringResource(R.string.settings_screen_appearance)
         },
         settings = if (section == "legacy") items else items.filter { item ->
-            item != null && item !is Int && item != "adjust_frosted_glass_dialog" && helium314.keyboard.settings.WorkspaceSettings.appearanceSection(item.toString()) == section
+            item != null && item !is Int && item != "adjust_frosted_glass_dialog" &&
+                !(section == "motion" && item == Settings.PREF_SUGGESTION_MOTION_STYLE) && helium314.keyboard.settings.WorkspaceSettings.appearanceSection(item.toString()) == section
         } + if (section == "emoji") listOf(Settings.PREF_SHOW_EMOJI_DESCRIPTIONS, Settings.PREF_EMOJI_MAX_SDK, Settings.PREF_ABC_AFTER_EMOJI) else emptyList(),
-        header = { KeyboardTryoutCard() }
+        header = {
+            if (section == "motion") SuggestionMotionPlayground()
+            KeyboardTryoutCard()
+        }
     )
 }
 
 fun createAppearanceSettings(context: Context) = listOf(
+    Setting(context, Settings.PREF_SUGGESTION_MOTION_STYLE, R.string.suggestion_motion_title,
+        R.string.suggestion_motion_summary) { setting ->
+        ListPreference(setting, suggestionMotionChoices(context), Defaults.PREF_SUGGESTION_MOTION_STYLE)
+    },
     Setting(context, Settings.PREF_MOTION_PROFILE, R.string.motion_profile_title,
         R.string.motion_profile_summary) { setting ->
         ListPreference(

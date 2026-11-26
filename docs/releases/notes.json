@@ -1,14 +1,18 @@
 {
   "schema": 1,
-  "summary": "Complete iOS suggestion-strip gesture and boundary choreography",
+  "summary": "Suggestion animation playground and quieter voice capture",
   "changes": [
     {
-      "title": "Swipe-onset capsule and dividers",
-      "detail": "The existing gesture UI callback now activates the same slot-width capsule at swipe onset, even before new words arrive, and restores dividers at gesture completion or cancellation. This is presentation-only and does not alter decoder confidence, word ranking or gesture input."
+      "title": "Three selectable QuickType-inspired animations",
+      "detail": "Scale adds per-character growth and compression, Spring retains visible x/y momentum when interrupted, and Ripple staggers character appearance. Classic preserves the prior dissolve. Select in Motion Settings without changing prediction logic or global keyboard motion."
     },
     {
-      "title": "Frame-matched chrome timing and interruption safety",
-      "detail": "Refine capsule/divider transition to an estimated 33 ms from the 30-fps reference; skip snapshot work when motion is disabled, bound retained glyphs, suppress old-editor motion and remove stale correction highlighting during display-only prediction gaps. No dictionary, voice, settings or other feature changes."
+      "title": "Real-renderer suggestion playground",
+      "detail": "Replay identical synthetic suggestion sequences using the actual animation engine, then use the private live keyboard tryout to compare presets. Selection persists and applies to ordinary typing."
+    },
+    {
+      "title": "Pause background media while recording",
+      "detail": "Both tap and hold microphone capture paths request exclusive transient Android audio focus and release it when the microphone closes, not when transcription completes. Android or the player may deny or ignore focus; recording continues safely if denied. No global volume or permission changes."
     }
   ]
 }

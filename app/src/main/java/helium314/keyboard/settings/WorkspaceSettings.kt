@@ -31,7 +31,7 @@ internal object WorkspaceSettings {
         in size -> "size"
         in lettering -> "lettering"
         in emoji -> "emoji"
-        S.PREF_MOTION_PROFILE -> "motion"
+        S.PREF_MOTION_PROFILE, S.PREF_SUGGESTION_MOTION_STYLE -> "motion"
         else -> "glass"
     }
     fun keysSection(key: String) = when (key) {

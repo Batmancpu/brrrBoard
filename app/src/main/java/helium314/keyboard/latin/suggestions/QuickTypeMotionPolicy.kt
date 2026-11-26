@@ -43,6 +43,49 @@ internal object QuickTypeMotionPolicy {
         return t * t * (3f - 2f * t)
     }
 
+    fun delay(preset: SuggestionMotionPreset, ordinal: Int): Long =
+        preset.staggerMs * ordinal.coerceIn(0, 5)
+
+    /** Critically damped response with no oscillation. Finite endpoint snaps to exact native ink. */
+    fun glyphProgress(preset: SuggestionMotionPreset, elapsed: Float, duration: Long): Float {
+        val t = (elapsed / duration).coerceIn(0f, 1f)
+        return when (preset) {
+            SuggestionMotionPreset.CLASSIC, SuggestionMotionPreset.SCALE -> progress(elapsed, duration)
+            SuggestionMotionPreset.SPRING -> if (t >= 1f) 1f else
+                (1f - (1f + 7f * t) * kotlin.math.exp(-7f * t)) /
+                    (1f - 8f * kotlin.math.exp(-7f))
+            SuggestionMotionPreset.RIPPLE -> 1f - (1f - t) * (1f - t) * (1f - t)
+        }
+    }
+
+    /** Carry visible x/y velocity through a retarget; bound a transient inherited impulse. */
+    fun position(preset: SuggestionMotionPreset, from: Float, to: Float,
+                 velocity: Float, elapsed: Float, duration: Long): Float {
+        if (elapsed <= 0f) return from
+        if (elapsed >= duration) return to
+        if (preset != SuggestionMotionPreset.SPRING)
+            return interpolate(from, to, glyphProgress(preset, elapsed, duration))
+        val time = elapsed / 1000f
+        val omega = 7f / (duration / 1000f)
+        val displacement = from - to
+        val v = velocity.coerceIn(-2400f, 2400f)
+        return to + (displacement + (v + omega * displacement) * time) *
+            kotlin.math.exp(-omega * time)
+    }
+
+    fun velocity(preset: SuggestionMotionPreset, from: Float, to: Float,
+                 initial: Float, elapsed: Float, duration: Long): Float {
+        if (preset != SuggestionMotionPreset.SPRING || elapsed >= duration) return 0f
+        val v = initial.coerceIn(-2400f, 2400f)
+        if (elapsed <= 0f) return v
+        val time = elapsed / 1000f
+        val omega = 7f / (duration / 1000f)
+        val displacement = from - to
+        val coefficient = v + omega * displacement
+        return (coefficient - omega * (displacement + coefficient * time)) *
+            kotlin.math.exp(-omega * time)
+    }
+
     fun interpolate(from: Float, to: Float, progress: Float): Float =
         from + (to - from) * progress
 }
