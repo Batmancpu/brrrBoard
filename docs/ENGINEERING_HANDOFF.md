@@ -1,6 +1,6 @@
 # Engineering handoff — navigation index
 
-- 2026-11-26: Scale/Scale Improved and responsive Settings search, [implementation and verification](SCALE_IMPROVED_SETTINGS_SEARCH_2026_11_26.md). Exact-source CI/release and physical acceptance pending.
+- 2026-11-26: Scale/Scale Improved and responsive Settings search, [implementation and verification](SCALE_IMPROVED_SETTINGS_SEARCH_2026_11_26.md). Shipped in v1.0.365; exact-source verification in scoped document. Physical acceptance pending.
 
 - 2026-11-26: English-only contraction maintenance; [scope, safety and verification](ENGLISH_APOSTROPHE_REPAIR_2026_11_26.md). Shipped in v1.0.364; exact-source verification in scoped document. Physical acceptance pending.
 

@@ -13,4 +13,7 @@ Owner preferred the original Scale preset (subjective ~90% of desired iOS feel),
 ## Verification
 Unit regression tests for two choices and legacy fallback, unchanged Scale durations/growth, bounded independent opacity, retarget endpoint/velocity and repeated-letter matching. Settings search precedence and source contract assertions; existing full tests and original signed release gates. Device acceptance: compare original vs Improved at slow and rapid rates, deletion, apostrophe, swipe/confidence, taps during motion, system animation disable; measure Settings search frame times, input-to-suggestion latency and normal screen scrolling before/after, test secret arm/expiry/recovery and search route integrity. No claim of exact Apple parameters or measured on-device lag elimination. Source references: Android Paint/Canvas APIs, Compose performance/stable keys/derived state; no third-party animation libraries added.
 
-Release evidence pending.
+## Verified release
+v1.0.365 published 2026-11-26T17:42:44Z; source fb1043d6786a5f9a14465c810fc3608fc3e04cf7; debug 45868694206 SUCCESS; original-signed release 45868694130 SUCCESS; brrBoard.apk 75,911,383 bytes, SHA-256 81070e41ced0b60083463b1c8e5070913a556c54855cd6196372372f75159fbc. Physical visual acceptance and Settings latency measurement pending.
+
+[Release](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.365) · [Debug](https://github.com/Batmancpu/brrrBoard/actions/runs/45868694206) · [Signed release](https://github.com/Batmancpu/brrrBoard/actions/runs/45868694130). No repair commit needed. CI success does not establish perceived animation parity or actual frame-time improvement.
