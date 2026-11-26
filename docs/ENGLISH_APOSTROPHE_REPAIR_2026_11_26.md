@@ -12,4 +12,7 @@ Owner approved the prior conservative repair plan. Scope: ordinary English contr
 ## Verification
 - Unit checks: reviewed manifest shape/size/weights; actual pure audit-gate fixtures with native-presence simulation, duplicate suppression, ambiguous replacements, protected aliases, punctuation normalization and unchanged unknown-vocabulary handling. Existing complete CI tests still required.
 - Real device: allow static cache initialization, check native audit aggregate count in diagnostic log; test both US and UK, typed and swipe contractions, ambiguous pairs, apostrophe-bearing context, undo, custom dictionaries, and BR Brain on/off. CI cannot run on-device JNI lookup or measure actual recall/latency. Do not claim all 66 were newly added; only missing entries qualify. Do not claim a complete dictionary-wide spelling audit, native curly input equivalence, or verified iOS parity.
-- Release and exact-SHA evidence pending.
+## Verified release
+v1.0.364 published 2026-11-26T16:53:13Z; source e0961af0e72fb249510d3db1daa886622ce3490d; debug 45861943199 SUCCESS; original-signed release 45861943276 SUCCESS; brrBoard.apk 75,911,383 bytes, SHA-256 c64520ae154426f24a7a8f8e64b0d644e77003215202c177e07104d70941e38b. Physical acceptance and actual native missing-entry count pending.
+
+[Release](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.364) · [Debug](https://github.com/Batmancpu/brrrBoard/actions/runs/45861943199) · [Signed release](https://github.com/Batmancpu/brrrBoard/actions/runs/45861943276). No repair commit needed. Unit-test success is not evidence of physical decoder recall or latency.

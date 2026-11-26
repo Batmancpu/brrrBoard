@@ -1,6 +1,6 @@
 # Engineering handoff — navigation index
 
-- 2026-11-26: English-only contraction maintenance; [scope, safety and verification](ENGLISH_APOSTROPHE_REPAIR_2026_11_26.md). Exact-source release and physical acceptance pending.
+- 2026-11-26: English-only contraction maintenance; [scope, safety and verification](ENGLISH_APOSTROPHE_REPAIR_2026_11_26.md). Shipped in v1.0.364; exact-source verification in scoped document. Physical acceptance pending.
 
 - 2026-11-26: Motion presets, playground and exclusive microphone audio-focus lease; see [scoped implementation](SUGGESTION_PRESETS_AND_AUDIO_FOCUS_2026_11_26.md). Shipped in v1.0.362; listener identity hardening follows. Exact-source verification in the scoped implementation document; device acceptance pending.
 
