@@ -309,35 +309,41 @@ public final class BrContextLmInt8 {
 
     private Encoding encodeContext(final int[] tokenIds, @Nullable final LongSupplier requestSerialSupplier,
             final long requestSerial) {
-        float[][] states = new float[CONTEXT_TOKENS][CHANNELS];
+        final int stateSize = CONTEXT_TOKENS * CHANNELS;
+        float[] states = new float[stateSize];
+        float[] following = new float[stateSize];
         for (int i = 0; i < CONTEXT_TOKENS; i++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final int index = tokenIds[i] * CHANNELS;
-            System.arraycopy(embedding, index, states[i], 0, CHANNELS);
+            System.arraycopy(embedding, index, states, i * CHANNELS, CHANNELS);
         }
         for (int layer = 0; layer < LAYERS; layer++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
-            final float[][] following = new float[CONTEXT_TOKENS][CHANNELS];
             final float[] matrix = projections[layer];
             final float[] bias = biases[layer];
             for (int t = 0; t < CONTEXT_TOKENS; t++) {
                 if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
+                final int stateOffset = t * CHANNELS;
                 for (int output = 0; output < CHANNELS; output++) {
                     float value = bias[output];
                     final int row = output * CHANNELS;
                     for (int input = 0; input < CHANNELS; input++) {
-                        value += matrix[row + input] * states[t][input];
+                        value += matrix[row + input] * states[stateOffset + input];
                     }
                     for (int lag = 1; lag <= MEMORY_TAPS && lag <= t; lag++) {
-                        value += states[t - lag][output] * memory[layer][(lag - 1) * CHANNELS + output];
+                        value += states[stateOffset - lag * CHANNELS + output]
+                                * memory[layer][(lag - 1) * CHANNELS + output];
                     }
-                    following[t][output] = (float) Math.tanh(value);
+                    following[stateOffset + output] = (float) Math.tanh(value);
                 }
             }
+            final float[] previous = states;
             states = following;
+            following = previous;
         }
         if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
-        final float[] latest = states[CONTEXT_TOKENS - 1];
+        final float[] latest = new float[CHANNELS];
+        System.arraycopy(states, (CONTEXT_TOKENS - 1) * CHANNELS, latest, 0, CHANNELS);
         final float[] personalWeights = new float[4];
         for (int feature = 0; feature < 4; feature++) {
             float gate = personalGateBias[feature];

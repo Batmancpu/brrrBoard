@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Verify correction undo before rejection learning",
+  "summary": "Reduce optional ContextLM encoding allocations",
   "changes": [
     {
-      "title": "Record correction rejection only after verified restoration",
-      "detail": "Autocorrection undo now verifies the active editor and exact committed text before changing it, then requires the host to confirm the restored typed word before unlearning the correction or recording temporary rejection and per-app feedback. Failed or stale host transactions do not teach rejection."
+      "title": "Use a bounded flat inference workspace",
+      "detail": "ContextLM now encodes its fixed causal window with two invocation-local contiguous activation buffers and retains only the final state. The original floating-point accumulation order, cancellation points and default-disabled experimental gate are preserved; a deterministic nonzero-score fixture checks output."
     }
   ]
 }

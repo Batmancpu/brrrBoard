@@ -154,6 +154,11 @@ public class BrContextLmInt8Test {
                 previous, Arrays.asList(word("office", Dictionary.TYPE_MAIN)), true, true);
         final BrPersonalContextFeatures.Snapshot third = BrPersonalContextFeatures.fromNative(
                 different, Arrays.asList(word("office", Dictionary.TYPE_MAIN)), true, true);
+        // Fixed nonzero tensor fixture anchors the floating-point reference across workspace changes.
+        org.junit.Assert.assertArrayEquals(new float[] {3.9949017f, 0.49745077f},
+                reference.score(first), 0.00001f);
+        org.junit.Assert.assertArrayEquals(new float[] {0.99490154f},
+                reference.score(second), 0.00001f);
         org.junit.Assert.assertArrayEquals(reference.score(first), reference.score(first, cache), 0f);
         org.junit.Assert.assertArrayEquals(reference.score(second), reference.score(second, cache), 0f);
         assertEquals(1, cache.computationsForTesting());
