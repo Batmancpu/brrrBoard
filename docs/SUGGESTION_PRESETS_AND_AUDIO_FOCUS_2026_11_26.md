@@ -15,3 +15,6 @@ Run exact-SHA debug/unit/static workflow and original-signed Obtainium workflow.
 v1.0.362 published 2026-11-26T16:34:50Z; source 00292e0cf174604287f8c8f82113a0c28d42fff3; debug 45858818707 SUCCESS; original-signed release 45858818731 SUCCESS; brrBoard.apk 75,894,910 bytes, SHA-256 cfb8339b166390559633c0a4968ab17d4d7970d44541b00a46443a96af44976f. Device motion and media-focus acceptance pending.
 
 [Release](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.362) · [Debug](https://github.com/Batmancpu/brrrBoard/actions/runs/45858818707) · [Signed release](https://github.com/Batmancpu/brrrBoard/actions/runs/45858818731). No repair commit was necessary. Android focus denial and player cooperation remain device limitations.
+
+## Lifecycle hardening
+A non-capturing SAM listener may be reused by the compiler; Android identifies focus clients by listener identity. Use a new listener for each recording, explicit main-looper callback dispatch, and a regression test for listener uniqueness. This does not change the original animation presets or the audio-focus denial policy. Exact-source CI and signed publication pending.

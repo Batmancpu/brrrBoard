@@ -2,9 +2,13 @@
 package helium314.keyboard.latin
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Test
 
 class VoiceCaptureAudioFocusTest {
+    @Test fun focusListenersAreNotSharedBetweenRecordings() {
+        assertNotSame(VoiceCaptureAudioFocus.newListener(), VoiceCaptureAudioFocus.newListener())
+    }
     @Test fun eachLeaseReleasesOnlyOnce() {
         var releases = 0
         val lease = VoiceCaptureAudioFocus { releases++ }

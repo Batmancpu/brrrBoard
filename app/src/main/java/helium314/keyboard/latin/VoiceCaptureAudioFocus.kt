@@ -6,6 +6,8 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -20,17 +22,24 @@ internal class VoiceCaptureAudioFocus(private val release: () -> Unit) : AutoClo
     }
 
     companion object {
+        // A non-capturing SAM lambda can be a singleton. AudioManager keys focus by
+        // listener identity, so every physical recording needs a fresh instance.
+        internal fun newListener(): AudioManager.OnAudioFocusChangeListener =
+            object : AudioManager.OnAudioFocusChangeListener {
+                override fun onAudioFocusChange(focusChange: Int) = Unit
+            }
+
         @Suppress("DEPRECATION")
         fun acquire(context: Context): VoiceCaptureAudioFocus? = runCatching {
             val manager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
                 ?: return@runCatching null
-            val listener = AudioManager.OnAudioFocusChangeListener { /* no playback to duck/resume */ }
+            val listener = newListener()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
                     .setAudioAttributes(AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_ASSISTANT)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-                    .setOnAudioFocusChangeListener(listener)
+                    .setOnAudioFocusChangeListener(listener, Handler(Looper.getMainLooper()))
                     .setAcceptsDelayedFocusGain(false)
                     .build()
                 if (manager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
