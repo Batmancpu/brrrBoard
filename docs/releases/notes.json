@@ -8,7 +8,7 @@
     },
     {
       "title": "Contain decoder failures and protect reloads",
-      "detail": "A failed or cancelled locale query releases its completion slot and leaves other native results available. Dictionary replacement, close and history mutation wait for active native queries; stale asynchronous dictionaries are closed instead of installed."
+      "detail": "A failed or cancelled locale query releases its completion slot and leaves other native results available. Dictionary replacement, close and history mutation wait for active native queries; stale asynchronous dictionaries are closed instead of installed. Preserve the availability callback return contract across debug and release variants."
     },
     {
       "title": "Avoid repeated language validity queries",
