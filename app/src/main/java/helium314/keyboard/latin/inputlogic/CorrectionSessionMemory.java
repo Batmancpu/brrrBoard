@@ -21,6 +21,7 @@ final class CorrectionSessionMemory {
             this.original = original.toCharArray(); this.corrected = corrected.toCharArray();
         }
         String original() { return new String(original); }
+        String corrected() { return new String(corrected); }
         boolean correctedEquals(CharSequence text) { return same(corrected, text); }
         boolean originalEquals(CharSequence text) { return same(original, text); }
         private static boolean same(char[] chars, CharSequence text) {

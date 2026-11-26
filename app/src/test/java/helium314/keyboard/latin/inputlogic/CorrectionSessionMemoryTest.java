@@ -5,6 +5,8 @@ public class CorrectionSessionMemoryTest {
     @Test public void strictExpiryAndIdentity() {
         CorrectionSessionMemory m=new CorrectionSessionMemory(); Object c=new Object();
         assertTrue(m.remember("teh","the",10,100,7,c));
+        assertEquals("teh", m.find(10,13,"the",101,7,c).original());
+        assertEquals("the", m.find(10,13,"the",101,7,c).corrected());
         assertNull(m.find(11,14,"the",101,7,c));
         assertNull(m.find(10,13,"too",101,7,c));
         assertEquals("teh",m.find(10,13,"the",30099,7,c).original());
