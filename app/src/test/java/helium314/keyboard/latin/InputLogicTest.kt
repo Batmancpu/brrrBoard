@@ -1240,6 +1240,13 @@ class ShadowFacilitator2 {
                          blockPotentiallyOffensive: Boolean) {
         lastAddedWord = suggestion
     }
+
+    @Implementation
+    fun addToUserHistory(suggestion: String, wasAutoCapitalized: Boolean,
+                         ngramContext: NgramContext, timeStampInSeconds: Long,
+                         blockPotentiallyOffensive: Boolean, updateLanguageConfidence: Boolean) {
+        lastAddedWord = suggestion
+    }
     companion object {
         var lastAddedWord = ""
     }
