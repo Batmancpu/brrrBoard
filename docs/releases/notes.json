@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "BR Brain correction rejection reliability improvement",
+  "summary": "Preserve rejected correction expiry across unrelated words",
   "changes": [
     {
-      "title": "Preserve exact rejected correction feedback",
-      "detail": "Keep a short-lived in-memory rejection receipt across unrelated words and different replacement proposals. Suppress only the exact rejected typed/replacement pair in the same editor connection; retain the original 30-second expiry and clear on editor or connection changes. No persistent rejection history is added."
+      "title": "Keep correction rejection cleanup on its original deadline",
+      "detail": "Leave the scheduled expiry callback active when an unrelated word or a different proposed replacement is encountered. Consume and cancel it only for the exact rejected pair; clear it on expiry or when transient correction memory becomes ineligible. The receipt remains RAM-only and is not extended by unrelated input."
     }
   ]
 }

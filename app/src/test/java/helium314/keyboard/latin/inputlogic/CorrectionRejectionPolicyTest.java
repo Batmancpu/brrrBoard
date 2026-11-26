@@ -44,4 +44,15 @@ public class CorrectionRejectionPolicyTest {
         policy.clear();
         assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 110L));
     }
+
+    @Test public void unrelatedAttemptsDoNotRefreshOriginalExpiry() {
+        final var policy = new CorrectionRejectionPolicy();
+        final var editor = new Object();
+        final var connection = new Object();
+        policy.reject("teh", "the", editor, connection, 1_000L);
+        assertFalse(policy.consumeIfMatches("other", "word", editor, connection, 20_000L));
+        assertFalse(policy.consumeIfMatches("teh", "their", editor, connection, 29_000L));
+        assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 31_000L));
+        assertFalse(policy.hasReceipt());
+    }
 }
