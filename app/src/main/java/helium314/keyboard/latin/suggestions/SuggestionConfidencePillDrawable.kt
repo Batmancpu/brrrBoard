@@ -62,8 +62,12 @@ internal class SuggestionConfidencePillDrawable(
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }
 
-/** Pure sizing rule so one or several words cannot shift the tap target. */
+/** Stable iOS slot geometry; previous-default content sizing remains available. */
 internal object SuggestionConfidencePillGeometry {
+    @JvmStatic
+    fun fixedWidth(slotWidth: Float, density: Float): Float =
+        (slotWidth - 2f * density).coerceAtLeast(1f)
+
     @JvmStatic
     fun width(textWidth: Float, slotWidth: Float, density: Float): Float {
         val maximum = (slotWidth - 8f * density).coerceAtLeast(1f)

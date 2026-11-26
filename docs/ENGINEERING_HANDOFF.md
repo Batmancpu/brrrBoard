@@ -1,5 +1,7 @@
 # Engineering handoff — navigation index
 
+- 2026-11-26: owner GO for suggestion-strip-only clean-room motion; see [reference study and implementation plan](QUICKTYPE_MOTION_2026_11_26.md). Exact-source CI/publication and device acceptance pending.
+
 Read [AGENTS.md](../AGENTS.md) and [PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md) for current rules, exact-source checkpoint, active implementation, open issues and recent detailed records. They are the canonical handover; do not duplicate them here. Use [documentation index](README.md) for implementation contracts. [Historical engineering handoff, complete at 2026-11-25 snapshot](https://github.com/Batmancpu/brrrBoard/blob/97ab9e247c2cd4ac8acbec696f2d4735782a631b/docs/ENGINEERING_HANDOFF.md) contains all prior commands, source checkpoints, test evidence, failed experiments and release details. It is retained verbatim in Git history, not a current plan. Search the relevant heading or inspect the precise commit; do not preload it. [GitHub Actions](https://github.com/Batmancpu/brrrBoard/actions) and [Releases](https://github.com/Batmancpu/brrrBoard/releases) remain authoritative for actual CI/publication.
 
 For subsequent batches record the canonical handover entry in PROJECT_CONTEXT once, link it here only if useful for navigation, and retain unique engineering contracts in their topic document. See AGENTS context maintenance rules.

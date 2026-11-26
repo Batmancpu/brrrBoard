@@ -650,13 +650,13 @@ final class SuggestionStripLayoutHelper {
         wordView.setText(text); // TextView.setText() resets text scale x to 1.0.
         wordView.setTextScaleX(scaleX);
         if (isConfidencePill) {
-            // Same content-based bounds as the animated state: no capsule-size
-            // jump when the next keystroke starts its transition. The TextView
-            // retains the original full-width tap target.
+            // The captured iOS profile keeps the capsule at a stable slot width.
+            // Preserve the previous-default preset's content-sized pill.
             final float density = wordView.getResources().getDisplayMetrics().density;
             final float contentWidth = wordView.getPaint().measureText(text.toString());
-            final float pillWidth = SuggestionConfidencePillGeometry.width(
-                    contentWidth, width, density);
+            final float pillWidth = helium314.keyboard.latin.KeyboardMotionSpec.isIos27(context)
+                    ? SuggestionConfidencePillGeometry.fixedWidth(width, density)
+                    : SuggestionConfidencePillGeometry.width(contentWidth, width, density);
             wordView.setBackground(new SuggestionConfidencePillDrawable(
                     getConfidencePillFillColor(), pillWidth, pillWidth,
                     1f, 1f, mChipVerticalMargin));

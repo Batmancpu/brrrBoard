@@ -172,7 +172,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val wordViews = ArrayList<TextView>()
     private val debugInfoViews = ArrayList<TextView>()
     private val dividerViews = ArrayList<View>()
-    private val wordMorph by lazy { SuggestionWordMorph(this) }
+    private val wordMorph by lazy { QuickTypeMotion(this, dividerViews.subList(1, 3)) }
     private var hasTypedInCurrentSession = false
 
     /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
@@ -824,7 +824,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
         updateKeys()
         val chips = shouldUseChipSuggestions(suggestedWords)
-        if (previousWords != null && hasTypedInCurrentSession && previousDirection == direction &&
+        if (previousWords != null && wasAttachedStrip && reusedIndex >= 0 && !chips &&
+            hasTypedInCurrentSession && previousDirection == direction &&
             (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible) &&
             !suggestedWords.isPunctuationSuggestions && !isExternalSuggestionVisible) {
             val confident = SuggestionStripLayoutHelper.isCenterConfidenceActive(
@@ -864,6 +865,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (isExternalSuggestionVisible || isShowingMoreSuggestionPanel ||
             suggestedWords.isEmpty || hasSessionRecall(suggestedWords) ||
             (!suggestionsStrip.isVisible && !suggestionsChipScroll.isVisible)) return false
+        wordMorph.cancel(wordViews)
         for (word in wordViews) {
             word.tag = null
             word.isEnabled = false
@@ -1211,6 +1213,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     private fun clear() {
+        wordMorph.cancel(wordViews)
         suggestionsStrip.removeAllViews()
         suggestionsChipStrip.removeAllViews()
         if (DEBUG_SUGGESTIONS) removeAllDebugInfoViews()

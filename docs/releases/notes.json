@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "Clear rejection evidence when learning switches off",
+  "summary": "Rebuild iOS-style suggestion-strip motion",
   "changes": [
     {
-      "title": "Reset partial rejection evidence when correction learning is disabled",
-      "detail": "Also clear the content-free per-app rejection counter when personalized dictionaries or autocorrection are disabled in an otherwise eligible editor. Re-enabling either setting therefore starts with fresh confirmation evidence. Privacy gates, the six-reversal threshold, encrypted profiles, and explicit settings remain unchanged."
+      "title": "Clean-room QuickType word animation",
+      "detail": "Replace the old outgoing TextView overlay with one bounded, clipped glyph renderer. Shared Latin characters move within their own slot, unrelated suggestions dissolve, and interrupted transitions retarget without rebuilding input targets. Complex scripts, emoji and alternate strip layouts use safe native rendering."
+    },
+    {
+      "title": "Stable confidence capsule and coordinated dividers",
+      "detail": "The iOS profile keeps the confidence capsule at a fixed slot-based width and coordinates its opacity with the two internal dividers. Previous Default geometry, themes, decoder confidence, dictionaries, touch targets and accessibility remain unchanged. Physical visual acceptance is pending."
     }
   ]
 }
