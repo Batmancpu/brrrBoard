@@ -2748,6 +2748,11 @@ public class LatinIME extends InputMethodService implements
         if (mIsDestroyed) {
             return;
         }
+        // The existing empty batch callback marks swipe onset before any decoder
+        // words arrive. Forward only this UI state; do not change gesture decoding.
+        if (mSuggestionStripView != null && !mInlineProviderViewActive) {
+            mSuggestionStripView.setGestureStripMotionActive(!dismissGestureFloatingPreviewText);
+        }
         setSuggestions(suggestedWords);
         final MainKeyboardView mainKeyboardView = mKeyboardSwitcher.getMainKeyboardView();
         mainKeyboardView.showGestureFloatingPreviewText(suggestedWords,

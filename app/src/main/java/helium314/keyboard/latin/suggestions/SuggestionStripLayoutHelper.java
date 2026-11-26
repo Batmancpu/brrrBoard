@@ -81,6 +81,7 @@ final class SuggestionStripLayoutHelper {
     public final float mMinMoreSuggestionsWidth;
     public final int mMoreSuggestionsBottomGap;
     private boolean mMoreSuggestionsAvailable;
+    private boolean mLiveGesturePresentation;
 
     // The index of these {@link ArrayList} is the position in the suggestion strip. The indices
     // increase towards the right for LTR scripts and the left for RTL scripts, starting with 0.
@@ -465,9 +466,9 @@ final class SuggestionStripLayoutHelper {
         final int startIndexOfMoreSuggestions = setupWordViewsAndReturnStartIndexOfMoreSuggestions(
                 suggestedWords, mSuggestionsCountInStrip);
         final TextView centerWordView = mWordViews.get(mCenterPositionInStrip);
-        // Confidence is a decoder decision, never a visual heuristic.
-        final boolean centerConfidence = isCenterConfidenceActive(
-                suggestedWords.mWillAutoCorrect, (Integer) centerWordView.getTag());
+        // Decoder-approved autocorrection and active gesture chrome are separate UI states.
+        final boolean centerConfidence = isCenterChromeActive(
+                suggestedWords, (Integer) centerWordView.getTag());
         final int stripWidth = measuredPredictionWidth(stripView);
         // Never collapse a one-word decoder response into a different layout.
         // Empty neighbors retain their real-sized (disabled) touch regions so
@@ -487,7 +488,7 @@ final class SuggestionStripLayoutHelper {
             }
 
             final int width = getSuggestionWidth(positionInStrip, stripWidth);
-            final TextView wordView = layoutWord(context, positionInStrip, width, suggestedWords.mWillAutoCorrect);
+            final TextView wordView = layoutWord(context, positionInStrip, width, centerConfidence);
             stripView.addView(wordView);
             setLayoutWeight(wordView, getSuggestionWeight(positionInStrip), ViewGroup.LayoutParams.MATCH_PARENT);
             x += wordView.getMeasuredWidth();
@@ -539,15 +540,14 @@ final class SuggestionStripLayoutHelper {
         final TextView center = mWordViews.get(mCenterPositionInStrip);
         // Long words are scaled/ellipsized inside the same center slot. A
         // different width must not tear down the entire row on a keystroke.
-        final boolean confidence = isCenterConfidenceActive(words.mWillAutoCorrect,
-                (Integer)center.getTag());
+        final boolean confidence = isCenterChromeActive(words, (Integer)center.getTag());
         mMoreSuggestionsAvailable = words.getWordCountToShow()
                 + (shouldQuoteOriginal(words) || shouldShowTypedFallback(words) ? 1 : 0)
                 > mSuggestionsCountInStrip;
         for (int i = 0; i < mSuggestionsCountInStrip; ++i) {
             if (i > 0) mDividerViews.get(i).setVisibility(confidence ? View.INVISIBLE : View.VISIBLE);
             layoutWord(context, i, getSuggestionWidth(i, measuredPredictionWidth(stripView)),
-                    words.mWillAutoCorrect);
+                    confidence);
         }
         if (shouldShowTypedFallback(words)) {
             // Keep a stable center slot without making the typed prefix tappable.
@@ -626,12 +626,11 @@ final class SuggestionStripLayoutHelper {
      * @return the {@link TextView} containing the suggested word appropriately formatted.
      */
     private TextView layoutWord(final Context context, final int positionInStrip,
-            final int width, final boolean willAutoCorrect) {
+            final int width, final boolean centerChromeActive) {
         final TextView wordView = mWordViews.get(positionInStrip);
         resetWordViewForStrip(wordView);
-        final Integer suggestionIndex = (Integer)wordView.getTag();
         final boolean isConfidencePill = positionInStrip == mCenterPositionInStrip
-                && isCenterConfidenceActive(willAutoCorrect, suggestionIndex);
+                && centerChromeActive;
         final CharSequence word = wordView.getText();
         // Dots below the center word displaced its optical baseline. The full
         // strip still supports press-and-hold/upward flick for more suggestions,
@@ -649,18 +648,7 @@ final class SuggestionStripLayoutHelper {
         final float scaleX = wordView.getTextScaleX();
         wordView.setText(text); // TextView.setText() resets text scale x to 1.0.
         wordView.setTextScaleX(scaleX);
-        if (isConfidencePill) {
-            // The captured iOS profile keeps the capsule at a stable slot width.
-            // Preserve the previous-default preset's content-sized pill.
-            final float density = wordView.getResources().getDisplayMetrics().density;
-            final float contentWidth = wordView.getPaint().measureText(text.toString());
-            final float pillWidth = helium314.keyboard.latin.KeyboardMotionSpec.isIos27(context)
-                    ? SuggestionConfidencePillGeometry.fixedWidth(width, density)
-                    : SuggestionConfidencePillGeometry.width(contentWidth, width, density);
-            wordView.setBackground(new SuggestionConfidencePillDrawable(
-                    getConfidencePillFillColor(), pillWidth, pillWidth,
-                    1f, 1f, mChipVerticalMargin));
-        }
+        if (isConfidencePill) applyConfidencePill(context, wordView, width);
         // A <code>wordView</code> should be disabled when <code>word</code> is empty in order to
         // make it unclickable.
         // With accessibility touch exploration on, <code>wordView</code> should be enabled even
@@ -668,6 +656,50 @@ final class SuggestionStripLayoutHelper {
         wordView.setEnabled(!TextUtils.isEmpty(word)
                 || AccessibilityUtils.Companion.getInstance().isTouchExplorationEnabled());
         return wordView;
+    }
+
+    private void applyConfidencePill(final Context context, final TextView wordView,
+            final int width) {
+        final float density = wordView.getResources().getDisplayMetrics().density;
+        final float contentWidth = wordView.getPaint().measureText(wordView.getText().toString());
+        final float pillWidth = KeyboardMotionSpec.isIos27(context)
+                ? SuggestionConfidencePillGeometry.fixedWidth(width, density)
+                : SuggestionConfidencePillGeometry.width(contentWidth, width, density);
+        wordView.setBackground(new SuggestionConfidencePillDrawable(
+                getConfidencePillFillColor(), pillWidth, pillWidth, 1f, 1f, mChipVerticalMargin));
+    }
+
+    /** Update only visual chrome; never rebind text, tags, accessibility or decoder results. */
+    void applyCenterChrome(final Context context, final ViewGroup stripView, final boolean active) {
+        final TextView center = mWordViews.get(mCenterPositionInStrip);
+        if (center.getParent() != stripView || center.getWidth() <= 0) return;
+        for (int i = 1; i < mSuggestionsCountInStrip; i++) {
+            final View divider = mDividerViews.get(i);
+            if (divider.getParent() == stripView) divider.setVisibility(active ? View.INVISIBLE : View.VISIBLE);
+        }
+        center.setBackgroundColor(Color.TRANSPARENT);
+        Settings.getValues().mColors.setBackground(center, ColorType.STRIP_BACKGROUND);
+        if (active) applyConfidencePill(context, center, center.getWidth());
+    }
+
+    void setLiveGesturePresentation(final boolean active) { mLiveGesturePresentation = active; }
+    boolean isLiveGesturePresentation() { return mLiveGesturePresentation; }
+
+    static boolean shouldShowLiveGestureChrome(final boolean iosProfile, final boolean activeGesture,
+            final boolean validTextCandidate) {
+        return iosProfile && activeGesture && validTextCandidate;
+    }
+
+    boolean isCenterChromeActive(final SuggestedWords words, @Nullable final Integer centerIndex) {
+        if (isCenterConfidenceActive(words.mWillAutoCorrect, centerIndex)) return true;
+        final boolean valid = centerIndex != null && centerIndex >= 0 && centerIndex < words.size()
+                && !words.isPunctuationSuggestions()
+                && words.mInputStyle != SuggestedWords.INPUT_STYLE_APPLICATION_SPECIFIED
+                && !words.getInfo(centerIndex).isEmoji()
+                && !words.getInfo(centerIndex).isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)
+                && !TextUtils.isEmpty(words.getWord(centerIndex));
+        return shouldShowLiveGestureChrome(KeyboardMotionSpec.isIos27(mContext),
+                mLiveGesturePresentation, valid);
     }
 
     private TextView layoutChipWord(final Context context, final SuggestedWords suggestedWords,

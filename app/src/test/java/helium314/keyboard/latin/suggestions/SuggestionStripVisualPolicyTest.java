@@ -49,6 +49,15 @@ public class SuggestionStripVisualPolicyTest {
         assertFalse(SuggestionStripLayoutHelper.isCenterConfidenceActive(true, null));
     }
 
+    @Test public void liveGestureChromeIsPresentationOnlyAndRequiresVisibleText() {
+        assertTrue(SuggestionStripLayoutHelper.shouldShowLiveGestureChrome(true, true, true));
+        assertFalse(SuggestionStripLayoutHelper.shouldShowLiveGestureChrome(false, true, true));
+        assertFalse(SuggestionStripLayoutHelper.shouldShowLiveGestureChrome(true, false, true));
+        assertFalse(SuggestionStripLayoutHelper.shouldShowLiveGestureChrome(true, true, false));
+        assertFalse(SuggestionStripLayoutHelper.isCenterConfidenceActive(false,
+                SuggestedWords.INDEX_OF_AUTO_CORRECTION));
+    }
+
     @Test public void quotedOriginalOnlyForActualIosTypingCorrection() {
         assertTrue(SuggestionStripLayoutHelper.shouldQuoteOriginal(true, true,
                 SuggestedWords.INPUT_STYLE_TYPING, "mot", "not"));

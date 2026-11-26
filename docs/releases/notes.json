@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "summary": "Rebuild iOS-style suggestion-strip motion",
+  "summary": "Complete iOS suggestion-strip gesture and boundary choreography",
   "changes": [
     {
-      "title": "Clean-room QuickType word animation",
-      "detail": "Replace the old outgoing TextView overlay with one bounded, clipped glyph renderer. Shared Latin characters move within their own slot, unrelated suggestions dissolve, and interrupted transitions retarget without rebuilding input targets. Complex scripts, emoji and alternate strip layouts use safe native rendering."
+      "title": "Swipe-onset capsule and dividers",
+      "detail": "The existing gesture UI callback now activates the same slot-width capsule at swipe onset, even before new words arrive, and restores dividers at gesture completion or cancellation. This is presentation-only and does not alter decoder confidence, word ranking or gesture input."
     },
     {
-      "title": "Stable confidence capsule and coordinated dividers",
-      "detail": "The iOS profile keeps the confidence capsule at a fixed slot-based width and coordinates its opacity with the two internal dividers. Previous Default geometry, themes, decoder confidence, dictionaries, touch targets and accessibility remain unchanged. Physical visual acceptance is pending."
+      "title": "Frame-matched chrome timing and interruption safety",
+      "detail": "Refine capsule/divider transition to an estimated 33 ms from the 30-fps reference; skip snapshot work when motion is disabled, bound retained glyphs, suppress old-editor motion and remove stale correction highlighting during display-only prediction gaps. No dictionary, voice, settings or other feature changes."
     }
   ]
 }

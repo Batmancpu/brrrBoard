@@ -5,7 +5,7 @@ package helium314.keyboard.latin.suggestions
 internal object QuickTypeMotionPolicy {
     const val GLYPH_MS = 167L
     const val REPLACEMENT_MS = 133L
-    const val CHROME_MS = 67L
+    const val CHROME_MS = 33L
     const val MAX_LABEL = 40
     const val MAX_VISIBLE_GLYPHS = 80
 

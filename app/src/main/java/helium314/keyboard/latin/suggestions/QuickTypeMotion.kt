@@ -55,13 +55,18 @@ internal class QuickTypeMotion(private val owner: ViewGroup, private val divider
     private var finalBackground: Drawable? = null
     private var elapsed = 0f
 
-    fun capture(words: List<TextView>, centerConfidence: Boolean): Frame {
+    fun capture(words: List<TextView>, centerConfidence: Boolean): Frame? {
+        if (!owner.isShown || !KeyboardMotionSpec.isIos27(owner.context) ||
+            !KeyboardMotionSpec.optionalMotion(owner.context)) {
+            stop()
+            return null
+        }
         val frame = Frame((0..2).map { index ->
             val active = motion.firstOrNull { it.index == index }
             if (active == null) words.getOrNull(index)?.let(::snapshot)
             else active.target.copy(ink = active.tracks.map { it.at(elapsed) }
                 .filter { it.opacity > .035f }
-                .sortedByDescending { it.opacity }.take(QuickTypeMotionPolicy.MAX_VISIBLE_GLYPHS)
+                .sortedByDescending { it.opacity }.take(QuickTypeMotionPolicy.MAX_LABEL)
                 .sortedBy { it.x })
         }, pill?.currentOpacity() ?: if (centerConfidence) 1f else 0f,
             dividers.map { if (it.visibility == View.VISIBLE) it.alpha else 0f })

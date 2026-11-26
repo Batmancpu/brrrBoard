@@ -55,6 +55,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
 import helium314.keyboard.latin.dictionary.Dictionary
 import helium314.keyboard.latin.R
+import helium314.keyboard.latin.KeyboardMotionSpec
 import helium314.keyboard.latin.LatinIME
 import helium314.keyboard.latin.SuggestedWords
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
@@ -174,12 +175,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val dividerViews = ArrayList<View>()
     private val wordMorph by lazy { QuickTypeMotion(this, dividerViews.subList(1, 3)) }
     private var hasTypedInCurrentSession = false
+    private var wordMotionHasEditorFrame = false
 
     /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
     fun onNewEditorSession() {
         clearEditorAccessory()
         clearClipboardAccessory()
         hasTypedInCurrentSession = false
+        wordMotionHasEditorFrame = false
+        layoutHelper.setLiveGesturePresentation(false)
         wordMorph.cancel(wordViews)
         // A provider's old remote view must not remain on the next field,
         // even before the first new prediction or provider callback arrives.
@@ -732,6 +736,32 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private fun hasSessionRecall(words: SuggestedWords): Boolean =
         (0 until words.size()).any { words.getInfo(it).isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL) }
 
+    private fun hasAttachedMotionSlots(): Boolean =
+        !isExternalSuggestionVisible && suggestionsStrip.isVisible &&
+            !shouldUseChipSuggestions() &&
+            (0..2).all { index -> suggestionsStrip.getChildAt(index * 2) === wordViews[index] }
+
+    /**
+     * Live swipe chrome is a presentation state, not a decoder confidence signal.
+     * The empty gesture-start callback deliberately retains native predictions.
+     */
+    fun setGestureStripMotionActive(active: Boolean) {
+        val next = active && KeyboardMotionSpec.isIos27(context)
+        if (layoutHelper.isLiveGesturePresentation() == next) return
+        val attached = wordMotionHasEditorFrame && hasAttachedMotionSlots() &&
+            !suggestedWords.isEmpty && !suggestedWords.isPunctuationSuggestions &&
+            !hasSessionRecall(suggestedWords)
+        val before = if (attached) wordMorph.capture(wordViews,
+            layoutHelper.isCenterChromeActive(suggestedWords, wordViews[1].tag as? Int)) else null
+        layoutHelper.setLiveGesturePresentation(next)
+        if (!attached) return
+        val target = layoutHelper.isCenterChromeActive(suggestedWords, wordViews[1].tag as? Int)
+        layoutHelper.applyCenterChrome(context, suggestionsStrip, target)
+        if (before != null) wordMorph.morph(before, wordViews, target,
+            layoutHelper.getConfidencePillFillColor(),
+            layoutHelper.getConfidencePillVerticalInset().toFloat(), false)
+    }
+
     fun setSuggestions(suggestions: SuggestedWords, isRtlLanguage: Boolean) {
         // An asynchronous startup or next-word response is not a typing action.
         // Do not collapse a fresh full capsule before the user can see it.
@@ -745,12 +775,12 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         // Expiring recall text must never survive in an outgoing overlay or
         // delayed visual hold, even when native tap targets have been revoked.
         val recallBoundary = hasSessionRecall(suggestedWords) || hasSessionRecall(suggestions)
-        val previousWords = if (recallBoundary) {
+        val previousWords = if (recallBoundary || !wordMotionHasEditorFrame) {
             wordMorph.cancel(wordViews)
             null
         } else wordMorph.capture(wordViews,
-            SuggestionStripLayoutHelper.isCenterConfidenceActive(
-                suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int))
+            layoutHelper.isCenterChromeActive(
+                suggestedWords, wordViews.getOrNull(1)?.tag as? Int))
         val previousDirection = direction
         if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING &&
             !suggestions.mTypedWordInfo?.mWord.isNullOrEmpty()) {
@@ -779,9 +809,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         } else {
             suggestions
         }
-        val wasAttachedStrip = !isExternalSuggestionVisible && suggestionsStrip.isVisible &&
-            !shouldUseChipSuggestions() &&
-            (0..2).all { index -> suggestionsStrip.getChildAt(index * 2) === wordViews[index] }
+        val wasAttachedStrip = hasAttachedMotionSlots()
         val wasAttachedChips = !isExternalSuggestionVisible && suggestionsChipScroll.isVisible &&
             shouldUseChipSuggestions() && suggestionsChipStrip.childCount > 0
         val previousLayoutDirection = suggestionsStrip.layoutDirection
@@ -828,13 +856,15 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             hasTypedInCurrentSession && previousDirection == direction &&
             (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible) &&
             !suggestedWords.isPunctuationSuggestions && !isExternalSuggestionVisible) {
-            val confident = SuggestionStripLayoutHelper.isCenterConfidenceActive(
-                suggestedWords.mWillAutoCorrect, wordViews.getOrNull(1)?.tag as? Int)
+            val confident = layoutHelper.isCenterChromeActive(
+                suggestedWords, wordViews.getOrNull(1)?.tag as? Int)
             wordMorph.morph(previousWords, wordViews, confident,
                 layoutHelper.getConfidencePillFillColor(),
                 layoutHelper.getConfidencePillVerticalInset().toFloat(), chips)
         }
         else wordMorph.cancel(wordViews)
+        wordMotionHasEditorFrame = !recallBoundary && !suggestedWords.isEmpty &&
+            !suggestedWords.isPunctuationSuggestions && hasAttachedMotionSlots()
         if (shouldShowSuggestionContent(suggestedWords) &&
             (suggestionsStrip.isVisible || suggestionsChipScroll.isVisible)) {
             doOnPreDraw {
@@ -865,10 +895,23 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (isExternalSuggestionVisible || isShowingMoreSuggestionPanel ||
             suggestedWords.isEmpty || hasSessionRecall(suggestedWords) ||
             (!suggestionsStrip.isVisible && !suggestionsChipScroll.isVisible)) return false
+        val attached = KeyboardMotionSpec.isIos27(context) &&
+            wordMotionHasEditorFrame && hasAttachedMotionSlots()
+        val before = if (attached) wordMorph.capture(wordViews,
+            layoutHelper.isCenterChromeActive(suggestedWords, wordViews[1].tag as? Int)) else null
         wordMorph.cancel(wordViews)
+        layoutHelper.setLiveGesturePresentation(false)
         for (word in wordViews) {
             word.tag = null
             word.isEnabled = false
+        }
+        if (attached) {
+            // The old words are display-only during a native prediction gap; no stale
+            // correction highlight or glyph overlay may carry through that boundary.
+            layoutHelper.applyCenterChrome(context, suggestionsStrip, false)
+            if (before != null) wordMorph.morph(before.copy(slots = emptyList()), wordViews, false,
+                layoutHelper.getConfidencePillFillColor(),
+                layoutHelper.getConfidencePillVerticalInset().toFloat(), false)
         }
         return true
     }
@@ -1019,6 +1062,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     override fun onDetachedFromWindow() {
         clearEditorAccessory()
         clearClipboardAccessory()
+        wordMotionHasEditorFrame = false
+        layoutHelper.setLiveGesturePresentation(false)
         wordMorph.cancel(wordViews)
         super.onDetachedFromWindow()
         isAccessPointMenuOpen = false
@@ -1213,6 +1258,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     private fun clear() {
+        wordMotionHasEditorFrame = false
         wordMorph.cancel(wordViews)
         suggestionsStrip.removeAllViews()
         suggestionsChipStrip.removeAllViews()
