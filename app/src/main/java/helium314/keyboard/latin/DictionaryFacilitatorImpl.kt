@@ -213,6 +213,7 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
         }
 
         listener?.onUpdateMainDictionaryAvailability(hasAtLeastOneInitializedMainDictionary())
+        Unit
     }
 
     /** creates dictionaryGroups for [newLocales] with given [newSubDictTypes], trying to re-use existing dictionaries.
