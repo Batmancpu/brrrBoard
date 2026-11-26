@@ -26,15 +26,18 @@ final class CorrectionRejectionPolicy {
         rejectedAt = now;
     }
 
-    /** Always consumes the receipt, including when the next word is unrelated. */
+    /** Keeps an unrelated receipt until an exact pair, expiry, or editor boundary. */
     boolean consumeIfMatches(String typed, String replacement, Object currentEditor,
             Object currentConnection, long now) {
-        final boolean matches = original != null && now >= rejectedAt
-                && now - rejectedAt < MAX_AGE_MS
-                && editor == currentEditor && connection == currentConnection
-                && original.equals(typed) && corrected.equals(replacement);
+        if (original == null) return false;
+        if (now < rejectedAt || now - rejectedAt >= MAX_AGE_MS
+                || editor != currentEditor || connection != currentConnection) {
+            clear();
+            return false;
+        }
+        if (!original.equals(typed) || !corrected.equals(replacement)) return false;
         clear();
-        return matches;
+        return true;
     }
 
     boolean hasReceipt() { return original != null; }

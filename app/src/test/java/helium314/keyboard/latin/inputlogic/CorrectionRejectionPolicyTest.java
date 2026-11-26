@@ -14,7 +14,7 @@ public class CorrectionRejectionPolicyTest {
         assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 201L));
     }
 
-    @Test public void differentEditorAndUnrelatedCommitInvalidateReceipt() {
+    @Test public void differentEditorInvalidatesButUnrelatedCommitPreservesReceipt() {
         final var policy = new CorrectionRejectionPolicy();
         final var editor = new Object();
         final var connection = new Object();
@@ -23,7 +23,10 @@ public class CorrectionRejectionPolicyTest {
         assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 201L));
         policy.reject("teh", "the", editor, connection, 300L);
         assertFalse(policy.consumeIfMatches("other", "better", editor, connection, 310L));
-        assertFalse(policy.consumeIfMatches("teh", "the", editor, connection, 311L));
+        assertTrue(policy.hasReceipt());
+        assertFalse(policy.consumeIfMatches("teh", "their", editor, connection, 311L));
+        assertTrue(policy.consumeIfMatches("teh", "the", editor, connection, 312L));
+        assertFalse(policy.hasReceipt());
     }
 
     @Test public void expiryAndClearNeverKeepSuppressionAlive() {

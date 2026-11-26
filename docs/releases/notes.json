@@ -1,22 +1,10 @@
 {
   "schema": 1,
-  "summary": "BR Brain critical optimization batch: native-first ranking, context reuse and swipe recall",
+  "summary": "BR Brain correction rejection reliability improvement",
   "changes": [
     {
-      "title": "Native-first experimental hybrid ranking",
-      "detail": "Keep automatic correction and protected suggestions native; permit only one adjacent near-tied manual candidate swap with known vocabulary, decisive neural evidence, and an 8 ms result-acceptance budget. ContextLM remains opt-in and unapproved."
-    },
-    {
-      "title": "Reuse unchanged context",
-      "detail": "Memoize exact token-context encoding within the eligible editor/model scope, detach on privacy, editor, cursor and IME lifecycle boundaries, preserve scorer math and avoid per-candidate feature arrays."
-    },
-    {
-      "title": "Bounded swipe recall",
-      "detail": "Try one nearby ambiguous endpoint, lazily verify lexical alternatives in original primary order within the previous 28-word budget, retain native top result and avoid native decoder reentry."
-    },
-    {
-      "title": "Regression tests",
-      "detail": "Add hybrid guardrail, exact-context parity and bounded recall tests. No new models, dependencies, permissions or signer changes."
+      "title": "Preserve exact rejected correction feedback",
+      "detail": "Keep a short-lived in-memory rejection receipt across unrelated words and different replacement proposals. Suppress only the exact rejected typed/replacement pair in the same editor connection; retain the original 30-second expiry and clear on editor or connection changes. No persistent rejection history is added."
     }
   ]
 }
