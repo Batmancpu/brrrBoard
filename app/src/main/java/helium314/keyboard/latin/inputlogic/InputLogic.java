@@ -303,6 +303,17 @@ public final class InputLogic {
         if (mRecallMemory.remember(typed, corrected, end-corrected.length(), now,
                 mLatinIME.editorGeneration(), ic)) scheduleRecallExpiry(now);
     }
+    private void rememberRejectedCorrection(SettingsValues sv, String typed, String corrected) {
+        if (!mLatinIME.mayUseTransientCorrectionMemory(sv)) return;
+        mCorrectionRejection.reject(typed, corrected, mLatinIME.getCurrentInputEditorInfo(),
+                mLatinIME.getCurrentInputConnection(), SystemClock.elapsedRealtime());
+        if (mCorrectionRejection.hasReceipt()) {
+            mLatinIME.mHandler.removeCallbacks(mExpireCorrectionRejection);
+            mLatinIME.mHandler.postDelayed(mExpireCorrectionRejection,
+                    CorrectionRejectionPolicy.MAX_AGE_MS);
+        }
+    }
+
     private InputTransaction pickCorrectionRecall(SettingsValues sv, SuggestedWordInfo info,
             int shift, String script, LatinIME.UIHandler handler) {
         final InputTransaction tx = new InputTransaction(sv, Event.createSuggestionPickedEvent(info),
@@ -339,6 +350,21 @@ public final class InputLogic {
                 }
                 // Plain commit only. No dictionary/history or persistent suggestion-span injection.
                 mConnection.commitText(r.original(),1);
+                // Treat recall as explicit rejection only after the host confirms the restored
+                // suffix and unchanged editor/connection. This remains transient session memory.
+                try {
+                    final int restoredEnd = r.start + r.original().length();
+                    if (ic == mLatinIME.getCurrentInputConnection()
+                            && epoch == mLatinIME.editorGeneration()
+                            && mLatinIME.mayUseTransientCorrectionMemory(sv)
+                            && mConnection.getExpectedSelectionStart() == restoredEnd
+                            && mConnection.getExpectedSelectionEnd() == restoredEnd
+                            && TextUtils.equals(r.original(), ic.getTextBeforeCursor(r.original().length(), 0))) {
+                        rememberRejectedCorrection(sv, r.original(), r.corrected());
+                    }
+                } catch (RuntimeException ignored) {
+                    // A host that cannot confirm the edit contributes no rejection evidence.
+                }
                 mRecallMemory.invalidateFrom(r.start);
                 mSpaceState = SpaceState.NONE;
                 tx.setDidAffectContents();
@@ -2880,12 +2906,8 @@ public final class InputLogic {
                 helium314.keyboard.latin.settings.AppProfileStore.noteRejection(mLatinIME,
                         profileEditor.packageName, mLatinIME.editorGeneration(), SystemClock.elapsedRealtime(), profileValues);
             }
-            mCorrectionRejection.reject(originallyTypedWord.toString(), committedWordString,
-                    mLatinIME.getCurrentInputEditorInfo(), mLatinIME.getCurrentInputConnection(),
-                    SystemClock.elapsedRealtime());
-            if (mCorrectionRejection.hasReceipt()) {
-                mLatinIME.mHandler.postDelayed(mExpireCorrectionRejection, CorrectionRejectionPolicy.MAX_AGE_MS);
-            }
+            rememberRejectedCorrection(inputTransaction.getSettingsValues(),
+                    originallyTypedWord.toString(), committedWordString);
         }
         inputTransaction.setRequiresUpdateSuggestions();
         return true;

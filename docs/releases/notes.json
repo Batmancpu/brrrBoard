@@ -1,14 +1,10 @@
 {
   "schema": 1,
-  "summary": "Preserve correction expiry and bounded suggestion results",
+  "summary": "Learn from verified correction recall",
   "changes": [
     {
-      "title": "Keep correction rejection cleanup on its original deadline",
-      "detail": "Keep the original 30-second correction rejection deadline scheduled across unrelated words and different proposed replacements. Consume the receipt only for the exact rejected pair; editor, connection, expiry and privacy invalidation clear it. The receipt remains RAM-only and unrelated input never extends its lifetime."
-    },
-    {
-      "title": "Prevent duplicate candidates from shrinking suggestions",
-      "detail": "At capacity, a comparator-equal duplicate is rejected without evicting an existing candidate. Better unique candidates still replace the lowest-ranked item, while worse candidates leave the native ranked set unchanged."
+      "title": "Use verified recall as correction rejection feedback",
+      "detail": "When correction recall restores the exact original word, record the rejected correction pair only after the host confirms the restored suffix, editor connection, cursor and privacy eligibility. The decision remains in bounded RAM-only correction memory with its existing 30-second expiry; no persistent rejection history is added."
     }
   ]
 }
