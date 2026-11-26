@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Cancel stale optional suggestion-model work cooperatively",
+  "summary": "Keep unknown and shared words neutral in multilingual confidence",
   "changes": [
     {
-      "title": "Stop obsolete optional prediction work",
-      "detail": "Experimental ContextLM scoring now observes the existing suggestion request identity and exits cooperatively when newer input supersedes it. Cancellation preserves the native decoder list and does not publish a partial context cache; the experiment remains opt-in and disabled by default."
+      "title": "Use decisive language evidence only",
+      "detail": "In existing multi-dictionary mode, language confidence changes only when exactly one active production main dictionary recognizes the committed word. Shared words and unknown names or deliberate spellings remain neutral; user history and shared personal vocabulary do not act as language evidence. Single-dictionary behavior is unchanged."
     }
   ]
 }

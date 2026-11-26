@@ -513,27 +513,27 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
     }
 
     override fun adjustConfidences(word: String, wasAutoCapitalized: Boolean) { withDictionaryWriteLock {
-        if (dictionaryGroups.size == 1 || word.contains(Constants.WORD_SEPARATOR))
+        val groups = dictionaryGroups
+        if (groups.size == 1 || word.contains(Constants.WORD_SEPARATOR))
             return
 
-        // if suggestion was auto-capitalized, check against both the suggestion and the de-capitalized suggestion
-        val decapitalizedSuggestion = if (wasAutoCapitalized) word.decapitalize(currentLocale) else word
-        val validWord = dictionaryGroups.map { isValidWord(word, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it) }
-        val decapitalizedValidWord = if (wasAutoCapitalized) dictionaryGroups.map {
-            isValidWord(decapitalizedSuggestion, DictionaryFacilitator.ALL_DICTIONARY_TYPES, it)
-        } else emptyList()
-        dictionaryGroups.forEachIndexed { index, group ->
-            if (validWord[index]) {
-                group.increaseConfidence()
-                return@forEachIndexed
-            }
-            // also increase confidence if suggestion was auto-capitalized and the lowercase variant it valid
-            if (wasAutoCapitalized && decapitalizedValidWord[index]) {
+        // Only production main dictionaries provide language evidence. Shared words, unknown
+        // words, personal vocabularies and user history must not push the language confidence.
+        val validInMainDictionaries = BooleanArray(groups.size)
+        groups.forEachIndexed { index, group ->
+            val mainDictionary = group.getDict(Dictionary.TYPE_MAIN)
+            validInMainDictionaries[index] = mainDictionary?.isValidWord(word) == true
+                    || (wasAutoCapitalized && mainDictionary?.isValidWord(word.decapitalize(group.locale)) == true)
+        }
+        val uniqueLanguageIndex = MultilingualConfidencePolicy.uniqueLanguageIndex(validInMainDictionaries)
+        if (uniqueLanguageIndex < 0) return
+
+        groups.forEachIndexed { index, group ->
+            if (index == uniqueLanguageIndex) {
                 group.increaseConfidence()
             } else {
                 group.decreaseConfidence()
-                if (validWord.any { it })
-                    group.decreaseConfidence() // if the word is valid in another language decrease confidence even more
+                group.decreaseConfidence()
             }
         }
     }
