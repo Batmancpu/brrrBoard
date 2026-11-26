@@ -933,13 +933,12 @@ New dictionary:
     <string name="suggestion_motion_title">Suggestion animation</string>
     <string name="suggestion_motion_summary">Choose how QuickType-style suggestions move; does not change predictions or the general keyboard motion profile.</string>
     <string name="suggestion_motion_scale">Scale — character morph</string>
-    <string name="suggestion_motion_spring">Spring — continuous momentum</string>
-    <string name="suggestion_motion_ripple">Ripple — staggered characters</string>
-    <string name="suggestion_motion_classic">Classic — previous dissolve</string>
+    <string name="suggestion_motion_scale_improved">Scale Improved — continuous morph</string>
     <string name="suggestion_playground_title">Suggestion playground</string>
     <string name="suggestion_playground_summary">Compare the real animation renderer using the same sample words. Your selection also applies to the live keyboard.</string>
     <string name="suggestion_playground_replay">Replay sequence</string>
     <string name="suggestion_playground_next">Next sample</string>
+    <string name="suggestion_playground_rapid">Rapid typing replay</string>
     <string name="suggestion_playground_disabled">The general keyboard motion profile, system animation setting or battery saver can disable these animations.</string>
     <string name="theme_name_og_frost_tinted">OG Frost Tinted</string>
     <string name="theme_name_frosted_ios_clear">iOS Clear</string>

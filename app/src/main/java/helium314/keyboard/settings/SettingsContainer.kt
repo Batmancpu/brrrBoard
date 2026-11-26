@@ -131,6 +131,25 @@ class SettingsContainer(context: Context) {
         else -> "Manage brrBoard · Compatibility"
     }
 
+    private data class IndexedSetting(
+        val setting: Setting, val title: String, val description: String,
+        val category: String, val route: String, val titleParts: List<String>,
+        val candidateTokens: List<String>, val aliases: Set<String>,
+    )
+
+    // Immutable, localized once per SettingsActivity. Lazy initialization happens on the
+    // search worker; no per-query re-normalization or repeated route resolution.
+    private val searchIndex by lazy {
+        list.filterNot { it.key in hiddenSearchKeys }.map { setting ->
+            val title = normalize(setting.title)
+            val description = normalize(setting.description.orEmpty())
+            val category = normalize(breadcrumbFor(setting.key))
+            IndexedSetting(setting, title, description, category, routeFor(setting.key),
+                title.split(' ', '-', '&'), tokens("$title $description $category"),
+                SETTING_SYNONYMS[setting.key].orEmpty())
+        }
+    }
+
     // Offline, deterministic ranking. Matching aliases are scoped to known settings only.
     fun filter(searchTerm: String): List<Setting> {
         val term = normalize(searchTerm)
@@ -139,35 +158,26 @@ class SettingsContainer(context: Context) {
         val matchedIntents = CONTEXT_INTENTS.filter { intent ->
             intent.terms.all { wanted -> queryTokens.any { tokenMatches(it, wanted) } }
         }
-        return list.filterNot { it.key in hiddenSearchKeys }.mapNotNull { setting ->
-            val title = normalize(setting.title)
-            val description = normalize(setting.description.orEmpty())
-            val category = normalize(breadcrumbFor(setting.key))
-            val settingRoute = routeFor(setting.key)
+        return searchIndex.mapNotNull { entry ->
+            val setting = entry.setting
+            val title = entry.title
+            val description = entry.description
+            val category = entry.category
+            val settingRoute = entry.route
             val contextualMatch = matchedIntents.any { intent ->
                 settingRoute == intent.route && (intent.settingKey == null || setting.key == intent.settingKey)
             }
             val aliasMatches = SEARCH_ALIASES.any { (alias, route) ->
                 term.contains(alias) && settingRoute == route
             }
-            val aliases = SETTING_SYNONYMS[setting.key].orEmpty()
-            val searchable = "$title $description $category"
-            val candidateTokens = tokens(searchable)
+            val aliases = entry.aliases
+            val candidateTokens = entry.candidateTokens
             val matched = queryTokens.count { query ->
                 candidateTokens.any { tokenMatches(it, query) } || aliases.any { tokenMatches(it, query) }
             }
             val coverage = if (queryTokens.isEmpty()) 0f else matched.toFloat() / queryTokens.size
-            val rank = when {
-                title == term -> 0
-                title.startsWith(term) -> 1
-                title.split(' ', '-', '&').any { it.startsWith(term) } -> 2
-                description.contains(term) -> 3
-                category.contains(term) -> 4
-                aliasMatches || contextualMatch -> 5
-                coverage >= .66f -> 6
-                coverage >= .5f && queryTokens.size >= 2 -> 7
-                else -> return@mapNotNull null
-            }
+            val rank = settingsSearchRank(term, title, entry.titleParts, description, category,
+                aliasMatches || contextualMatch, coverage, queryTokens.size) ?: return@mapNotNull null
             rank to setting
         }.sortedWith(compareBy<Pair<Int, Setting>> { it.first }.thenBy { it.second.title })
             .take(40).map { it.second }
@@ -229,16 +239,33 @@ class SettingsContainer(context: Context) {
             "reset_settings_page" to setOf("reset", "defaults"),
         )
 
+        private val MARKS = Regex("\\p{M}+")
+        private val TOKEN_PATTERN = Regex("[\\p{L}\\p{N}]+")
         private fun normalize(value: String): String = Normalizer.normalize(
             value.lowercase(), Normalizer.Form.NFD,
-        ).replace(Regex("\\p{M}+"), "").trim()
+        ).replace(MARKS, "").trim()
 
         private fun tokens(value: String): List<String> =
-            Regex("[\\p{L}\\p{N}]+").findAll(value).map { it.value }.toList()
+            TOKEN_PATTERN.findAll(value).map { it.value }.toList()
 
         private fun tokenMatches(candidate: String, query: String): Boolean =
             candidate == query || candidate.startsWith(query) || query.startsWith(candidate)
     }
+}
+
+/** Original search precedence, extracted so the indexed path can be regression-tested. */
+internal fun settingsSearchRank(term: String, title: String, titleParts: List<String>,
+    description: String, category: String, aliasOrContextMatch: Boolean,
+    coverage: Float, queryTokenCount: Int): Int? = when {
+    title == term -> 0
+    title.startsWith(term) -> 1
+    titleParts.any { it.startsWith(term) } -> 2
+    description.contains(term) -> 3
+    category.contains(term) -> 4
+    aliasOrContextMatch -> 5
+    coverage >= .66f -> 6
+    coverage >= .5f && queryTokenCount >= 2 -> 7
+    else -> null
 }
 
 @Immutable

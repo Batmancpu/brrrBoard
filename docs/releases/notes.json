@@ -1,14 +1,18 @@
 {
   "schema": 1,
-  "summary": "Conservative English apostrophe and contraction repair",
+  "summary": "Scale Improved and smoother Settings search",
   "changes": [
     {
-      "title": "Fill missing English contractions without replacing dictionaries",
-      "detail": "Review 66 standard/common apostrophe spellings using the bundled English native dictionary; add only absent forms at conservative fallback frequencies. Preserve original US/UK main dictionaries, n-grams, existing unrelated vocabulary and learned data."
+      "title": "Keep the original Scale and add Scale Improved",
+      "detail": "Retain the accepted animation pace and growth. Improved uses separate opacity timing, bounded continuous momentum, stable character matching and native text-run positioning. Only these two choices remain; previous removed styles fall back to Scale."
     },
     {
-      "title": "Protect ambiguous words and curly apostrophes",
-      "detail": "Keep ambiguous unpunctuated words from new supplement-driven automatic corrections, preserve manual suggestions, and normalize internal curly apostrophes only for context/model lookup. BR Brain model vocabulary and weights remain unchanged."
+      "title": "Compare both styles in the playground",
+      "detail": "Regular and rapid replay with repeated letters and contractions, plus existing live keyboard tryout."
+    },
+    {
+      "title": "Reduce Settings search and rendering contention",
+      "detail": "Index searchable settings once, run public built-in matching off the UI thread with current-query verification, retain search ranking and stable row keys. Use a lightweight Settings header instead of offscreen blur while typing; idle blur and explicit overlays are preserved."
     }
   ]
 }

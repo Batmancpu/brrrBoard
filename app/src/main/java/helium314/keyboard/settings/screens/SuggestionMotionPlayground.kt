@@ -47,9 +47,7 @@ import kotlinx.coroutines.delay
 
 internal fun suggestionMotionChoices(context: Context): List<Pair<String, String>> = listOf(
     context.getString(R.string.suggestion_motion_scale) to SuggestionMotionPreset.SCALE.id,
-    context.getString(R.string.suggestion_motion_spring) to SuggestionMotionPreset.SPRING.id,
-    context.getString(R.string.suggestion_motion_ripple) to SuggestionMotionPreset.RIPPLE.id,
-    context.getString(R.string.suggestion_motion_classic) to SuggestionMotionPreset.CLASSIC.id,
+    context.getString(R.string.suggestion_motion_scale_improved) to SuggestionMotionPreset.SCALE_IMPROVED.id,
 )
 
 @Composable
@@ -59,6 +57,7 @@ internal fun SuggestionMotionPlayground() {
     var selected by remember { mutableStateOf(SuggestionMotionPreset.selected(context)) }
     var frame by remember { mutableIntStateOf(0) }
     var replay by remember { mutableIntStateOf(0) }
+    var rapid by remember { mutableStateOf(false) }
     DisposableEffect(prefs) {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == Settings.PREF_SUGGESTION_MOTION_STYLE) {
@@ -68,13 +67,13 @@ internal fun SuggestionMotionPlayground() {
         prefs.registerOnSharedPreferenceChangeListener(listener)
         onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
-    LaunchedEffect(replay, selected) {
+    LaunchedEffect(replay, selected, rapid) {
         if (replay > 0) {
             frame = 0
             delay(450)
             for (i in 1 until SuggestionMotionSampleView.frameCount) {
                 frame = i
-                delay(520)
+                delay(if (rapid) 85L else 520L)
             }
         }
     }
@@ -101,10 +100,13 @@ internal fun SuggestionMotionPlayground() {
                 update = { it.showFrame(frame, selected, foreground, divider, capsule) }
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { replay++ }) { Text(stringResource(R.string.suggestion_playground_replay)) }
+                OutlinedButton(onClick = { rapid = false; replay++ }) { Text(stringResource(R.string.suggestion_playground_replay)) }
                 OutlinedButton(onClick = { replay = 0; frame = (frame + 1) % SuggestionMotionSampleView.frameCount }) {
                     Text(stringResource(R.string.suggestion_playground_next))
                 }
+            }
+            OutlinedButton(onClick = { rapid = true; replay++ }) {
+                Text(stringResource(R.string.suggestion_playground_rapid))
             }
             if (!KeyboardMotionSpec.isIos27(context) || !KeyboardMotionSpec.optionalMotion(context)) {
                 Text(stringResource(R.string.suggestion_playground_disabled), style = MaterialTheme.typography.bodySmall)
@@ -180,6 +182,10 @@ private class SuggestionMotionSampleView(context: Context) : LinearLayout(contex
             Sample(listOf("installing", "installation", "installer"), true),
             Sample(listOf("a", "the", "it")),
             Sample(listOf("now", "today", "tomorrow")),
+            Sample(listOf("let", "letter", "letters")),
+            Sample(listOf("lett", "letters", "letter")),
+            Sample(listOf("dont", "don't", "didn't")),
+            Sample(listOf("don't", "don’t", "doesn't"), true),
         )
         val frameCount: Int get() = samples.size
     }

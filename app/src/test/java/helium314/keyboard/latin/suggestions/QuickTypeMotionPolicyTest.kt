@@ -33,37 +33,74 @@ class QuickTypeMotionPolicyTest {
                 QuickTypeMotionPolicy.progress(60f, duration))
         }
     }
-    @Test fun stylesAreIndependentAndHaveBoundedProgress() {
-        assertEquals(SuggestionMotionPreset.SCALE, SuggestionMotionPreset.fromId(null))
-        assertEquals(SuggestionMotionPreset.SCALE, SuggestionMotionPreset.fromId("invalid"))
-        assertEquals(4, SuggestionMotionPreset.values().map { it.id }.distinct().size)
-        for (style in SuggestionMotionPreset.values()) {
-            assertEquals(style, SuggestionMotionPreset.fromId(style.id))
-            assertEquals(0f, QuickTypeMotionPolicy.glyphProgress(style, 0f, style.glyphMs), .0001f)
-            assertEquals(1f, QuickTypeMotionPolicy.glyphProgress(style, style.glyphMs.toFloat(), style.glyphMs), .0001f)
-            val values = (0..100).map {
-                QuickTypeMotionPolicy.glyphProgress(style, style.glyphMs * it / 100f, style.glyphMs)
-            }
-            assertTrue(values.all { it in 0f..1.0001f })
-            assertTrue(values.zipWithNext().all { (a, b) -> b >= a })
+    @Test fun twoStylesKeepAcceptedScaleAndMigrateOldSelections() {
+        val scale = SuggestionMotionPreset.SCALE
+        val improved = SuggestionMotionPreset.SCALE_IMPROVED
+        assertEquals(listOf("scale", "scale_improved"), SuggestionMotionPreset.values().map { it.id })
+        for (legacy in listOf(null, "invalid", "classic", "ripple", "spring", "scale")) {
+            assertEquals(scale, SuggestionMotionPreset.fromId(legacy))
         }
-        assertEquals(1f, SuggestionMotionPreset.CLASSIC.entryScale, 0f)
-        assertTrue(SuggestionMotionPreset.SCALE.entryScale < .2f)
-        assertEquals(30L, QuickTypeMotionPolicy.delay(SuggestionMotionPreset.RIPPLE, 100))
-        assertEquals(0L, QuickTypeMotionPolicy.delay(SuggestionMotionPreset.SCALE, 100))
+        assertEquals(improved, SuggestionMotionPreset.fromId("scale_improved"))
+        assertEquals(145L, scale.glyphMs)
+        assertEquals(130L, scale.replacementMs)
+        assertEquals(.12f, scale.entryScale, 0f)
+        assertEquals(scale.glyphMs, improved.glyphMs)
+        assertEquals(scale.replacementMs, improved.replacementMs)
+        assertEquals(scale.entryScale, improved.entryScale, 0f)
+        assertEquals(0L, QuickTypeMotionPolicy.delay(scale, 100))
+        assertEquals(10L, QuickTypeMotionPolicy.delay(improved, 100))
     }
 
-    @Test fun springRetargetStartsAtTheVisiblePositionAndVelocity() {
-        val style = SuggestionMotionPreset.SPRING
+    @Test fun independentOpacityPreservesSlowGrowthAndExactEndpoints() {
+        val scale = SuggestionMotionPreset.SCALE
+        val improved = SuggestionMotionPreset.SCALE_IMPROVED
+        for (duration in listOf(130L, 145L)) {
+            var previous = -1f
+            for (i in 0..100) {
+                val elapsed = duration * i / 100f
+                val old = QuickTypeMotionPolicy.glyphProgress(scale, elapsed, duration)
+                val new = QuickTypeMotionPolicy.glyphProgress(improved, elapsed, duration)
+                val alpha = QuickTypeMotionPolicy.opacityProgress(improved, elapsed, duration, false)
+                assertEquals(old, new, 0f)
+                assertTrue(alpha in 0f..1f && alpha >= previous)
+                assertTrue(alpha - new <= .05f)
+                previous = alpha
+            }
+            assertEquals(0f, QuickTypeMotionPolicy.opacityProgress(improved, 0f, duration, true), 0f)
+            assertEquals(1f, QuickTypeMotionPolicy.opacityProgress(improved, duration.toFloat(), duration, true), 0f)
+        }
+    }
+
+    @Test fun improvedRetargetPreservesBoundedMomentumAndExactEndpoint() {
+        val style = SuggestionMotionPreset.SCALE_IMPROVED
         val duration = style.glyphMs
         val position = QuickTypeMotionPolicy.position(style, 0f, 60f, 0f, 40f, duration)
         val velocity = QuickTypeMotionPolicy.velocity(style, 0f, 60f, 0f, 40f, duration)
         assertTrue(position in 0f..60f)
         assertTrue(velocity > 0f)
         assertEquals(position, QuickTypeMotionPolicy.position(style, position, 100f, velocity, 0f, duration), 0f)
-        assertEquals(velocity, QuickTypeMotionPolicy.velocity(style, position, 100f, velocity, 0f, duration), .001f)
+        assertEquals(velocity, QuickTypeMotionPolicy.velocity(style, position, 100f, velocity, 0f, duration), .01f)
         assertEquals(100f, QuickTypeMotionPolicy.position(style, position, 100f, velocity, duration.toFloat(), duration), 0f)
         assertEquals(0f, QuickTypeMotionPolicy.velocity(style, position, 100f, velocity, duration.toFloat(), duration), 0f)
+        // A reversal can carry a small impulse, but cannot fling a glyph across its slot.
+        for (i in 0..145) {
+            val x = QuickTypeMotionPolicy.position(style, 60f, 40f, 2400f, i.toFloat(), duration)
+            assertTrue(x in 39.99f..62f)
+        }
+    }
+
+    @Test fun improvedAnchorsRepeatedCharactersAndSingleLetterPrefix() {
+        assertEquals(listOf(0 to 0), QuickTypeMotionPolicy.improvedMatches("i", "in"))
+        assertEquals(listOf(0 to 0, 1 to 1, 2 to 2), QuickTypeMotionPolicy.improvedMatches("cat", "cats"))
+        assertEquals(listOf(0 to 0, 1 to 1, 2 to 2, 3 to 4, 4 to 5),
+            QuickTypeMotionPolicy.improvedMatches("leter", "letter"))
+        assertTrue(QuickTypeMotionPolicy.improvedMatches("the", "and").isEmpty())
+        val samples = listOf("letter", "letters", "installation", "install", "don't", "dont", "a", "and")
+        for (a in samples) for (b in samples) {
+            val pairs = QuickTypeMotionPolicy.improvedMatches(a, b)
+            assertTrue(pairs.all { (i, j) -> a[i] == b[j] })
+            assertTrue(pairs.zipWithNext().all { (x, y) -> x.first < y.first && x.second < y.second })
+        }
     }
 
     @Test fun confidenceCapsuleIsSlotSizedAndBounded() {

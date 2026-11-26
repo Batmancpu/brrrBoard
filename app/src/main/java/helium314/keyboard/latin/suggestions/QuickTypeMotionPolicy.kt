@@ -38,6 +38,26 @@ internal object QuickTypeMotionPolicy {
         return result
     }
 
+    /** Keep literal prefix/suffix anchors before resolving repeated middle letters. */
+    fun improvedMatches(old: String, next: String): List<Pair<Int, Int>> {
+        if (old.length > MAX_LABEL || next.length > MAX_LABEL ||
+            old.isEmpty() || next.isEmpty()) return emptyList()
+        var prefix = 0
+        while (prefix < minOf(old.length, next.length) && old[prefix] == next[prefix]) prefix++
+        var suffix = 0
+        while (suffix < minOf(old.length, next.length) - prefix &&
+            old[old.lastIndex - suffix] == next[next.lastIndex - suffix]) suffix++
+        val result = ArrayList<Pair<Int, Int>>()
+        for (i in 0 until prefix) result.add(i to i)
+        val middleOld = old.substring(prefix, old.length - suffix)
+        val middleNew = next.substring(prefix, next.length - suffix)
+        matches(middleOld, middleNew).forEach { (a, b) -> result.add(a + prefix to b + prefix) }
+        for (i in suffix downTo 1) result.add(old.length - i to next.length - i)
+        if (old != next && (result.size * 3 < minOf(old.length, next.length) ||
+                result.size < 2 && minOf(old.length, next.length) > 2)) return emptyList()
+        return result
+    }
+
     fun progress(elapsed: Float, duration: Long): Float {
         val t = (elapsed / duration).coerceIn(0f, 1f)
         return t * t * (3f - 2f * t)
@@ -46,44 +66,51 @@ internal object QuickTypeMotionPolicy {
     fun delay(preset: SuggestionMotionPreset, ordinal: Int): Long =
         preset.staggerMs * ordinal.coerceIn(0, 5)
 
-    /** Critically damped response with no oscillation. Finite endpoint snaps to exact native ink. */
-    fun glyphProgress(preset: SuggestionMotionPreset, elapsed: Float, duration: Long): Float {
+    /** Keep the accepted Scale growth curve; do not accelerate or extend its envelope. */
+    @Suppress("UNUSED_PARAMETER")
+    fun glyphProgress(preset: SuggestionMotionPreset, elapsed: Float, duration: Long): Float =
+        progress(elapsed, duration)
+
+    /** Slightly decouple opacity from growth without a fast pop or extended ghost. */
+    fun opacityProgress(preset: SuggestionMotionPreset, elapsed: Float, duration: Long,
+                        disappearing: Boolean): Float {
+        if (preset == SuggestionMotionPreset.SCALE) return progress(elapsed, duration)
         val t = (elapsed / duration).coerceIn(0f, 1f)
-        return when (preset) {
-            SuggestionMotionPreset.CLASSIC, SuggestionMotionPreset.SCALE -> progress(elapsed, duration)
-            SuggestionMotionPreset.SPRING -> if (t >= 1f) 1f else
-                (1f - (1f + 7f * t) * kotlin.math.exp(-7f * t)) /
-                    (1f - 8f * kotlin.math.exp(-7f))
-            SuggestionMotionPreset.RIPPLE -> 1f - (1f - t) * (1f - t) * (1f - t)
-        }
+        val shifted = if (disappearing) t + .16f * t * (1f - t)
+            else t + .08f * t * (1f - t)
+        return shifted * shifted * (3f - 2f * shifted)
     }
 
-    /** Carry visible x/y velocity through a retarget; bound a transient inherited impulse. */
+    // Finite cubic Hermite interpolation: smoothstep for zero initial velocity, exact
+    // endpoint and zero terminal velocity. Bound inherited momentum to prevent large
+    // overshoots; opposite-direction momentum can briefly continue before reversing.
+    private fun tangent(from: Float, to: Float, velocity: Float, duration: Long): Float {
+        val delta = to - from
+        val limit = kotlin.math.abs(delta)
+        if (limit < .001f) return 0f
+        val impulse = velocity.coerceIn(-2400f, 2400f) * duration / 1000f
+        return if (impulse * delta >= 0f) impulse.coerceIn(-3f * limit, 3f * limit)
+            else impulse.coerceIn(-.35f * limit, .35f * limit)
+    }
+
     fun position(preset: SuggestionMotionPreset, from: Float, to: Float,
                  velocity: Float, elapsed: Float, duration: Long): Float {
         if (elapsed <= 0f) return from
         if (elapsed >= duration) return to
-        if (preset != SuggestionMotionPreset.SPRING)
-            return interpolate(from, to, glyphProgress(preset, elapsed, duration))
-        val time = elapsed / 1000f
-        val omega = 7f / (duration / 1000f)
-        val displacement = from - to
-        val v = velocity.coerceIn(-2400f, 2400f)
-        return to + (displacement + (v + omega * displacement) * time) *
-            kotlin.math.exp(-omega * time)
+        val t = elapsed / duration
+        if (preset == SuggestionMotionPreset.SCALE)
+            return interpolate(from, to, progress(elapsed, duration))
+        return interpolate(from, to, progress(elapsed, duration)) +
+            tangent(from, to, velocity, duration) * t * (1f - t) * (1f - t)
     }
 
     fun velocity(preset: SuggestionMotionPreset, from: Float, to: Float,
                  initial: Float, elapsed: Float, duration: Long): Float {
-        if (preset != SuggestionMotionPreset.SPRING || elapsed >= duration) return 0f
-        val v = initial.coerceIn(-2400f, 2400f)
-        if (elapsed <= 0f) return v
-        val time = elapsed / 1000f
-        val omega = 7f / (duration / 1000f)
-        val displacement = from - to
-        val coefficient = v + omega * displacement
-        return (coefficient - omega * (displacement + coefficient * time)) *
-            kotlin.math.exp(-omega * time)
+        if (preset == SuggestionMotionPreset.SCALE || elapsed >= duration) return 0f
+        val t = (elapsed / duration).coerceIn(0f, 1f)
+        return ((to - from) * 6f * t * (1f - t) +
+            tangent(from, to, initial, duration) * (1f - 4f * t + 3f * t * t)) *
+            1000f / duration
     }
 
     fun interpolate(from: Float, to: Float, progress: Float): Float =

@@ -43,4 +43,11 @@ assert "import helium314.keyboard.latin.R" in SEARCH, "Resource ID use requires 
 assert "inJustDecodeBounds = true" in GLASS and "inSampleSize = sample" in GLASS
 assert "if (previewTouched || isSaved) requestFinalFrostedSync()" in GLASS
 assert "writeSnapshotToPrefs(initialSnapshot)" not in GLASS
+SCREEN = (SETTINGS / "SearchScreen.kt").read_text()
+assert "private val searchIndex by lazy" in SEARCH
+assert "settingsSearchRank(" in SEARCH
+assert "withContext(Dispatchers.Default) { filter(requested) }" in SCREEN
+assert "query == requested" in SCREEN and "vaultDeadline?.value ?: 0L" in SCREEN
+assert "if (useHaze)" in SCREEN and "imeInsets.getBottom(density) > 0" in SCREEN
+assert "itemKey = { it.key }" in SCREEN
 print("Premium Settings source contract: PASS")

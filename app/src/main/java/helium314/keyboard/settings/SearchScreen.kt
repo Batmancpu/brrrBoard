@@ -29,6 +29,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.ime
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -128,7 +132,7 @@ data class SearchState(
     val setShowSearch: (Boolean) -> Unit,
     val searchField: @Composable () -> Unit
 )
-val LocalSearchState = staticCompositionLocalOf<SearchState?> { null }
+val LocalSearchState = compositionLocalOf<SearchState?> { null }
 
 // Same exact style as the former variable font; the installed icon font is static.
 val materialSymbols = FontFamily(Font(R.font.material_symbols_rounded))
@@ -172,6 +176,8 @@ fun SearchSettingsScreen(
             }
         }
     }
+    val container = SettingsActivity.settingsContainer
+    val searchFilter = remember(container, filteredItems) { filteredItems ?: container::filter }
     SearchScreen(
         onClickBack = onClickBack,
         hideTopSearchBar = hideTopSearchBar,
@@ -187,7 +193,9 @@ fun SearchSettingsScreen(
             } else content.invoke(this)
             footer()
         },
-        filteredItems = filteredItems ?: { SettingsActivity.settingsContainer.filter(it) },
+        filteredItems = searchFilter,
+        backgroundFiltering = filteredItems == null,
+        itemKey = { it.key },
         itemContent = { setting ->
             val destination = SettingsActivity.settingsContainer.routeFor(setting.key)
             val context = SettingsActivity.settingsContainer.breadcrumbFor(setting.key)
@@ -221,6 +229,8 @@ fun <T: Any?> SearchScreen(
     vaultDeadline: MutableState<Long>? = null,
     onVaultUnlock: (() -> Unit)? = null,
     onVaultRecovery: (() -> Unit)? = null,
+    // Only immutable built-in settings filters may run off the UI thread.
+    backgroundFiltering: Boolean = false,
     content: @Composable (ColumnScope.() -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf(TextFieldValue()) }
@@ -252,6 +262,37 @@ fun <T: Any?> SearchScreen(
         if (!value) { searchText = TextFieldValue(); disarm() }
     }
     val deadline = vaultDeadline?.value ?: 0L
+    val query by remember(vaultDeadline) {
+        derivedStateOf { if ((vaultDeadline?.value ?: 0L) == 0L) searchText.text else "" }
+    }
+    // Never submit private text to the index, and never wait for search before accepting input.
+    // Keep the previous list during an in-flight public query, but never publish stale results.
+    val currentFilter by rememberUpdatedState(filteredItems)
+    var completedQuery by remember { mutableStateOf("") }
+    var asyncItems by remember { mutableStateOf<List<T>>(emptyList()) }
+    LaunchedEffect(query, backgroundFiltering, deadline) {
+        if (!backgroundFiltering || deadline != 0L || query.isBlank()) {
+            asyncItems = emptyList()
+            completedQuery = ""
+            return@LaunchedEffect
+        }
+        val requested = query
+        val filter = currentFilter
+        val result = withContext(Dispatchers.Default) { filter(requested) }
+        if (query == requested && (vaultDeadline?.value ?: 0L) == 0L) {
+            asyncItems = result
+            completedQuery = requested
+        }
+    }
+    val density = LocalDensity.current
+    val imeInsets = WindowInsets.ime
+    val imeVisible by remember(imeInsets, density) {
+        derivedStateOf { imeInsets.getBottom(density) > 0 }
+    }
+    // Full-window Haze + offscreen composition competes with IME rendering during typing.
+    // A stable opaque top bar is the low-cost equivalent while an editor is open.
+    val useHaze = isBlurSupported && (SettingsActivity.activeOverlay != null ||
+        !imeVisible && query.isBlank() && deadline == 0L)
     LaunchedEffect(deadline) {
         secretInput = TextFieldValue()
         if (deadline != 0L) {
@@ -357,7 +398,7 @@ fun <T: Any?> SearchScreen(
                         exit = fadeOut(animationSpec = tween(180)) + slideOutVertically(targetOffsetY = { -it }, animationSpec = tween(180))
                     ) {
                     Box {
-                        if (isBlurSupported) {
+                        if (useHaze) {
                             Box(
                                 modifier = Modifier
                                     .matchParentSize()
@@ -473,13 +514,21 @@ fun <T: Any?> SearchScreen(
                 LocalTextStyle provides MaterialTheme.typography.bodyLarge,
                 LocalSearchInnerPadding provides innerPadding
             ) {
-                val isSearching = searchText.text.isNotBlank()
+                val isSearching = query.isNotBlank()
+                val resultsPending = backgroundFiltering && isSearching && completedQuery != query
+                // Compute generic, potentially UI-dependent filters on the caller's UI thread.
+                val resultItems = if (backgroundFiltering) {
+                    if (isSearching && deadline == 0L) asyncItems else emptyList()
+                } else {
+                    // Some other search screens read mutable UI state; retain their synchronous semantics.
+                    if (isSearching || content == null) filteredItems(query) else emptyList()
+                }
 
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(
-                            if (isBlurSupported) {
+                            if (useHaze) {
                                 Modifier
                                     .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
                                     .haze(state = hazeState)
@@ -511,8 +560,8 @@ fun <T: Any?> SearchScreen(
                         }
 
                         if (isSearching || content == null) {
-                            val items = filteredItems(searchText.text)
-                            if (isSearching && items.isEmpty()) {
+                            val items = resultItems
+                            if (isSearching && !resultsPending && items.isEmpty()) {
                                 item(key = "empty_search") {
                                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 30.dp)) {
                                         Text("No matching settings", style = MaterialTheme.typography.titleMedium)
@@ -525,7 +574,7 @@ fun <T: Any?> SearchScreen(
                             if (itemKey == null) {
                                 items(items) { itemContent(it) }
                             } else {
-                                items(items, key = itemKey) { itemContent(it) }
+                                items(items, key = itemKey, contentType = { "search_result" }) { itemContent(it) }
                             }
                         } else {
                             item(key = "screen_content_body") {

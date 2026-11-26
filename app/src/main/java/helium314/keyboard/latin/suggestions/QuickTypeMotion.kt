@@ -12,6 +12,7 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.CharacterStyle
@@ -37,13 +38,17 @@ internal class QuickTypeMotion(
     data class Ink(val character: String, val x: Float, val y: Float,
                    val opacity: Float, val paint: TextPaint, val color: Int,
                    val scale: Float = 1f, val advance: Float = 0f,
-                   val velocityX: Float = 0f, val velocityY: Float = 0f)
+                   val velocityX: Float = 0f, val velocityY: Float = 0f,
+                   val targetIndex: Int = -1, val runText: String? = null,
+                   val runIndex: Int = 0, val remainingMs: Long = 0L)
     data class Slot(val label: String, val clip: Rect, val ink: List<Ink>)
     data class Frame(val slots: List<Slot?>, val confidence: Float, val dividerAlpha: List<Float>)
     private data class Track(val from: Ink, val to: Ink, val duration: Long,
                              val preset: SuggestionMotionPreset, val delay: Long = 0L) {
         fun local(elapsed: Float) = (elapsed - delay).coerceAtLeast(0f)
         fun progress(elapsed: Float) = QuickTypeMotionPolicy.glyphProgress(preset, local(elapsed), duration)
+        fun alphaProgress(elapsed: Float) = QuickTypeMotionPolicy.opacityProgress(
+            preset, local(elapsed), duration, to.opacity < from.opacity)
         fun x(elapsed: Float) = QuickTypeMotionPolicy.position(preset, from.x, to.x,
             from.velocityX, local(elapsed), duration)
         fun y(elapsed: Float) = QuickTypeMotionPolicy.position(preset, from.y, to.y,
@@ -51,8 +56,9 @@ internal class QuickTypeMotion(
         fun at(elapsed: Float): Ink {
             val p = progress(elapsed)
             return to.copy(x = x(elapsed), y = y(elapsed),
-                opacity = QuickTypeMotionPolicy.interpolate(from.opacity, to.opacity, p),
+                opacity = QuickTypeMotionPolicy.interpolate(from.opacity, to.opacity, alphaProgress(elapsed)),
                 scale = QuickTypeMotionPolicy.interpolate(from.scale, to.scale, p),
+                remainingMs = (duration + delay - elapsed).toLong().coerceAtLeast(1L),
                 velocityX = QuickTypeMotionPolicy.velocity(preset, from.x, to.x, from.velocityX, local(elapsed), duration),
                 velocityY = QuickTypeMotionPolicy.velocity(preset, from.y, to.y, from.velocityY, local(elapsed), duration))
         }
@@ -62,6 +68,7 @@ internal class QuickTypeMotion(
     private data class Divider(val view: View, val from: Float, val to: Float, val finalVisibility: Int)
 
     private var animator: ValueAnimator? = null
+    private var activePreset: SuggestionMotionPreset? = null
     private var artwork: Drawable? = null
     private var motion = emptyList<MotionSlot>()
     private val hidden = ArrayList<NativeInk>(3)
@@ -77,10 +84,24 @@ internal class QuickTypeMotion(
             stop()
             return null
         }
+        val preset = selectedPreset()
+        if (activePreset != null && activePreset != preset) {
+            stop()
+            return null
+        }
         val frame = Frame((0..2).map { index ->
             val active = motion.firstOrNull { it.index == index }
-            if (active == null) words.getOrNull(index)?.let(::snapshot)
-            else active.target.copy(ink = active.tracks.map { it.at(elapsed) }
+            if (active == null) words.getOrNull(index)?.let { snapshot(it, preset) }
+            else if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
+                // Preserve logical target identities, even before incoming ink is visible.
+                // Fading obsolete ink may draw out but cannot steal a new character match.
+                val sampled = active.tracks.map { it.at(elapsed) }
+                val retained = sampled.filter { it.targetIndex >= 0 }
+                val fading = sampled.filter { it.targetIndex < 0 && it.opacity > .035f }
+                    .sortedByDescending { it.opacity }
+                    .take((QuickTypeMotionPolicy.MAX_LABEL - retained.size).coerceAtLeast(0))
+                active.target.copy(ink = (retained + fading).sortedBy { it.x })
+            } else active.target.copy(ink = active.tracks.map { it.at(elapsed) }
                 .filter { it.opacity > .035f }
                 .sortedByDescending { it.opacity }.take(QuickTypeMotionPolicy.MAX_LABEL)
                 .sortedBy { it.x })
@@ -100,9 +121,9 @@ internal class QuickTypeMotion(
         for (index in 0..2) {
             val view = words[index]
             val before = previous.slots.getOrNull(index) ?: continue
-            val after = snapshot(view) ?: continue
+            val after = snapshot(view, preset) ?: continue
             if (before.clip != after.clip) continue // geometry/panel changes snap natively
-            if (before.label == after.label && sameInk(before, after)) continue
+            if (before.label == after.label && sameInk(before, after, preset)) continue
             val tracks = makeTracks(before, after, preset)
             if (tracks.isEmpty()) continue
             plans.add(MotionSlot(index, after, tracks))
@@ -144,7 +165,7 @@ internal class QuickTypeMotion(
                         for (track in slot.tracks) {
                             // No per-frame layout or glyph-list allocation.
                             val p = track.progress(elapsed)
-                            val a = QuickTypeMotionPolicy.interpolate(track.from.opacity, track.to.opacity, p)
+                            val a = QuickTypeMotionPolicy.interpolate(track.from.opacity, track.to.opacity, track.alphaProgress(elapsed))
                             if (a <= .005f) continue
                             val ink = track.to
                             ink.paint.color = ink.color
@@ -153,12 +174,12 @@ internal class QuickTypeMotion(
                             val y = track.y(elapsed)
                             val scale = QuickTypeMotionPolicy.interpolate(track.from.scale, ink.scale, p)
                             if (kotlin.math.abs(scale - 1f) < .001f) {
-                                canvas.drawText(ink.character, x, y, ink.paint)
+                                drawInk(canvas, ink, x, y)
                             } else {
                                 val glyphSave = canvas.save()
                                 canvas.scale(scale, scale, x + ink.advance / 2f,
                                     y + (ink.paint.ascent() + ink.paint.descent()) / 2f)
-                                canvas.drawText(ink.character, x, y, ink.paint)
+                                drawInk(canvas, ink, x, y)
                                 canvas.restoreToCount(glyphSave)
                             }
                         }
@@ -178,6 +199,7 @@ internal class QuickTypeMotion(
             QuickTypeMotionPolicy.CHROME_MS else 0L,
             motion.maxOfOrNull { slot -> slot.tracks.maxOf { it.duration + it.delay } } ?: 0L)
         val budget = MorphFrameBudget(owner.display?.refreshRate ?: 60f)
+        activePreset = preset
         animator = ValueAnimator.ofFloat(0f, duration.toFloat()).apply {
             this.duration = duration
             interpolator = LinearInterpolator()
@@ -208,6 +230,7 @@ internal class QuickTypeMotion(
     private fun stop() {
         val running = animator
         animator = null
+        activePreset = null
         running?.removeAllUpdateListeners()
         running?.removeAllListeners()
         running?.cancel()
@@ -228,7 +251,14 @@ internal class QuickTypeMotion(
         elapsed = 0f
     }
 
-    private fun snapshot(view: TextView): Slot? {
+    private fun drawInk(canvas: Canvas, ink: Ink, x: Float, y: Float) {
+        val run = ink.runText
+        if (run == null) canvas.drawText(ink.character, x, y, ink.paint)
+        else canvas.drawTextRun(run, ink.runIndex, ink.runIndex + 1,
+            0, run.length, x, y, false, ink.paint)
+    }
+
+    private fun snapshot(view: TextView, preset: SuggestionMotionPreset): Slot? {
         val text = view.text ?: ""
         val label = text.toString()
         if (!view.isShown || view.width <= 0 || view.height <= 0 ||
@@ -261,6 +291,39 @@ internal class QuickTypeMotion(
         val metrics = paint.fontMetrics
         val baseline = (contentTop + contentBottom - metrics.ascent - metrics.descent) / 2f
         val color = paint.color
+        if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
+            // Use complete-run shaping/kerning, not isolated prefix measurements.
+            // A ligature/cluster that cannot safely split into individual glyphs stays native.
+            val advances = FloatArray(label.length + 1)
+            if (Build.VERSION.SDK_INT >= 29) {
+                val widths = FloatArray(label.length)
+                paint.getTextRunAdvances(label.toCharArray(), 0, label.length,
+                    0, label.length, false, widths, 0)
+                for (i in widths.indices) advances[i + 1] = advances[i] + widths[i]
+            } else {
+                for (i in 1..label.length) advances[i] =
+                    paint.getRunAdvance(label, 0, label.length, 0, label.length, false, i)
+            }
+            for (i in 1..label.length) {
+                if (!advances[i].isFinite() || advances[i] - advances[i - 1] <= .01f ||
+                    (Build.VERSION.SDK_INT >= 29 &&
+                        paint.getTextRunCursor(label, 0, label.length, false, i, Paint.CURSOR_AT) != i))
+                    return null
+            }
+            val layout = view.layout
+            val currentLayout = layout != null && layout.lineCount == 1 &&
+                layout.text.toString() == label && view.baseline >= 0
+            if (currentLayout && layout!!.getEllipsisCount(0) > 0) return null
+            // If the current native layout already exists, match its exact leading position.
+            val shapedX = if (currentLayout) contentLeft + layout!!.getPrimaryHorizontal(0)
+                else (contentLeft + contentRight - advances.last()) / 2f
+            val nativeBaseline = if (currentLayout) top + view.baseline.toFloat() else baseline
+            return Slot(label, clip, label.indices.map { i ->
+                Ink(label.substring(i, i + 1), shapedX + advances[i], nativeBaseline,
+                    1f, paint, color, advance = advances[i + 1] - advances[i],
+                    targetIndex = i, runText = label, runIndex = i)
+            })
+        }
         val glyphs = label.indices.map { i ->
             Ink(label.substring(i, i + 1), x + paint.measureText(label, 0, i),
                 baseline, 1f, paint, color, advance = paint.measureText(label, i, i + 1))
@@ -268,10 +331,16 @@ internal class QuickTypeMotion(
         return Slot(label, clip, glyphs)
     }
 
-    private fun sameInk(before: Slot, after: Slot): Boolean =
+    private fun sameInk(before: Slot, after: Slot, preset: SuggestionMotionPreset): Boolean =
         before.ink.size == after.ink.size && before.ink.zip(after.ink).all { (a, b) ->
             a.character == b.character && a.opacity >= .995f && a.scale >= .995f &&
-                kotlin.math.abs(a.x - b.x) < .5f && a.color == b.color
+                kotlin.math.abs(a.x - b.x) < .5f && a.color == b.color &&
+                (preset == SuggestionMotionPreset.SCALE ||
+                    kotlin.math.abs(a.y - b.y) < .5f &&
+                    kotlin.math.abs(a.advance - b.advance) < .5f &&
+                    a.paint.textSize == b.paint.textSize &&
+                    a.paint.textScaleX == b.paint.textScaleX &&
+                    a.paint.typeface == b.paint.typeface)
         }
 
     /** Compress/expand only a contiguous unmatched run, not adjacent retained letters. */
@@ -287,8 +356,20 @@ internal class QuickTypeMotion(
     private fun makeTracks(before: Slot, after: Slot, preset: SuggestionMotionPreset): List<Track> {
         val old = before.ink
         val next = after.ink
-        val matches = QuickTypeMotionPolicy.matches(old.joinToString("") { it.character }, after.label)
+        val improved = preset == SuggestionMotionPreset.SCALE_IMPROVED
+        val matches = if (improved) {
+            val logical = old.indices.filter { old[it].targetIndex >= 0 }
+                .sortedBy { old[it].targetIndex }
+            QuickTypeMotionPolicy.improvedMatches(logical.joinToString("") { old[it].character },
+                after.label).map { (a, b) -> logical[a] to b }
+        } else QuickTypeMotionPolicy.matches(old.joinToString("") { it.character }, after.label)
         val duration = if (matches.isEmpty()) preset.replacementMs else preset.glyphMs
+        val sameTarget = improved && before.label == after.label
+        fun trackDuration(ink: Ink?, delay: Long): Long {
+            val remaining = if (sameTarget && ink != null && ink.remainingMs > 0)
+                minOf(duration, ink.remainingMs) else duration
+            return (remaining - delay).coerceAtLeast(1L)
+        }
         val byNew = matches.associate { it.second to it.first }
         val used = matches.map { it.first }.toHashSet()
         val result = ArrayList<Track>(old.size + next.size)
@@ -296,19 +377,22 @@ internal class QuickTypeMotion(
         old.indices.filterNot { it in used }.forEachIndexed { ordinal, i ->
             val ink = old[i]
             val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, old, used), preset.compression)
+            val delay = if (sameTarget || improved && ink.targetIndex < 0) 0L
+                else QuickTypeMotionPolicy.delay(preset, ordinal)
             result.add(Track(ink, ink.copy(x = x, opacity = 0f, scale = preset.entryScale,
-                velocityX = 0f, velocityY = 0f), duration, preset,
-                QuickTypeMotionPolicy.delay(preset, ordinal)))
+                velocityX = 0f, velocityY = 0f, targetIndex = -1),
+                trackDuration(ink, delay), preset, delay))
         }
         var arriving = 0
         next.forEachIndexed { i, ink ->
             val retained = byNew[i]?.let { old[it] }
             if (retained != null) {
-                result.add(Track(retained, ink, duration, preset))
+                result.add(Track(retained, ink, trackDuration(retained, 0L), preset))
             } else {
                 val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, next, byNew.keys), preset.compression)
+                val delay = QuickTypeMotionPolicy.delay(preset, arriving++)
                 result.add(Track(ink.copy(x = x, opacity = 0f, scale = preset.entryScale), ink,
-                    duration, preset, QuickTypeMotionPolicy.delay(preset, arriving++)))
+                    trackDuration(null, delay), preset, delay))
             }
         }
         return result
