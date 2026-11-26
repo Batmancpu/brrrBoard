@@ -51,6 +51,11 @@ class CiWorkflowContractTest(unittest.TestCase):
         self.assertIn('git merge-base origin/main "$GITHUB_SHA"', debug)
         self.assertIn('git diff --name-only "$diff_base" "$GITHUB_SHA"', debug)
 
+    def test_test_only_changes_do_not_require_application_release_notes(self):
+        debug = DEBUG.read_text()
+        self.assertIn("grep -Ev '^app/src/test/'", debug)
+        self.assertIn("docs/releases/notes.json", debug)
+
     def test_obtainium_skips_publication_for_test_and_documentation_only_pushes(self):
         release = RELEASE.read_text()
         self.assertIn("id: release_scope", release)

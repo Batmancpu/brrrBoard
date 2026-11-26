@@ -120,21 +120,20 @@ public interface DictionaryFacilitator {
     void waitForLoadingMainDictionaries(final long timeout, final TimeUnit unit)
             throws InterruptedException;
 
-    /** adds the word to user history dictionary, calls adjustConfindences, and might add it to personal dictionary if the setting is enabled */
-    void addToUserHistory(final String suggestion, final boolean wasAutoCapitalized,
-            @NonNull final NgramContext ngramContext, final long timeStampInSeconds,
-            final boolean blockPotentiallyOffensive);
-
     /**
-     * Adds native user history while optionally suppressing multilingual confidence changes
-     * when the committed word has not been explicitly confirmed.
+     * Adds native user history and, when enabled, adjusts multilingual confidence.
      */
     default void addToUserHistory(final String suggestion, final boolean wasAutoCapitalized,
             @NonNull final NgramContext ngramContext, final long timeStampInSeconds,
-            final boolean blockPotentiallyOffensive, final boolean updateLanguageConfidence) {
+            final boolean blockPotentiallyOffensive) {
         addToUserHistory(suggestion, wasAutoCapitalized, ngramContext, timeStampInSeconds,
-                blockPotentiallyOffensive);
+                blockPotentiallyOffensive, true);
     }
+
+    /** Implementations must honor the language-confidence evidence gate. */
+    void addToUserHistory(final String suggestion, final boolean wasAutoCapitalized,
+            @NonNull final NgramContext ngramContext, final long timeStampInSeconds,
+            final boolean blockPotentiallyOffensive, final boolean updateLanguageConfidence);
 
     /** adjust confidences for multilingual typing */
     void adjustConfidences(final String word, final boolean wasAutoCapitalized);

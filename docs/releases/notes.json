@@ -4,7 +4,7 @@
   "changes": [
     {
       "title": "Keep changed automatic corrections out of language-confidence feedback",
-      "detail": "Changed automatic corrections continue through native user-history learning but no longer shift multi-dictionary language confidence without explicit confirmation. Manual picks, explicitly typed words and unchanged automatic commits retain the existing confidence path; single-dictionary behavior and privacy gates are unchanged."
+      "detail": "Changed automatic corrections continue through native user-history learning but do not shift multi-dictionary language confidence without explicit confirmation. Manual picks, explicitly typed words and unchanged automatic commits retain the existing confidence path. The normal and slow-connection paths honor the same gate; single-dictionary behavior and privacy protections are unchanged."
     }
   ]
 }
