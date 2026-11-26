@@ -15,9 +15,14 @@ Owner explicitly authorized implementation of **only** suggestion-strip motion, 
 4. Unit-test matching, bounded state, unsupported shaping, timing and geometry; exact-source debug suite then original signed release workflow and actual published asset. Do not claim device parity until physical testing.
 5. Device tests: slow/rapid letters, backspace, space, swipe update/final, taps during transition, capsule toggle and width, divider stability, dark/light/tint, emoji/RTL fallback, panel switches, incognito/session recall/editor boundary, reduced motion, frame pacing. Compare reference and brrBoard at 30/60/120 fps when possible.
 
-CI and signed release status: pending at commit preparation. Physical acceptance pending. No other features authorized.
+CI and signed release evidence appears in the verification checkpoint below. Physical acceptance pending. No other features authorized.
 
 ## Frame-level follow-through
 Further close inspection of the same reference found full-width chrome at 29.533 s and 30.100 s before new swipe words resolved; chrome returns to dividers by 29.600 s and 30.367 s. This is a presentation-only active-swipe state, distinct from decoder confidence. Use the existing empty batch start/preview/tail/cancel UI callback to coordinate the new renderer, without changing the decoder or native selection. The paired chrome changes occur in adjacent 30-fps frames, so use a 33-ms estimated transition. At a transient next-word gap, clear the correction highlight and revoke tags immediately; no outgoing glyph overlay is retained. First editor frame is native, preventing old-editor ink reuse. When motion is disabled, skip snapshot work. Tests cover gesture chrome eligibility and keep decoder confidence unchanged.
 
-Initial clean-room renderer checkpoint: [v1.0.360](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.360), commit 2d58b720e3b9f398597c1e020a67bc16f8c059e2; debug 45811366600 and original-signed release 45811366623 both SUCCESS. Final swipe/boundary refinement must pass fresh exact-source workflows; physical parity remains pending.
+Initial clean-room renderer checkpoint: [v1.0.360](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.360), commit 2d58b720e3b9f398597c1e020a67bc16f8c059e2; debug 45811366600 and original-signed release 45811366623 both SUCCESS. Final swipe/boundary refinement completed its own exact-source workflows; see below.
+
+## Final verified release
+Final v1.0.361 published 2026-11-26T11:46:35Z: source bedfcb97eb9277ff507e501b7f115086a82ab551, exact-SHA debug 45812437165 SUCCESS and original-signed release 45812437080 SUCCESS; non-draft brrBoard.apk 75,870,334 bytes, SHA-256 eed4b455d9c84280c2707f1c7cade39f2608ad79714e23ab8118f9e6e32614d4 (release body and asset digest agree). Physical visual parity/latency and installed-device acceptance remain unverified.
+
+[Release v1.0.361](https://github.com/Batmancpu/brrrBoard/releases/tag/v1.0.361) · [debug](https://github.com/Batmancpu/brrrBoard/actions/runs/45812437165) · [signed release](https://github.com/Batmancpu/brrrBoard/actions/runs/45812437080). The 30-fps reference estimates and native shaping fallback remain explicit limitations. No additional app changes were made after this source commit.
