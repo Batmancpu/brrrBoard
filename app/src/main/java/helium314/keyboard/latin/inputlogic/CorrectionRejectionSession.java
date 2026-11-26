@@ -36,6 +36,16 @@ final class CorrectionRejectionSession {
         scheduleExpiry();
     }
 
+    /** Applies the live privacy eligibility decision and clears the scheduled receipt when ineligible. */
+    boolean consumeIfEligible(boolean eligible, String typed, String replacement, Object editor,
+            Object connection, long now) {
+        if (!eligible) {
+            clear();
+            return false;
+        }
+        return consumeIfMatches(typed, replacement, editor, connection, now);
+    }
+
     boolean consumeIfMatches(String typed, String replacement, Object editor, Object connection, long now) {
         final boolean rejected = policy.consumeIfMatches(typed, replacement, editor, connection, now);
         if (!policy.hasReceipt()) {

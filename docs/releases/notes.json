@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keep the experimental ContextLM embedding quantized",
+  "summary": "Keep correction rejection cleanup tied to live privacy eligibility",
   "changes": [
     {
-      "title": "Retain INT8 embedding bytes at runtime",
-      "detail": "The experimental ContextLM loader now retains its 1,048,576-byte embedding tensor in INT8 form and applies the manifest scale at bounded context and candidate lookups. This preserves the original float weight calculation while avoiding expansion to 4 MiB; the model remains disabled by default and fails production loading unless its independent quality gate passes."
+      "title": "Exercise the privacy gate through the rejection session",
+      "detail": "InputLogic now routes correction-rejection attempts through the session’s eligibility method. Eligible unrelated pairs preserve the original 30-second Handler expiry; an ineligible privacy transition clears both the receipt and callback immediately. No persistence or deadline changes."
     }
   ]
 }

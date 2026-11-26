@@ -3452,13 +3452,10 @@ public final class InputLogic {
         final String proposedCorrection = autoCorrectionOrNull != null ? autoCorrectionOrNull.mWord : typedWord;
         boolean rejectRepeatedCorrection = false;
         if (mCorrectionRejection.hasReceipt()) {
-            if (mLatinIME.mayUseTransientCorrectionMemory(settingsValues)) {
-                rejectRepeatedCorrection = mCorrectionRejection.consumeIfMatches(
-                        typedWord, proposedCorrection, mLatinIME.getCurrentInputEditorInfo(),
-                        mLatinIME.getCurrentInputConnection(), SystemClock.elapsedRealtime());
-            } else {
-                mCorrectionRejection.clear();
-            }
+            rejectRepeatedCorrection = mCorrectionRejection.consumeIfEligible(
+                    mLatinIME.mayUseTransientCorrectionMemory(settingsValues),
+                    typedWord, proposedCorrection, mLatinIME.getCurrentInputEditorInfo(),
+                    mLatinIME.getCurrentInputConnection(), SystemClock.elapsedRealtime());
         }
         final String stringToCommit = rejectRepeatedCorrection ? typedWord : proposedCorrection;
         if (stringToCommit != null) {

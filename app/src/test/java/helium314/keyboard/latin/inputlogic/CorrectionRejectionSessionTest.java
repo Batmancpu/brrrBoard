@@ -28,8 +28,8 @@ public class CorrectionRejectionSessionTest {
 
         looper.idleFor(20_000L, TimeUnit.MILLISECONDS);
         long now = SystemClock.elapsedRealtime();
-        assertFalse(session.consumeIfMatches("other", "word", editor, connection, now));
-        assertFalse(session.consumeIfMatches("teh", "their", editor, connection, now));
+        assertFalse(session.consumeIfEligible(true, "other", "word", editor, connection, now));
+        assertFalse(session.consumeIfEligible(true, "teh", "their", editor, connection, now));
         assertTrue(session.hasReceipt());
 
         looper.idleFor(9_999L, TimeUnit.MILLISECONDS);
@@ -45,20 +45,22 @@ public class CorrectionRejectionSessionTest {
         final Object connection = new Object();
 
         session.reject("teh", "the", editor, connection, SystemClock.elapsedRealtime());
-        assertFalse(session.consumeIfMatches("teh", "the", editor, new Object(),
+        assertFalse(session.consumeIfEligible(true, "teh", "the", editor, new Object(),
                 SystemClock.elapsedRealtime()));
         assertFalse(session.hasReceipt());
         looper.idleFor(31_000L, TimeUnit.MILLISECONDS);
         assertFalse(session.hasReceipt());
 
         session.reject("teh", "the", editor, connection, SystemClock.elapsedRealtime());
-        assertTrue(session.consumeIfMatches("teh", "the", editor, connection,
+        assertTrue(session.consumeIfEligible(true, "teh", "the", editor, connection,
                 SystemClock.elapsedRealtime()));
         looper.idleFor(31_000L, TimeUnit.MILLISECONDS);
         assertFalse(session.hasReceipt());
 
         session.reject("teh", "the", editor, connection, SystemClock.elapsedRealtime());
-        session.clear(); // Same operation used by incognito, no-learning and editor teardown.
+        assertFalse(session.consumeIfEligible(false, "teh", "the", editor, connection,
+                SystemClock.elapsedRealtime())); // Same live gate used by incognito/no-learning.
+        assertFalse(session.hasReceipt());
         looper.idleFor(31_000L, TimeUnit.MILLISECONDS);
         assertFalse(session.hasReceipt());
     }
