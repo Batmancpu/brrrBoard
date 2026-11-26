@@ -36,6 +36,15 @@ class AppProfilePolicyTest {
         assertTrue(window.record(2,30_210L))
         assertFalse(window.record(2,30_211L))
     }
+    @Test fun privacyRevocationClearsPartialRejectionEvidence() {
+        val window = AppProfileRejectionWindow()
+        repeat(5) { assertFalse(window.record(4, 100L + it)) }
+
+        // LatinIME clears the same bounded window when its current editor becomes ineligible.
+        window.clear()
+        repeat(5) { assertFalse(window.record(4, 200L + it)) }
+        assertTrue(window.record(4, 205L))
+    }
     @Test fun encryptedProfileRejectsTampering() {
         val key = javax.crypto.spec.SecretKeySpec(ByteArray(32) { 7 }, "AES")
         val input = "example.profile".toByteArray()

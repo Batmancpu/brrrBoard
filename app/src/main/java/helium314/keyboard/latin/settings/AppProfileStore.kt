@@ -53,6 +53,8 @@ object AppProfileStore {
     private var unreadable = false
     private val packagePattern = Regex("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+")
     @JvmStatic fun revision(): Long = generation.get()
+    /** Discard partial content-free adaptation evidence when the current editor is ineligible. */
+    @JvmStatic @Synchronized fun clearTransientRejectionEvidence() { rejectionWindow.clear() }
     private fun available(context: Context): Boolean =
         !context.isDeviceProtectedStorage &&
             context.getSystemService(UserManager::class.java)?.isUserUnlocked == true && !isDeviceLocked(context)

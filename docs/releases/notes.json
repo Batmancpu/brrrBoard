@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keep a bounded set of correction rejections in session memory",
+  "summary": "Clear per-app correction evidence when privacy tightens",
   "changes": [
     {
-      "title": "Retain distinct rejected correction pairs briefly",
-      "detail": "Up to four distinct explicitly rejected typed-word/replacement pairs remain in RAM until each pair’s original 30-second deadline. An unrelated later word or different replacement cannot consume another pair; exact matches are suppressed once. Privacy and editor/connection boundaries clear all receipts, and nothing is persisted."
+      "title": "Reset per-app correction evidence at privacy boundaries",
+      "detail": "Clear the bounded, content-free rejection counter whenever the active editor is ineligible for transient correction memory, including settings reloads and keyboard-session starts. This prevents partial confirmation counts from carrying across a private or no-learning context. Only verified host-confirmed correction reversals remain eligible; profile thresholds, encrypted storage, and explicit user settings are unchanged."
     }
   ]
 }

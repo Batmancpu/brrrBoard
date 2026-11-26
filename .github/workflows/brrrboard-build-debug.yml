@@ -46,6 +46,9 @@ jobs:
       - name: Verify workflow security and unit-test gate contract
         run: python3 -m unittest discover -s tools/tests -p 'test_ci_workflow_contract.py' -v
 
+      - name: Verify per-app correction evidence privacy reset
+        run: python3 -m unittest discover -s tools/tests -p 'test_app_profile_privacy_contract.py' -v
+
       - name: Reject known private-content diagnostic logs
         run: python3 -m unittest discover -s tools/tests -p 'test_private_log_contract.py' -v
 
