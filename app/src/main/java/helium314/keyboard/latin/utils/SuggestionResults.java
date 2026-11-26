@@ -49,9 +49,10 @@ public final class SuggestionResults extends TreeSet<SuggestedWordInfo> {
 
     @Override
     public boolean add(final SuggestedWordInfo e) {
+        if (mCapacity <= 0) return false;
         if (size() < mCapacity) return super.add(e);
         if (comparator().compare(e, last()) > 0) return false;
-        super.add(e);
+        if (!super.add(e)) return false;
         pollLast(); // removes the last element
         return true;
     }
