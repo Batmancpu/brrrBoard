@@ -1,10 +1,14 @@
 {
   "schema": 1,
-  "summary": "Isolate microphone audio-focus sessions",
+  "summary": "Conservative English apostrophe and contraction repair",
   "changes": [
     {
-      "title": "Prevent stale recording from releasing newer microphone focus",
-      "detail": "Give every physical recording a distinct audio-focus listener and explicit main-looper callback handler. Preserve the four animation styles, playground, exclusive transient request and safe denial fallback from v1.0.362. Add regression coverage for listener identity."
+      "title": "Fill missing English contractions without replacing dictionaries",
+      "detail": "Review 66 standard/common apostrophe spellings using the bundled English native dictionary; add only absent forms at conservative fallback frequencies. Preserve original US/UK main dictionaries, n-grams, existing unrelated vocabulary and learned data."
+    },
+    {
+      "title": "Protect ambiguous words and curly apostrophes",
+      "detail": "Keep ambiguous unpunctuated words from new supplement-driven automatic corrections, preserve manual suggestions, and normalize internal curly apostrophes only for context/model lookup. BR Brain model vocabulary and weights remain unchanged."
     }
   ]
 }

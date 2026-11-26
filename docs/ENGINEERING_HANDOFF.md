@@ -1,5 +1,7 @@
 # Engineering handoff — navigation index
 
+- 2026-11-26: English-only contraction maintenance; [scope, safety and verification](ENGLISH_APOSTROPHE_REPAIR_2026_11_26.md). Exact-source release and physical acceptance pending.
+
 - 2026-11-26: Motion presets, playground and exclusive microphone audio-focus lease; see [scoped implementation](SUGGESTION_PRESETS_AND_AUDIO_FOCUS_2026_11_26.md). Shipped in v1.0.362; listener identity hardening follows. Exact-source verification in the scoped implementation document; device acceptance pending.
 
 - 2026-11-26: owner GO for suggestion-strip-only clean-room motion; see [reference study and implementation plan](QUICKTYPE_MOTION_2026_11_26.md). Active-swipe chrome and word-boundary cleanup shipped in v1.0.361; see the reference study for verified exact-source release evidence. Device acceptance pending.

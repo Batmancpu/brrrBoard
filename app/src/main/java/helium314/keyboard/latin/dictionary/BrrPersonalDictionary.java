@@ -27,7 +27,7 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
     // Rebuild the on-device expandable cache after adding the reviewed social lexicon.
     // Keep the old v1 cache untouched for rollback and backup compatibility.
     // Separate cache for the extended static validity lexicon; preserve v2/learned data.
-    private static final String NAME = "brrPersonal_v3";
+    private static final String NAME = "brrPersonal_v4";
     private static final String DATA_ASSET = "brrPersonal.tsv";
     private static final String RULES_ASSET = "brrPersonal_rules.tsv";
     private static final String ENGLISH_VALID_ONLY_ASSET = "brrPersonal_english_valid_only.tsv";
@@ -38,7 +38,8 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
 
     private BrrPersonalDictionary(final Context context, final Locale locale,
             final File dictFile, final String dictNamePrefix) {
-        super(context, getDictName(dictNamePrefix + NAME, locale, dictFile),
+        super(context, getDictName(dictNamePrefix + ("en".equals(locale.getLanguage())
+                        ? NAME : "brrPersonal_v3"), locale, dictFile),
                 locale, Dictionary.TYPE_BRR_PERSONAL, dictFile);
         loadNoSuggestionWords(context);
         reloadDictionaryIfRequired();
@@ -81,6 +82,8 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
     @Override
     protected void loadInitialContentsLocked() {
         int loadedCount = 0;
+        final EnglishApostropheLexicon.Audit apostropheAudit =
+                EnglishApostropheLexicon.audit(mContext, mLocale);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 mContext.getAssets().open(DATA_ASSET), StandardCharsets.UTF_8))) {
             String line;
@@ -97,6 +100,10 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
                     continue;
                 }
                 final String shortcut = fields[2].isEmpty() ? null : fields[2];
+                // Only suppress specifically reviewed malformed corpus spellings when the
+                // bundled main does not contain them. Preserve all shortcuts and valid-only rules.
+                if (shortcut == null && !isNoSuggestionWord(word)
+                        && apostropheAudit.getMalformedAliases().contains(word)) continue;
                 addUnigramLocked(word, frequency, shortcut,
                         shortcut == null ? 0 : SHORTCUT_FREQUENCY,
                         false /* isNotAWord */, false /* isPossiblyOffensive */,
@@ -105,6 +112,11 @@ public final class BrrPersonalDictionary extends ExpandableBinaryDictionary {
             }
         } catch (IOException e) {
             Log.e(TAG, "Could not load brrPersonal asset", e);
+        }
+        for (final EnglishApostropheLexicon.Entry entry : apostropheAudit.getMissing()) {
+            addUnigramLocked(entry.getWord(), entry.getFrequency(), null, 0,
+                    false, false, BinaryDictionary.NOT_A_VALID_TIMESTAMP);
+            ++loadedCount;
         }
         Log.i(TAG, "Loaded " + loadedCount + " brrPersonal entries");
     }

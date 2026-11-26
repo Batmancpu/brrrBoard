@@ -279,7 +279,7 @@ public final class BrContextLmInt8 {
     }
 
     boolean knowsWord(String word) {
-        final Integer id = vocabulary.get(word.toLowerCase(Locale.ROOT));
+        final Integer id = vocabulary.get(BrPersonalContextFeatures.modelKey(word));
         return id != null && id >= 4;
     }
 
@@ -308,7 +308,7 @@ public final class BrContextLmInt8 {
         for (int i = 0; i < CONTEXT_TOKENS; i++) tokenIds[i] = begin;
         for (int i = 0; i < recent.size() && i < CONTEXT_TOKENS; i++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
-            final String word = recent.get(recent.size() - 1 - i).toLowerCase(Locale.ROOT);
+            final String word = BrPersonalContextFeatures.modelKey(recent.get(recent.size() - 1 - i));
             tokenIds[CONTEXT_TOKENS - 1 - i] = vocabulary.getOrDefault(word, 1);
         }
         Encoding encoding = cache == null ? null : cache.last;
@@ -326,7 +326,7 @@ public final class BrContextLmInt8 {
         for (int i = 0; i < scores.length; i++) {
             if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final BrPersonalContextFeatures.Candidate candidate = snapshot.candidates.get(i);
-            final int wordId = vocabulary.getOrDefault(candidate.word.toLowerCase(Locale.ROOT), 1);
+            final int wordId = vocabulary.getOrDefault(BrPersonalContextFeatures.modelKey(candidate.word), 1);
             float sum = 0;
             for (int channel = 0; channel < CHANNELS; channel++) {
                 sum += latest[channel] * (quantizedEmbedding[wordId * CHANNELS + channel] * embeddingScale);

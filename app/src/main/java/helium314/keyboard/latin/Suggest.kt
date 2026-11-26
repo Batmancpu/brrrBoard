@@ -158,7 +158,12 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // No frequency/ranking changes: this is an isolated safety condition.
         val firstCandidateIsValidOnly = BrrCorrectionSafety.blocksCandidate(
             suggestionsContainer.firstOrNull()?.mWord)
-        val intentionalToken = !SmartCorrectionSafety.permitsAutomaticReplacement(capitalizedTypedWord)
+        val firstCandidate = suggestionsContainer.firstOrNull()
+        val ambiguousSupplementCorrection = firstCandidate?.mSourceDict?.mDictType == Dictionary.TYPE_BRR_PERSONAL &&
+            helium314.keyboard.latin.dictionary.EnglishApostropheLexicon.isAmbiguousOmission(
+                capitalizedTypedWord, firstCandidate?.mWord)
+        val intentionalToken = !SmartCorrectionSafety.permitsAutomaticReplacement(capitalizedTypedWord) ||
+            ambiguousSupplementCorrection
         val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected &&
             !noSuggestionTypedWord && !firstCandidateIsValidOnly && !intentionalToken
         val hasAutoCorrection = decoderHasAutoCorrection &&

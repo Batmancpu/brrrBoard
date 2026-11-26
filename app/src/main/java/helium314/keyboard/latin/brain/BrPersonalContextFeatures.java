@@ -105,7 +105,7 @@ public final class BrPersonalContextFeatures {
             final Source source = classifySource(suggestion.mSourceDict.mDictType,
                     personalizedDictionariesEnabled);
             if (source == null) continue;
-            if (!seenWords.add(suggestion.mWord.toLowerCase(Locale.ROOT))) continue;
+            if (!seenWords.add(modelKey(suggestion.mWord))) continue;
             scored.add(new Candidate(suggestion.mWord, source, suggestion.mScore, rank));
             if (source != Source.NATIVE) inherited = true;
         }
@@ -141,6 +141,11 @@ public final class BrPersonalContextFeatures {
         }
     }
 
+    /** Normalize only model lookup keys; never rewrite displayed or committed words. */
+    static String modelKey(final String word) {
+        return word.replace('\u2019', '\'').toLowerCase(Locale.ROOT);
+    }
+
     static boolean isSafeRomanWord(final String word) {
         if (word == null || word.isEmpty() || word.length() > MAX_WORD_LENGTH) return false;
         boolean hasLetter = false;
@@ -148,6 +153,10 @@ public final class BrPersonalContextFeatures {
             final char ch = word.charAt(index);
             if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z') {
                 hasLetter = true;
+            } else if (ch == '\u2019' && index > 0 && index < word.length() - 1
+                    && Character.isLetter(word.charAt(index - 1))
+                    && Character.isLetter(word.charAt(index + 1))) {
+                // An internal typographic apostrophe is a normal English word connector.
             } else if ((ch != '\'' && ch != '-') || index == 0 || index == word.length() - 1) {
                 return false;
             }

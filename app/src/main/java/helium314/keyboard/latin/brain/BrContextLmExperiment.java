@@ -181,7 +181,7 @@ public final class BrContextLmExperiment {
             if (!Dictionary.TYPE_MAIN.equals(type) && !Dictionary.TYPE_BRR_PERSONAL.equals(type)) continue;
             if (!BrPersonalContextFeatures.isSafeRomanWord(info.mWord)
                     || !activeModel.knowsWord(info.mWord)
-                    || !seen.add(info.mWord.toLowerCase(Locale.ROOT))) continue;
+                    || !seen.add(BrPersonalContextFeatures.modelKey(info.mWord))) continue;
             candidates.add(info);
             slots.add(i);
         }

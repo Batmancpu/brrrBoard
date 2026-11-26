@@ -23,6 +23,21 @@ public final class NgramContextUtils {
 
     private static final Pattern NEWLINE_REGEX = Pattern.compile("[\\r\\n]+");
     private static final Pattern SPACE_REGEX = Pattern.compile("\\s+");
+
+    static String normalizeInternalApostrophes(final String word) {
+        if (word.indexOf('\u2019') < 0) return word;
+        final char[] chars = word.toCharArray();
+        for (int i = 1; i + 1 < chars.length; i++) {
+            if (chars[i] == '\u2019' && isAsciiLetter(chars[i - 1]) && isAsciiLetter(chars[i + 1])) {
+                chars[i] = '\'';
+            }
+        }
+        return new String(chars);
+    }
+
+    private static boolean isAsciiLetter(final char ch) {
+        return ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
+    }
     // Get context information from nth word before the cursor. n = 1 retrieves the words
     // immediately before the cursor, n = 2 retrieves the words before that, and so on. This splits
     // on whitespace only.
@@ -96,7 +111,9 @@ public final class NgramContextUtils {
                     || spacingAndPunctuations.isWordConnector(lastChar)) {
                 break;
             }
-            prevWordsInfo[i] = new WordInfo(focusedWord);
+            // Preserve editor text. Normalize only internal English apostrophes for lookup.
+            prevWordsInfo[i] = new WordInfo(spacingAndPunctuations.mUsesAmericanTypography
+                    ? normalizeInternalApostrophes(focusedWord) : focusedWord);
         }
         return new NgramContext(prevWordsInfo);
     }

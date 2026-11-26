@@ -169,6 +169,14 @@ public class BrContextLmInt8Test {
         assertFalse(reference.knowsWord("unseenword"));
     }
 
+    @Test public void unknownContractionsDoNotPretendToHaveTrainedVocabularyIds() throws Exception {
+        final BrContextLmInt8 model = fixture().load();
+        assertFalse(model.knowsWord("don't"));
+        assertFalse(model.knowsWord("don’t"));
+        assertTrue(model.knowsWord("meeting"));
+        assertEquals("don't", BrPersonalContextFeatures.modelKey("don’t"));
+    }
+
     @Test public void experimentalFixtureRetainsQuantizedEmbeddingAndExactExpectedScores() throws Exception {
         final BrContextLmInt8 model = fixture(true).load();
         assertEquals(7 * BrContextLmInt8.CHANNELS, model.embeddingStorageBytesForTesting());

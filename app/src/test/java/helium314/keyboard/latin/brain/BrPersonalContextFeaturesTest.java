@@ -84,6 +84,23 @@ public class BrPersonalContextFeaturesTest {
         assertFalse(BrPersonalContextFeatures.isSafeRomanWord(""));
     }
 
+    @Test public void curlyApostrophesUseTheSameModelKeyWithoutChangingCandidateText() {
+        assertTrue(BrPersonalContextFeatures.isSafeRomanWord("don’t"));
+        assertTrue(BrPersonalContextFeatures.isSafeRomanWord("I’m"));
+        assertFalse(BrPersonalContextFeatures.isSafeRomanWord("’quote"));
+        assertFalse(BrPersonalContextFeatures.isSafeRomanWord("quote’"));
+        assertFalse(BrPersonalContextFeatures.isSafeRomanWord("a’’b"));
+        assertEquals("don't", BrPersonalContextFeatures.modelKey("Don’t"));
+        final BrPersonalContextFeatures.Snapshot snapshot = BrPersonalContextFeatures.fromNative(
+                new NgramContext(new NgramContext.WordInfo("I’m")),
+                Arrays.asList(info("don’t", 200, Dictionary.TYPE_MAIN),
+                        info("don't", 190, Dictionary.TYPE_BRR_PERSONAL),
+                        info("meeting", 180, Dictionary.TYPE_MAIN)), true, false);
+        assertEquals(2, snapshot.candidates.size());
+        assertEquals("don’t", snapshot.candidates.get(0).word);
+        assertEquals("I’m", snapshot.previousWords.get(0));
+    }
+
     @Test public void upgradeUsesPreviouslyLearnedNativeWordAsActualModelInput() {
         final NgramContext context = new NgramContext(new NgramContext.WordInfo("kal"));
         final List<SuggestedWordInfo> nativeWords = Arrays.asList(
