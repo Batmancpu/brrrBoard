@@ -297,7 +297,8 @@ public final class InputLogic {
         if (ic == null || end < corrected.length()) return;
         // Confirm the actual post-commit suffix, not merely the IME's optimistic cache.
         try {
-            if (!TextUtils.equals(corrected, ic.getTextBeforeCursor(corrected.length(), 0))) return;        } catch (RuntimeException e) { return; }
+            if (!TextUtils.equals(corrected, ic.getTextBeforeCursor(corrected.length(), 0))) return;
+        } catch (RuntimeException e) { return; }
         final long now = SystemClock.elapsedRealtime();
         if (mRecallMemory.remember(typed, corrected, end-corrected.length(), now,
                 mLatinIME.editorGeneration(), ic)) scheduleRecallExpiry(now);
@@ -596,7 +597,8 @@ public final class InputLogic {
         }
         mWordComposer.restartCombining(combiningSpec);
         resetComposingState(true /* alsoResetLastComposedWord */);
-        mDeleteCount = 0;        mSpaceState = SpaceState.NONE;
+        mDeleteCount = 0;
+        mSpaceState = SpaceState.NONE;
         mRecapitalizeStatus.disable(); // Do not perform recapitalize until the cursor is moved once
         mCurrentlyPressedHardwareKeys.clear();
         mSuggestedWords = SuggestedWords.getEmptyInstance();
@@ -895,7 +897,8 @@ public final class InputLogic {
                 // owner explicitly chose 🎉 instead of a text candidate.
                 commitTyped(settingsValues, LastComposedWord.NOT_A_SEPARATOR);
             }
-        }        final CharSequence preceding = mConnection.getTextBeforeCursor(2, 0);
+        }
+        final CharSequence preceding = mConnection.getTextBeforeCursor(2, 0);
         if (EmojiSuggestionInsertPolicy.needsSpace(preceding,
                 settingsValues.mInputAttributes.mShouldInsertSpacesAutomatically)) {
             mConnection.commitText(" ", 1);
@@ -1194,7 +1197,8 @@ public final class InputLogic {
      * this case, the
      * mIndexOfTouchPointOfSecondWords member will be out of date, and we must not
      * use it lest we
-     * remove an unrelated number of pointers (possibly even more than are left in     * the input
+     * remove an unrelated number of pointers (possibly even more than are left in
+     * the input
      * pointers, leading to a crash).
      * To avoid that, we increase the sequence number each time we auto-commit and
      * trim the
@@ -1493,7 +1497,8 @@ public final class InputLogic {
                     }
                 }
                 break;
-            case KeyCode.UNDO:                if (!applyVerifiedEdit(false,inputTransaction)) sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON);
+            case KeyCode.UNDO:
+                if (!applyVerifiedEdit(false,inputTransaction)) sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON);
                 break;
             case KeyCode.REDO:
                 if (!applyVerifiedEdit(true,inputTransaction)) sendDownUpKeyEventWithMetaState(KeyEvent.KEYCODE_Z, KeyEvent.META_CTRL_ON | KeyEvent.META_SHIFT_ON);
@@ -1792,7 +1797,8 @@ public final class InputLogic {
                 // since it
                 // can incur a very expensive getTextAfterCursor() lookup, potentially making
                 // the
-                // keyboard UI slow and non-responsive.                // TODO: Cache the text after the cursor so we don't need to go to the
+                // keyboard UI slow and non-responsive.
+                // TODO: Cache the text after the cursor so we don't need to go to the
                 // InputConnection
                 // each time. We are already doing this for getTextBeforeCursor().
                 (!settingsValues.mSpacingAndPunctuations.mCurrentLanguageHasSpaces
@@ -2091,7 +2097,8 @@ public final class InputLogic {
                     // No need to reset mSpaceState, it has already be done (that's why we
                     // receive it as a parameter)
                     inputTransaction.setRequiresUpdateSuggestions();
-                    mWordComposer.setCapitalizedModeAtStartComposingTime(WordComposer.CAPS_MODE_OFF);                    StatsUtils.onRevertDoubleSpacePeriod();
+                    mWordComposer.setCapitalizedModeAtStartComposingTime(WordComposer.CAPS_MODE_OFF);
+                    StatsUtils.onRevertDoubleSpacePeriod();
                     return;
                 }
             } else if (SpaceState.SWAP_PUNCTUATION == inputTransaction.getSpaceState()) {
@@ -2390,7 +2397,8 @@ public final class InputLogic {
             mConnection.commitText(textToInsert, 1);
             inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
             inputTransaction.setRequiresUpdateSuggestions();
-            return true;        }
+            return true;
+        }
         return false;
     }
 
@@ -2689,7 +2697,8 @@ public final class InputLogic {
         // and unless
         // we take very complicated steps to preserve the whole link, we can't do things
         // right so
-        // we just do not resume because it's safer.        if (!isResumableWord(settingsValues, range.mWord.toString())) {
+        // we just do not resume because it's safer.
+        if (!isResumableWord(settingsValues, range.mWord.toString())) {
             mSuggestionStripViewAccessor.setNeutralSuggestionStrip();
             // "unselect" the previous text
             mConnection.finishComposingText();
@@ -2988,7 +2997,8 @@ public final class InputLogic {
      * @return whether it's fine to resume suggestions on this word.
      */
     private static boolean isResumableWord(final SettingsValues settings, final String word) {
-        final int firstCodePoint = word.codePointAt(0);        return settings.isWordCodePoint(firstCodePoint)
+        final int firstCodePoint = word.codePointAt(0);
+        return settings.isWordCodePoint(firstCodePoint)
                 && Constants.CODE_SINGLE_QUOTE != firstCodePoint
                 && Constants.CODE_DASH != firstCodePoint;
     }
@@ -3287,7 +3297,8 @@ public final class InputLogic {
      * without applying
      * auto-correction to it. Typically, we come here upon pressing a separator when
      * the keyboard
-     * is configured to not do auto-correction at all (because of the settings or     * the properties of
+     * is configured to not do auto-correction at all (because of the settings or
+     * the properties of
      * the editor). In this case, `separatorString' is set to the separator that was
      * pressed.
      * We also come here in a variety of cases with external user action. For
@@ -3589,6 +3600,7 @@ public final class InputLogic {
             KeyboardSwitcher.getInstance().showToast("Error getting suggestions", true);
         }
     }
+
     /**
      * Used as an injection point for each call of
      * {@link RichInputConnection#setComposingText(CharSequence, int)}.
