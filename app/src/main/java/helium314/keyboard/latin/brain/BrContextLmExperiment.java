@@ -145,9 +145,6 @@ public final class BrContextLmExperiment {
         if (!eligible || !isEnabled(context) || activeModel == null || ime == null
                 || requestEditorGeneration < 0
                 || ime.editorGeneration() != requestEditorGeneration) return original;
-        final EditorCache cache = cacheFor(ime, requestEditorGeneration, activeModel);
-        if (cache == null) return original;
-
         final ArrayList<Integer> slots = new ArrayList<>();
         final ArrayList<SuggestedWordInfo> candidates = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
@@ -174,6 +171,18 @@ public final class BrContextLmExperiment {
         }
         if (candidates.size() < 2) return original;
 
+        final int[] nativeScores = new int[candidates.size()];
+        final int[] nativeSlots = new int[candidates.size()];
+        for (int i = 0; i < candidates.size(); i++) {
+            nativeScores[i] = candidates.get(i).mScore;
+            nativeSlots[i] = slots.get(i);
+        }
+        // Neural work cannot change the native list when no eligible visible near-tie exists.
+        if (!BrHybridRankingPolicy.hasPotentialAdjacentSwap(nativeScores, nativeSlots)) return original;
+
+        final EditorCache cache = cacheFor(ime, requestEditorGeneration, activeModel);
+        if (cache == null) return original;
+
         final BrPersonalContextFeatures.Snapshot featureSnapshot =
                 BrPersonalContextFeatures.fromNative(ngramContext, candidates, true, false);
         if (featureSnapshot.candidates.size() < 2) return original;
@@ -192,12 +201,6 @@ public final class BrContextLmExperiment {
                 || System.nanoTime() - started > MAX_RERANK_NS
                 || scores.length != slots.size()) return original;
 
-        final int[] nativeScores = new int[scores.length];
-        final int[] nativeSlots = new int[scores.length];
-        for (int i = 0; i < scores.length; i++) {
-            nativeScores[i] = candidates.get(i).mScore;
-            nativeSlots[i] = slots.get(i);
-        }
         final int swap = BrHybridRankingPolicy.adjacentSwap(nativeScores, nativeSlots, scores);
         if (swap < 0) return original;
         final ArrayList<SuggestedWordInfo> result = new ArrayList<>(original);

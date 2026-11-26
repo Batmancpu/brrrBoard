@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Stabilize parallel dictionary suggestions",
+  "summary": "Keep native suggestions stable and skip ineffective optional reranking",
   "changes": [
     {
-      "title": "Isolate locale suggestion state",
-      "detail": "Use the captured dictionary-group set for each request and give parallel locale decoders separate native language/spatial weight state. The single active dictionary path retains one weight array."
+      "title": "Isolate parallel dictionary work",
+      "detail": "Keep locale decoder weight state independent and hold dictionary lifetimes stable until active native suggestion queries finish. Recoverable failures leave the remaining native suggestions available."
     },
     {
-      "title": "Contain decoder failures and protect reloads",
-      "detail": "A failed or cancelled locale query releases its completion slot and leaves other native results available. Dictionary replacement, close and history mutation wait for active native queries; stale asynchronous dictionaries are closed instead of installed. Preserve the availability callback return contract across debug and release variants."
+      "title": "Avoid redundant language lookups",
+      "detail": "Reuse each active dictionary group's word-validity results when updating multilingual confidence."
     },
     {
-      "title": "Avoid repeated language validity queries",
-      "detail": "Reuse each active group's original and decapitalized validity result while adjusting multilingual confidence, preserving the existing confidence rules."
+      "title": "Skip optional model work when order cannot change",
+      "detail": "When the experimental ContextLM is explicitly enabled, skip context encoding and candidate scoring unless an eligible adjacent native near-tie can legally move under the existing ranking policy. The native order and disabled-by-default setting remain unchanged."
     }
   ]
 }

@@ -9,21 +9,37 @@ package helium314.keyboard.latin.brain;
 final class BrHybridRankingPolicy {
     private BrHybridRankingPolicy() { }
 
-    static int adjacentSwap(int[] nativeScores, int[] slots, float[] neuralScores) {
+    /** True only when native scores and visible slots permit any policy-approved swap. */
+    static boolean hasPotentialAdjacentSwap(int[] nativeScores, int[] slots) {
+        if (nativeScores == null || slots == null) return false;
         final int n = nativeScores.length;
-        if (n < 2 || n > BrPersonalContextFeatures.MAX_CANDIDATES
-                || slots.length != n || neuralScores.length != n) return -1;
-        float lo = Float.POSITIVE_INFINITY, hi = Float.NEGATIVE_INFINITY;
+        if (n < 2 || n > BrPersonalContextFeatures.MAX_CANDIDATES || slots.length != n) return false;
         for (int i = 0; i < n; i++) {
-            if (!Float.isFinite(neuralScores[i]) || nativeScores[i] <= 0
-                    || nativeScores[i] == Integer.MAX_VALUE
-                    || slots[i] < 0 || (i > 0 && slots[i] <= slots[i - 1])) return -1;
-            lo = Math.min(lo, neuralScores[i]);
-            hi = Math.max(hi, neuralScores[i]);
+            if (nativeScores[i] <= 0 || nativeScores[i] == Integer.MAX_VALUE
+                    || slots[i] < 0 || (i > 0 && slots[i] <= slots[i - 1])) return false;
+        }
+        for (int i = 0; i < n - 1; i++) {
+            if (slots[i + 1] != slots[i] + 1) continue;
+            final long gap = Math.abs((long) nativeScores[i] - nativeScores[i + 1]);
+            if (gap <= Math.max(1.0, Math.max(nativeScores[i], nativeScores[i + 1]) * .05))
+                return true;
+        }
+        return false;
+    }
+
+    static int adjacentSwap(int[] nativeScores, int[] slots, float[] neuralScores) {
+        if (nativeScores == null || slots == null || neuralScores == null
+                || neuralScores.length != nativeScores.length
+                || !hasPotentialAdjacentSwap(nativeScores, slots)) return -1;
+        float lo = Float.POSITIVE_INFINITY, hi = Float.NEGATIVE_INFINITY;
+        for (float score : neuralScores) {
+            if (!Float.isFinite(score)) return -1;
+            lo = Math.min(lo, score);
+            hi = Math.max(hi, score);
         }
         final float margin = Math.max(.05f, (hi - lo) * .25f);
         if (!Float.isFinite(margin)) return -1;
-        for (int i = 0; i < n - 1; i++) {
+        for (int i = 0; i < nativeScores.length - 1; i++) {
             if (slots[i + 1] != slots[i] + 1) continue;
             final long gap = Math.abs((long) nativeScores[i] - nativeScores[i + 1]);
             if (gap > Math.max(1.0, Math.max(nativeScores[i], nativeScores[i + 1]) * .05))
