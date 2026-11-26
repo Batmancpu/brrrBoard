@@ -20,4 +20,30 @@ public class CorrectionRevertGuardTest {
         assertTrue(CorrectionRevertGuard.matches(word + ", ", word, ", "));
         assertFalse(CorrectionRevertGuard.matches(word + ". ", word, ", "));
     }
+    @Test public void hostMustAcceptRemovalBeforeOriginalTextCanBeRestored() {
+        assertTrue(CorrectionRevertGuard.matchesPrefixAfterDeletion(
+                "prefixcorrected ", "prefix", "corrected", " "));
+        assertFalse(CorrectionRevertGuard.matchesPrefixAfterDeletion(
+                "prefixcorrected ", "prefixcorrected ", "corrected", " "));
+        assertFalse(CorrectionRevertGuard.matchesPrefixAfterDeletion(
+                "prefixcorrected ", "changed", "corrected", " "));
+        assertTrue(CorrectionRevertGuard.matchesPrefixAfterDeletion(
+                "corrected ", "", "corrected", " "));
+    }
+
+    @Test public void restoredWordNeedsExactHostTextAndSameEditorConnection() {
+        assertTrue(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", "prefixteh", "corrected", " ", "teh", true, true));
+        assertFalse(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", "prefixcorrected teh", "corrected", " ", "teh", true, true));
+        assertFalse(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", "prefixthe", "corrected", " ", "teh", true, true));
+        assertFalse(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", "prefixteh", "corrected", " ", "teh", false, true));
+        assertFalse(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", "prefixteh", "corrected", " ", "teh", true, false));
+        assertFalse(CorrectionRevertGuard.confirmsRestoration(
+                "prefixcorrected ", null, "corrected", " ", "teh", true, true));
+    }
+
 }

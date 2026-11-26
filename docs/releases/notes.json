@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Keep unknown and shared words neutral in multilingual confidence",
+  "summary": "Verify correction undo before rejection learning",
   "changes": [
     {
-      "title": "Use decisive language evidence only",
-      "detail": "In existing multi-dictionary mode, language confidence changes only when exactly one active production main dictionary recognizes the committed word. Shared words and unknown names or deliberate spellings remain neutral; user history and shared personal vocabulary do not act as language evidence. Single-dictionary behavior is unchanged."
+      "title": "Record correction rejection only after verified restoration",
+      "detail": "Autocorrection undo now verifies the active editor and exact committed text before changing it, then requires the host to confirm the restored typed word before unlearning the correction or recording temporary rejection and per-app feedback. Failed or stale host transactions do not teach rejection."
     }
   ]
 }

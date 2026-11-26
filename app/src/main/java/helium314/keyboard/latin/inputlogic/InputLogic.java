@@ -2269,6 +2269,11 @@ public final class InputLogic {
     void unlearnWord(final String word, final SettingsValues settingsValues, final int eventType) {
         final NgramContext ngramContext = mConnection
                 .getNgramContextFromNthPreviousWord(settingsValues.mSpacingAndPunctuations, 2);
+        unlearnWord(word, settingsValues, eventType, ngramContext);
+    }
+
+    private void unlearnWord(final String word, final SettingsValues settingsValues, final int eventType,
+            @NonNull final NgramContext ngramContext) {
         final long timeStampInSeconds = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis());
         mDictionaryFacilitator.unlearnFromUserHistory(word, ngramContext, timeStampInSeconds, eventType);
         // The next-word cache is keyed only by context: a history rejection
@@ -2813,6 +2818,8 @@ public final class InputLogic {
      * @param inputTransaction The transaction in progress.
      */
     private boolean revertCommit(final InputTransaction inputTransaction) {
+        final android.view.inputmethod.InputConnection revertConnection = mLatinIME.getCurrentInputConnection();
+        final long revertEditorGeneration = mLatinIME.editorGeneration();
         final CharSequence originallyTypedWord = mLastComposedWord.mTypedWord;
         final CharSequence committedWord = mLastComposedWord.mCommittedWord;
         final String committedWordString = committedWord.toString();
@@ -2825,22 +2832,47 @@ public final class InputLogic {
         // We want java chars, not codepoints for the following.
         final int separatorLength = separatorString.length();
         final int deleteLength = cancelLength + separatorLength;
-        // Hosts may mutate text or move the caret without promptly notifying
-        // the IME. Verify the actual content in production before deleting;
-        // never log a user's word or the surrounding editor contents.
-        final CharSequence actual = mConnection.getTextBeforeCursor(deleteLength, 0);
-        if (mWordComposer.isComposingWord()
-                || !CorrectionRevertGuard.matches(actual, committedWord, separatorString)) {
+        final String stringToCommit = originallyTypedWord
+                + (usePhantomSpace ? "" : separatorString);
+        // Retain only a bounded editor suffix in this method's transient stack so
+        // both sides of the undo transaction can be verified against the host.
+        final CharSequence actual;
+        try {
+            actual = revertConnection == null ? null
+                    : revertConnection.getTextBeforeCursor(deleteLength + 64, 0);
+        } catch (Exception ignored) {
             mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
             return false;
         }
-        mConnection.deleteTextBeforeCursor(deleteLength);
-        if (!TextUtils.isEmpty(committedWord)) {
-            unlearnWord(committedWordString, inputTransaction.getSettingsValues(),
-                    Constants.EVENT_REVERT);
+        if (mWordComposer.isComposingWord() || revertConnection == null
+                || revertEditorGeneration != mLatinIME.editorGeneration()
+                || revertConnection != mLatinIME.getCurrentInputConnection()
+                || mConnection.hasSelection()
+                || !CorrectionRevertGuard.matchesSuffix(actual, committedWord, separatorString)) {
+            mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
+            return false;
         }
-        final String stringToCommit = originallyTypedWord +
-                (usePhantomSpace ? "" : separatorString);
+        final int precedingLength = actual.length() - deleteLength;
+        mConnection.deleteTextBeforeCursor(deleteLength);
+        final CharSequence hostPrefixAfterDelete;
+        try {
+            hostPrefixAfterDelete = revertConnection.getTextBeforeCursor(precedingLength, 0);
+        } catch (Exception ignored) {
+            mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
+            return false;
+        }
+        if (revertConnection != mLatinIME.getCurrentInputConnection()
+                || revertEditorGeneration != mLatinIME.editorGeneration()
+                || mConnection.hasSelection()
+                || !CorrectionRevertGuard.matchesPrefixAfterDeletion(actual, hostPrefixAfterDelete,
+                        committedWord, separatorString)) {
+            mLastComposedWord = LastComposedWord.NOT_A_COMPOSED_WORD;
+            return false;
+        }
+        // Preserve the context used by the former immediate unlearn call; after restoration,
+        // this word would otherwise appear as the previous word in its own history removal.
+        final NgramContext revertNgramContext = mConnection.getNgramContextFromNthPreviousWord(
+                inputTransaction.getSettingsValues().mSpacingAndPunctuations, 2);
         final SpannableString textToCommit = new SpannableString(stringToCommit);
         if (committedWord instanceof SpannableString committedWordWithSuggestionSpans) {
             final Object[] spans = committedWordWithSuggestionSpans.getSpans(0,
@@ -2893,17 +2925,37 @@ public final class InputLogic {
         // We have a separator between the word and the cursor: we should show
         // predictions.
         clearTransientCorrectionMemory();
-        if (mLatinIME.mayUseTransientCorrectionMemory(inputTransaction.getSettingsValues())) {
-            final SettingsValues profileValues = inputTransaction.getSettingsValues();
-            final EditorInfo profileEditor = mLatinIME.getCurrentInputEditorInfo();
-            if (profileEditor != null && profileEditor.packageName != null
-                    && profileEditor.packageName.equals(profileValues.mInputAttributes.mTargetApplicationPackageName)
-                    && !originallyTypedWord.toString().equals(committedWordString)) {
-                helium314.keyboard.latin.settings.AppProfileStore.noteRejection(mLatinIME,
-                        profileEditor.packageName, mLatinIME.editorGeneration(), SystemClock.elapsedRealtime(), profileValues);
+        final SettingsValues profileValues = inputTransaction.getSettingsValues();
+        boolean restoredInHost = false;
+        if (revertConnection == mLatinIME.getCurrentInputConnection()
+                && revertEditorGeneration == mLatinIME.editorGeneration()) {
+            try {
+                final CharSequence hostText = revertConnection.getTextBeforeCursor(
+                        precedingLength + stringToCommit.length(), 0);
+                restoredInHost = CorrectionRevertGuard.confirmsRestoration(actual, hostText,
+                        committedWord, separatorString, stringToCommit,
+                        revertConnection == mLatinIME.getCurrentInputConnection() && !mConnection.hasSelection(),
+                        revertEditorGeneration == mLatinIME.editorGeneration());
+            } catch (Exception ignored) {
+                // A host that cannot confirm the restored text contributes no rejection evidence.
             }
-            rememberRejectedCorrection(inputTransaction.getSettingsValues(),
-                    originallyTypedWord.toString(), committedWordString);
+        }
+        if (restoredInHost) {
+            if (!TextUtils.isEmpty(committedWord)) {
+                unlearnWord(committedWordString, profileValues, Constants.EVENT_REVERT, revertNgramContext);
+            }
+            if (mLatinIME.mayUseTransientCorrectionMemory(profileValues)
+                    && !mConnection.hasSlowInputConnection()) {
+                final EditorInfo profileEditor = mLatinIME.getCurrentInputEditorInfo();
+                if (profileEditor != null && profileEditor.packageName != null
+                        && profileEditor.packageName.equals(profileValues.mInputAttributes.mTargetApplicationPackageName)
+                        && !originallyTypedWord.toString().equals(committedWordString)) {
+                    helium314.keyboard.latin.settings.AppProfileStore.noteRejection(mLatinIME,
+                            profileEditor.packageName, revertEditorGeneration,
+                            SystemClock.elapsedRealtime(), profileValues);
+                }
+                rememberRejectedCorrection(profileValues, originallyTypedWord.toString(), committedWordString);
+            }
         }
         inputTransaction.setRequiresUpdateSuggestions();
         return true;
