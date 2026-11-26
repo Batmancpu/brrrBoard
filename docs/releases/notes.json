@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Clear per-app correction evidence when privacy tightens",
+  "summary": "Clear rejection evidence when learning switches off",
   "changes": [
     {
-      "title": "Reset per-app correction evidence at privacy boundaries",
-      "detail": "Clear the bounded, content-free rejection counter whenever the active editor is ineligible for transient correction memory, including settings reloads and keyboard-session starts. This prevents partial confirmation counts from carrying across a private or no-learning context. Only verified host-confirmed correction reversals remain eligible; profile thresholds, encrypted storage, and explicit user settings are unchanged."
+      "title": "Reset partial rejection evidence when correction learning is disabled",
+      "detail": "Also clear the content-free per-app rejection counter when personalized dictionaries or autocorrection are disabled in an otherwise eligible editor. Re-enabling either setting therefore starts with fresh confirmation evidence. Privacy gates, the six-reversal threshold, encrypted profiles, and explicit settings remain unchanged."
     }
   ]
 }

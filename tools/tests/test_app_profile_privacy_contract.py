@@ -16,17 +16,22 @@ class AppProfilePrivacyContractTest(unittest.TestCase):
         load_settings = ime.partition("private void loadSettings()")[2].partition(
             "private void refreshPersonalizationDictionarySession"
         )[0]
-        self.assertIn("if (!mayUseTransientCorrectionMemory(currentSettingsValues))", load_settings)
-        self.assertIn("AppProfileStore.clearTransientRejectionEvidence()", load_settings)
+        expected_gate = (
+            "if (!mayUseTransientCorrectionMemory(currentSettingsValues)\n"
+            "                || !currentSettingsValues.mUsePersonalizedDicts\n"
+            "                || !currentSettingsValues.mAutoCorrectEnabled)\n"
+            "            helium314.keyboard.latin.settings.AppProfileStore.clearTransientRejectionEvidence();"
+        )
+        self.assertIn(expected_gate, load_settings)
 
         input_view = ime.partition("void onStartInputViewInternal(")[2].partition(
             "void onFinishInputViewInternal("
         )[0]
         settings_read = input_view.rindex("currentSettingsValues = mSettings.getCurrent()")
-        privacy_clear = input_view.index("AppProfileStore.clearTransientRejectionEvidence()", settings_read)
+        clear_call = "helium314.keyboard.latin.settings.AppProfileStore.clearTransientRejectionEvidence();"
+        privacy_clear = input_view.index(clear_call, settings_read) + len(clear_call)
         self.assertGreater(privacy_clear, settings_read)
-        self.assertIn("if (!mayUseTransientCorrectionMemory(currentSettingsValues))",
-                      input_view[settings_read:privacy_clear])
+        self.assertIn(expected_gate, input_view[settings_read:privacy_clear])
 
     def test_clear_only_drops_bounded_content_free_counter(self):
         store = PROFILE_STORE.read_text()

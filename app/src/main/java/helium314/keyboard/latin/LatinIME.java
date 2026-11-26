@@ -1084,7 +1084,9 @@ public class LatinIME extends InputMethodService implements
                 WhatsAppVaultPolicy.isPrivateEditor(KtxKt.prefs(this), editorInfo));
         mSettings.loadSettings(this, locale, inputAttributes);
         final SettingsValues currentSettingsValues = mSettings.getCurrent();
-        if (!mayUseTransientCorrectionMemory(currentSettingsValues))
+        if (!mayUseTransientCorrectionMemory(currentSettingsValues)
+                || !currentSettingsValues.mUsePersonalizedDicts
+                || !currentSettingsValues.mAutoCorrectEnabled)
             helium314.keyboard.latin.settings.AppProfileStore.clearTransientRejectionEvidence();
         AudioAndHapticFeedbackManager.getInstance().onSettingsChanged(currentSettingsValues);
         // This method is called on startup and language switch, before the new layout
@@ -1602,7 +1604,9 @@ public class LatinIME extends InputMethodService implements
         }
         MainKeyboardView mainKeyboardView = switcher.getMainKeyboardView();
         currentSettingsValues = mSettings.getCurrent(); // settingsValues may have been reloaded
-        if (!mayUseTransientCorrectionMemory(currentSettingsValues))
+        if (!mayUseTransientCorrectionMemory(currentSettingsValues)
+                || !currentSettingsValues.mUsePersonalizedDicts
+                || !currentSettingsValues.mAutoCorrectEnabled)
             helium314.keyboard.latin.settings.AppProfileStore.clearTransientRejectionEvidence();
         if (mInputView instanceof InputView inputView) inputView.refreshBoardPrivacy();
 

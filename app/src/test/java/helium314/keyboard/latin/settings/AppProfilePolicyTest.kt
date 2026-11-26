@@ -36,11 +36,11 @@ class AppProfilePolicyTest {
         assertTrue(window.record(2,30_210L))
         assertFalse(window.record(2,30_211L))
     }
-    @Test fun privacyRevocationClearsPartialRejectionEvidence() {
+    @Test fun learningEligibilityRevocationClearsPartialRejectionEvidence() {
         val window = AppProfileRejectionWindow()
         repeat(5) { assertFalse(window.record(4, 100L + it)) }
 
-        // LatinIME clears the same bounded window when its current editor becomes ineligible.
+        // LatinIME clears this bounded window when privacy, personalization, or correction is disabled.
         window.clear()
         repeat(5) { assertFalse(window.record(4, 200L + it)) }
         assertTrue(window.record(4, 205L))
