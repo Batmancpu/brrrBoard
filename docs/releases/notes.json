@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "summary": "Preserve rejected-correction expiry across unrelated input",
+  "summary": "Cancel stale optional suggestion-model work cooperatively",
   "changes": [
     {
-      "title": "Keep short-lived rejection protection intact",
-      "detail": "An unrelated word or different proposed correction no longer cancels a confirmed rejection's scheduled cleanup. Exact matching feedback, editor or connection changes, privacy clears, and the original 30-second deadline continue to clear the session-only receipt."
+      "title": "Stop obsolete optional prediction work",
+      "detail": "Experimental ContextLM scoring now observes the existing suggestion request identity and exits cooperatively when newer input supersedes it. Cancellation preserves the native decoder list and does not publish a partial context cache; the experiment remains opt-in and disabled by default."
     }
   ]
 }

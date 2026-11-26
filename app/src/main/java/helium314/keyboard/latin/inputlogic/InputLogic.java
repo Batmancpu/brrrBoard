@@ -77,6 +77,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * This class manages the input logic.
@@ -519,9 +520,11 @@ public final class InputLogic {
     private long mRejectedSwipeAt;
     private long mLastInteractionUptime;
     private boolean mIgnoreOldContextUntilWordCommit;
-    // UI-thread-only token. A completed decoder result must never revive an older
-    // prefix, keyboard session, or editor after a newer input request.
-    private long mSuggestionRequestSerial;
+    // Written on UI thread and read by optional decoder work for cooperative cancellation.
+    // A completed result must never revive an older prefix, keyboard session, or editor.
+    private volatile long mSuggestionRequestSerial;
+    // Stable reader avoids allocating a cancellation callback for each typing request.
+    private final LongSupplier mSuggestionRequestSerialSupplier = () -> mSuggestionRequestSerial;
 
     private SwipeCorrectionLearner swipeLearnerIfAllowed(final SettingsValues values) {
         if (values == null || mConnection.hasSlowInputConnection()) return null;
@@ -2588,7 +2591,7 @@ public final class InputLogic {
         // Never block the IME's UI thread or silently discard a result after 40ms.
         // The callback runs on the existing decoder thread, then returns to UI.
         mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(
-                inputStyle, SuggestedWords.NOT_A_SEQUENCE_NUMBER,
+                inputStyle, SuggestedWords.NOT_A_SEQUENCE_NUMBER, requestSerial,
                 suggestedWords -> mLatinIME.mHandler.post(() -> applySuggestionResultIfCurrent(
                         editorGeneration, requestSerial, expectedTypedWord,
                         selectionStart, selectionEnd, suggestedWords))));
@@ -3579,6 +3582,11 @@ public final class InputLogic {
     // we used to provide keyboard, settingsValues and keyboardShiftMode, but every
     // time read it from current instance anyway
     void getSuggestedWords(final int inputStyle, final int sequenceNumber, final OnGetSuggestedWordsCallback callback) {
+        getSuggestedWords(inputStyle, sequenceNumber, mSuggestionRequestSerial, callback);
+    }
+
+    void getSuggestedWords(final int inputStyle, final int sequenceNumber,
+            final long requestSerial, final OnGetSuggestedWordsCallback callback) {
         final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
         if (keyboard == null) {
             callback.onGetSuggestedWords(SuggestedWords.getEmptyInstance());
@@ -3603,7 +3611,7 @@ public final class InputLogic {
                     keyboard,
                     settingsValues.mSettingsValuesForSuggestion,
                     settingsValues.mAutoCorrectEnabled,
-                    inputStyle, sequenceNumber);
+                    inputStyle, sequenceNumber, requestSerial, mSuggestionRequestSerialSupplier);
             callback.onGetSuggestedWords(suggestedWords);
         } catch (Exception e) {
             // better go without suggestions than have the keyboard crash

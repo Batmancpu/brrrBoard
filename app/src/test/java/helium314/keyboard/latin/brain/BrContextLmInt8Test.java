@@ -164,6 +164,25 @@ public class BrContextLmInt8Test {
         assertFalse(reference.knowsWord("unseenword"));
     }
 
+    @Test public void canceledEncodingStopsAndNeverPublishesPartialContext() throws Exception {
+        final BrContextLmInt8 reference = fixture(true).load();
+        final BrContextLmInt8.ContextCache cache = new BrContextLmInt8.ContextCache();
+        final NgramContext previous = new NgramContext(new NgramContext.WordInfo("kal"));
+        final BrPersonalContextFeatures.Snapshot snapshot = BrPersonalContextFeatures.fromNative(
+                previous, Arrays.asList(word("meeting", Dictionary.TYPE_USER_HISTORY),
+                        word("office", Dictionary.TYPE_MAIN)), true, true);
+        final java.util.concurrent.atomic.AtomicInteger reads = new java.util.concurrent.atomic.AtomicInteger();
+        final float[] canceled = reference.score(snapshot, cache, () ->
+                reads.incrementAndGet() < 20 ? 7L : 8L, 7L);
+        assertTrue(canceled == null);
+        assertTrue(reads.get() >= 20);
+        assertEquals(0, cache.computationsForTesting());
+
+        org.junit.Assert.assertArrayEquals(reference.score(snapshot),
+                reference.score(snapshot, cache), 0f);
+        assertEquals(1, cache.computationsForTesting());
+    }
+
     @Test(expected = IOException.class)
     public void modifiedModelWeightsAreRejectedBeforeScoring() throws Exception {
         final ModelBytes model = fixture();

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import helium314.keyboard.latin.LatinIME;
 import helium314.keyboard.latin.NgramContext;
@@ -23,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 /** Explicit, local-only ContextLM experiment. It never controls automatic correction. */
 public final class BrContextLmExperiment {
@@ -140,15 +142,29 @@ public final class BrContextLmExperiment {
             @NonNull final ArrayList<SuggestedWordInfo> original,
             final long requestEditorGeneration,
             final boolean eligible) {
+        return rerankManualSuggestions(context, ngramContext, original, requestEditorGeneration,
+                eligible, -1L, null);
+    }
+
+    @NonNull public static ArrayList<SuggestedWordInfo> rerankManualSuggestions(
+            @NonNull final Context context,
+            @NonNull final NgramContext ngramContext,
+            @NonNull final ArrayList<SuggestedWordInfo> original,
+            final long requestEditorGeneration,
+            final boolean eligible,
+            final long requestSerial,
+            @Nullable final LongSupplier requestSerialSupplier) {
         final BrContextLmInt8 activeModel = model;
         final LatinIME ime = LatinIME.getInstance();
         if (!eligible || !isEnabled(context) || activeModel == null || ime == null
                 || requestEditorGeneration < 0
-                || ime.editorGeneration() != requestEditorGeneration) return original;
+                || ime.editorGeneration() != requestEditorGeneration
+                || requestIsStale(requestSerial, requestSerialSupplier)) return original;
         final ArrayList<Integer> slots = new ArrayList<>();
         final ArrayList<SuggestedWordInfo> candidates = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
         for (int i = 0; i < original.size() && candidates.size() < BrPersonalContextFeatures.MAX_CANDIDATES; i++) {
+            if (requestIsStale(requestSerial, requestSerialSupplier)) return original;
             final SuggestedWordInfo info = original.get(i);
             if (info == null || info.mSourceDict == null || info.isEmoji()
                     || info.isKindOf(SuggestedWordInfo.KIND_TYPED)
@@ -169,7 +185,7 @@ public final class BrContextLmExperiment {
             candidates.add(info);
             slots.add(i);
         }
-        if (candidates.size() < 2) return original;
+        if (candidates.size() < 2 || requestIsStale(requestSerial, requestSerialSupplier)) return original;
 
         final int[] nativeScores = new int[candidates.size()];
         final int[] nativeSlots = new int[candidates.size()];
@@ -178,25 +194,30 @@ public final class BrContextLmExperiment {
             nativeSlots[i] = slots.get(i);
         }
         // Neural work cannot change the native list when no eligible visible near-tie exists.
-        if (!BrHybridRankingPolicy.hasPotentialAdjacentSwap(nativeScores, nativeSlots)) return original;
+        if (!BrHybridRankingPolicy.hasPotentialAdjacentSwap(nativeScores, nativeSlots)
+                || requestIsStale(requestSerial, requestSerialSupplier)) return original;
 
         final EditorCache cache = cacheFor(ime, requestEditorGeneration, activeModel);
-        if (cache == null) return original;
+        if (cache == null || requestIsStale(requestSerial, requestSerialSupplier)) return original;
 
         final BrPersonalContextFeatures.Snapshot featureSnapshot =
                 BrPersonalContextFeatures.fromNative(ngramContext, candidates, true, false);
-        if (featureSnapshot.candidates.size() < 2) return original;
+        if (featureSnapshot.candidates.size() < 2
+                || requestIsStale(requestSerial, requestSerialSupplier)) return original;
         final long started = System.nanoTime();
         final float[] scores;
         try {
-            scores = activeModel.score(featureSnapshot, cache.context);
+            scores = activeModel.score(featureSnapshot, cache.context,
+                    requestSerialSupplier, requestSerial);
         } catch (RuntimeException ignored) {
             return original;
         } finally {
             recordLatency(System.nanoTime() - started);
         }
+        if (scores == null) return original;
         synchronized (METRICS_LOCK) { requestsScored++; }
-        if (ime.editorGeneration() != requestEditorGeneration || !isEnabled(context)
+        if (requestIsStale(requestSerial, requestSerialSupplier)
+                || ime.editorGeneration() != requestEditorGeneration || !isEnabled(context)
                 || model != activeModel || !cacheIsCurrent(cache)
                 || System.nanoTime() - started > MAX_RERANK_NS
                 || scores.length != slots.size()) return original;
@@ -208,6 +229,11 @@ public final class BrContextLmExperiment {
         result.set(slots.get(swap + 1), candidates.get(swap));
         synchronized (METRICS_LOCK) { batchesReranked++; }
         return result;
+    }
+
+    private static boolean requestIsStale(final long requestSerial,
+            @Nullable final LongSupplier requestSerialSupplier) {
+        return requestSerialSupplier != null && requestSerialSupplier.getAsLong() != requestSerial;
     }
 
     private static void recordLatency(final long elapsedNs) {

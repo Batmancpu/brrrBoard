@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.LongSupplier;
 
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine;
 import helium314.keyboard.keyboard.emoji.EmojiContextEligibility;
@@ -102,18 +103,33 @@ public final class BrSuggestionBrain {
             @Nullable final SettingsValues values, @NonNull final NgramContext context,
             @NonNull final List<SuggestedWordInfo> nativeSuggestions,
             final long editorGeneration) {
+        return rerankManualSuggestions(ime, editor, values, context, nativeSuggestions,
+                editorGeneration, -1L, null);
+    }
+
+    @NonNull public static List<SuggestedWordInfo> rerankManualSuggestions(
+            @NonNull final LatinIME ime, @Nullable final EditorInfo editor,
+            @Nullable final SettingsValues values, @NonNull final NgramContext context,
+            @NonNull final List<SuggestedWordInfo> nativeSuggestions,
+            final long editorGeneration, final long requestSerial,
+            @Nullable final LongSupplier requestSerialSupplier) {
         // The disabled production path must not acquire new locks or call device services.
         if (!BrContextLmExperiment.isEnabled(ime)) return nativeSuggestions;
         if (!contextLmEditorIsCurrent(ime, editor, values, editorGeneration)) {
             BrContextLmExperiment.clearContextCache();
             return nativeSuggestions;
         }
+        if (requestSerialSupplier != null
+                && requestSerialSupplier.getAsLong() != requestSerial) return nativeSuggestions;
         final List<SuggestedWordInfo> reranked = BrContextLmExperiment.rerankManualSuggestions(
-                ime, context, new ArrayList<>(nativeSuggestions), editorGeneration, true);
+                ime, context, new ArrayList<>(nativeSuggestions), editorGeneration, true,
+                requestSerial, requestSerialSupplier);
         if (!contextLmEditorIsCurrent(ime, editor, values, editorGeneration)) {
             BrContextLmExperiment.clearContextCache();
             return nativeSuggestions;
         }
+        if (requestSerialSupplier != null
+                && requestSerialSupplier.getAsLong() != requestSerial) return nativeSuggestions;
         return reranked;
     }
 

@@ -2,6 +2,7 @@
 package helium314.keyboard.latin.brain;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.LongSupplier;
 
 /**
  * Small CPU-only reference executor for BR's causal DFSMN candidate scorer.
@@ -254,6 +256,13 @@ public final class BrContextLmInt8 {
 
     @NonNull float[] score(@NonNull final BrPersonalContextFeatures.Snapshot snapshot,
                            final ContextCache cache) {
+        return score(snapshot, cache, null, -1L);
+    }
+
+    @Nullable float[] score(@NonNull final BrPersonalContextFeatures.Snapshot snapshot,
+                           final ContextCache cache, @Nullable final LongSupplier requestSerialSupplier,
+                           final long requestSerial) {
+        if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
         if (snapshot.candidates.size() > BrPersonalContextFeatures.MAX_CANDIDATES) {
             throw new IllegalArgumentException("Too many candidate words");
         }
@@ -264,12 +273,14 @@ public final class BrContextLmInt8 {
         final int begin = vocabulary.get("<bos>");
         for (int i = 0; i < CONTEXT_TOKENS; i++) tokenIds[i] = begin;
         for (int i = 0; i < recent.size() && i < CONTEXT_TOKENS; i++) {
+            if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final String word = recent.get(recent.size() - 1 - i).toLowerCase(Locale.ROOT);
             tokenIds[CONTEXT_TOKENS - 1 - i] = vocabulary.getOrDefault(word, 1);
         }
         Encoding encoding = cache == null ? null : cache.last;
         if (encoding == null || !Arrays.equals(encoding.tokenIds, tokenIds)) {
-            encoding = encodeContext(tokenIds);
+            encoding = encodeContext(tokenIds, requestSerialSupplier, requestSerial);
+            if (encoding == null || requestIsStale(requestSerialSupplier, requestSerial)) return null;
             if (cache != null) {
                 cache.last = encoding;
                 cache.computations++;
@@ -279,6 +290,7 @@ public final class BrContextLmInt8 {
         final float[] personalWeights = encoding.personalWeights;
         final float[] scores = new float[snapshot.candidates.size()];
         for (int i = 0; i < scores.length; i++) {
+            if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final BrPersonalContextFeatures.Candidate candidate = snapshot.candidates.get(i);
             final int wordId = vocabulary.getOrDefault(candidate.word.toLowerCase(Locale.ROOT), 1);
             float sum = 0;
@@ -295,17 +307,21 @@ public final class BrContextLmInt8 {
         return scores;
     }
 
-    private Encoding encodeContext(final int[] tokenIds) {
+    private Encoding encodeContext(final int[] tokenIds, @Nullable final LongSupplier requestSerialSupplier,
+            final long requestSerial) {
         float[][] states = new float[CONTEXT_TOKENS][CHANNELS];
         for (int i = 0; i < CONTEXT_TOKENS; i++) {
+            if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final int index = tokenIds[i] * CHANNELS;
             System.arraycopy(embedding, index, states[i], 0, CHANNELS);
         }
         for (int layer = 0; layer < LAYERS; layer++) {
+            if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
             final float[][] following = new float[CONTEXT_TOKENS][CHANNELS];
             final float[] matrix = projections[layer];
             final float[] bias = biases[layer];
             for (int t = 0; t < CONTEXT_TOKENS; t++) {
+                if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
                 for (int output = 0; output < CHANNELS; output++) {
                     float value = bias[output];
                     final int row = output * CHANNELS;
@@ -320,6 +336,7 @@ public final class BrContextLmInt8 {
             }
             states = following;
         }
+        if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
         final float[] latest = states[CONTEXT_TOKENS - 1];
         final float[] personalWeights = new float[4];
         for (int feature = 0; feature < 4; feature++) {
@@ -329,6 +346,12 @@ public final class BrContextLmInt8 {
             }
             personalWeights[feature] = personalBase[feature] + (float) Math.tanh(gate);
         }
+        if (requestIsStale(requestSerialSupplier, requestSerial)) return null;
         return new Encoding(tokenIds, latest, personalWeights);
+    }
+
+    private static boolean requestIsStale(@Nullable final LongSupplier requestSerialSupplier,
+            final long requestSerial) {
+        return requestSerialSupplier != null && requestSerialSupplier.getAsLong() != requestSerial;
     }
 }

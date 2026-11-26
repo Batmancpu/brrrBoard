@@ -31,6 +31,7 @@ import helium314.keyboard.latin.utils.AutoCorrectionUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.SuggestionResults
 import java.util.Locale
+import java.util.function.LongSupplier
 import kotlin.math.min
 
 /**
@@ -62,7 +63,14 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
 
     fun getSuggestedWords(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                           settingsValuesForSuggestion: SettingsValuesForSuggestion, isCorrectionEnabled: Boolean,
-                          inputStyle: Int, sequenceNumber: Int): SuggestedWords {
+                          inputStyle: Int, sequenceNumber: Int): SuggestedWords =
+        getSuggestedWords(wordComposer, ngramContext, keyboard, settingsValuesForSuggestion,
+            isCorrectionEnabled, inputStyle, sequenceNumber, -1L, null)
+
+    fun getSuggestedWords(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
+                          settingsValuesForSuggestion: SettingsValuesForSuggestion, isCorrectionEnabled: Boolean,
+                          inputStyle: Int, sequenceNumber: Int, requestSerial: Long,
+                          requestSerialSupplier: LongSupplier?): SuggestedWords {
         // Only content-free timing/counts, and never while an incognito/protected editor is active.
         // The timing covers this entire local candidate generation call, not display latency.
         val values = Settings.getValues()
@@ -85,7 +93,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             } else {
                 getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard,
                     settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber,
-                    requestedEditorGeneration, cacheEpoch)
+                    requestedEditorGeneration, cacheEpoch, requestSerial, requestSerialSupplier)
             }
             if (measurable) BrainPerformanceMetrics.recordSuggestionBatch(result.size())
             return result
@@ -99,7 +107,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     private fun getSuggestedWordsForNonBatchInput(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                       settingsValuesForSuggestion: SettingsValuesForSuggestion, inputStyleIfNotPrediction: Int,
                       isCorrectionEnabled: Boolean, sequenceNumber: Int,
-                      requestedEditorGeneration: Long, cacheEpoch: Long): SuggestedWords {
+                      requestedEditorGeneration: Long, cacheEpoch: Long,
+                      requestSerial: Long, requestSerialSupplier: LongSupplier?): SuggestedWords {
         val typedWordString = wordComposer.typedWord
         val resultsArePredictions = !wordComposer.isComposingWord
         val suggestionResults = if (typedWordString.isEmpty())
@@ -245,7 +254,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             && emojiService != null) {
             BrSuggestionBrain.rerankManualSuggestions(
                 emojiService, emojiSuggestionEditor, currentSettings, ngramContext,
-                suggestionsList, requestedEditorGeneration
+                suggestionsList, requestedEditorGeneration, requestSerial, requestSerialSupplier
             )
         } else suggestionsList
         return SuggestedWords(ArrayList(contextLmSuggestions), suggestionResults.mRawSuggestions,
