@@ -135,8 +135,11 @@ final class GestureTrailDrawingPoints {
      * @return the width of a gesture trail
      */
     private static float getWidth(final int elapsedTime, final GestureTrailDrawingParams params) {
+        if (params.mIosMotion) return helium314.keyboard.keyboard.MotionContinuity.taper(
+                params.mTrailStartWidth, params.mTrailEndWidth,
+                elapsedTime / (float)Math.max(1, params.mTrailLingerDuration));
         final float deltaWidth = params.mTrailStartWidth - params.mTrailEndWidth;
-        return params.mTrailStartWidth - (deltaWidth * elapsedTime) / params.mTrailLingerDuration;
+        return params.mTrailStartWidth - (deltaWidth * elapsedTime) / Math.max(1,params.mTrailLingerDuration);
     }
 
     private final RoundedLine mRoundedLine = new RoundedLine();
@@ -217,6 +220,20 @@ final class GestureTrailDrawingPoints {
                 p1x = p2x;
                 p1y = p2y;
                 r1 = r2;
+            }
+            if (params.mIosMotion) {
+                // A single sampled point has a rounded leading tip; recognition is untouched.
+                final int last = trailSize - 1;
+                final int age = sinceDown - eventTimes[last];
+                final float radius = getWidth(age, params) * .5f * params.mTrailBodyRatio;
+                if (radius > 0f) {
+                    paint.clearShadowLayer();
+                    paint.setAlpha(getAlpha(age, params));
+                    canvas.drawCircle(p1x,p1y,radius,paint);
+                    final int inset = (int)Math.ceil(radius);
+                    mRoundedLineBounds.set(p1x-inset,p1y-inset,p1x+inset,p1y+inset);
+                    outBoundsRect.union(mRoundedLineBounds);
+                }
             }
             if (DEBUG_SHOW_POINTS) {
                 debugDrawPoints(canvas, startIndex, trailSize, paint);

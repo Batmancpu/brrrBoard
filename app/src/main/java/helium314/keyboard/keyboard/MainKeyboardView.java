@@ -147,6 +147,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     private final IdentityHashMap<Key, KeyPressMotion> mKeyPressMotions = new IdentityHashMap<>();
     private boolean mTrackpadVisualMode;
+    private float mTrackpadLabelAlpha = 1f;
+    private KeyPressMotion mTrackpadLabelMotion;
+    private KeyPressMotion mCaseLabelMotion;
+    private float mCaseLabelScale = 1f;
     private boolean mConfirmationVisualMode;
     private float mConfirmationLabelAlpha = 1f;
     private ValueAnimator mConfirmationLabelAnimator;
@@ -205,11 +209,21 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         if (mTrackpadVisualMode == next) return;
         mTrackpadVisualMode = next;
         mKeyPressMotions.clear();
+        final long now = SystemClock.uptimeMillis();
+        final float goal = next ? 0f : 1f;
+        final float from = mTrackpadLabelMotion == null ? mTrackpadLabelAlpha : mTrackpadLabelMotion.value(now);
+        if (KeyboardMotionSpec.optionalMotion(getContext()) && isShown()) {
+            mTrackpadLabelMotion = new KeyPressMotion(from,goal,now,
+                    next ? KeyboardMotionSpec.TRACKPAD_FOOTER_EXIT_MS : KeyboardMotionSpec.TRACKPAD_FOOTER_RETURN_MS);
+        } else {
+            mTrackpadLabelMotion = null;
+            mTrackpadLabelAlpha = goal;
+        }
         invalidateAllKeys();
     }
 
     private void startKeyPressMotion(final Key key, final boolean pressed) {
-        if (!KeyboardMotionSpec.enabled() || !KeyboardMotionSpec.isIos27(getContext())) return;
+        if (!KeyboardMotionSpec.optionalMotion(getContext()) || !KeyboardMotionSpec.isIos27(getContext())) return;
         final long now = SystemClock.uptimeMillis();
         final KeyPressMotion current = mKeyPressMotions.get(key);
         final float from = current == null ? (pressed ? 0f : 1f) : current.value(now);
@@ -230,6 +244,16 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     protected void onDraw(@NonNull final Canvas canvas) {
         final long now = SystemClock.uptimeMillis();
+        if (mTrackpadLabelMotion != null) {
+            mTrackpadLabelAlpha = mTrackpadLabelMotion.value(now);
+            if (mTrackpadLabelMotion.finished(now)) mTrackpadLabelMotion = null;
+            invalidateAllKeys();
+        }
+        if (mCaseLabelMotion != null) {
+            mCaseLabelScale = mCaseLabelMotion.value(now);
+            if (mCaseLabelMotion.finished(now)) mCaseLabelMotion = null;
+            invalidateAllKeys();
+        }
         final Iterator<Map.Entry<Key, KeyPressMotion>> iterator = mKeyPressMotions.entrySet().iterator();
         while (iterator.hasNext()) {
             final Map.Entry<Key, KeyPressMotion> entry = iterator.next();
@@ -237,7 +261,8 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             if (entry.getValue().finished(now)) iterator.remove();
         }
         super.onDraw(canvas);
-        if (!mKeyPressMotions.isEmpty()) postInvalidateOnAnimation();
+        if (!mKeyPressMotions.isEmpty() || mTrackpadLabelMotion != null || mCaseLabelMotion != null)
+            postInvalidateOnAnimation();
     }
 
     @Override
@@ -454,7 +479,17 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     public void setKeyboardForCaseSwitch(@NonNull final Keyboard keyboard) {
+        final Keyboard old = getKeyboard();
+        final boolean changed = old != null && old.mId.mElementId != keyboard.mId.mElementId;
         setKeyboardInternal(keyboard, false /* requestLayout */);
+        if (changed && !mTrackpadVisualMode && !mConfirmationVisualMode &&
+                KeyboardMotionSpec.isIos27(getContext()) && KeyboardMotionSpec.optionalMotion(getContext()) && isShown()) {
+            final long now = SystemClock.uptimeMillis();
+            final float from = mCaseLabelMotion == null ? .94f : mCaseLabelMotion.value(now);
+            mCaseLabelMotion = new KeyPressMotion(from,1f,now,KeyboardMotionSpec.CASE_SETTLE_MS);
+            mCaseLabelScale = from;
+            invalidateAllKeys();
+        }
     }
 
     private void setKeyboardInternal(@NonNull final Keyboard keyboard, final boolean requestLayout) {
@@ -463,8 +498,17 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         // Cursor moves trigger keyboard/case rebuilds. Preserve the unlabelled
         // trackpad surface until the actual spacebar gesture ends, not until the
         // next selection-driven redraw or suggestion update.
-        mTrackpadVisualMode = TouchpadHandler.isTouchpadModeRequested()
+        final boolean trackpad = TouchpadHandler.isTouchpadModeRequested()
                 && KeyboardMotionSpec.isIos27(getContext());
+        if (trackpad != mTrackpadVisualMode) {
+            mTrackpadVisualMode = trackpad;
+            mTrackpadLabelMotion = null;
+            mTrackpadLabelAlpha = trackpad ? 0f : 1f;
+        }
+        if (requestLayout) {
+            mCaseLabelMotion = null;
+            mCaseLabelScale = 1f;
+        }
         Trace.beginSection(requestLayout
                 ? "MainKeyboardView#setKeyboard" : "MainKeyboardView#setKeyboardForCase");
         try {
@@ -723,6 +767,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
 
     @Override
     protected void onDetachedFromWindow() {
+        mCaseLabelMotion = null;
+        mCaseLabelScale = 1f;
+        mTrackpadLabelMotion = null;
+        mTrackpadLabelAlpha = mTrackpadVisualMode ? 0f : 1f;
         resetEditGesture();
         super.onDetachedFromWindow();
         final ViewGroup parent = (ViewGroup) mDrawingPreviewPlacerView.getParent();
@@ -866,6 +914,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             }
         });
         window.showAtLocation(getRootView(), Gravity.NO_GRAVITY, popupX, popupY);
+        KeyboardMotionSpec.revealLongPressPopup(container);
     }
 
     public boolean isShowingPopupKeysPanel() {
@@ -1039,6 +1088,10 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     public void onHideWindow() {
+        mCaseLabelMotion = null;
+        mCaseLabelScale = 1f;
+        mTrackpadLabelMotion = null;
+        mTrackpadLabelAlpha = mTrackpadVisualMode ? 0f : 1f;
         cancelLayerPresentation();
         resetEditGesture();
         onDismissPopupKeysPanel();
@@ -1122,11 +1175,14 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             @NonNull final Paint paint, @NonNull final KeyDrawParams params) {
         // Preserve the original spacebar language, popup hints and alt-code drawing.
         // Trackpad mode hides all labels, while key pressure scales drawing only.
-        if (mTrackpadVisualMode || mConfirmationLabelAlpha <= .01f) return;
-        final float scale = keyPressScale(key);
-        final int save = mConfirmationLabelAlpha >= .999f ? canvas.save()
+        final float labelAlpha = mTrackpadLabelAlpha * mConfirmationLabelAlpha;
+        if (labelAlpha <= .01f) return;
+        final String label = key.getLabel();
+        final boolean caseKey = key.isShift() || (label != null && label.length() == 1 && Character.isLetter(label.charAt(0)));
+        final float scale = keyPressScale(key) * (caseKey && !isRenderingMorphArtwork() ? mCaseLabelScale : 1f);
+        final int save = labelAlpha >= .999f ? canvas.save()
                 : canvas.saveLayerAlpha(0f, 0f, key.getDrawWidth(), key.getHeight(),
-                    Math.round(255 * mConfirmationLabelAlpha));
+                    Math.round(255 * labelAlpha));
         canvas.scale(scale, scale, key.getDrawWidth() * .5f, key.getHeight() * .5f);
         if (key.altCodeWhileTyping() && key.isEnabled()) {
             params.mAnimAlpha = Constants.Color.ALPHA_OPAQUE;

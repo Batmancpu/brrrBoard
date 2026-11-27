@@ -35,7 +35,8 @@ object EmojiPanelKeyMorph {
     internal fun deferTargetCapture(cold: Boolean, pendingLayout: Boolean, targetReady: Boolean,
             retries: Int): Boolean = retries < 2 && ((cold && retries == 0) || pendingLayout || !targetReady)
 
-    class KeyImage(val code: Int, val bounds: RectF, val artwork: Bitmap)
+    class KeyImage(val code: Int, val bounds: RectF, val artwork: Bitmap,
+                   val velocity: RectF? = null, val composite: Boolean = false)
     class Snapshot(val keys: List<KeyImage>)
     private class Track(val from: KeyImage, val to: KeyImage)
     private class Session(val root: ViewGroup, val destination: MainKeyboardView, val source: Snapshot) {
@@ -65,7 +66,8 @@ object EmojiPanelKeyMorph {
 
     private fun supported(view: MainKeyboardView): Boolean {
         val id = view.keyboard?.mId ?: return false
-        return id.isAlphaOrSymbolKeyboard || id.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW
+        return id.isAlphaOrSymbolKeyboard || id.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW ||
+            id.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW
     }
 
     @JvmStatic fun capture(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
@@ -83,15 +85,20 @@ object EmojiPanelKeyMorph {
     }
 
     @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
-        val native = capture(root,view) ?: return null
-        val session = current?.takeIf { it.root === root && it.destination === view } ?: return native
+        val session = current?.takeIf { it.root === root && it.destination === view }
+        val native = capture(root,view)
+        if (session == null) return native
         val overlay = session.overlay
-        if (overlay != null) return Snapshot(native.keys.map { overlay.presented(it) ?: it })
+        if (overlay != null) {
+            return Snapshot((native?.keys ?: emptyList()).map { overlay.presented(it) ?: it } +
+                overlay.presentedMissing(native?.keys?.map { it.code } ?: emptyList()))
+        }
+        if (native == null) return session.source
         val pairs = pairedCodes(session.source.keys.map { it.code },native.keys.map { it.code })
         return Snapshot(native.keys.map { key ->
             val from = pairs.firstOrNull { it.second == key.code }?.first
                 ?.let { code -> session.source.keys.firstOrNull { it.code == code } }
-            if (from == null) key else KeyImage(key.code,RectF(from.bounds),from.artwork)
+            if (from == null) key else KeyImage(key.code,RectF(from.bounds),from.artwork,from.velocity,from.composite || from.code != key.code)
         })
     }
 
@@ -149,30 +156,49 @@ object EmojiPanelKeyMorph {
                 val tracks = pairedCodes(source.keys.map { it.code },target.keys.map { it.code }).mapNotNull { (a,b) ->
                     val from = source.keys.first { it.code == a }
                     val to = target.keys.first { it.code == b }
-                    if (a == b && from.bounds == to.bounds) null else Track(from,to)
+                    if (a == b && from.bounds == to.bounds && !from.composite) null else Track(from,to)
                 }
                 if (tracks.isEmpty()) { cancel(); return true }
-                val drawable = MovingKeys(tracks)
+                val drawable = MovingKeys(tracks, KeyboardMotionSpec.easing(root.context))
                 drawable.setBounds(0,0,root.width,root.height)
                 session.overlay = drawable
                 root.overlay.add(drawable)
                 TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_OVERLAY)
                 destination.setEmojiMorphHiddenCodes(tracks.map { it.to.code }.toIntArray())
                 val layout = View.OnLayoutChangeListener { _,l,t,r,b,ol,ot,orr,ob ->
-                    if (current === session && (l!=ol || t!=ot || r!=orr || b!=ob)) cancel()
+                    if (current === session && (l!=ol || t!=ot || r!=orr || b!=ob)) {
+                        val sampled = capturePresented(root,destination)
+                        if (sampled != null && destination.isShown) start(root,sampled,destination)
+                        else cancel()
+                    }
                 }
                 session.layout = layout
                 destination.addOnLayoutChangeListener(layout)
-                val keyboard = destination.keyboard
+                var keyboard = destination.keyboard
                 val animator = ValueAnimator.ofFloat(0f,1f)
                 val budget = MorphFrameBudget(root.display?.refreshRate ?: 60f)
                 session.animator = animator
                 animator.duration = DURATION
-                animator.interpolator = KeyboardMotionSpec.easing(root.context)
+                animator.interpolator = android.view.animation.LinearInterpolator()
                 animator.addUpdateListener {
                     if (current !== session) return@addUpdateListener
-                    if (!destination.isShown || destination.keyboard !== keyboard || !KeyboardMotionSpec.enabled()
+                    if (!destination.isShown || !supported(destination) || !KeyboardMotionSpec.enabled()
                         || budget.shouldSnap(System.nanoTime())) { cancel(); return@addUpdateListener }
+                    if (destination.keyboard !== keyboard) {
+                        val origin = IntArray(2)
+                        root.getLocationOnScreen(origin)
+                        val bounds = Rect()
+                        val same = tracks.all { track ->
+                            destination.getEmojiMorphArtworkBoundsOnScreen(track.to.code,bounds) &&
+                                run { bounds.offset(-origin[0],-origin[1]); RectF(bounds) == track.to.bounds }
+                        }
+                        if (!same) {
+                            val sampled = capturePresented(root,destination)
+                            if (sampled != null) start(root,sampled,destination) else cancel()
+                            return@addUpdateListener
+                        }
+                        keyboard = destination.keyboard
+                    }
                     drawable.progress = it.animatedValue as Float
                     drawable.invalidateSelf()
                 }
@@ -190,53 +216,90 @@ object EmojiPanelKeyMorph {
         root.invalidate()
     }
 
-    private class MovingKeys(val tracks: List<Track>) : Drawable() {
+    private class MovingKeys(val tracks: List<Track>,
+                             val ease: android.animation.TimeInterpolator?) : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         private val add = PorterDuffXfermode(PorterDuff.Mode.ADD)
         private val rect = RectF()
         var progress = 0f
         private var drawnProgress = 0f
-
+        private var previousProgress = 0f
+        private var drawnAt = 0L
+        private var previousAt = 0L
+        private fun eased(p: Float): Float = ease?.getInterpolation(p.coerceIn(0f,1f))
+            ?: MotionContinuity.smooth(p)
         private fun bounds(track: Track, p: Float, out: RectF) {
             val a = track.from.bounds; val b = track.to.bounds
-            out.set(position(a.left,b.left,p),position(a.top,b.top,p),
-                position(a.right,b.right,p),position(a.bottom,b.bottom,p))
+            val v = track.from.velocity
+            fun axis(from: Float, to: Float, velocity: Float): Float =
+                if (v == null) position(from,to,eased(p))
+                else MotionContinuity.position(from,to,velocity,p,DURATION)
+            out.set(axis(a.left,b.left,v?.left ?: 0f),axis(a.top,b.top,v?.top ?: 0f),
+                axis(a.right,b.right,v?.right ?: 0f),axis(a.bottom,b.bottom,v?.bottom ?: 0f))
+            if (out.right <= out.left) out.right = out.left + 1f
+            if (out.bottom <= out.top) out.bottom = out.top + 1f
         }
-
-        fun presented(native: KeyImage): KeyImage? {
-            val track = tracks.firstOrNull { it.to.code == native.code } ?: return null
-            val visible = RectF()
-            bounds(track,drawnProgress,visible)
-            // Sample geometry and the dominant artwork, not the logical destination position.
-            return KeyImage(native.code,visible,if (drawnProgress < .5f) track.from.artwork else track.to.artwork)
-        }
-
-        override fun draw(canvas: Canvas) {
-            val p = progress.coerceIn(0f,1f)
-            drawnProgress = p
-            for (track in tracks) {
-                bounds(track,p,rect)
+        private fun drawTrack(canvas: Canvas, track: Track, p: Float, area: RectF) {
+            paint.alpha = 255
+            paint.xfermode = null
+            if (p <= 0f) {
+                canvas.drawBitmap(track.from.artwork,null,area,paint)
+            } else if (p >= 1f || (track.from.code == track.to.code && !track.from.composite)) {
+                canvas.drawBitmap(track.to.artwork,null,area,paint)
+            } else {
+                val layer = canvas.saveLayer(area,null)
+                val alpha = Math.round(255*eased(p))
+                paint.alpha = 255-alpha
+                canvas.drawBitmap(track.from.artwork,null,area,paint)
+                paint.alpha = alpha
+                paint.xfermode = add
+                canvas.drawBitmap(track.to.artwork,null,area,paint)
                 paint.alpha = 255
                 paint.xfermode = null
-                if (p <= 0f) {
-                    canvas.drawBitmap(track.from.artwork,null,rect,paint)
-                } else if (p >= 1f || track.from.code == track.to.code) {
-                    // Same-role controls have one artwork, never two translucent keycaps.
-                    canvas.drawBitmap(track.to.artwork,null,rect,paint)
-                } else {
-                    // Isolated additive interpolation of premultiplied pixels,
-                    // then composite once onto the glass. No source-over alpha dip.
-                    val layer = canvas.saveLayer(rect,null)
-                    val alpha = Math.round(255*p)
-                    paint.alpha = 255-alpha
-                    canvas.drawBitmap(track.from.artwork,null,rect,paint)
-                    paint.alpha = alpha
-                    paint.xfermode = add
-                    canvas.drawBitmap(track.to.artwork,null,rect,paint)
-                    paint.alpha = 255
-                    paint.xfermode = null
-                    canvas.restoreToCount(layer)
-                }
+                canvas.restoreToCount(layer)
+            }
+        }
+        private fun presented(track: Track): KeyImage {
+            val visible = RectF()
+            bounds(track,drawnProgress,visible)
+            val velocity = RectF()
+            if (previousAt > 0L && drawnAt > previousAt) {
+                val prior = RectF()
+                bounds(track,previousProgress,prior)
+                val rate = 1_000_000_000f / (drawnAt-previousAt).toFloat()
+                velocity.set((visible.left-prior.left)*rate,(visible.top-prior.top)*rate,
+                    (visible.right-prior.right)*rate,(visible.bottom-prior.bottom)*rate)
+            }
+            val composite = (track.from.code != track.to.code || track.from.composite) &&
+                drawnProgress > 0f && drawnProgress < 1f
+            val artwork = if (composite) {
+                val w = visible.width().toInt().coerceAtLeast(1)
+                val h = visible.height().toInt().coerceAtLeast(1)
+                if (w.toLong()*h <= 1_000_000L) {
+                    Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888).also {
+                        it.density = Bitmap.DENSITY_NONE
+                        drawTrack(Canvas(it),track,drawnProgress,RectF(0f,0f,w.toFloat(),h.toFloat()))
+                    }
+                } else track.to.artwork
+            } else if (drawnProgress <= 0f) track.from.artwork else track.to.artwork
+            return KeyImage(track.to.code,visible,artwork,velocity,composite ||
+                (drawnProgress <= 0f && (track.from.composite || track.from.code != track.to.code)))
+        }
+        fun presented(native: KeyImage): KeyImage? =
+            tracks.firstOrNull { it.to.code == native.code }?.let(::presented)
+        fun presentedMissing(codes: List<Int>): List<KeyImage> =
+            tracks.filter { it.to.code !in codes }.map(::presented)
+        override fun draw(canvas: Canvas) {
+            val p = progress.coerceIn(0f,1f)
+            if (p != drawnProgress || drawnAt == 0L) {
+                previousProgress = drawnProgress
+                previousAt = drawnAt
+                drawnProgress = p
+                drawnAt = System.nanoTime()
+            }
+            for (track in tracks) {
+                bounds(track,p,rect)
+                drawTrack(canvas,track,p,rect)
             }
         }
         override fun setAlpha(alpha: Int) {}

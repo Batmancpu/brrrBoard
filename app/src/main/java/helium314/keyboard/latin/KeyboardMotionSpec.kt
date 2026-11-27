@@ -28,8 +28,9 @@ object KeyboardMotionSpec {
     const val SEARCH_PENDING_MS = 90L
     const val FOOTER_ACTION_MS = 150L
     const val VOICE_PULSE_CYCLE_MS = 1_600L
-    const val TRACKPAD_FOOTER_EXIT_MS = 220L
-    const val TRACKPAD_FOOTER_RETURN_MS = 220L
+    const val TRACKPAD_FOOTER_EXIT_MS = 150L
+    const val TRACKPAD_FOOTER_RETURN_MS = 150L
+    const val CASE_SETTLE_MS = 95L
 
     // The legacy preset is deliberately immutable: selecting Previous Default must
     // reproduce the prior choreography, not merely recolor the current renderer.
@@ -43,10 +44,10 @@ object KeyboardMotionSpec {
     @JvmStatic fun easing(context: Context): TimeInterpolator? =
         if (isIos27(context)) iosEase else null
 
-    @JvmStatic fun keyPreviewEnterMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 85L else 0L
-    @JvmStatic fun keyPreviewExitMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 90L else 0L
-    @JvmStatic fun keyDownMillis(context: Context): Long = if (isIos27(context)) 50L else 0L
-    @JvmStatic fun keyUpMillis(context: Context): Long = if (isIos27(context)) 110L else 0L
+    @JvmStatic fun keyPreviewEnterMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 55L else 0L
+    @JvmStatic fun keyPreviewExitMillis(context: Context): Long = if (isIos27(context) && optionalMotion(context)) 65L else 0L
+    @JvmStatic fun keyDownMillis(context: Context): Long = if (isIos27(context)) 32L else 0L
+    @JvmStatic fun keyUpMillis(context: Context): Long = if (isIos27(context)) 85L else 0L
     @JvmStatic fun panelTransitionMillis(context: Context): Long = if (isIos27(context)) 180L else 160L
     @JvmStatic fun emojiSearchMillis(context: Context): Long = if (isIos27(context)) 190L else 210L
     @JvmStatic fun emojiHeightMillis(context: Context): Long = if (isIos27(context)) 225L else 260L
@@ -64,6 +65,15 @@ object KeyboardMotionSpec {
     @JvmStatic fun shouldMorphWords(old: String?, next: String?, sameSurface: Boolean,
             motionEnabled: Boolean): Boolean = sameSurface && motionEnabled &&
         !old.isNullOrBlank() && !next.isNullOrBlank() && old != next
+
+    /** Popup content stays at native hit coordinates; only entrance opacity settles. */
+    @JvmStatic fun revealLongPressPopup(view: View) {
+        view.animate().cancel()
+        view.alpha = 1f
+        if (!isIos27(view.context) || !optionalMotion(view.context)) return
+        view.alpha = .86f
+        view.animate().alpha(1f).setDuration(85L).setInterpolator(iosEase).start()
+    }
 
     /** Transitions presentation only; content and its real touch targets are current. */
     @JvmStatic fun revealSearchResults(view: View) {

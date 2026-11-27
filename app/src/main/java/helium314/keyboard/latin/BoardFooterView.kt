@@ -397,7 +397,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         emojiButton.isEnabled = !desired
         microphone.isEnabled = !desired
         passwordManagerButton.isEnabled = !desired
-        val slide = dp(64).toFloat()
+        val slide = dp(if (confirmationRequested) 64 else 18).toFloat()
         val smooth = KeyboardMotionSpec.easing(context)
         val duration = if (desired) KeyboardMotionSpec.TRACKPAD_FOOTER_EXIT_MS
             else KeyboardMotionSpec.TRACKPAD_FOOTER_RETURN_MS
@@ -405,7 +405,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         controls.forEachIndexed { index, view ->
             val target = if (!desired) 0f else if (index == 0) -slide else slide
             view.animate().cancel()
-            if (!KeyboardMotionSpec.enabled() || !isShown) {
+            if (!KeyboardMotionSpec.optionalMotion(context) || !isShown) {
                 view.translationX = target
                 view.alpha = if (desired) 0f else 1f
             } else {

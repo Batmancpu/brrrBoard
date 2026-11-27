@@ -1,14 +1,26 @@
 {
   "schema": 1,
-  "summary": "Steadier backspace suggestions and repaired Scale Improved",
+  "summary": "Motion continuity across typing, panels and Emoji Search",
   "changes": [
     {
-      "title": "Hold suggestions during rapid deletion",
-      "detail": "Keep the last readable suggestion row visible and non-selectable while deleting. Refresh after a 185 ms quiet interval; normal typing remains immediate."
+      "title": "Interruptible keyboard panel motion",
+      "detail": "Retarget shared public controls from their last drawn blended artwork with bounded momentum; include Clipboard bottom-row controls without capturing clipboard contents. Keep the base opaque."
     },
     {
-      "title": "Restore visible Scale Improved motion",
-      "detail": "Use the original Scale snapshot geometry for supported labels while retaining improved logical matching, continuous retargeting and separate opacity. Original Scale timing and rendering stay unchanged."
+      "title": "Emoji Search glyph continuity",
+      "detail": "Match complete emoji strings; retain stationary glyphs and animate changed glyphs within native tap slots, with stable empty/pending states."
+    },
+    {
+      "title": "Faster optional popups and key feedback",
+      "detail": "Keep existing preview preference; reuse a repeated character’s fading preview, bound unrelated exits, shorten entry/release and reveal long-press popups without moving touch coordinates."
+    },
+    {
+      "title": "Swipe, Shift and trackpad refinements",
+      "detail": "Coalesce display-synchronized trail updates with eased taper and rounded tip; settle letter and Shift labels and synchronize trackpad labels and footer."
+    },
+    {
+      "title": "Clipboard accessory continuity",
+      "detail": "Retarget the public compact icon from its previous position without retaining clipboard content or shifting prediction targets."
     }
   ]
 }

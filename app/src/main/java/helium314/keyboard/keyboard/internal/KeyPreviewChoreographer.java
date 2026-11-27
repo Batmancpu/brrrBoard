@@ -44,15 +44,34 @@ public final class KeyPreviewChoreographer {
     private final HashMap<Key,KeyPreviewView> mShowingKeyPreviewViews = new HashMap<>();
 
     private final KeyPreviewDrawParams mParams;
+    private boolean mReusingPresentedPreview;
 
     public KeyPreviewChoreographer(final KeyPreviewDrawParams params) {
         mParams = params;
     }
 
     public KeyPreviewView getKeyPreviewView(final Key key, final ViewGroup placerView) {
+        mReusingPresentedPreview = false;
         KeyPreviewView keyPreviewView = mShowingKeyPreviewViews.remove(key);
         if (keyPreviewView != null) {
+            mReusingPresentedPreview = true;
             return keyPreviewView;
+        }
+        if (KeyboardMotionSpec.isIos27(placerView.getContext())) {
+            for (final KeyPreviewView fading : mFadingKeyPreviewViews) {
+                if (fading.getTag() == key) { keyPreviewView = fading; break; }
+            }
+            if (keyPreviewView != null) {
+                mFadingKeyPreviewViews.remove(keyPreviewView);
+                keyPreviewView.animate().withEndAction(null).cancel();
+                mReusingPresentedPreview = true;
+                return keyPreviewView;
+            }
+            while (mFadingKeyPreviewViews.size() > 1) {
+                final KeyPreviewView oldest = mFadingKeyPreviewViews.peek();
+                oldest.animate().withEndAction(null).cancel();
+                finishDismissing(oldest);
+            }
         }
         keyPreviewView = mFreeKeyPreviewViews.poll();
         if (keyPreviewView != null) {
@@ -99,7 +118,7 @@ public final class KeyPreviewChoreographer {
         keyPreviewView.animate().cancel();
         final Context context = keyPreviewView.getContext();
         if (KeyboardMotionSpec.isIos27(context) && KeyboardMotionSpec.enabled()
-                && keyPreviewView.isAttachedToWindow()) {
+                && KeyboardMotionSpec.optionalMotion(context) && keyPreviewView.isAttachedToWindow()) {
             mFadingKeyPreviewViews.add(keyPreviewView);
             keyPreviewView.animate().alpha(0f).scaleX(.96f).scaleY(.96f)
                     .setDuration(KeyboardMotionSpec.keyPreviewExitMillis(context))
@@ -201,11 +220,13 @@ public final class KeyPreviewChoreographer {
         mShowingKeyPreviewViews.put(key, keyPreviewView);
         final Context context = keyPreviewView.getContext();
         if (KeyboardMotionSpec.isIos27(context) && KeyboardMotionSpec.enabled()
-                && keyPreviewView.isAttachedToWindow()) {
-            keyPreviewView.setAlpha(.35f);
-            keyPreviewView.setScaleX(.94f);
-            keyPreviewView.setScaleY(.90f);
-            keyPreviewView.setTranslationY(2f * context.getResources().getDisplayMetrics().density);
+                && KeyboardMotionSpec.optionalMotion(context) && keyPreviewView.isAttachedToWindow()) {
+            if (!mReusingPresentedPreview) {
+                keyPreviewView.setAlpha(.86f);
+                keyPreviewView.setScaleX(.97f);
+                keyPreviewView.setScaleY(.95f);
+                keyPreviewView.setTranslationY(context.getResources().getDisplayMetrics().density);
+            }
             keyPreviewView.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0f)
                     .setDuration(KeyboardMotionSpec.keyPreviewEnterMillis(context))
                     .setInterpolator(KeyboardMotionSpec.easing(context)).start();

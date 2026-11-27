@@ -15,6 +15,7 @@ import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -208,6 +209,7 @@ public final class EmojiPalettesView extends LinearLayout
     protected void onDetachedFromWindow() {
         helium314.keyboard.keyboard.EmojiPanelKeyMorph.cancel();
         if (mSearchResultMorph != null) mSearchResultMorph.cancel();
+        if (mSearchResultsView != null) mSearchResultsView.cancelSearchGlyphMotion();
         super.onDetachedFromWindow();
     }
 
@@ -918,6 +920,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (mSearchMode) helium314.keyboard.latin.utils.TransitionDiagnostics.begin(
                 helium314.keyboard.latin.utils.TransitionDiagnostics.Event.EXIT_SEARCH);
         if (mSearchResultMorph != null) mSearchResultMorph.cancel();
+        if (mSearchResultsView != null) mSearchResultsView.cancelSearchGlyphMotion();
 
         if (!mSearchMode && !clearQuery) {
             return;
@@ -1277,11 +1280,17 @@ public final class EmojiPalettesView extends LinearLayout
         final boolean resultsChanged = !mDisplayedSearchEmojis.equals(visibleEmojis);
         final boolean morphResults = EmojiSearchSurfacePolicy.shouldMorphResults(
                 mSearchMode, mSearchEntryInProgress, resultsChanged, finalAnswer);
-        if (mSearchResultMorph != null && morphResults) {
+        final boolean glyphMotion = morphResults && KeyboardMotionSpec.isIos27(getContext())
+                && KeyboardMotionSpec.optionalMotion(getContext());
+        if (glyphMotion) {
+            if (mSearchResultMorph != null) mSearchResultMorph.cancel();
+            mSearchResultsView.prepareSearchGlyphMotion(mSearchResultsScrollView.getScrollX() == 0
+                    && mSearchEmptyView.getVisibility() != View.VISIBLE);
+        } else if (mSearchResultMorph != null && morphResults && !KeyboardMotionSpec.isIos27(getContext())) {
             final View oldSurface = mSearchEmptyView.getVisibility() == View.VISIBLE
                     ? mSearchEmptyView : mSearchResultsScrollView;
             mSearchResultMorph.capture(oldSurface);
-        }
+        } else if (resultsChanged) mSearchResultsView.cancelSearchGlyphMotion();
         final int keyboardWidth = getSearchResultsKeyboardWidth(visibleEmojis.size());
         // Clearing the old query must not rebuild an entire keyboard layout
         // on every character. Only rebuild once the worker has final hits.
@@ -1326,10 +1335,12 @@ public final class EmojiPalettesView extends LinearLayout
         setSearchResultsPending(false);
         if (!mSearchMode && mSearchResultMorph != null) {
             mSearchResultMorph.cancel();
-        } else if (morphResults && mSearchResultMorph != null) {
+        } else if (glyphMotion && !noMatches) {
+            mSearchResultsView.finishSearchGlyphMotion();
+        } else if (morphResults && mSearchResultMorph != null && !KeyboardMotionSpec.isIos27(getContext())) {
             mSearchResultMorph.reveal(noMatches ? mSearchEmptyView : mSearchResultsScrollView);
-        }
-        mSearchResultsView.invalidate();
+        } else if (noMatches) mSearchResultsView.cancelSearchGlyphMotion();
+        mSearchResultsView.invalidateAllKeys();
         mSearchResultsView.requestLayout();
     }
 

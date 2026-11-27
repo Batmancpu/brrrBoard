@@ -35,6 +35,11 @@ public abstract class AbstractDrawingPreview {
         }
     }
 
+    /** Coalesce repeated input invalidations on the next display frame. */
+    protected final void invalidateDrawingViewOnAnimation() {
+        if (mDrawingView != null) mDrawingView.postInvalidateOnAnimation();
+    }
+
     /** Schedule decorative drawing against the display clock, not an arbitrary fixed timer. */
     protected final void postOnDrawingViewAnimation(@NonNull final Runnable runnable) {
         if (mDrawingView != null) mDrawingView.postOnAnimation(runnable);

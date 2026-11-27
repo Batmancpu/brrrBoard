@@ -305,11 +305,12 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             return
         }
         if (accessory.parent !== suggestionsMiddleContainer) {
+            val oldChromeCenter = accessory.chromePresentedCenter()
             (accessory.parent as? ViewGroup)?.removeView(accessory)
             accessory.setCompactMode(true)
             suggestionsMiddleContainer.addView(accessory, FrameLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-            accessory.reveal()
+            accessory.revealCompactedFrom(oldChromeCenter)
         }
         isExternalSuggestionVisible = false
     }

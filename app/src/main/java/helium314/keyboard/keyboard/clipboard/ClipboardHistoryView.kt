@@ -122,6 +122,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
     private var heightChangePending = false
     private var heightGeneration = 0L
     fun isSearchMode(): Boolean = searchMode
+    fun getBottomRowKeyboardForMorph(): MainKeyboardView? = if (searchMode) null else clipboardRowKeyboard
 
 
     lateinit var keyboardActionListener: KeyboardActionListener

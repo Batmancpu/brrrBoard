@@ -191,7 +191,8 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
         }
         trail.addStroke(tracker.getGestureStrokeDrawingPoints(), tracker.getDownTime());
 
-        // TODO: Should narrow the invalidate region.
-        invalidateDrawingView();
+        // Input sampling is unchanged; rendering is coalesced by the display clock.
+        if (mFrameSynchronized) invalidateDrawingViewOnAnimation();
+        else invalidateDrawingView();
     }
 }

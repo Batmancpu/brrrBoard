@@ -140,6 +140,38 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
         // The empty center has no click listener and lets prediction taps pass through.
     }
 
+    /** Public icon geometry only: no departing clipboard text or image snapshot. */
+    fun chromePresentedCenter(): Float? {
+        if (!hasLiveChrome || !chrome.isShown || chrome.width <= 0) return null
+        val location = IntArray(2)
+        chrome.getLocationOnScreen(location)
+        return location[0] + chrome.width / 2f
+    }
+
+    fun revealCompactedFrom(oldCenter: Float?) {
+        if (oldCenter == null || !helium314.keyboard.latin.KeyboardMotionSpec.isIos27(context) ||
+            !helium314.keyboard.latin.KeyboardMotionSpec.optionalMotion(context)) { reveal(); return }
+        val target = chrome
+        target.animate().cancel()
+        target.translationX = 0f
+        target.alpha = 1f
+        val listener = object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (viewTreeObserver.isAlive) viewTreeObserver.removeOnPreDrawListener(this)
+                if (retired || !compact || !hasLiveChrome || !isShown) return true
+                val location = IntArray(2)
+                target.getLocationOnScreen(location)
+                val delta = oldCenter - (location[0] + target.width / 2f)
+                target.translationX = delta.coerceIn(-dp(22).toFloat(),dp(22).toFloat())
+                chromeRevealed = true
+                target.animate().translationX(0f).alpha(1f).setDuration(145L)
+                    .setInterpolator(helium314.keyboard.latin.KeyboardMotionSpec.easing(context)).start()
+                return true
+            }
+        }
+        viewTreeObserver.addOnPreDrawListener(listener)
+    }
+
     /** Move only the accessory, leaving the keyboard and prediction surface stationary. */
     fun reveal() {
         if (!hasLiveChrome || chromeRevealed || chromeExiting) return

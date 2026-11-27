@@ -11,6 +11,11 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.os.SystemClock;
+import helium314.keyboard.keyboard.internal.KeyDrawParams;
+import helium314.keyboard.keyboard.MotionContinuity;
+import helium314.keyboard.latin.KeyboardMotionSpec;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.util.AttributeSet;
@@ -53,6 +58,72 @@ import java.util.WeakHashMap;
 public final class EmojiPageKeyboardView extends KeyboardView implements
         PopupKeysPanel.Controller {
     private static final String TAG = "EmojiPageKeyboardView";
+    // This state is used only by the search results view, not browsing pages.
+    private final EmojiSearchGlyphMotion mSearchGlyphMotion = new EmojiSearchGlyphMotion();
+    private float mSearchDrawProgress = 1f;
+
+    void prepareSearchGlyphMotion(final boolean preserve) {
+        mSearchGlyphMotion.capture(preserve ? getKeyboard() : null,mSearchDrawProgress);
+    }
+
+    void finishSearchGlyphMotion() {
+        if (!KeyboardMotionSpec.isIos27(getContext()) || !KeyboardMotionSpec.optionalMotion(getContext())) {
+            cancelSearchGlyphMotion();
+            return;
+        }
+        mSearchGlyphMotion.retarget(getKeyboard(),SystemClock.uptimeMillis());
+        mSearchDrawProgress = 0f;
+        invalidateAllKeys();
+    }
+
+    void cancelSearchGlyphMotion() {
+        if (mSearchGlyphMotion.clear()) invalidateAllKeys();
+        mSearchDrawProgress = 1f;
+    }
+
+    @Override protected void onDraw(@NonNull final Canvas canvas) {
+        if (mSearchGlyphMotion.active()) {
+            if (!isShown() || !KeyboardMotionSpec.optionalMotion(getContext())) cancelSearchGlyphMotion();
+            else {
+                mSearchDrawProgress = mSearchGlyphMotion.progress(SystemClock.uptimeMillis());
+                if (mSearchDrawProgress >= 1f) mSearchGlyphMotion.clear();
+                invalidateAllKeys();
+            }
+        }
+        super.onDraw(canvas);
+        if (mSearchGlyphMotion.active()) postInvalidateOnAnimation();
+    }
+
+    @Override protected void onDrawKeyTopVisuals(@NonNull final Key key,@NonNull final Canvas canvas,
+            @NonNull final Paint paint,@NonNull final KeyDrawParams params) {
+        final EmojiSearchGlyphMotion.Track track = mSearchGlyphMotion.track(key.getLabel());
+        if (track == null) {
+            super.onDrawKeyTopVisuals(key,canvas,paint,params);
+            return;
+        }
+        final float p = MotionContinuity.smooth(mSearchDrawProgress);
+        final int originalAlpha = params.mAnimAlpha;
+        final float cx = key.getDrawWidth() * .5f, cy = key.getHeight() * .5f;
+        final int clip = canvas.save();
+        // Keep every visual inside its current slot and never create a second touch target.
+        canvas.clipRect(0f,0f,key.getDrawWidth(),key.getHeight());
+        if (track.departing != null && p < .6f) {
+            final int out = canvas.save();
+            final float exit = MotionContinuity.smooth(p / .6f);
+            final float scale = MotionContinuity.lerp(track.departingScale,.35f,exit);
+            canvas.scale(scale,scale,cx,cy);
+            params.mAnimAlpha = Math.round(originalAlpha * .40f * (1f-exit));
+            super.onDrawKeyTopVisuals(track.departing,canvas,paint,params);
+            canvas.restoreToCount(out);
+        }
+        canvas.translate(track.offset * (1f-p),0f);
+        final float scale = MotionContinuity.lerp(track.scale,1f,p);
+        canvas.scale(scale,scale,cx,cy);
+        params.mAnimAlpha = Math.round(originalAlpha * MotionContinuity.lerp(track.alpha,1f,p));
+        super.onDrawKeyTopVisuals(key,canvas,paint,params);
+        params.mAnimAlpha = originalAlpha;
+        canvas.restoreToCount(clip);
+    }
     private static final boolean LOG = false;
     private static final long KEY_PRESS_DELAY_TIME = 250;  // msec
     private static final long KEY_RELEASE_DELAY_TIME = 30;  // msec
@@ -240,6 +311,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
             }
         });
         window.showAtLocation(rootView, Gravity.NO_GRAVITY, popupX, popupY);
+        KeyboardMotionSpec.revealLongPressPopup(container);
     }
 
     private int getClampedPopupX(final View rootView, final int popupX, final int popupWidth) {
@@ -297,6 +369,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(final MotionEvent e) {
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) cancelSearchGlyphMotion();
         return switch (e.getActionMasked()) {
             case MotionEvent.ACTION_DOWN -> {
                 mPointerId = e.getPointerId(0);
@@ -505,6 +578,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelSearchGlyphMotion();
         onDismissPopupKeysPanel();
         super.onDetachedFromWindow();
     }

@@ -365,6 +365,16 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mAccessPointMenuView.setAlpha(1f);
     }
 
+    /** Only public key controls participate; clipboard content is never captured. */
+    private MainKeyboardView publicPanelRow(final View panel) {
+        if (panel == mKeyboardView) return mKeyboardView;
+        if (panel == mEmojiPalettesView && mEmojiPalettesView != null
+                && !mEmojiPalettesView.isSearchMode()) return mEmojiPalettesView.getBottomRowKeyboardForMorph();
+        if (panel == mClipboardHistoryView && mClipboardHistoryView != null
+                && !mClipboardHistoryView.isSearchMode()) return mClipboardHistoryView.getBottomRowKeyboardForMorph();
+        return null;
+    }
+
     private void transitionToPanel(final View targetPanel, final Runnable action) {
         transitionToPanel(targetPanel, action, true);
     }
@@ -398,7 +408,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
         final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView
                 && !mEmojiPalettesView.isSearchMode();
+        final boolean sharedPublicRows = KeyboardMotionSpec.isIos27(mLatinIME)
+                && outgoingPanel != targetPanel && (toEmoji || fromEmoji
+                    || outgoingPanel == mClipboardHistoryView || targetPanel == mClipboardHistoryView);
         final MainKeyboardView sourceKeys = !allowEmojiKeyMorph ? null
+                : sharedPublicRows ? publicPanelRow(outgoingPanel)
                 : toEmoji ? mKeyboardView
                 : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
         // Sample the previous overlay's last presented geometry before canceling
@@ -411,8 +425,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         helium314.keyboard.latin.utils.TransitionDiagnostics.event(
                 helium314.keyboard.latin.utils.TransitionDiagnostics.Event.PANEL_COMMITTED);
         if (source != null && mCurrentInputView != null) {
-            final MainKeyboardView destination = toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph()
-                    : mKeyboardView;
+            final MainKeyboardView destination = sharedPublicRows ? publicPanelRow(targetPanel)
+                    : toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : mKeyboardView;
             EmojiPanelKeyMorph.start(mCurrentInputView, source, destination);
         }
         // action.run() has already hidden the outgoing surface. Fading its sole
