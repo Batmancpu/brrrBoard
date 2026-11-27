@@ -12,7 +12,6 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.text.Spanned
 import android.text.TextPaint
 import android.text.style.CharacterStyle
@@ -291,42 +290,10 @@ internal class QuickTypeMotion(
         val metrics = paint.fontMetrics
         val baseline = (contentTop + contentBottom - metrics.ascent - metrics.descent) / 2f
         val color = paint.color
-        if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
-            // Use complete-run shaping/kerning, not isolated prefix measurements.
-            // A ligature/cluster that cannot safely split into individual glyphs stays native.
-            val advances = FloatArray(label.length + 1)
-            if (Build.VERSION.SDK_INT >= 29) {
-                val widths = FloatArray(label.length)
-                paint.getTextRunAdvances(label.toCharArray(), 0, label.length,
-                    0, label.length, false, widths, 0)
-                for (i in widths.indices) advances[i + 1] = advances[i] + widths[i]
-            } else {
-                for (i in 1..label.length) advances[i] =
-                    paint.getRunAdvance(label, 0, label.length, 0, label.length, false, i)
-            }
-            for (i in 1..label.length) {
-                if (!advances[i].isFinite() || advances[i] - advances[i - 1] <= .01f ||
-                    (Build.VERSION.SDK_INT >= 29 &&
-                        paint.getTextRunCursor(label, 0, label.length, false, i, Paint.CURSOR_AT) != i))
-                    return null
-            }
-            val layout = view.layout
-            val currentLayout = layout != null && layout.lineCount == 1 &&
-                layout.text.toString() == label && view.baseline >= 0
-            if (currentLayout && layout!!.getEllipsisCount(0) > 0) return null
-            // If the current native layout already exists, match its exact leading position.
-            val shapedX = if (currentLayout) contentLeft + layout!!.getPrimaryHorizontal(0)
-                else (contentLeft + contentRight - advances.last()) / 2f
-            val nativeBaseline = if (currentLayout) top + view.baseline.toFloat() else baseline
-            return Slot(label, clip, label.indices.map { i ->
-                Ink(label.substring(i, i + 1), shapedX + advances[i], nativeBaseline,
-                    1f, paint, color, advance = advances[i + 1] - advances[i],
-                    targetIndex = i, runText = label, runIndex = i)
-            })
-        }
         val glyphs = label.indices.map { i ->
             Ink(label.substring(i, i + 1), x + paint.measureText(label, 0, i),
-                baseline, 1f, paint, color, advance = paint.measureText(label, i, i + 1))
+                baseline, 1f, paint, color, advance = paint.measureText(label, i, i + 1),
+                targetIndex = if (preset == SuggestionMotionPreset.SCALE_IMPROVED) i else -1)
         }
         return Slot(label, clip, glyphs)
     }

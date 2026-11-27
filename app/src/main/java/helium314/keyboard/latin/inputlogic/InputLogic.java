@@ -2790,6 +2790,9 @@ public final class InputLogic {
         mWordComposer.setCursorPositionWithinWord(typedWordString.codePointCount(0, numberOfCharsInWordBeforeCursor));
         mConnection.setComposingRegion(expectedCursorPosition - numberOfCharsInWordBeforeCursor,
                 expectedCursorPosition + range.getNumberOfCharsInWordAfterCursor());
+        // Keep composition/cursor semantics, but do not launch a separate recorrection
+        // lookup for every deleted prefix; the editor-scoped settle will request the latest.
+        if (mLatinIME.isBackspaceSuggestionHoldActive()) return;
         if (suggestions.size() <= 1) {
             // If there weren't any suggestion spans on this word, suggestions#size() will
             // be 1

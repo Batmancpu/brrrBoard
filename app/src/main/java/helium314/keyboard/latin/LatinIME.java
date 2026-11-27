@@ -209,6 +209,8 @@ public class LatinIME extends InputMethodService implements
     private boolean mStartupSuggestionSeedVisible;
     // A transient visual hold, not a candidate cache or a valid tap target.
     private Runnable mPendingEmptyPredictionClear;
+    private final BackspaceSuggestionHold mBackspaceSuggestionHold = new BackspaceSuggestionHold();
+    private final Runnable mSettleBackspaceSuggestions = this::settleBackspaceSuggestions;
     private SuggestedWords mPendingChatGptVoiceSuggestions;
     private final Runnable mFlushChatGptVoiceSuggestions = new Runnable() {
         @Override public void run() {
@@ -485,6 +487,7 @@ public class LatinIME extends InputMethodService implements
             final LatinIME ime = getOwnerInstance();
             if (ime == null) return;
             ime.mInputLogic.invalidateSuggestionRequests();
+            if (ime.isBackspaceSuggestionHoldActive()) return;
             if (inputStyle == SuggestedWords.INPUT_STYLE_TYPING) {
                 ime.mInputLogic.showImmediateTypedWordIfNeeded(ime.mSettings.getCurrent());
             }
@@ -1914,6 +1917,7 @@ public class LatinIME extends InputMethodService implements
             updateSelectionToolsAccessory(newSelStart, newSelEnd);
         }
         if (userSelectionChanged) {
+            cancelBackspaceSuggestionHold();
             BrContextLmExperiment.clearContextCache();
             // we don't want to update a manually set shift state if selection changed
             // towards one side
@@ -2369,6 +2373,12 @@ public class LatinIME extends InputMethodService implements
                 || event.getKeyCode() == KeyCode.GIFS || event.getKeyCode() == KeyCode.STICKERS) {
             return;
         }
+        final boolean hadBackspaceHold = isBackspaceSuggestionHoldActive();
+        if (event.getKeyCode() == KeyCode.DELETE) {
+            beginBackspaceSuggestionHold();
+        } else {
+            cancelBackspaceSuggestionHold();
+        }
         final long transactionStarted = measureKeyLatency
                 ? helium314.keyboard.latin.brain.BrainPerformanceMetrics.begin() : 0L;
         final InputTransaction completeInputTransaction = mInputLogic.onCodeInput(mSettings.getCurrent(), event,
@@ -2380,11 +2390,16 @@ public class LatinIME extends InputMethodService implements
                     transactionStarted);
         }
         updateStateAfterInputTransaction(completeInputTransaction);
+        if (hadBackspaceHold && event.getKeyCode() != KeyCode.DELETE
+                && !completeInputTransaction.requiresUpdateSuggestions()) {
+            mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+        }
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
     }
 
     public void onTextInput(final String rawText) {
         if (rawText == null) return;
+        cancelBackspaceSuggestionHold();
         ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // TODO: have the keyboard pass the correct key code when we need it.
         final Event event = Event.createSoftwareTextEvent(rawText, KeyCode.MULTIPLE_CODE_POINTS, null);
@@ -2409,6 +2424,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     void onPrivateVoiceTextInput(final String text, final boolean replaceVoiceDraft) {
+        cancelBackspaceSuggestionHold();
         final Event event = Event.createSoftwareTextEvent(text, KeyCode.MULTIPLE_CODE_POINTS, null);
         final InputTransaction transaction = mInputLogic.onPrivateVoiceTextInput(
                 mSettings.getCurrent(), event, mKeyboardSwitcher.getKeyboardShiftMode(), mHandler,
@@ -2703,6 +2719,7 @@ public class LatinIME extends InputMethodService implements
     public long editorGeneration() { return mEditorSessionGeneration.current(); }
 
     public void onStartBatchInput() {
+        cancelBackspaceSuggestionHold();
         mInputLogic.onStartBatchInput(mSettings.getCurrent(), mKeyboardSwitcher, mHandler);
         mGestureConsumer.onGestureStarted(mRichImm.getCurrentSubtypeLocale(), mKeyboardSwitcher.getKeyboard());
     }
@@ -2771,7 +2788,7 @@ public class LatinIME extends InputMethodService implements
     }
 
     private void setSuggestedWords(final SuggestedWords suggestedWords) {
-        if (mIsDestroyed) {
+        if (mIsDestroyed || isBackspaceSuggestionHoldActive()) {
             return;
         }
         for (int i=0;i<suggestedWords.size();i++) {
@@ -2820,7 +2837,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void setSuggestions(final SuggestedWords suggestedWords) {
-        if (mIsDestroyed) {
+        if (mIsDestroyed || isBackspaceSuggestionHoldActive()) {
             return;
         }
         for (int i=0; i<suggestedWords.size(); i++) {
@@ -2897,6 +2914,46 @@ public class LatinIME extends InputMethodService implements
         // user
         // touches a key that will insert it.
         AccessibilityUtils.Companion.getInstance().setAutoCorrection(suggestedWords);
+    }
+
+    public boolean isBackspaceSuggestionHoldActive() {
+        return mBackspaceSuggestionHold.isActive(mEditorSessionGeneration.current());
+    }
+
+    private void beginBackspaceSuggestionHold() {
+        final SettingsValues values = mSettings.getCurrent();
+        if (!values.needsToLookupSuggestions() || values.isApplicationSpecifiedCompletionsOn()
+                || values.mInputAttributes.mVaultPrivateEditor || values.mInputAttributes.mIsPasswordField
+                || values.mIncognitoModeEnabled || mInlineProviderViewActive
+                || !values.mInputAttributes.mIsGeneralTextInput || mSuggestionStripView == null
+                || !isInputViewShown()) {
+            cancelBackspaceSuggestionHold();
+            return;
+        }
+        if (!isBackspaceSuggestionHoldActive()) {
+            if (!mSuggestionStripView.holdBackspaceFrame()) return;
+            cancelPendingEmptyPredictionClear();
+        }
+        // Every delete invalidates any old lookup, including the one in flight.
+        mHandler.cancelUpdateSuggestionStrip();
+        mBackspaceSuggestionHold.noteDelete(mEditorSessionGeneration.current());
+        mHandler.removeCallbacks(mSettleBackspaceSuggestions);
+        mHandler.postDelayed(mSettleBackspaceSuggestions, BackspaceSuggestionHold.SETTLE_MS);
+    }
+
+    private void cancelBackspaceSuggestionHold() {
+        mBackspaceSuggestionHold.clear();
+        mHandler.removeCallbacks(mSettleBackspaceSuggestions);
+    }
+
+    private void settleBackspaceSuggestions() {
+        if (!isBackspaceSuggestionHoldActive()) return;
+        cancelBackspaceSuggestionHold();
+        if (!mIsDestroyed && isInputViewShown()) {
+            // No intermediate deleted prefixes are published. Resume with exactly the
+            // current composition, using the existing guarded asynchronous pipeline.
+            mHandler.postUpdateSuggestionStrip(SuggestedWords.INPUT_STYLE_TYPING);
+        }
     }
 
     private void cancelPendingEmptyPredictionClear() {
@@ -2997,7 +3054,7 @@ public class LatinIME extends InputMethodService implements
     // and there is a selection of text or it's the start of a line.
     @Override
     public void setNeutralSuggestionStrip() {
-        if (mInlineProviderViewActive) return;
+        if (mInlineProviderViewActive || isBackspaceSuggestionHoldActive()) return;
         final SettingsValues currentSettings = mSettings.getCurrent();
         if (tryShowClipboardSuggestion()) {
             // clipboard suggestion has been set

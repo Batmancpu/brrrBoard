@@ -1,18 +1,14 @@
 {
   "schema": 1,
-  "summary": "Scale Improved and smoother Settings search",
+  "summary": "Steadier backspace suggestions and repaired Scale Improved",
   "changes": [
     {
-      "title": "Keep the original Scale and add Scale Improved",
-      "detail": "Retain the accepted animation pace and growth. Improved uses separate opacity timing, bounded continuous momentum, stable character matching and native text-run positioning. Only these two choices remain; previous removed styles fall back to Scale."
+      "title": "Hold suggestions during rapid deletion",
+      "detail": "Keep the last readable suggestion row visible and non-selectable while deleting. Refresh after a 185 ms quiet interval; normal typing remains immediate."
     },
     {
-      "title": "Compare both styles in the playground",
-      "detail": "Regular and rapid replay with repeated letters and contractions, plus existing live keyboard tryout."
-    },
-    {
-      "title": "Reduce Settings search and rendering contention",
-      "detail": "Index searchable settings once, run public built-in matching off the UI thread with current-query verification, retain search ranking and stable row keys. Use a lightweight Settings header instead of offscreen blur while typing; idle blur and explicit overlays are preserved."
+      "title": "Restore visible Scale Improved motion",
+      "detail": "Use the original Scale snapshot geometry for supported labels while retaining improved logical matching, continuous retargeting and separate opacity. Original Scale timing and rendering stay unchanged."
     }
   ]
 }

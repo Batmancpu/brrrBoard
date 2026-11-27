@@ -891,6 +891,13 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
      * Keep the previous visual frame for one transition budget, but revoke ALL
      * stale click targets immediately. Real results always rebind them.
      */
+    /** Standard word slots only: leave the last readable row visible, but make it inert. */
+    fun holdBackspaceFrame(): Boolean {
+        if (!hasAttachedMotionSlots() || !suggestionsStrip.isVisible ||
+            shouldUseChipSuggestions() || suggestedWords.isPunctuationSuggestions) return false
+        return holdUnselectablePredictions()
+    }
+
     fun holdUnselectablePredictions(): Boolean {
         if (isExternalSuggestionVisible || isShowingMoreSuggestionPanel ||
             suggestedWords.isEmpty || hasSessionRecall(suggestedWords) ||
