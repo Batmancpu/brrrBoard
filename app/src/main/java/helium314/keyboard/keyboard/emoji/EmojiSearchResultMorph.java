@@ -36,7 +36,7 @@ final class EmojiSearchResultMorph {
     /** Capture the actual prior viewport; never call after mutating its keys. */
     void capture(final View source) {
         cancel();
-        if (!KeyboardMotionSpec.enabled() || source == null || !source.isShown()
+        if (!KeyboardMotionSpec.decorativeMotion(parent.getContext()) || source == null || !source.isShown()
                 || source.getParent() != parent || source.getWidth() <= 0
                 || source.getHeight() <= 0 || !source.isLaidOut()
                 || source.isLayoutRequested() || parent.isLayoutRequested()) return;
@@ -62,7 +62,8 @@ final class EmojiSearchResultMorph {
 
     /** The real current results remain authoritative and clickable throughout. */
     void reveal(final View target) {
-        if (departing == null || target == null || !target.isShown()) {
+        if (departing == null || target == null || !target.isShown()
+                || !KeyboardMotionSpec.decorativeMotion(parent.getContext())) {
             cancel();
             return;
         }

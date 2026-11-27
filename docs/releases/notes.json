@@ -1,18 +1,22 @@
 {
   "schema": 1,
-  "summary": "Motion 2.0 batch 3: stable search results and interruption-safe suggestions",
+  "summary": "Motion 2.0 final source batch: instant Clipboard switching and rendering safeguards",
   "changes": [
     {
-      "title": "Stable Emoji Search results",
-      "detail": "Keep identical final result rows intact, including scroll and current animation; animate replacements from their visible opacity rather than fading the entire row."
+      "title": "Instant Clipboard switching",
+      "detail": "Remove the Clipboard panel morph in both directions and cancel previous shared-key overlays before switching. ABC to Emoji Browse keeps its existing animation."
     },
     {
-      "title": "Search touch continuity",
-      "detail": "Cancel obsolete search gestures when results change; completed Search taps dispatch immediately instead of a delayed callback against replaced keys. Browse behavior is unchanged."
+      "title": "Hidden-panel glass cleanup",
+      "detail": "Release hidden panel display lists, observers and frame callbacks; rebuild glass when visible without changing its appearance."
     },
     {
-      "title": "Scale Improved retargeting",
-      "detail": "Sample the last recorded glyph draw when interrupted, rather than a scheduled future frame. The original Scale preset is unchanged."
+      "title": "Constrained-device rendering",
+      "detail": "Skip speculative layout warmup in power saver or on low-RAM devices; cancel panel overlays during memory cleanup."
+    },
+    {
+      "title": "Accessibility and frame safeguards",
+      "detail": "Use native presentation for optional motion when touch exploration or system motion settings require it. Add Emoji Search callback-gap fallback and preserve ordinary Scale timing."
     }
   ]
 }

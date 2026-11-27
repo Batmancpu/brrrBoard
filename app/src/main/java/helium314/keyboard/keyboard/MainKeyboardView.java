@@ -212,7 +212,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final long now = SystemClock.uptimeMillis();
         final float goal = next ? 0f : 1f;
         final float from = mTrackpadLabelMotion == null ? mTrackpadLabelAlpha : mTrackpadLabelMotion.value(now);
-        if (KeyboardMotionSpec.optionalMotion(getContext()) && isShown()) {
+        if (KeyboardMotionSpec.decorativeMotion(getContext()) && isShown()) {
             mTrackpadLabelMotion = new KeyPressMotion(from,goal,now,
                     next ? KeyboardMotionSpec.TRACKPAD_FOOTER_EXIT_MS : KeyboardMotionSpec.TRACKPAD_FOOTER_RETURN_MS);
         } else {
@@ -223,7 +223,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     }
 
     private void startKeyPressMotion(final Key key, final boolean pressed) {
-        if (!KeyboardMotionSpec.optionalMotion(getContext()) || !KeyboardMotionSpec.isIos27(getContext())) return;
+        if (!KeyboardMotionSpec.decorativeMotion(getContext()) || !KeyboardMotionSpec.isIos27(getContext())) return;
         final long now = SystemClock.uptimeMillis();
         final KeyPressMotion current = mKeyPressMotions.get(key);
         final float from = current == null ? (pressed ? 0f : 1f) : current.value(now);
@@ -244,6 +244,15 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
     @Override
     protected void onDraw(@NonNull final Canvas canvas) {
         final long now = SystemClock.uptimeMillis();
+        if ((!mKeyPressMotions.isEmpty() || mTrackpadLabelMotion != null || mCaseLabelMotion != null)
+                && !KeyboardMotionSpec.motionFrameAllowed(getContext())) {
+            mKeyPressMotions.clear();
+            mTrackpadLabelMotion = null;
+            mCaseLabelMotion = null;
+            mTrackpadLabelAlpha = mTrackpadVisualMode ? 0f : 1f;
+            mCaseLabelScale = 1f;
+            invalidateAllKeys();
+        }
         if (mTrackpadLabelMotion != null) {
             mTrackpadLabelAlpha = mTrackpadLabelMotion.value(now);
             if (mTrackpadLabelMotion.finished(now)) mTrackpadLabelMotion = null;
@@ -254,11 +263,13 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             if (mCaseLabelMotion.finished(now)) mCaseLabelMotion = null;
             invalidateAllKeys();
         }
-        final Iterator<Map.Entry<Key, KeyPressMotion>> iterator = mKeyPressMotions.entrySet().iterator();
-        while (iterator.hasNext()) {
-            final Map.Entry<Key, KeyPressMotion> entry = iterator.next();
-            invalidateKey(entry.getKey());
-            if (entry.getValue().finished(now)) iterator.remove();
+        if (!mKeyPressMotions.isEmpty()) {
+            final Iterator<Map.Entry<Key, KeyPressMotion>> iterator = mKeyPressMotions.entrySet().iterator();
+            while (iterator.hasNext()) {
+                final Map.Entry<Key, KeyPressMotion> entry = iterator.next();
+                invalidateKey(entry.getKey());
+                if (entry.getValue().finished(now)) iterator.remove();
+            }
         }
         super.onDraw(canvas);
         if (!mKeyPressMotions.isEmpty() || mTrackpadLabelMotion != null || mCaseLabelMotion != null)
@@ -483,7 +494,7 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         final boolean changed = old != null && old.mId.mElementId != keyboard.mId.mElementId;
         setKeyboardInternal(keyboard, false /* requestLayout */);
         if (changed && !mTrackpadVisualMode && !mConfirmationVisualMode &&
-                KeyboardMotionSpec.isIos27(getContext()) && KeyboardMotionSpec.optionalMotion(getContext()) && isShown()) {
+                KeyboardMotionSpec.isIos27(getContext()) && KeyboardMotionSpec.decorativeMotion(getContext()) && isShown()) {
             final long now = SystemClock.uptimeMillis();
             final float from = mCaseLabelMotion == null ? .94f : mCaseLabelMotion.value(now);
             mCaseLabelMotion = new KeyPressMotion(from,1f,now,KeyboardMotionSpec.CASE_SETTLE_MS);

@@ -7,6 +7,8 @@
 package helium314.keyboard.keyboard;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
+import android.os.PowerManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -89,10 +91,18 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mPanelWarmupOwner = null;
     }
 
+    private boolean mayPrewarmPanels() {
+        if (mLatinIME == null) return false;
+        final ActivityManager activity = mLatinIME.getSystemService(ActivityManager.class);
+        final PowerManager power = mLatinIME.getSystemService(PowerManager.class);
+        return PanelMotionPolicy.canPrewarm(activity != null && activity.isLowRamDevice(),
+                power != null && power.isPowerSaveMode());
+    }
+
     private void schedulePanelWarmup(final EditorInfo editorInfo) {
         cancelPanelWarmup();
         if (editorInfo == null || mCurrentInputView == null || mLatinIME == null
-                || mKeyboardLayoutSet == null) return;
+                || mKeyboardLayoutSet == null || !mayPrewarmPanels()) return;
         final InputView owner = mCurrentInputView;
         final KeyboardLayoutSet activeLayout = mKeyboardLayoutSet;
         final long epoch = mLatinIME.editorGeneration();
@@ -106,7 +116,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         || editorInfo != mLatinIME.getCurrentInputEditorInfo()
                         || !owner.isAttachedToWindow() || !owner.isShown()
                         || !mLatinIME.isInputViewShown() || mKeyboardView == null || !mKeyboardView.isShown()
-                        || getVisibleKeyboardView() != mKeyboardView
+                        || getVisibleKeyboardView() != mKeyboardView || !mayPrewarmPanels()
                         || !mLatinIME.mayUseTransientCorrectionMemory(Settings.getValues())) {
                     if (mPanelWarmup == this) cancelPanelWarmup();
                     return;
@@ -365,16 +375,6 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mAccessPointMenuView.setAlpha(1f);
     }
 
-    /** Only public key controls participate; clipboard content is never captured. */
-    private MainKeyboardView publicPanelRow(final View panel) {
-        if (panel == mKeyboardView) return mKeyboardView;
-        if (panel == mEmojiPalettesView && mEmojiPalettesView != null
-                && !mEmojiPalettesView.isSearchMode()) return mEmojiPalettesView.getBottomRowKeyboardForMorph();
-        if (panel == mClipboardHistoryView && mClipboardHistoryView != null
-                && !mClipboardHistoryView.isSearchMode()) return mClipboardHistoryView.getBottomRowKeyboardForMorph();
-        return null;
-    }
-
     private void transitionToPanel(final View targetPanel, final Runnable action) {
         transitionToPanel(targetPanel, action, true);
     }
@@ -412,13 +412,14 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
         final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView
                 && !mEmojiPalettesView.isSearchMode();
-        final boolean sharedPublicRows = KeyboardMotionSpec.isIos27(mLatinIME)
-                && outgoingPanel != targetPanel && (toEmoji || fromEmoji
-                    || outgoingPanel == mClipboardHistoryView || targetPanel == mClipboardHistoryView);
-        final MainKeyboardView sourceKeys = !allowEmojiKeyMorph ? null
-                : sharedPublicRows ? publicPanelRow(outgoingPanel)
-                : toEmoji ? mKeyboardView
-                : fromEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : null;
+        // Clipboard switches are deliberately immediate in BOTH directions.
+        // Never hide its keys, even when the previous Emoji morph is still active.
+        final boolean touchesClipboard = outgoingPanel == mClipboardHistoryView
+                || targetPanel == mClipboardHistoryView;
+        final boolean morph = PanelMotionPolicy.canMorph(allowEmojiKeyMorph,toEmoji,fromEmoji,
+                touchesClipboard,KeyboardMotionSpec.decorativeMotion(mLatinIME));
+        final MainKeyboardView sourceKeys = !morph ? null : toEmoji ? mKeyboardView
+                : mEmojiPalettesView.getBottomRowKeyboardForMorph();
         // Sample the previous overlay's last presented geometry before canceling
         // it. Its destination was logical, not necessarily where it was drawn.
         final EmojiPanelKeyMorph.Snapshot source =
@@ -428,9 +429,9 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         if (!mPanelTransitionGuard.isCurrent(transitionGeneration)) return;
         helium314.keyboard.latin.utils.TransitionDiagnostics.event(
                 helium314.keyboard.latin.utils.TransitionDiagnostics.Event.PANEL_COMMITTED);
-        if (source != null && mCurrentInputView != null) {
-            final MainKeyboardView destination = sharedPublicRows ? publicPanelRow(targetPanel)
-                    : toEmoji ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : mKeyboardView;
+        if (morph && source != null && mCurrentInputView != null) {
+            final MainKeyboardView destination = toEmoji
+                    ? mEmojiPalettesView.getBottomRowKeyboardForMorph() : mKeyboardView;
             EmojiPanelKeyMorph.start(mCurrentInputView, source, destination);
         }
         // action.run() has already hidden the outgoing surface. Fading its sole
@@ -2013,6 +2014,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void deallocateMemory() {
         cancelPanelWarmup();
+        EmojiPanelKeyMorph.cancel();
         if (mKeyboardView != null) {
             mKeyboardView.cancelAllOngoingEvents();
             mKeyboardView.deallocateMemory();
@@ -2038,6 +2040,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
     public void trimMemory() {
         cancelPanelWarmup();
+        EmojiPanelKeyMorph.cancel();
         if (mEmojiPalettesView != null) {
             mEmojiPalettesView.clearKeyboardCache();
         }

@@ -23,6 +23,13 @@ class KeyboardMotionSpecTest {
         assertTrue(KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS > 1_300L)
     }
 
+    @Test fun decorativeMotionRespectsSystemPowerAndTouchExploration() {
+        assertTrue(KeyboardMotionSpec.decorativeAllowed(true,false,false))
+        assertFalse(KeyboardMotionSpec.decorativeAllowed(false,false,false))
+        assertFalse(KeyboardMotionSpec.decorativeAllowed(true,true,false))
+        assertFalse(KeyboardMotionSpec.decorativeAllowed(true,false,true))
+    }
+
     @Test fun previousDefaultIsAnExplicitReversiblePreset() {
         assertTrue(KeyboardMotionSpec.isIos27Profile(null))
         assertTrue(KeyboardMotionSpec.isIos27Profile(KeyboardMotionSpec.PROFILE_IOS27))

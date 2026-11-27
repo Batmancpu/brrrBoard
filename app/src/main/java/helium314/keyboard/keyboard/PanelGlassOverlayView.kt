@@ -137,15 +137,30 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         invalidateSource()
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (isVisible && isAttachedToWindow) {
+            observe()
+            invalidateSource()
+        } else {
+            releaseHiddenRecording()
+        }
+    }
+
     override fun onDetachedFromWindow() {
+        releaseHiddenRecording()
+        super.onDetachedFromWindow()
+    }
+
+    private fun releaseHiddenRecording() {
         unobserve()
         dropNode()
         removeCallbacks(redrawFrame)
         recordState.frameStarted()
-        super.onDetachedFromWindow()
     }
 
     private fun dropNode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) node?.discardDisplayList()
         node = null
         // A new RenderNode must receive its position and blur effect even
         // when the reattached view has exactly the previous dimensions.
@@ -156,7 +171,8 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     }
 
     private fun observe() {
-        if (!isAttachedToWindow || source == null || registeredObserver != null) return
+        if (!isAttachedToWindow || !isShown || windowVisibility != VISIBLE ||
+            source == null || registeredObserver != null) return
         val observer = source!!.viewTreeObserver
         if (observer.isAlive) {
             source?.addOnLayoutChangeListener(sourceLayoutListener)

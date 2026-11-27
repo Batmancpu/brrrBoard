@@ -405,7 +405,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         controls.forEachIndexed { index, view ->
             val target = if (!desired) 0f else if (index == 0) -slide else slide
             view.animate().cancel()
-            if (!KeyboardMotionSpec.optionalMotion(context) || !isShown) {
+            if (!KeyboardMotionSpec.decorativeMotion(context) || !isShown) {
                 view.translationX = target
                 view.alpha = if (desired) 0f else 1f
             } else {

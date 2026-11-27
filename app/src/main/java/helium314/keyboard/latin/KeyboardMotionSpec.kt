@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Build
 import android.os.PowerManager
 import android.view.View
+import android.view.accessibility.AccessibilityManager
 import android.view.animation.PathInterpolator
 import helium314.keyboard.latin.settings.Defaults
 import helium314.keyboard.latin.settings.Settings
@@ -58,6 +59,22 @@ object KeyboardMotionSpec {
     @JvmStatic fun optionalMotion(context: Context): Boolean = enabled() &&
         context.getSystemService(PowerManager::class.java)?.isPowerSaveMode != true
 
+    internal fun decorativeAllowed(animatorsEnabled: Boolean, powerSave: Boolean,
+                                   touchExploration: Boolean): Boolean =
+        animatorsEnabled && !powerSave && !touchExploration
+
+    private fun touchExploration(context: Context): Boolean =
+        context.getSystemService(AccessibilityManager::class.java)?.isTouchExplorationEnabled == true
+
+    /** Optional artwork never competes with screen-reader exploration or power saving. */
+    @JvmStatic fun decorativeMotion(context: Context): Boolean = decorativeAllowed(enabled(),
+        context.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true,
+        touchExploration(context))
+
+    /** Cheap live check during a short motion; power-save eligibility is checked at start. */
+    @JvmStatic fun motionFrameAllowed(context: Context): Boolean =
+        enabled() && !touchExploration(context)
+
     @JvmStatic fun enabled(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ValueAnimator.areAnimatorsEnabled()
 
@@ -70,7 +87,7 @@ object KeyboardMotionSpec {
     @JvmStatic fun revealLongPressPopup(view: View) {
         view.animate().cancel()
         view.alpha = 1f
-        if (!isIos27(view.context) || !optionalMotion(view.context)) return
+        if (!isIos27(view.context) || !decorativeMotion(view.context)) return
         view.alpha = .86f
         view.animate().alpha(1f).setDuration(85L).setInterpolator(iosEase).start()
     }

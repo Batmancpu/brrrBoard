@@ -71,15 +71,17 @@ object EmojiPanelKeyMorph {
 
     private fun supported(view: MainKeyboardView): Boolean {
         val id = view.keyboard?.mId ?: return false
-        return id.isAlphaOrSymbolKeyboard || id.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW ||
-            id.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW
+        return PanelMotionPolicy.supportsArtwork(id.isAlphaOrSymbolKeyboard,
+            id.mElementId == KeyboardId.ELEMENT_EMOJI_BOTTOM_ROW,
+            id.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW)
     }
 
     @JvmStatic fun capture(root: ViewGroup?, view: MainKeyboardView?): Snapshot? =
         captureNative(root,view,emptySet())
 
     private fun captureNative(root: ViewGroup?, view: MainKeyboardView?, skipCodes: Set<Int>): Snapshot? {
-        if (!KeyboardMotionSpec.enabled() || root == null || view == null || !view.isShown || !supported(view)) return null
+        if (root == null || view == null || !view.isShown || !supported(view) ||
+            !KeyboardMotionSpec.decorativeMotion(root.context)) return null
         val origin = IntArray(2)
         root.getLocationOnScreen(origin)
         val keys = listOf(Constants.CODE_ENTER, KeyCode.SHIFT_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
@@ -94,7 +96,8 @@ object EmojiPanelKeyMorph {
     }
 
     @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
-        if (!KeyboardMotionSpec.enabled()) return null
+        if (root == null || view == null || !supported(view) ||
+            !KeyboardMotionSpec.decorativeMotion(root.context)) return null
         val session = current?.takeIf { it.root === root && it.destination === view }
         val overlay = session?.overlay
         if (overlay != null) {
@@ -151,7 +154,8 @@ object EmojiPanelKeyMorph {
     private fun startInternal(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?,
                               geometryRetargets: Int) {
         cancel()
-        if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled() || !supported(destination)) return
+        if (destination == null || !root.isAttachedToWindow || !supported(destination) ||
+            !KeyboardMotionSpec.decorativeMotion(root.context)) return
         val cold = !destination.isLaidOut || destination.width <= 0 || destination.height <= 0
         val session = Session(root,destination,source,geometryRetargets)
         current = session
@@ -165,7 +169,7 @@ object EmojiPanelKeyMorph {
             private var retries = 0
             override fun onPreDraw(): Boolean {
                 if (current !== session) return true
-                if (!root.isShown || !destination.isShown || !KeyboardMotionSpec.enabled()) {
+                if (!root.isShown || !destination.isShown || !KeyboardMotionSpec.motionFrameAllowed(root.context)) {
                     cancel(); return true
                 }
                 val ready = destination.isLaidOut && destination.width > 0 && destination.height > 0
@@ -215,7 +219,7 @@ object EmojiPanelKeyMorph {
                 animator.interpolator = android.view.animation.LinearInterpolator()
                 animator.addUpdateListener {
                     if (current !== session) return@addUpdateListener
-                    if (!destination.isShown || !supported(destination) || !KeyboardMotionSpec.enabled()) {
+                    if (!destination.isShown || !supported(destination) || !KeyboardMotionSpec.motionFrameAllowed(root.context)) {
                         cancel(); return@addUpdateListener
                     }
                     if (budget.shouldSnap(System.nanoTime())) {

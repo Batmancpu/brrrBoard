@@ -19,6 +19,19 @@ class PanelGlassRecordStateTest {
         assertFalse(state.needsRecording(true))
         assertTrue(state.requestFrame())
     }
+    @Test fun hiddenSurfaceCancelsScheduledFrameAndMustRecordOnReturn() {
+        val state = PanelGlassRecordState()
+        state.recordingCompleted()
+        assertTrue(state.requestFrame())
+        // The view drops its display list, marks it dirty and clears the callback.
+        state.invalidate()
+        state.frameStarted()
+        assertTrue(state.needsRecording(hasDisplayList = false))
+        assertTrue(state.requestFrame())
+        state.frameStarted()
+        state.recordingCompleted()
+        assertFalse(state.needsRecording(hasDisplayList = true))
+    }
     @Test fun unchangedFramesReuseTheRecordingButInvalidationsRefreshIt() {
         val state = PanelGlassRecordState()
         assertTrue(state.needsRecording(hasDisplayList = false))

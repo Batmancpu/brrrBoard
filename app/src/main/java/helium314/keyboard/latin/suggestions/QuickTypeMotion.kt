@@ -80,7 +80,7 @@ internal class QuickTypeMotion(
 
     fun capture(words: List<TextView>, centerConfidence: Boolean): Frame? {
         if (!owner.isShown || !KeyboardMotionSpec.isIos27(owner.context) ||
-            !KeyboardMotionSpec.optionalMotion(owner.context)) {
+            !KeyboardMotionSpec.decorativeMotion(owner.context)) {
             stop()
             return null
         }
@@ -115,7 +115,7 @@ internal class QuickTypeMotion(
     fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
               fillColor: Int, verticalInset: Float, chips: Boolean) {
         if (chips || !KeyboardMotionSpec.isIos27(owner.context) ||
-            !KeyboardMotionSpec.optionalMotion(owner.context) || !owner.isShown ||
+            !KeyboardMotionSpec.decorativeMotion(owner.context) || !owner.isShown ||
             words.size < 3 || owner.width <= 0 || owner.height <= 0) return
         val preset = selectedPreset()
         val plans = ArrayList<MotionSlot>(3)
@@ -207,7 +207,7 @@ internal class QuickTypeMotion(
             this.duration = duration
             interpolator = LinearInterpolator()
             addUpdateListener { value ->
-                if (!owner.isShown || !center.isShown || !KeyboardMotionSpec.enabled() ||
+                if (!owner.isShown || !center.isShown || !KeyboardMotionSpec.motionFrameAllowed(owner.context) ||
                     budget.shouldSnap(System.nanoTime())) {
                     stop()
                     return@addUpdateListener

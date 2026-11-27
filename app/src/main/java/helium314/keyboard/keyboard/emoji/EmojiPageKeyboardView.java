@@ -15,6 +15,7 @@ import android.graphics.Paint;
 import android.os.SystemClock;
 import helium314.keyboard.keyboard.internal.KeyDrawParams;
 import helium314.keyboard.keyboard.MotionContinuity;
+import helium314.keyboard.keyboard.MorphFrameBudget;
 import helium314.keyboard.latin.KeyboardMotionSpec;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
@@ -61,6 +62,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     // This state is used only by the search results view, not browsing pages.
     private final EmojiSearchGlyphMotion mSearchGlyphMotion = new EmojiSearchGlyphMotion();
     private float mSearchDrawProgress = 1f;
+    private MorphFrameBudget mSearchFrameBudget;
     private final SearchResultTouchGate mSearchTouchGate = new SearchResultTouchGate();
 
     void setSearchInteractionPending(final boolean pending) {
@@ -84,26 +86,34 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     }
 
     void finishSearchGlyphMotion() {
-        if (!KeyboardMotionSpec.isIos27(getContext()) || !KeyboardMotionSpec.optionalMotion(getContext())) {
+        if (!KeyboardMotionSpec.isIos27(getContext()) || !KeyboardMotionSpec.decorativeMotion(getContext())) {
             cancelSearchGlyphMotion();
             return;
         }
         mSearchGlyphMotion.retarget(getKeyboard(),SystemClock.uptimeMillis());
         mSearchDrawProgress = 0f;
+        mSearchFrameBudget = mSearchGlyphMotion.active() ? new MorphFrameBudget(
+                getDisplay() != null ? getDisplay().getRefreshRate() : 60f) : null;
         invalidateAllKeys();
     }
 
     void cancelSearchGlyphMotion() {
         if (mSearchGlyphMotion.clear()) invalidateAllKeys();
+        mSearchFrameBudget = null;
         mSearchDrawProgress = 1f;
     }
 
     @Override protected void onDraw(@NonNull final Canvas canvas) {
         if (mSearchGlyphMotion.active()) {
-            if (!isShown() || !KeyboardMotionSpec.optionalMotion(getContext())) cancelSearchGlyphMotion();
+            if (!isShown() || !KeyboardMotionSpec.motionFrameAllowed(getContext())
+                    || (mSearchFrameBudget != null && mSearchFrameBudget.shouldSnap(System.nanoTime())))
+                cancelSearchGlyphMotion();
             else {
                 mSearchDrawProgress = mSearchGlyphMotion.progress(SystemClock.uptimeMillis());
-                if (mSearchDrawProgress >= 1f) mSearchGlyphMotion.clear();
+                if (mSearchDrawProgress >= 1f) {
+                    mSearchGlyphMotion.clear();
+                    mSearchFrameBudget = null;
+                }
                 invalidateAllKeys();
             }
         }

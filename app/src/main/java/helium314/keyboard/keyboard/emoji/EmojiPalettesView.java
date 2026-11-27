@@ -1299,7 +1299,7 @@ public final class EmojiPalettesView extends LinearLayout
         final boolean morphResults = EmojiSearchSurfacePolicy.shouldMorphResults(
                 mSearchMode, mSearchEntryInProgress, resultsChanged, finalAnswer);
         final boolean glyphMotion = morphResults && KeyboardMotionSpec.isIos27(getContext())
-                && KeyboardMotionSpec.optionalMotion(getContext());
+                && KeyboardMotionSpec.decorativeMotion(getContext());
         if (glyphMotion) {
             if (mSearchResultMorph != null) mSearchResultMorph.cancel();
             mSearchResultsView.prepareSearchGlyphMotion(mSearchResultsScrollView.getScrollX() == 0
