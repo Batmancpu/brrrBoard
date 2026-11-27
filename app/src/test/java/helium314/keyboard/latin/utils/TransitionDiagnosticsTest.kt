@@ -41,6 +41,17 @@ class TransitionDiagnosticsTest {
         assertTrue(report.contains("safe crash and configuration"))
         assertFalse(report.contains("DO_NOT_EXPORT"))
     }
+    @Test fun clipboardAndRetargetReasonsAreContentFree() {
+        TransitionDiagnostics.begin(TransitionDiagnostics.Event.ENTER_CLIPBOARD)
+        TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_INTERRUPTED)
+        TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_GEOMETRY_RETARGET)
+        TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_BUDGET_FALLBACK)
+        val trace = TransitionDiagnostics.traceText()
+        assertTrue(trace.contains("ENTER_CLIPBOARD"))
+        assertTrue(trace.contains("MORPH_INTERRUPTED"))
+        assertTrue(trace.contains("MORPH_GEOMETRY_RETARGET"))
+        assertTrue(trace.contains("MORPH_BUDGET_FALLBACK"))
+    }
     @Test fun traceIsBoundedAndDoesNotRunOnOrdinaryTypingForever() {
         repeat(150) {
             TransitionDiagnostics.begin(TransitionDiagnostics.Event.ENTER_BROWSE)

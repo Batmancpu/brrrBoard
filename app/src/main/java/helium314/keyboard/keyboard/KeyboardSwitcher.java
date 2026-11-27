@@ -404,6 +404,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         ? helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_BROWSE
                         : helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_SEARCH)
                     : helium314.keyboard.latin.utils.TransitionDiagnostics.Event.EXIT_EMOJI);
+        } else if (outgoingPanel == mClipboardHistoryView || targetPanel == mClipboardHistoryView) {
+            helium314.keyboard.latin.utils.TransitionDiagnostics.begin(targetPanel == mClipboardHistoryView
+                    ? helium314.keyboard.latin.utils.TransitionDiagnostics.Event.ENTER_CLIPBOARD
+                    : helium314.keyboard.latin.utils.TransitionDiagnostics.Event.EXIT_CLIPBOARD);
         }
         final boolean toEmoji = outgoingPanel == mKeyboardView && targetPanel == mEmojiPalettesView;
         final boolean fromEmoji = outgoingPanel == mEmojiPalettesView && targetPanel == mKeyboardView

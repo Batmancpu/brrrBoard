@@ -1,26 +1,18 @@
 {
   "schema": 1,
-  "summary": "Motion continuity across typing, panels and Emoji Search",
+  "summary": "Motion 2.0 batch 2: leaner panel reversals and bounded rendering safeguards",
   "changes": [
     {
-      "title": "Interruptible keyboard panel motion",
-      "detail": "Retarget shared public controls from their last drawn blended artwork with bounded momentum; include Clipboard bottom-row controls without capturing clipboard contents. Keep the base opaque."
+      "title": "Less redundant artwork during panel reversal",
+      "detail": "Reuse the presented artwork for overlay-owned public controls instead of rendering unused native duplicates. Enforce one visual owner per shared control."
     },
     {
-      "title": "Emoji Search glyph continuity",
-      "detail": "Match complete emoji strings; retain stationary glyphs and animate changed glyphs within native tap slots, with stable empty/pending states."
+      "title": "Bounded geometry recovery",
+      "detail": "Limit internal layout-driven retargets to two per transition; normal taps and user-requested reversals retain their existing animation and hit targets."
     },
     {
-      "title": "Faster optional popups and key feedback",
-      "detail": "Keep existing preview preference; reuse a repeated character’s fading preview, bound unrelated exits, shorten entry/release and reveal long-press popups without moving touch coordinates."
-    },
-    {
-      "title": "Swipe, Shift and trackpad refinements",
-      "detail": "Coalesce display-synchronized trail updates with eased taper and rounded tip; settle letter and Shift labels and synchronize trackpad labels and footer."
-    },
-    {
-      "title": "Clipboard accessory continuity",
-      "detail": "Retarget the public compact icon from its previous position without retaining clipboard content or shifting prediction targets."
+      "title": "More useful transition diagnostics",
+      "detail": "Record Clipboard transitions, interruption, geometry retarget and fallback reason in the existing content-free diagnostic report."
     }
   ]
 }

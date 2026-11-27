@@ -17,11 +17,12 @@ import helium314.keyboard.latin.R
 /**
  * Bounded RAM-only diagnostic trace of keyboard-owned UI geometry.
  * No editor identity, text, glyphs, screenshots, input events, clipboard or audio.
- * Capture only real draw traversals in a short window following Emoji transitions.
+ * Capture only real draw traversals in a short window following public panel transitions.
  */
 object TransitionDiagnostics {
     enum class Event { ENTER_BROWSE, ENTER_SEARCH, EXIT_BROWSE, EXIT_SEARCH, EXIT_EMOJI,
-        PANEL_COMMITTED, MORPH_OVERLAY, MORPH_RELEASE }
+        PANEL_COMMITTED, MORPH_OVERLAY, MORPH_RELEASE, ENTER_CLIPBOARD, EXIT_CLIPBOARD,
+        MORPH_INTERRUPTED, MORPH_GEOMETRY_RETARGET, MORPH_LAYOUT_FALLBACK, MORPH_BUDGET_FALLBACK }
     private const val CAPACITY = 96
     private const val WINDOW_MS = 650L
     private const val MAX_FRAMES = 48
@@ -96,7 +97,7 @@ object TransitionDiagnostics {
     }
 
     @Synchronized fun traceText(): String =
-        if (trace.isEmpty()) "No recent Emoji transition captured. Reproduce the issue before opening About."
+        if (trace.isEmpty()) "No recent panel transition captured. Reproduce the issue before opening About."
         else trace.joinToString("\n")
 
     fun reportText(context: Context): String = buildString {

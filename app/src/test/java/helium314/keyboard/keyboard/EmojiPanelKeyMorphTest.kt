@@ -60,6 +60,19 @@ class EmojiPanelKeyMorphTest {
         org.junit.Assert.assertFalse(EmojiPanelKeyMorph.deferTargetCapture(true, true, false, 2))
     }
 
+    @Test fun sharedRolesAreNeverPairedTwiceAndGeometryRetriesAreBounded() {
+        val enter = helium314.keyboard.latin.common.Constants.CODE_ENTER
+        val shifted = helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode.SHIFT_ENTER
+        val both = listOf(enter,shifted)
+        assertEquals(listOf(enter to enter, shifted to shifted),
+            EmojiPanelKeyMorph.pairedCodes(both,listOf(shifted,enter)))
+        assertEquals(listOf(shifted to shifted),EmojiPanelKeyMorph.pairedCodes(both,listOf(shifted)))
+        assertEquals(listOf(enter to enter),EmojiPanelKeyMorph.pairedCodes(listOf(enter,enter),listOf(enter)))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.canRetargetGeometry(0))
+        org.junit.Assert.assertTrue(EmojiPanelKeyMorph.canRetargetGeometry(1))
+        org.junit.Assert.assertFalse(EmojiPanelKeyMorph.canRetargetGeometry(2))
+    }
+
     @Test fun motionClampsWithoutOvershoot() {
         assertEquals(0f, EmojiPanelKeyMorph.position(0f, 100f, -1f), 0f)
         assertEquals(100f, EmojiPanelKeyMorph.position(0f, 100f, 2f), 0f)

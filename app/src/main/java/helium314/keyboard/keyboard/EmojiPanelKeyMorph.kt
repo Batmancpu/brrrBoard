@@ -25,6 +25,8 @@ import helium314.keyboard.latin.utils.TransitionDiagnostics
 /** One visual owner for shared public controls, with native layout and touch targets unchanged. */
 object EmojiPanelKeyMorph {
     private const val DURATION = 180L
+    private const val MAX_GEOMETRY_RETARGETS = 2
+    internal fun canRetargetGeometry(count: Int): Boolean = count < MAX_GEOMETRY_RETARGETS
     internal fun position(start: Float, end: Float, progress: Float): Float =
         start + (end - start) * progress.coerceIn(0f, 1f)
     internal fun moves(fromX: Float, fromY: Float, toX: Float, toY: Float): Boolean =
@@ -39,7 +41,8 @@ object EmojiPanelKeyMorph {
                    val velocity: RectF? = null, val composite: Boolean = false)
     class Snapshot(val keys: List<KeyImage>)
     private class Track(val from: KeyImage, val to: KeyImage)
-    private class Session(val root: ViewGroup, val destination: MainKeyboardView, val source: Snapshot) {
+    private class Session(val root: ViewGroup, val destination: MainKeyboardView, val source: Snapshot,
+                          val geometryRetargets: Int) {
         var listener: ViewTreeObserver.OnPreDrawListener? = null
         var animator: ValueAnimator? = null
         var overlay: MovingKeys? = null
@@ -51,15 +54,17 @@ object EmojiPanelKeyMorph {
     // Actual shared codes always win. Only if a Return key disappears or appears
     // does it hand off to/from the compact panel Search role.
     internal fun pairedCodes(source: List<Int>, target: List<Int>): List<Pair<Int,Int>> {
-        val pairs = source.filter { it in target }.map { it to it }.toMutableList()
-        val fromReturn = source.firstOrNull(FrostAccentRoles::isReturnRole)
-        val toReturn = target.firstOrNull(FrostAccentRoles::isReturnRole)
+        val pairs = source.distinct().filter { it in target }.map { it to it }.toMutableList()
+        val fromReturn = source.firstOrNull { FrostAccentRoles.isReturnRole(it) && pairs.none { pair -> pair.first == it } }
+        val toReturn = target.firstOrNull { FrostAccentRoles.isReturnRole(it) && pairs.none { pair -> pair.second == it } }
         val search = KeyCode.EMOJI_SEARCH
-        if (fromReturn != null && toReturn != null && fromReturn != toReturn)
+        if (fromReturn != null && toReturn != null)
             pairs.add(fromReturn to toReturn)
-        else if (fromReturn != null && toReturn == null && search in target && search !in source)
+        else if (fromReturn != null && target.none(FrostAccentRoles::isReturnRole) &&
+            search in target && pairs.none { it.second == search })
             pairs.add(fromReturn to search)
-        else if (fromReturn == null && toReturn != null && search in source && search !in target)
+        else if (toReturn != null && source.none(FrostAccentRoles::isReturnRole) &&
+            search in source && pairs.none { it.first == search })
             pairs.add(search to toReturn)
         return pairs
     }
@@ -70,11 +75,15 @@ object EmojiPanelKeyMorph {
             id.mElementId == KeyboardId.ELEMENT_CLIPBOARD_BOTTOM_ROW
     }
 
-    @JvmStatic fun capture(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
+    @JvmStatic fun capture(root: ViewGroup?, view: MainKeyboardView?): Snapshot? =
+        captureNative(root,view,emptySet())
+
+    private fun captureNative(root: ViewGroup?, view: MainKeyboardView?, skipCodes: Set<Int>): Snapshot? {
         if (!KeyboardMotionSpec.enabled() || root == null || view == null || !view.isShown || !supported(view)) return null
         val origin = IntArray(2)
         root.getLocationOnScreen(origin)
         val keys = listOf(Constants.CODE_ENTER, KeyCode.SHIFT_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
+            if (code in skipCodes) return@mapNotNull null
             val bounds = Rect()
             if (!view.getEmojiMorphArtworkBoundsOnScreen(code,bounds)) return@mapNotNull null
             bounds.offset(-origin[0],-origin[1])
@@ -85,14 +94,19 @@ object EmojiPanelKeyMorph {
     }
 
     @JvmStatic fun capturePresented(root: ViewGroup?, view: MainKeyboardView?): Snapshot? {
+        if (!KeyboardMotionSpec.enabled()) return null
         val session = current?.takeIf { it.root === root && it.destination === view }
+        val overlay = session?.overlay
+        if (overlay != null) {
+            // Overlay-owned keys are already visible; do not render their unused
+            // native equivalents before sampling the exact presented artwork.
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_INTERRUPTED)
+            val visible = overlay.presentedAll()
+            val native = captureNative(root,view,overlay.ownedCodes)
+            return Snapshot(visible + (native?.keys ?: emptyList()))
+        }
         val native = capture(root,view)
         if (session == null) return native
-        val overlay = session.overlay
-        if (overlay != null) {
-            return Snapshot((native?.keys ?: emptyList()).map { overlay.presented(it) ?: it } +
-                overlay.presentedMissing(native?.keys?.map { it.code } ?: emptyList()))
-        }
         if (native == null) return session.source
         val pairs = pairedCodes(session.source.keys.map { it.code },native.keys.map { it.code })
         return Snapshot(native.keys.map { key ->
@@ -117,11 +131,29 @@ object EmojiPanelKeyMorph {
         session.root.invalidate()
     }
 
-    @JvmStatic fun start(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?) {
+    @JvmStatic fun start(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?) =
+        startInternal(root,source,destination,0)
+
+    private fun retargetGeometry(session: Session) {
+        if (current !== session) return
+        if (!canRetargetGeometry(session.geometryRetargets)) {
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_LAYOUT_FALLBACK)
+            cancel()
+            return
+        }
+        val sampled = capturePresented(session.root,session.destination)
+        if (sampled != null && session.destination.isShown) {
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_GEOMETRY_RETARGET)
+            startInternal(session.root,sampled,session.destination,session.geometryRetargets+1)
+        } else cancel()
+    }
+
+    private fun startInternal(root: ViewGroup, source: Snapshot, destination: MainKeyboardView?,
+                              geometryRetargets: Int) {
         cancel()
         if (destination == null || !root.isAttachedToWindow || !KeyboardMotionSpec.enabled() || !supported(destination)) return
         val cold = !destination.isLaidOut || destination.width <= 0 || destination.height <= 0
-        val session = Session(root,destination,source)
+        val session = Session(root,destination,source,geometryRetargets)
         current = session
         val detach = object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {}
@@ -152,7 +184,10 @@ object EmojiPanelKeyMorph {
                 }
                 if (root.viewTreeObserver.isAlive) root.viewTreeObserver.removeOnPreDrawListener(this)
                 session.listener = null
-                if (target == null) { cancel(); return true }
+                if (target == null) {
+                    TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_LAYOUT_FALLBACK)
+                    cancel(); return true
+                }
                 val tracks = pairedCodes(source.keys.map { it.code },target.keys.map { it.code }).mapNotNull { (a,b) ->
                     val from = source.keys.first { it.code == a }
                     val to = target.keys.first { it.code == b }
@@ -167,9 +202,7 @@ object EmojiPanelKeyMorph {
                 destination.setEmojiMorphHiddenCodes(tracks.map { it.to.code }.toIntArray())
                 val layout = View.OnLayoutChangeListener { _,l,t,r,b,ol,ot,orr,ob ->
                     if (current === session && (l!=ol || t!=ot || r!=orr || b!=ob)) {
-                        val sampled = capturePresented(root,destination)
-                        if (sampled != null && destination.isShown) start(root,sampled,destination)
-                        else cancel()
+                        retargetGeometry(session)
                     }
                 }
                 session.layout = layout
@@ -182,8 +215,13 @@ object EmojiPanelKeyMorph {
                 animator.interpolator = android.view.animation.LinearInterpolator()
                 animator.addUpdateListener {
                     if (current !== session) return@addUpdateListener
-                    if (!destination.isShown || !supported(destination) || !KeyboardMotionSpec.enabled()
-                        || budget.shouldSnap(System.nanoTime())) { cancel(); return@addUpdateListener }
+                    if (!destination.isShown || !supported(destination) || !KeyboardMotionSpec.enabled()) {
+                        cancel(); return@addUpdateListener
+                    }
+                    if (budget.shouldSnap(System.nanoTime())) {
+                        TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_BUDGET_FALLBACK)
+                        cancel(); return@addUpdateListener
+                    }
                     if (destination.keyboard !== keyboard) {
                         val origin = IntArray(2)
                         root.getLocationOnScreen(origin)
@@ -193,8 +231,7 @@ object EmojiPanelKeyMorph {
                                 run { bounds.offset(-origin[0],-origin[1]); RectF(bounds) == track.to.bounds }
                         }
                         if (!same) {
-                            val sampled = capturePresented(root,destination)
-                            if (sampled != null) start(root,sampled,destination) else cancel()
+                            retargetGeometry(session)
                             return@addUpdateListener
                         }
                         keyboard = destination.keyboard
@@ -285,10 +322,8 @@ object EmojiPanelKeyMorph {
             return KeyImage(track.to.code,visible,artwork,velocity,composite ||
                 (drawnProgress <= 0f && (track.from.composite || track.from.code != track.to.code)))
         }
-        fun presented(native: KeyImage): KeyImage? =
-            tracks.firstOrNull { it.to.code == native.code }?.let(::presented)
-        fun presentedMissing(codes: List<Int>): List<KeyImage> =
-            tracks.filter { it.to.code !in codes }.map(::presented)
+        val ownedCodes: Set<Int> = tracks.map { it.to.code }.toSet()
+        fun presentedAll(): List<KeyImage> = tracks.map(::presented)
         override fun draw(canvas: Canvas) {
             val p = progress.coerceIn(0f,1f)
             if (p != drawnProgress || drawnAt == 0L) {
