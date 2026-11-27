@@ -182,6 +182,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private boolean mIsHardwareAcceleratedDrawingEnabled;
     private java.util.List<String> mCachedPersistentEmojis = null;
     private java.util.List<String> mCurrentlyDisplayedPersistentEmojis = null;
+    private int mPersistentRowWidth;
+    private int mPersistentRowDensity;
+    private float mPersistentRowFontScale;
+    private android.graphics.Typeface mPersistentRowCustomFont;
+    private android.graphics.Typeface mPersistentRowEmojiFont;
 
     public void clearCachedPersistentEmojis() {
         mCachedPersistentEmojis = null;
@@ -2107,6 +2112,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         mStripContainer = mCurrentInputView.findViewById(R.id.strip_container);
         mPersistentEmojiRowScroll = mCurrentInputView.findViewById(R.id.persistent_emoji_row_scroll);
         mPersistentEmojiRowContainer = mCurrentInputView.findViewById(R.id.persistent_emoji_row_container);
+        // Cached presentation belongs to the newly inflated root only.
+        mCurrentlyDisplayedPersistentEmojis = null;
 
         mKeyboardResizeOverlay = new helium314.keyboard.keyboard.resize.KeyboardResizeOverlayView(mThemeContext);
         mKeyboardResizeOverlay.setId(R.id.keyboard_resize_overlay);
@@ -2186,7 +2193,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             mPersistentEmojiRowScroll.setVisibility(View.GONE);
             if (divider != null)
                 divider.setVisibility(View.GONE);
-            mCurrentlyDisplayedPersistentEmojis = null;
+            // The same public Recents views remain attached. Reuse only if their
+            // data and presentation still match when typing becomes visible.
             return;
         }
         mPersistentEmojiRowScroll.setVisibility(View.VISIBLE);
@@ -2213,22 +2221,33 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             emojis.addAll(rawEmojis);
         }
 
-        if (mCurrentlyDisplayedPersistentEmojis != null && mCurrentlyDisplayedPersistentEmojis.equals(emojis)
-                && mPersistentEmojiRowContainer.getChildCount() > 0) {
-            mPersistentEmojiRowScroll.setVisibility(View.VISIBLE);
-            if (divider != null)
-                divider.setVisibility(View.VISIBLE);
-            return;
-        }
-        mCurrentlyDisplayedPersistentEmojis = emojis;
-
-        mPersistentEmojiRowContainer.removeAllViews();
         final android.content.Context context = mPersistentEmojiRowContainer.getContext();
         final SettingsValues sv = Settings.getValues();
         final int kbWidth = sv != null ? helium314.keyboard.latin.utils.ResourceUtils.getKeyboardWidth(context, sv)
                 : context.getResources().getDisplayMetrics().widthPixels;
+        final int density = context.getResources().getDisplayMetrics().densityDpi;
+        final float fontScale = context.getResources().getConfiguration().fontScale;
+        final android.graphics.Typeface customFont = KeyboardTypeface.customTypeface();
+        final android.graphics.Typeface emojiFont = KeyboardTypeface.emojiTypeface();
+        if (mCurrentlyDisplayedPersistentEmojis != null && mCurrentlyDisplayedPersistentEmojis.equals(emojis)
+                && mPersistentEmojiRowContainer.getChildCount() > 0
+                && mPersistentRowWidth == kbWidth && mPersistentRowDensity == density
+                && mPersistentRowFontScale == fontScale
+                && mPersistentRowCustomFont == customFont && mPersistentRowEmojiFont == emojiFont) {
+            return;
+        }
+        mCurrentlyDisplayedPersistentEmojis = emojis;
+        mPersistentRowWidth = kbWidth;
+        mPersistentRowDensity = density;
+        mPersistentRowFontScale = fontScale;
+        mPersistentRowCustomFont = customFont;
+        mPersistentRowEmojiFont = emojiFont;
+
+        mPersistentEmojiRowContainer.removeAllViews();
         final int itemWidth = kbWidth / 10;
         final int height = (int) (36 * context.getResources().getDisplayMetrics().density);
+        final android.util.TypedValue selectableBackground = new android.util.TypedValue();
+        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, selectableBackground, true);
 
         for (final String emoji : emojis) {
             final TextView tv = new TextView(context);
@@ -2239,9 +2258,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
             tv.setLayoutParams(new LinearLayout.LayoutParams(itemWidth, height));
             tv.setClickable(true);
             tv.setFocusable(true);
-            final android.util.TypedValue outValue = new android.util.TypedValue();
-            context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
-            tv.setBackgroundResource(outValue.resourceId);
+            tv.setBackgroundResource(selectableBackground.resourceId);
             tv.setOnClickListener(v -> {
                 if (mLatinIME != null && mLatinIME.mKeyboardActionListener != null) {
                     mLatinIME.mKeyboardActionListener.onPressKey(KeyCode.NOT_SPECIFIED, 0, true, HapticEvent.KEY_PRESS);

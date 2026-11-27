@@ -1067,6 +1067,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (!isVisible) wordMorph.cancel(wordViews)
+    }
+
     override fun onDetachedFromWindow() {
         clearEditorAccessory()
         clearClipboardAccessory()

@@ -303,7 +303,22 @@ final class DynamicGridKeyboard extends Keyboard {
         }
     }
 
+    /** Search-only bulk replacement, with the same insertion/dedup/cap rules.
+     * No intermediate coordinates are exposed under the grid lock. */
+    public void replaceSearchKeys(final List<Key> keys) {
+        if (mIsRecents) throw new IllegalStateException("Search replacement on Recents");
+        synchronized (mLock) {
+            removeAllKeys();
+            for (final Key key : keys) addKey(key, false, false);
+            updateGridKeyCoordinates();
+        }
+    }
+
     private void addKey(final Key usedKey, final boolean addFirst) {
+        addKey(usedKey, addFirst, true);
+    }
+
+    private void addKey(final Key usedKey, final boolean addFirst, final boolean updateCoordinates) {
         if (usedKey == null) {
             return;
         }
@@ -330,7 +345,7 @@ final class DynamicGridKeyboard extends Keyboard {
             while (mGridKeys.size() > mMaxKeyCount) {
                 mGridKeys.removeLast();
             }
-            updateGridKeyCoordinates();
+            if (updateCoordinates) updateGridKeyCoordinates();
         }
     }
 

@@ -7,6 +7,16 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class EmojiSearchSurfacePolicyTest {
+    @Test public void browseNeverBuildsSearchGridAndEntryUsesCurrentGeometry() {
+        assertFalse(EmojiSearchSurfacePolicy.needsResultGrid(false,false,true,false,false));
+        assertFalse(EmojiSearchSurfacePolicy.needsResultGrid(false,true,true,false,false));
+        assertTrue(EmojiSearchSurfacePolicy.needsResultGrid(true,false,false,true,true));
+        assertFalse(EmojiSearchSurfacePolicy.needsResultGrid(true,true,false,true,true));
+        assertTrue(EmojiSearchSurfacePolicy.needsResultGrid(true,true,true,true,true));
+        assertTrue(EmojiSearchSurfacePolicy.needsResultGrid(true,true,false,false,true));
+        assertTrue(EmojiSearchSurfacePolicy.needsResultGrid(true,true,false,true,false));
+    }
+
     @Test public void bothFixedSearchRowsAreGoneOutsideSearchMode() {
         assertFalse(EmojiSearchSurfacePolicy.resultsVisible(false, false));
         assertFalse(EmojiSearchSurfacePolicy.resultsVisible(false, true));

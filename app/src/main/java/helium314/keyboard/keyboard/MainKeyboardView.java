@@ -234,11 +234,14 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         postInvalidateOnAnimation();
     }
 
+    private long mKeyDrawFrameTime;
+
     private float keyPressScale(final Key key) {
         if (isRenderingMorphArtwork()) return 1f;
         final KeyPressMotion motion = mKeyPressMotions.get(key);
         if (motion == null) return 1f;
-        return 1f - .018f * motion.value(SystemClock.uptimeMillis());
+        return 1f - .018f * motion.value(mKeyDrawFrameTime != 0L
+                ? mKeyDrawFrameTime : SystemClock.uptimeMillis());
     }
 
     @Override
@@ -251,27 +254,29 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
             mCaseLabelMotion = null;
             mTrackpadLabelAlpha = mTrackpadVisualMode ? 0f : 1f;
             mCaseLabelScale = 1f;
-            invalidateAllKeys();
+            markAllKeysDirty();
         }
         if (mTrackpadLabelMotion != null) {
             mTrackpadLabelAlpha = mTrackpadLabelMotion.value(now);
             if (mTrackpadLabelMotion.finished(now)) mTrackpadLabelMotion = null;
-            invalidateAllKeys();
+            markAllKeysDirty();
         }
         if (mCaseLabelMotion != null) {
             mCaseLabelScale = mCaseLabelMotion.value(now);
             if (mCaseLabelMotion.finished(now)) mCaseLabelMotion = null;
-            invalidateAllKeys();
+            markAllKeysDirty();
         }
         if (!mKeyPressMotions.isEmpty()) {
             final Iterator<Map.Entry<Key, KeyPressMotion>> iterator = mKeyPressMotions.entrySet().iterator();
             while (iterator.hasNext()) {
                 final Map.Entry<Key, KeyPressMotion> entry = iterator.next();
-                invalidateKey(entry.getKey());
+                markKeyDirty(entry.getKey());
                 if (entry.getValue().finished(now)) iterator.remove();
             }
         }
-        super.onDraw(canvas);
+        mKeyDrawFrameTime = now;
+        try { super.onDraw(canvas); }
+        finally { mKeyDrawFrameTime = 0L; }
         if (!mKeyPressMotions.isEmpty() || mTrackpadLabelMotion != null || mCaseLabelMotion != null)
             postInvalidateOnAnimation();
     }
@@ -773,6 +778,24 @@ public final class MainKeyboardView extends KeyboardView implements DrawingProxy
         super.onSizeChanged(w, h, oldw, oldh);
         if ((w != oldw || h != oldh) && w > 0 && h > 0) {
             locatePreviewPlacerView();
+        }
+    }
+
+    @Override
+    public void onVisibilityAggregated(final boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        if (!isVisible) {
+            mKeyPressMotions.clear();
+            mCaseLabelMotion = null;
+            mCaseLabelScale = 1f;
+            mTrackpadLabelMotion = null;
+            mTrackpadLabelAlpha = mTrackpadVisualMode ? 0f : 1f;
+            if (mConfirmationLabelAnimator != null) {
+                mConfirmationLabelAnimator.cancel();
+                mConfirmationLabelAnimator = null;
+            }
+            mConfirmationLabelAlpha = mConfirmationVisualMode ? 0f : 1f;
+            markAllKeysDirty();
         }
     }
 

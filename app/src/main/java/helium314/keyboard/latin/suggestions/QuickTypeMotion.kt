@@ -77,9 +77,12 @@ internal class QuickTypeMotion(
     private var finalBackground: Drawable? = null
     private var elapsed = 0f
     private var lastDrawnElapsed = 0f
+    private val snapshotLocation = IntArray(2)
+    private val snapshotOrigin = IntArray(2)
 
     fun capture(words: List<TextView>, centerConfidence: Boolean): Frame? {
-        if (!owner.isShown || !KeyboardMotionSpec.isIos27(owner.context) ||
+        if (!owner.isAttachedToWindow || owner.windowVisibility != View.VISIBLE ||
+            !owner.isShown || !KeyboardMotionSpec.isIos27(owner.context) ||
             !KeyboardMotionSpec.decorativeMotion(owner.context)) {
             stop()
             return null
@@ -115,7 +118,8 @@ internal class QuickTypeMotion(
     fun morph(previous: Frame, words: List<TextView>, centerConfidence: Boolean,
               fillColor: Int, verticalInset: Float, chips: Boolean) {
         if (chips || !KeyboardMotionSpec.isIos27(owner.context) ||
-            !KeyboardMotionSpec.decorativeMotion(owner.context) || !owner.isShown ||
+            !KeyboardMotionSpec.decorativeMotion(owner.context) || !owner.isAttachedToWindow ||
+            owner.windowVisibility != View.VISIBLE || !owner.isShown ||
             words.size < 3 || owner.width <= 0 || owner.height <= 0) return
         val preset = selectedPreset()
         val plans = ArrayList<MotionSlot>(3)
@@ -207,7 +211,8 @@ internal class QuickTypeMotion(
             this.duration = duration
             interpolator = LinearInterpolator()
             addUpdateListener { value ->
-                if (!owner.isShown || !center.isShown || !KeyboardMotionSpec.motionFrameAllowed(owner.context) ||
+                if (!owner.isAttachedToWindow || owner.windowVisibility != View.VISIBLE ||
+                    !owner.isShown || !center.isShown || !KeyboardMotionSpec.motionFrameAllowed(owner.context) ||
                     budget.shouldSnap(System.nanoTime())) {
                     stop()
                     return@addUpdateListener
@@ -268,12 +273,10 @@ internal class QuickTypeMotion(
         if (!view.isShown || view.width <= 0 || view.height <= 0 ||
             view.layoutDirection == View.LAYOUT_DIRECTION_RTL ||
             !QuickTypeMotionPolicy.supports(label)) return null
-        val location = IntArray(2)
-        val origin = IntArray(2)
-        view.getLocationOnScreen(location)
-        owner.getLocationOnScreen(origin)
-        val left = location[0] - origin[0]
-        val top = location[1] - origin[1]
+        view.getLocationOnScreen(snapshotLocation)
+        owner.getLocationOnScreen(snapshotOrigin)
+        val left = snapshotLocation[0] - snapshotOrigin[0]
+        val top = snapshotLocation[1] - snapshotOrigin[1]
         val clip = Rect(left, top, left + view.width, top + view.height)
         if (label.isEmpty()) return Slot(label, clip, emptyList())
         val paint = TextPaint(view.paint)
@@ -304,7 +307,9 @@ internal class QuickTypeMotion(
     }
 
     private fun sameInk(before: Slot, after: Slot, preset: SuggestionMotionPreset): Boolean =
-        before.ink.size == after.ink.size && before.ink.zip(after.ink).all { (a, b) ->
+        before.ink.size == after.ink.size && before.ink.indices.all { index ->
+            val a = before.ink[index]
+            val b = after.ink[index]
             a.character == b.character && a.opacity >= .995f && a.scale >= .995f &&
                 kotlin.math.abs(a.x - b.x) < .5f && a.color == b.color &&
                 (preset == SuggestionMotionPreset.SCALE ||

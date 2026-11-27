@@ -24,6 +24,11 @@ internal class PanelGlassRecordState {
     private var dirty = true
     private var framePending = false
     fun invalidate() { dirty = true }
+    fun configurationChanged(sourceChanged: Boolean, edgeChanged: Boolean, colorChanged: Boolean): Boolean {
+        if (!sourceChanged && !edgeChanged && !colorChanged) return false
+        invalidate()
+        return true
+    }
     fun requestFrame(): Boolean {
         if (framePending) return false
         framePending = true
@@ -72,7 +77,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     // onDraw (hidden view, reused display list or interrupted traversal).
     private val redrawFrame = Runnable {
         recordState.frameStarted()
-        if (isAttachedToWindow && isShown) invalidate()
+        if (canDraw()) invalidate()
     }
     private val sourceLayoutListener = OnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
         if (l != ol || t != ot || r != or || b != ob) invalidateSource()
@@ -93,18 +98,24 @@ class PanelGlassOverlayView @JvmOverloads constructor(
     }
 
     fun configure(content: View?, edge: Edge, color: Int) {
-        if (source !== content) {
+        val newBase = ColorUtils.setAlphaComponent(color, 255)
+        val sourceChanged = source !== content
+        if (!recordState.configurationChanged(sourceChanged, this.edge != edge, baseColor != newBase)) return
+        if (sourceChanged) {
             unobserve()
-            source = content
-            // Drop the old GPU display list when leaving a sensitive panel.
+            removeCallbacks(redrawFrame)
+            recordState.frameStarted()
             dropNode()
+            source = content
             observe()
         }
+        if (this.edge != edge || newBase != baseColor) headerMaskShader = null
         this.edge = edge
-        val newBase = ColorUtils.setAlphaComponent(color, 255)
-        if (newBase != baseColor) headerMaskShader = null
         baseColor = newBase
-        invalidateSource()
+        // A null source still needs a final invalidation to erase old pixels.
+        if (content == null) {
+            if (canDraw()) invalidate()
+        } else invalidateSource()
     }
 
     /**
@@ -122,7 +133,7 @@ class PanelGlassOverlayView @JvmOverloads constructor(
                 colorFilter = ColorMatrixColorFilter(matrix)
             }
         }
-        postInvalidateOnAnimation()
+        if (canDraw()) postInvalidateOnAnimation()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -191,10 +202,12 @@ class PanelGlassOverlayView @JvmOverloads constructor(
         registeredObserver = null
     }
 
+    private fun canDraw() = isAttachedToWindow && isShown && windowVisibility == VISIBLE
+
     /** Mark only content/geometry changes dirty; unchanged frames reuse the GPU display list. */
     fun invalidateSource() {
         recordState.invalidate()
-        if (isAttachedToWindow && isShown && recordState.requestFrame()) {
+        if (source != null && canDraw() && recordState.requestFrame()) {
             postOnAnimation(redrawFrame)
         }
     }

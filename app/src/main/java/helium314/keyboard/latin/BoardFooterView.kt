@@ -52,13 +52,13 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
     private val glass = PanelGlassOverlayView(context)
     private var privateGestureZone: PrivateFooterGestureView? = null
     private lateinit var ime: LatinIME
-    private val emojiButton get() = findViewById<ImageButton>(R.id.board_footer_globe)
-    private val microphone get() = findViewById<ImageButton>(R.id.board_footer_mic)
-    private val passwordManagerButton get() = findViewById<ImageButton>(R.id.board_footer_password_manager)
-    private val micUnderlight get() = findViewById<FooterMicUnderlightView>(R.id.board_footer_mic_underlight)
-    private val discardGlyph get() = findViewById<FooterMicDiscardMorphView>(R.id.board_footer_discard)
-    private val voiceError get() = findViewById<TextView>(R.id.board_footer_voice_error)
-    private val contextAction get() = findViewById<TextView>(R.id.board_footer_context_action)
+    private val emojiButton by lazy(LazyThreadSafetyMode.NONE) { findViewById<ImageButton>(R.id.board_footer_globe) }
+    private val microphone by lazy(LazyThreadSafetyMode.NONE) { findViewById<ImageButton>(R.id.board_footer_mic) }
+    private val passwordManagerButton by lazy(LazyThreadSafetyMode.NONE) { findViewById<ImageButton>(R.id.board_footer_password_manager) }
+    private val micUnderlight by lazy(LazyThreadSafetyMode.NONE) { findViewById<FooterMicUnderlightView>(R.id.board_footer_mic_underlight) }
+    private val discardGlyph by lazy(LazyThreadSafetyMode.NONE) { findViewById<FooterMicDiscardMorphView>(R.id.board_footer_discard) }
+    private val voiceError by lazy(LazyThreadSafetyMode.NONE) { findViewById<TextView>(R.id.board_footer_voice_error) }
+    private val contextAction by lazy(LazyThreadSafetyMode.NONE) { findViewById<TextView>(R.id.board_footer_context_action) }
     private var popup: PopupWindow? = null
     private val targets = ArrayList<View>()
     private var fadedKeys: View? = null
@@ -95,6 +95,10 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         }
     }
     private var micPulse: ValueAnimator? = null
+    private var privateGestureDeadline = 0L
+    private var footerRenderedHidden = false
+    private var footerInk: Int? = null
+    private var footerTint: ColorStateList? = null
     private var micDiscardAnimator: ValueAnimator? = null
     private var micDiscardRestartTouchArmed = false
     private var pulsingMicIcon: FooterMicPulseDrawable? = null
@@ -309,29 +313,47 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
 
     fun refreshPrivateGestureAvailability() {
         val zone = privateGestureZone ?: return
-        if (!this::ime.isInitialized) {
-            zone.setCaptureEnabled(false)
+        if (!this::ime.isInitialized || !isAttachedToWindow || !isShown || windowVisibility != VISIBLE) {
+            clearPrivateGestureDeadline(zone)
             return
         }
         val values = Settings.getValues()
         if (values == null) {
-            zone.setCaptureEnabled(false)
+            clearPrivateGestureDeadline(zone)
             return
         }
         val attrs = values.mInputAttributes
         val secure = SecureAppsPolicy.isSecure(context.prefs(), attrs.mTargetApplicationPackageName)
+        val deadline = PrivateGestureSession.activeDeadlineMs()
         val enabled = context.prefs().getBoolean(PrivateGestureSession.PREF_ENABLED, false)
             && attrs.mIsGeneralTextInput && !attrs.mNoLearning && !attrs.mIsPasswordField
             && !values.mIncognitoModeEnabled && !secure
             && !dictationActive && !dictationProcessing && !toolbarNavigationActive
             && !isMicTouchExplorationEnabled()
-            && PrivateGestureSession.remainingMs() > 0
-        zone.setCaptureEnabled(enabled)
-        zone.removeCallbacks(expirePrivateGestureZone)
-        if (enabled) zone.postDelayed(expirePrivateGestureZone, PrivateGestureSession.remainingMs())
+            && deadline > 0
+        if (!enabled) {
+            clearPrivateGestureDeadline(zone)
+            return
+        }
+        zone.setCaptureEnabled(true)
+        if (FooterRenderWorkPolicy.needsDeadlinePost(privateGestureDeadline, deadline)) {
+            zone.removeCallbacks(expirePrivateGestureZone)
+            privateGestureDeadline = deadline
+            zone.postDelayed(expirePrivateGestureZone,
+                (deadline - android.os.SystemClock.elapsedRealtime()).coerceAtLeast(0L))
+        }
     }
 
-    private val expirePrivateGestureZone = Runnable { refreshPrivateGestureAvailability() }
+    private fun clearPrivateGestureDeadline(zone: PrivateFooterGestureView) {
+        zone.setCaptureEnabled(false)
+        if (privateGestureDeadline != 0L) zone.removeCallbacks(expirePrivateGestureZone)
+        privateGestureDeadline = 0L
+    }
+
+    private val expirePrivateGestureZone = Runnable {
+        privateGestureDeadline = 0L
+        refreshPrivateGestureAvailability()
+    }
 
     private fun syncEmojiPrivacy(animate: Boolean) {
         val privateMode = Settings.getValues().mIncognitoModeEnabled
@@ -359,11 +381,14 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         privateEmojiIcon.setIncognito(privateMode, animated =
             FooterIncognitoMotion.shouldAnimatePrivacyChange(animate, isShown))
         if (!returnToLetters) {
-            emojiButton.contentDescription = resources.getString(
+            val description = resources.getString(
                 if (privateMode) R.string.board_emoji_private_desc else R.string.board_emoji_normal_desc)
+            if (emojiButton.contentDescription != description) emojiButton.contentDescription = description
         }
-        ViewCompat.setStateDescription(emojiButton,
-            resources.getString(if (privateMode) R.string.board_incognito_on else R.string.board_incognito_off))
+        val stateDescription = resources.getString(
+            if (privateMode) R.string.board_incognito_on else R.string.board_incognito_off)
+        if (ViewCompat.getStateDescription(emojiButton) != stateDescription)
+            ViewCompat.setStateDescription(emojiButton, stateDescription)
     }
 
     /**
@@ -811,17 +836,27 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         } else if (emojiButton.drawable !== privateEmojiIcon) {
             emojiButton.setImageDrawable(privateEmojiIcon)
         }
-        emojiButton.contentDescription = resources.getString(
-            if (returnToAbc) R.string.board_return_to_letters else R.string.board_language_and_shortcuts,
-        )
+        if (returnToAbc) {
+            val description = resources.getString(R.string.board_return_to_letters)
+            if (emojiButton.contentDescription != description) emojiButton.contentDescription = description
+        } else if (wasReturningToLetters) {
+            // Hidden state still gets its proper native role before the privacy sync.
+            emojiButton.contentDescription = resources.getString(R.string.board_language_and_shortcuts)
+        }
         if (!show) {
             renderedVoiceInk = null
             renderedVoiceDark = null
-            reset()
+            if (!footerRenderedHidden) reset()
+            footerRenderedHidden = true
             return
         }
+        footerRenderedHidden = false
         val ink = Settings.getValues().mColors.get(ColorType.KEY_ICON)
-        val tint = ColorStateList.valueOf(ink)
+        if (footerInk != ink || footerTint == null) {
+            footerInk = ink
+            footerTint = ColorStateList.valueOf(ink)
+        }
+        val tint = requireNotNull(footerTint)
         val dark = KeyboardTheme.isDarkThemeActive(context)
         val refreshVoice = wasToolbarActive != toolbarActive ||
             renderedVoiceInk != ink || renderedVoiceDark != dark
@@ -852,6 +887,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         syncRightFooterAccessibilityActions()
         microphone.visibility = if (show && (showMicrophone || toolbarActive)) VISIBLE else INVISIBLE
         micUnderlight.setPrivacyShieldVisible(showMicrophone && !toolbarActive)
+        reconcileMicPulse()
         // Do not add a password icon on ordinary text, email, incognito, etc.
         // Password fields naturally hide the mic, so reuse precisely that slot.
         val passwordField = Settings.getValues().mInputAttributes.mIsPasswordField
@@ -890,7 +926,7 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         // No disk, ring or badge: the silhouette-shaped glow belongs to the
         // actual keyboard surface below the existing 48dp mic touch target.
         microphone.background = idleMicBackground
-        if (active) startMicPulse() else stopMicPulse()
+        if (active) reconcileMicPulse() else stopMicPulse()
         refreshPrivateGestureAvailability()
     }
 
@@ -911,8 +947,8 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
                 FooterIndicatorPolicy.processingTint(KeyboardTheme.isDarkThemeActive(context)))
             microphone.contentDescription = resources.getString(R.string.board_dictation_processing)
             // The turquoise glyph and its mic-shaped underlight breathe together.
-            startMicPulse()
-        }
+            reconcileMicPulse()
+        } else reconcileMicPulse()
         refreshPrivateGestureAvailability()
     }
 
@@ -1079,25 +1115,40 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         contextActionCallback = null
         val chip = contextAction
         chip.setOnClickListener(null)
+        chip.animate().cancel()
         chip.visibility = GONE
         refreshPrivateGestureAvailability()
     }
 
+    private fun canPresentMicPulse(): Boolean = FooterRenderWorkPolicy.canPulse(
+        isAttachedToWindow && isShown && windowVisibility == VISIBLE,
+        microphone.isShown, toolbarNavigationActive, dictationActive, dictationProcessing,
+        KeyboardMotionSpec.enabled())
+
+    private fun reconcileMicPulse() {
+        if (canPresentMicPulse()) startMicPulse()
+        else if (micPulse != null) stopMicPulse()
+    }
+
     private fun startMicPulse() {
-        if (micPulse != null) return
-        if (!KeyboardMotionSpec.enabled()) return
+        if (micPulse != null || !canPresentMicPulse()) return
         val mic = microphone
         micPulse = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
             duration = KeyboardMotionSpec.VOICE_PULSE_CYCLE_MS
             repeatCount = ValueAnimator.INFINITE
             interpolator = AccelerateDecelerateInterpolator()
             addUpdateListener { animation ->
+                if (!canPresentMicPulse()) {
+                    stopMicPulse()
+                    return@addUpdateListener
+                }
                 val phase = FooterIndicatorPolicy.pulseIntensity(
                     animation.animatedValue as Float, dictationProcessing)
                 // Animate the mic glyph and the matching underlight, not its touch target.
                 micUnderlight.setPulse(phase)
                 pulsingMicIcon?.setPulse(phase)
-                mic.imageAlpha = (230f + 25f * phase).roundToInt()
+                val alpha = (230f + 25f * phase).roundToInt()
+                if (mic.imageAlpha != alpha) mic.imageAlpha = alpha
             }
             start()
         }
@@ -1136,18 +1187,35 @@ class BoardFooterView(context: Context, attrs: AttributeSet?) : FrameLayout(cont
         removeCallbacks(openShortcuts)
         popup?.dismiss()
         popup = null
-        fadedKeys?.animate()?.cancel()
-        fadedKeys?.animate()?.alpha(1f)?.setDuration(130)?.start()
+        fadedKeys?.let { keys ->
+            keys.animate().cancel()
+            if (keys.isShown && keys.isAttachedToWindow && keys.windowVisibility == VISIBLE)
+                keys.animate().alpha(1f).setDuration(130).start()
+            else keys.alpha = 1f
+        }
         fadedKeys = null
         targets.clear()
         selected = -1
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (!this::ime.isInitialized) return
+        if (isVisible) {
+            reconcileMicPulse()
+            refreshPrivateGestureAvailability()
+        } else {
+            if (micPulse != null) stopMicPulse()
+            privateEmojiIcon.stopAnimation()
+            privateGestureZone?.let { clearPrivateGestureDeadline(it) }
+        }
+    }
+
     override fun onDetachedFromWindow() {
         context.prefs().unregisterOnSharedPreferenceChangeListener(privacyListener)
-        privateGestureZone?.setCaptureEnabled(false)
         reset()
         privateEmojiIcon.stopAnimation()
+        privateGestureZone?.let { clearPrivateGestureDeadline(it) }
         super.onDetachedFromWindow()
     }
 

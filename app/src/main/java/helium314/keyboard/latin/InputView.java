@@ -39,6 +39,11 @@ public final class InputView extends FrameLayout {
     private View mBoardFrame;
     private SuggestionStripView mSuggestionStrip;
     private BoardFooterView mFooter;
+    private View mMeasuredEmojiPanel;
+    private View mMeasuredClipboardPanel;
+    private View mMeasuredToolbarPanel;
+    private View mMeasuredEmojiPager;
+    private View mMeasuredToolbarScroll;
     private VaultStrokeCapture mVaultStroke;
     private long mVaultStrokeEpoch;
     private SlideConfirmationOverlay mSlideConfirmation;
@@ -274,9 +279,13 @@ public final class InputView extends FrameLayout {
                     && mMainKeyboardView.getVisibility() == VISIBLE;
             // Emoji and Clipboard used to lose the footer entirely. That made their
             // visible keyboard surface shorter than the alphabetic keyboard.
-            final View emoji = findViewById(R.id.emoji_palettes_view);
-            final View clipboard = findViewById(R.id.clipboard_history_view);
-            final View toolbarPanel = findViewById(R.id.access_point_menu_view);
+            // Lazy resolution also supports panel children inflated after the root.
+            if (mMeasuredEmojiPanel == null) mMeasuredEmojiPanel = findViewById(R.id.emoji_palettes_view);
+            if (mMeasuredClipboardPanel == null) mMeasuredClipboardPanel = findViewById(R.id.clipboard_history_view);
+            if (mMeasuredToolbarPanel == null) mMeasuredToolbarPanel = findViewById(R.id.access_point_menu_view);
+            final View emoji = mMeasuredEmojiPanel;
+            final View clipboard = mMeasuredClipboardPanel;
+            final View toolbarPanel = mMeasuredToolbarPanel;
             final boolean emojiPanel = emoji != null && emoji.getVisibility() == VISIBLE;
             // Search hides the emoji pager but leaves the EmojiPalettesView
             // visible while hosting its alphabet keyboard. Never manually
@@ -284,8 +293,6 @@ public final class InputView extends FrameLayout {
             final boolean emojiBrowse = emojiPanel
                     && !((helium314.keyboard.keyboard.emoji.EmojiPalettesView) emoji).isSearchMode();
             final boolean clipboardPanel = clipboard != null && clipboard.getVisibility() == VISIBLE;
-            final boolean clipboardBrowse = FooterGlassSourcePolicy.shouldSampleClipboard(
-                    clipboardPanel, clipboardPanel && ((helium314.keyboard.keyboard.clipboard.ClipboardHistoryView) clipboard).isSearchMode());
             final boolean toolbarActive = toolbarPanel != null && toolbarPanel.getVisibility() == VISIBLE;
             final boolean panelFooter = emojiPanel
                     || clipboardPanel
@@ -295,9 +302,12 @@ public final class InputView extends FrameLayout {
             final boolean showFooter = typingFooter || panelFooter;
             // Clipboard's bottom glass now extends beneath this footer: do not
             // independently sample a second RenderNode across the same seam.
-            mFooter.setPanelGlassSource(emojiBrowse ? findViewById(R.id.emoji_pager)
-                    : toolbarActive ? findViewById(R.id.access_point_scroll) : null,
-                    emojiBrowse);
+            if (emojiBrowse && mMeasuredEmojiPager == null)
+                mMeasuredEmojiPager = findViewById(R.id.emoji_pager);
+            if (toolbarActive && mMeasuredToolbarScroll == null)
+                mMeasuredToolbarScroll = findViewById(R.id.access_point_scroll);
+            mFooter.setPanelGlassSource(emojiBrowse ? mMeasuredEmojiPager
+                    : toolbarActive ? mMeasuredToolbarScroll : null, emojiBrowse);
             // All three internal panels expose the same direct ABC return route.
             mFooter.render(showFooter, showFooter && Settings.getValues().mShowsVoiceInputKey,
                     FooterPanelPolicy.returnToAbc(emojiPanel, clipboardPanel, toolbarActive),

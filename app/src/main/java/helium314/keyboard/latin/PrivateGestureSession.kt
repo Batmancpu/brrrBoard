@@ -50,6 +50,16 @@ object PrivateGestureSession {
         return expiresAtMs - SystemClock.elapsedRealtime()
     }
 
+    /** Exact monotonic UI deadline; does not renew authorization or expose its payload. */
+    @Synchronized
+    fun activeDeadlineMs(): Long {
+        if (secret == null || SystemClock.elapsedRealtime() >= expiresAtMs) {
+            clearLocked()
+            return 0L
+        }
+        return expiresAtMs
+    }
+
     @Synchronized
     fun clear() = clearLocked()
 

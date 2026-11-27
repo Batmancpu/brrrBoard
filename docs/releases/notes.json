@@ -1,18 +1,26 @@
 {
   "schema": 1,
-  "summary": "Settings visual system — compact, coherent and tactile",
+  "summary": "Zero-Waste Rendering: remove redundant and hidden work while preserving visible quality",
   "changes": [
     {
-      "title": "Unified settings navigation",
-      "detail": "Adopt a restrained list-first visual system with shared row geometry, monochrome accent icons, neutral light and dark surfaces, compact search/navigation and a functional typing preview without decorative mock keyboard."
+      "title": "Event-driven glass and layout",
+      "detail": "Unchanged panel glass configuration no longer dirties its source or schedules another recording. Cache highlight shaders, stable view references and unchanged footer presentation; preserve all blur, tint, sampling, geometry and Clipboard slab behavior."
     },
     {
-      "title": "Tactile shared controls",
-      "detail": "Use consistent capsule switches and sliders, fixed slider measurement during press, accessible row-level toggles, unified checkmark choices, multiselect checkboxes and segmented options."
+      "title": "Visible-only visual activity",
+      "detail": "Suspend hidden microphone pulse, glow masks, privacy artwork, key presentation, suggestion glyph overlays and particle animation without altering visible timings or voice/gesture functions. Deduplicate the private gesture UI deadline without extending its authorization."
     },
     {
-      "title": "Consistent editors and management",
-      "detail": "Apply the same palette, spacing and shapes to Glass Studio, voice model choices, app profiles, editing gestures, pickers, dialogs, reorder lists, reset and version history. Existing settings values and protected access are retained; keyboard renderer and motion untouched."
+      "title": "Less keyboard and swipe rendering work",
+      "detail": "Mark keyboard artwork dirty within the current draw instead of posting redundant frames, use one press-motion time per frame, and defer swipe trail buffer allocation until there is actual trail or clearing work. Preserve complete hardware display lists and swipe recognition."
+    },
+    {
+      "title": "Lazy Emoji Search and public row reuse",
+      "detail": "Build Search keyboard on actual entry, rebuild only for stale layout or geometry, clear hidden Search rows, bulk replace grid keys with one coordinate pass, and reuse the persistent emoji row when data, geometry and fonts still match."
+    },
+    {
+      "title": "Rendering allocation and regression safeguards",
+      "detail": "Reuse suggestion snapshot coordinates, avoid intermediate glyph comparison pairs, cache particle palette/blend state, and add policy and sequential-versus-bulk grid parity tests. No visible quality reduction or new permissions."
     }
   ]
 }

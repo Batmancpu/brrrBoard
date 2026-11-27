@@ -64,11 +64,18 @@ class SparkleDustView @JvmOverloads constructor(
     private var animationTime = 0f
     private var lastFrameUptimeMs = 0L
     private var isAnimating = false
+    private var particlesDirty = true
+
+    private fun canAnimate() = isAnimating && isAttachedToWindow && isShown &&
+        windowVisibility == VISIBLE && overallAlpha > 0f && width > 0 && height > 0
 
     var overallAlpha: Float = 1f
         set(value) {
-            field = value.coerceIn(0f, 1f)
-            invalidate()
+            val next = value.coerceIn(0f, 1f)
+            if (field == next) return
+            field = next
+            if (next == 0f) lastFrameUptimeMs = 0L
+            if (isShown && windowVisibility == VISIBLE) invalidate()
         }
 
     private val dustColors = listOf(
@@ -87,11 +94,7 @@ class SparkleDustView @JvmOverloads constructor(
         isAnimating = true
         lastFrameUptimeMs = 0L
 
-        if (width > 0 && height > 0 && (ambientDust.isEmpty() || streamDust.isEmpty())) {
-            createParticles(width.toFloat(), height.toFloat())
-        }
-
-        postInvalidateOnAnimation()
+        if (canAnimate()) postInvalidateOnAnimation()
     }
 
     fun stopDustAnimation() {
@@ -117,11 +120,9 @@ class SparkleDustView @JvmOverloads constructor(
         clipPath.addRoundRect(clipRect, cornerRadius, cornerRadius, Path.Direction.CW)
 
         if (ambientDust.isEmpty() || streamDust.isEmpty() || kotlin.math.abs(w - oldw) > 10 || kotlin.math.abs(h - oldh) > 10) {
-            createParticles(w.toFloat(), h.toFloat())
+            particlesDirty = true
         }
-        if (isAnimating) {
-            postInvalidateOnAnimation()
-        }
+        if (canAnimate()) postInvalidateOnAnimation()
     }
 
     private fun createParticles(width: Float, height: Float) {
@@ -169,12 +170,13 @@ class SparkleDustView @JvmOverloads constructor(
         super.onDraw(canvas)
 
         if (width <= 0 || height <= 0) return
-        if (!isAnimating) {
+        if (!canAnimate()) {
             lastFrameUptimeMs = 0L
             return
         }
-        if (ambientDust.isEmpty() || streamDust.isEmpty()) {
+        if (particlesDirty || ambientDust.isEmpty() || streamDust.isEmpty()) {
             createParticles(width.toFloat(), height.toFloat())
+            particlesDirty = false
         }
 
         val now = SystemClock.uptimeMillis()
@@ -200,6 +202,12 @@ class SparkleDustView @JvmOverloads constructor(
         canvas.restoreToCount(saveCount)
 
         postInvalidateOnAnimation()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        lastFrameUptimeMs = 0L
+        if (isVisible && canAnimate()) postInvalidateOnAnimation()
     }
 
     override fun onDetachedFromWindow() {

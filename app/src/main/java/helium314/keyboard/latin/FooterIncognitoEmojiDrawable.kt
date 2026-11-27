@@ -94,6 +94,8 @@ internal class FooterIncognitoEmojiDrawable(context: Context) : Drawable() {
     }
 
     fun stopAnimation() {
+        if (animator == null && pose == FooterIncognitoMotion.settled(wantedIncognito) &&
+            denialFraction == 0f) return
         val oldAnimator = animator
         animator = null
         oldAnimator?.cancel()

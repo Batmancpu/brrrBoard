@@ -1160,9 +1160,18 @@ public class KeyboardView extends View {
         invalidateAllKeys();
     }
 
-    public void invalidateAllKeys() {
+    /** Marks the display list/buffer dirty for a draw already in progress. */
+    protected final void markAllKeysDirty() {
         mInvalidatedKeys.clear();
         mInvalidateAllKeys = true;
+    }
+
+    protected final void markKeyDirty(@Nullable final Key key) {
+        if (!mInvalidateAllKeys && key != null) mInvalidatedKeys.add(key);
+    }
+
+    public void invalidateAllKeys() {
+        markAllKeysDirty();
         postInvalidateOnAnimation();
     }
 
@@ -1184,6 +1193,12 @@ public class KeyboardView extends View {
         final int x = key.getX() + getPaddingLeft();
         final int y = key.getY() + getPaddingTop();
         postInvalidateOnAnimation(x, y, x + key.getWidth(), y + key.getHeight());
+    }
+
+    @Override
+    public void onVisibilityAggregated(final boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        if (!isVisible) cancelLayerPresentation();
     }
 
     @Override

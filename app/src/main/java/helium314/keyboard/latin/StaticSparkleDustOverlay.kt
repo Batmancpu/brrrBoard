@@ -69,18 +69,18 @@ internal class StaticSparkleDustOverlay {
     private var renderAlphaBoost = 1f
     private var particlesWidth = -1
     private var particlesHeight = -1
-    private var cachedColorSignature = 0
+    private var cachedColors: IntArray? = null
     private var cachedUseScreenBlend = true
+    private var appliedScreenBlend: Boolean? = null
     private var sparkleColors = defaultSparkleColors
 
     fun draw(canvas: Canvas, width: Int, height: Int, alphaBoost: Float, colors: IntArray, useScreenBlend: Boolean) {
         if (width <= 0 || height <= 0) return
 
         val clampedAlphaBoost = alphaBoost.coerceIn(MIN_ALPHA_BOOST, MAX_ALPHA_BOOST)
-        val colorSignature = colors.contentHashCode()
-        if (cachedColorSignature != colorSignature) {
+        if (cachedColors?.contentEquals(colors) != true) {
             sparkleColors = colors.toSparkleColors().ifEmpty { defaultSparkleColors }
-            cachedColorSignature = colorSignature
+            cachedColors = colors.copyOf()
             cachedAlphaBoost = -1f
         }
         cachedUseScreenBlend = useScreenBlend
@@ -99,6 +99,8 @@ internal class StaticSparkleDustOverlay {
     }
 
     private fun configureOverlayBlend() {
+        if (appliedScreenBlend == cachedUseScreenBlend) return
+        appliedScreenBlend = cachedUseScreenBlend
         if (cachedUseScreenBlend) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 overlayPaint.blendMode = BlendMode.SCREEN
@@ -117,6 +119,7 @@ internal class StaticSparkleDustOverlay {
     }
 
     fun clear() {
+        if (cachedBitmap == null && cachedColors == null && ambientDust.isEmpty() && streamDust.isEmpty()) return
         cachedBitmap?.recycle()
         cachedBitmap = null
         cachedWidth = -1
@@ -124,7 +127,7 @@ internal class StaticSparkleDustOverlay {
         cachedAlphaBoost = -1f
         particlesWidth = -1
         particlesHeight = -1
-        cachedColorSignature = 0
+        cachedColors = null
         cachedUseScreenBlend = true
         sparkleColors = defaultSparkleColors
         ambientDust.clear()

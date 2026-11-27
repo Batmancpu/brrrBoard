@@ -124,6 +124,11 @@ class FooterMicUnderlightView @JvmOverloads constructor(
         releaseMask()
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (!isVisible) releaseMask()
+    }
+
     override fun onDetachedFromWindow() {
         releaseMask()
         super.onDetachedFromWindow()

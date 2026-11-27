@@ -98,7 +98,10 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     }
 
     void cancelSearchGlyphMotion() {
-        if (mSearchGlyphMotion.clear()) invalidateAllKeys();
+        if (mSearchGlyphMotion.clear()) {
+            if (isShown() && getWindowVisibility() == VISIBLE) invalidateAllKeys();
+            else markAllKeysDirty();
+        }
         mSearchFrameBudget = null;
         mSearchDrawProgress = 1f;
     }
@@ -114,7 +117,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
                     mSearchGlyphMotion.clear();
                     mSearchFrameBudget = null;
                 }
-                invalidateAllKeys();
+                markAllKeysDirty();
             }
         }
         super.onDraw(canvas);
@@ -609,6 +612,12 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
             return;
         }
         parent.requestDisallowInterceptTouchEvent(disallow);
+    }
+
+    @Override
+    public void onVisibilityAggregated(final boolean isVisible) {
+        super.onVisibilityAggregated(isVisible);
+        if (!isVisible) cancelSearchGlyphMotion();
     }
 
     @Override

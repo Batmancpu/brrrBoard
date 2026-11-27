@@ -42,6 +42,8 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
     private final android.content.Context mContext;
     private boolean mFrameSynchronized;
     private boolean mFrameScheduled;
+    // Protected by the trail lock: a new sample or unfinished fade needs work.
+    private boolean mTrailWorkPending;
 
     public GestureTrailsDrawingPreview(final TypedArray mainKeyboardViewAttr,
             final android.content.Context context) {
@@ -69,7 +71,11 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
         mDrawingHandler.removeCallbacks(this);
         removeDrawingViewCallback(this);
         mFrameScheduled = false;
-        synchronized (mGestureTrails) { mGestureTrails.clear(); }
+        synchronized (mGestureTrails) {
+            mGestureTrails.clear();
+            mTrailWorkPending = false;
+        }
+        mDirtyRect.setEmpty();
         freeOffscreenBuffer();
     }
 
@@ -115,6 +121,7 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
                 // {@link #mGestureTrailBoundsRect} has bounding box of the trail.
                 dirtyRect.union(mGestureTrailBoundsRect);
             }
+            mTrailWorkPending = needsUpdatingGestureTrail;
         }
         return needsUpdatingGestureTrail;
     }
@@ -146,6 +153,10 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
         }
         if (mDrawingParams.mIosMotion != frameSynchronized) {
             mDrawingParams.setIosMotion(frameSynchronized);
+        }
+        synchronized (mGestureTrails) {
+            if (!GestureTrailWorkPolicy.shouldDraw(mTrailWorkPending, !mDirtyRect.isEmpty(),
+                    mOffscreenWidth, mOffscreenHeight)) return;
         }
         mayAllocateOffscreenBuffer();
         // Draw gesture trails to offscreen buffer.
@@ -188,8 +199,9 @@ public final class GestureTrailsDrawingPreview extends AbstractDrawingPreview im
                 trail = new GestureTrailDrawingPoints();
                 mGestureTrails.put(tracker.mPointerId, trail);
             }
+            trail.addStroke(tracker.getGestureStrokeDrawingPoints(), tracker.getDownTime());
+            mTrailWorkPending = true;
         }
-        trail.addStroke(tracker.getGestureStrokeDrawingPoints(), tracker.getDownTime());
 
         // Input sampling is unchanged; rendering is coalesced by the display clock.
         if (mFrameSynchronized) invalidateDrawingViewOnAnimation();

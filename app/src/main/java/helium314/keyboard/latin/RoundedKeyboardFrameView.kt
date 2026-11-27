@@ -35,6 +35,13 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
     private val clipPath = Path()
     private val outlineClipPath = Path()
     private val topHighlightPath = Path()
+    private val highlightShaders = android.util.SparseArray<LinearGradient>()
+    private var highlightShaderWidth = -1
+    private val exclusivePanelIds = intArrayOf(
+        R.id.emoji_palettes_view, R.id.clipboard_history_view, R.id.klipy_palettes_view,
+        R.id.ai_writing_tools_view, R.id.access_point_menu_view)
+    private val outerHeaderIds = intArrayOf(
+        R.id.persistent_emoji_row_scroll, R.id.persistent_emoji_row_divider, R.id.strip_container)
     private val topHighlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         // Butt caps avoid bright end bulbs where the rim meets side highlights.
@@ -104,19 +111,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         // especially when switching directly between two non-typing panels.
         // Ordinary alphabet/symbol layouts keep their existing header policy.
         val emoji = findViewById<View>(R.id.emoji_palettes_view)
-        val exclusivePanelVisible = intArrayOf(
-            R.id.emoji_palettes_view,
-            R.id.clipboard_history_view,
-            R.id.klipy_palettes_view,
-            R.id.ai_writing_tools_view,
-            R.id.access_point_menu_view,
-        ).any { findViewById<View>(it)?.visibility == View.VISIBLE }
+        val exclusivePanelVisible = exclusivePanelIds.any { findViewById<View>(it)?.visibility == View.VISIBLE }
         if (exclusivePanelVisible) {
-            val outerHeaderIds = intArrayOf(
-                R.id.persistent_emoji_row_scroll,
-                R.id.persistent_emoji_row_divider,
-                R.id.strip_container,
-            )
             for (id in outerHeaderIds) {
                 findViewById<View>(id)?.let { header ->
                     if (header.visibility != View.GONE) header.visibility = View.GONE
@@ -133,12 +129,18 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             val fullHeight = resources.getDimensionPixelSize(R.dimen.config_suggestions_strip_height)
             val density = resources.displayMetrics.density
             val compactHeight = AccessoryHeaderGeometry.topClearancePx(keyboardCornerRadiusPx(), density)
-            stripContainer.layoutParams.height = if (compact) compactHeight else fullHeight
-            strip.layoutParams.height = if (compact) 0 else LayoutParams.MATCH_PARENT
-            stripContainer.clipChildren = compact
-            stripContainer.clipToPadding = compact
-            strip.importantForAccessibility = if (compact) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            val targetContainerHeight = if (compact) compactHeight else fullHeight
+            val targetStripHeight = if (compact) 0 else LayoutParams.MATCH_PARENT
+            if (stripContainer.layoutParams.height != targetContainerHeight)
+                stripContainer.layoutParams.height = targetContainerHeight
+            if (strip.layoutParams.height != targetStripHeight)
+                strip.layoutParams.height = targetStripHeight
+            if (stripContainer.clipChildren != compact) stripContainer.clipChildren = compact
+            if (stripContainer.clipToPadding != compact) stripContainer.clipToPadding = compact
+            val accessibility = if (compact) View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 else View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+            if (strip.importantForAccessibility != accessibility)
+                strip.importantForAccessibility = accessibility
         }
         if (emoji?.visibility == View.VISIBLE) {
             val currentWidth = MeasureSpec.getSize(widthMeasureSpec)
@@ -198,6 +200,8 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
         super.onDetachedFromWindow()
         context.prefs().unregisterOnSharedPreferenceChangeListener(prefListener)
         staticDustOverlay.clear()
+        highlightShaders.clear()
+        highlightShaderWidth = -1
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -259,6 +263,10 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             Defaults.PREF_KEYBOARD_TOP_HIGHLIGHT_STYLE
         )).coerceIn(0, 3)
 
+        if (highlightShaderWidth != width) {
+            highlightShaders.clear()
+            highlightShaderWidth = width
+        }
         // Every style is an OPEN reflection, never a border around the slab.
         // Fade out before the very left/right edges so the specular reflection
         // cannot form the former bright vertical corner streak.
@@ -273,12 +281,12 @@ class RoundedKeyboardFrameView @JvmOverloads constructor(
             // Leaving Paint.color alpha at "a" would multiply opacity twice
             // and wash out the first-ever highlight (especially in light mode).
             topHighlightPaint.color = if (softSides) Color.WHITE else peak
-            topHighlightPaint.shader = if (softSides) LinearGradient(
+            topHighlightPaint.shader = if (softSides) highlightShaders[a] ?: LinearGradient(
                 0f, 0f, width.toFloat(), 0f,
                 intArrayOf(transparent, shoulder, peak, peak, shoulder, transparent),
                 floatArrayOf(0f, 0.04f, 0.13f, 0.87f, 0.96f, 1f),
                 Shader.TileMode.CLAMP
-            ) else null
+            ).also { highlightShaders.put(a, it) } else null
             canvas.drawPath(path, topHighlightPaint)
             topHighlightPaint.shader = null
         }

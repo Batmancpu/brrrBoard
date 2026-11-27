@@ -24,6 +24,7 @@ class PrivateFooterGestureView(context: Context) : View(context) {
     private var strokeRejected = false
     private val cuePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val cueRect = RectF()
+    private val cueTypeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
 
     var onCircle: (() -> Unit)? = null
 
@@ -36,8 +37,9 @@ class PrivateFooterGestureView(context: Context) : View(context) {
     }
 
     fun setCaptureEnabled(value: Boolean) {
-        enabled = value
         if (!value) resetStroke()
+        if (enabled == value) return
+        enabled = value
         visibility = if (value) VISIBLE else GONE
         invalidate()
     }
@@ -59,7 +61,7 @@ class PrivateFooterGestureView(context: Context) : View(context) {
         cuePaint.style = Paint.Style.FILL
         cuePaint.textAlign = Paint.Align.CENTER
         cuePaint.textSize = 10f * density
-        cuePaint.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+        cuePaint.typeface = cueTypeface
         cuePaint.color = Color.WHITE
         canvas.drawText("PRIVATE READY", width / 2f, height / 2f + cuePaint.textSize * .35f, cuePaint)
     }

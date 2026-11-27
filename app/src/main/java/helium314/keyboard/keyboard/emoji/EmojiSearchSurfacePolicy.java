@@ -5,6 +5,11 @@ package helium314.keyboard.keyboard.emoji;
 final class EmojiSearchSurfacePolicy {
     private EmojiSearchSurfacePolicy() {}
 
+    static boolean needsResultGrid(boolean searchMode, boolean initialized, boolean dirty,
+            boolean widthMatches, boolean heightMatches) {
+        return searchMode && (!initialized || dirty || !widthMatches || !heightMatches);
+    }
+
     static boolean resultsVisible(final boolean searchMode, final boolean noMatches) {
         return searchMode && !noMatches;
     }

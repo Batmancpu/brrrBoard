@@ -141,6 +141,9 @@ public final class EmojiPalettesView extends LinearLayout
     private List<String> mDisplayedSearchEmojis = List.of();
     private View mSearchKeyboardPlaceholder;
     private DynamicGridKeyboard mSearchResultsKeyboard;
+    private boolean mSearchResultLayoutDirty = true;
+    private int mSearchLayoutBaseWidth;
+    private int mSearchLayoutBodyHeight;
     private KeyboardParams mSearchKeyboardParams;
     private int mSearchResultsKeyboardWidth;
     private int mSearchBaseResultsColumnCount = 1;
@@ -508,7 +511,8 @@ public final class EmojiPalettesView extends LinearLayout
                 (ViewGroup) mSearchResultsScrollView.getParent());
         mSearchKeyboardPlaceholder = findViewById(R.id.emoji_search_keyboard_placeholder);
 
-        setupSearchResultKeyboard();
+        // Browse needs the controls, but not a parsed Search result grid.
+        mSearchResultsView.setVisibility(View.GONE);
         setupSearchResultsScrolling();
         setupSearchField();
         setupSearchClickListeners();
@@ -534,9 +538,12 @@ public final class EmojiPalettesView extends LinearLayout
         }
         mSearchResultsKeyboardWidth = keyboardWidth;
         final int baseWidth = ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues());
+        mSearchLayoutBaseWidth = baseWidth;
+        mSearchLayoutBodyHeight = mEmojiLayoutParams.getEmojiKeyboardHeight();
+        mSearchResultLayoutDirty = false;
         final KeyboardLayoutSet layoutSet = new KeyboardLayoutSet.Builder(getContext(), null)
                 .setSubtype(RichInputMethodSubtype.Companion.getEmojiSubtype())
-                .setKeyboardGeometry(baseWidth, mEmojiLayoutParams.getEmojiKeyboardHeight())
+                .setKeyboardGeometry(baseWidth, mSearchLayoutBodyHeight)
                 .build();
         mSearchResultsKeyboard = DynamicGridKeyboard.ofPagedRowCount(KtxKt.prefs(getContext()),
                 layoutSet.getKeyboard(KeyboardId.ELEMENT_EMOJI_RECENTS), 1,
@@ -823,6 +830,12 @@ public final class EmojiPalettesView extends LinearLayout
         helium314.keyboard.keyboard.EmojiPanelKeyMorph.cancel();
         final String hostContext = mSearchQuery.isBlank() ? prepareSearchIdleSuggestions() : "";
         mSearchMode = true;
+        if (EmojiSearchSurfacePolicy.needsResultGrid(mSearchMode, mSearchResultsKeyboard != null,
+                mSearchResultLayoutDirty,
+                mSearchLayoutBaseWidth == ResourceUtils.getKeyboardWidth(getContext(), Settings.getValues()),
+                mSearchLayoutBodyHeight == mEmojiLayoutParams.getEmojiKeyboardHeight())) {
+            setupSearchResultKeyboard();
+        }
         // This worker is allocated only on deliberate Emoji Search entry;
         // ordinary typing and Browse never load the description index.
         EmojiDescribeEngine.get().warmUp(getContext());
@@ -930,9 +943,15 @@ public final class EmojiPalettesView extends LinearLayout
             return;
         }
         if (clearQuery) {
-            setSearchText("", 0);
+            setSearchText("", 0, false);
         }
         mSearchMode = false;
+        setSearchResultsPending(false);
+        if (mSearchResultsKeyboard != null) {
+            // Search results must not be retained as a hidden old-editor row.
+            mSearchResultsKeyboard.removeAllKeys();
+            mSearchResultsView.invalidateAllKeys();
+        }
         mDisplayedSearchEmojis = List.of();
         mSearchIdleSuggestions = List.of();
         mSearchIdleReviewed = List.of();
@@ -1156,6 +1175,10 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void setSearchText(final String text, final int selection) {
+        setSearchText(text, selection, true);
+    }
+
+    private void setSearchText(final String text, final int selection, final boolean refreshResults) {
         mSearchQuery = text == null ? "" : text;
         if (mSearchEditText != null) {
             final int safeSelection = Math.max(0, Math.min(selection, mSearchQuery.length()));
@@ -1170,7 +1193,7 @@ public final class EmojiPalettesView extends LinearLayout
             mSearchEditText.setSelection(safeSelection);
         }
         updateSearchQueryUi();
-        searchEmoji(mSearchQuery);
+        if (refreshResults) searchEmoji(mSearchQuery);
     }
 
     private static EmojiContextIndex sSearchAnnotations;
@@ -1190,7 +1213,8 @@ public final class EmojiPalettesView extends LinearLayout
     }
 
     private void searchEmoji(final String text) {
-        if (mSearchResultsKeyboard == null || mSearchResultsView == null) {
+        if (mSearchResultsKeyboard == null || mSearchResultsView == null
+                || (!mSearchMode && mSearchResultLayoutDirty)) {
             return;
         }
         final long generation = ++mSearchGeneration;
@@ -1314,7 +1338,7 @@ public final class EmojiPalettesView extends LinearLayout
         if (finalAnswer && keyboardWidth != mSearchResultsKeyboardWidth) {
             setupSearchResultKeyboard(keyboardWidth);
         }
-        mSearchResultsKeyboard.removeAllKeys();
+        final ArrayList<Key> resultKeys = new ArrayList<>(visibleEmojis.size());
         for (final String emoji : visibleEmojis) {
             String popupSpec = EmojiParserKt.getEmojiPopupSpec(emoji);
             if (popupSpec == null) {
@@ -1333,8 +1357,9 @@ public final class EmojiPalettesView extends LinearLayout
                     mSearchKeyboardParams);
             keyParams.mAbsoluteWidth = mSearchKeyWidth;
             keyParams.mAbsoluteHeight = mSearchKeyHeight;
-            mSearchResultsKeyboard.addKeyLast(keyParams.createKey());
+            resultKeys.add(keyParams.createKey());
         }
+        mSearchResultsKeyboard.replaceSearchKeys(resultKeys);
         mSearchDisplayedResultCount = visibleEmojis.size();
         mDisplayedSearchEmojis = List.copyOf(visibleEmojis);
         if (mSearchEmptyView != null) {
@@ -2387,8 +2412,11 @@ public final class EmojiPalettesView extends LinearLayout
         }
 
         mEmojiCategory.clearKeyboardCache();
-        setupSearchResultKeyboard();
-        searchEmoji(mSearchQuery);
+        mSearchResultLayoutDirty = true;
+        if (mSearchMode) {
+            setupSearchResultKeyboard();
+            searchEmoji(mSearchQuery);
+        }
         if (mCategoryPagerAdapter != null) mCategoryPagerAdapter.refresh();
         closeDictionaryFacilitator();
     }

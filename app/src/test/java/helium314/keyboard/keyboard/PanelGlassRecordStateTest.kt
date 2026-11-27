@@ -6,6 +6,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PanelGlassRecordStateTest {
+    @Test fun unchangedConfigurationDoesNotDirtyAValidRecording() {
+        val state = PanelGlassRecordState()
+        state.recordingCompleted()
+        assertFalse(state.configurationChanged(false,false,false))
+        assertFalse(state.needsRecording(true))
+        assertTrue(state.configurationChanged(true,false,false))
+        assertTrue(state.needsRecording(true))
+        state.recordingCompleted()
+        assertTrue(state.configurationChanged(false,true,false))
+        assertTrue(state.needsRecording(true))
+        state.recordingCompleted()
+        assertTrue(state.configurationChanged(false,false,true))
+        assertTrue(state.needsRecording(true))
+    }
     @Test fun repeatedInvalidationsShareOneFrameButKeepContentDirty() {
         val state = PanelGlassRecordState()
         state.recordingCompleted()
