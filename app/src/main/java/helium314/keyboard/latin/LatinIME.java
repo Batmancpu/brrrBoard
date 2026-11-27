@@ -211,6 +211,7 @@ public class LatinIME extends InputMethodService implements
     private Runnable mPendingEmptyPredictionClear;
     private final BackspaceSuggestionHold mBackspaceSuggestionHold = new BackspaceSuggestionHold();
     private final Runnable mSettleBackspaceSuggestions = this::settleBackspaceSuggestions;
+    private final Runnable mExpireBackspaceFrame = this::expireBackspaceFrame;
     private SuggestedWords mPendingChatGptVoiceSuggestions;
     private final Runnable mFlushChatGptVoiceSuggestions = new Runnable() {
         @Override public void run() {
@@ -489,7 +490,8 @@ public class LatinIME extends InputMethodService implements
             ime.mInputLogic.invalidateSuggestionRequests();
             if (ime.isBackspaceSuggestionHoldActive()) return;
             if (inputStyle == SuggestedWords.INPUT_STYLE_TYPING) {
-                ime.mInputLogic.showImmediateTypedWordIfNeeded(ime.mSettings.getCurrent());
+                ime.mInputLogic.showImmediateTypedWordIfNeeded(ime.mSettings.getCurrent(),
+                        ime.mSuggestionStripView != null && ime.mSuggestionStripView.hasHeldBackspaceFrame());
             }
             removeMessages(MSG_UPDATE_SUGGESTION_STRIP);
             // The frame already contains a synchronous prefix-filtered preview.
@@ -1224,6 +1226,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDestroy() {
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         mInlineDictation.cancel();
@@ -1524,6 +1527,7 @@ public class LatinIME extends InputMethodService implements
 
     private void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
         SecureAppTemporaryOptOut.clear();
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         mHandler.cancelUpdateSuggestionStrip();
@@ -1554,6 +1558,7 @@ public class LatinIME extends InputMethodService implements
         // sends onStartInputInternal between two visible editor sessions.
         SecureAppTemporaryOptOut.clear();
         mStartupSuggestionSeedVisible = false;
+        cancelBackspacePresentation();
         cancelPendingEmptyPredictionClear();
         mKeyboardSwitcher.cancelPanelTransition();
         super.onStartInputView(editorInfo, restarting);
@@ -1810,6 +1815,7 @@ public class LatinIME extends InputMethodService implements
         mInputLogic.clearTransientCorrectionMemory();
         SecureAppTemporaryOptOut.clear();
         if (mInputView instanceof InputView) ((InputView) mInputView).cancelSlideConfirmation();
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         mKeyboardSwitcher.cancelPanelTransition();
@@ -1843,6 +1849,7 @@ public class LatinIME extends InputMethodService implements
 
     void onFinishInputInternal() {
         SecureAppTemporaryOptOut.clear();
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         mKeyboardSwitcher.cancelPanelTransition();
@@ -1867,6 +1874,7 @@ public class LatinIME extends InputMethodService implements
         if (mSuggestionStripView != null) mSuggestionStripView.clearEditorAccessory();
         mClipboardHistoryManager.releaseClipboardAccessory();
         SecureAppTemporaryOptOut.clear();
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         // Remove pending messages related to update suggestions
@@ -1917,7 +1925,7 @@ public class LatinIME extends InputMethodService implements
             updateSelectionToolsAccessory(newSelStart, newSelEnd);
         }
         if (userSelectionChanged) {
-            cancelBackspaceSuggestionHold();
+            cancelBackspacePresentation();
             BrContextLmExperiment.clearContextCache();
             // we don't want to update a manually set shift state if selection changed
             // towards one side
@@ -2608,6 +2616,7 @@ public class LatinIME extends InputMethodService implements
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();
         mKeyboardActionListener.onCancelDeletePointer();
+        cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
         mHandler.cancelUpdateSuggestionStrip();
@@ -2719,7 +2728,7 @@ public class LatinIME extends InputMethodService implements
     public long editorGeneration() { return mEditorSessionGeneration.current(); }
 
     public void onStartBatchInput() {
-        cancelBackspaceSuggestionHold();
+        cancelBackspacePresentation();
         mInputLogic.onStartBatchInput(mSettings.getCurrent(), mKeyboardSwitcher, mHandler);
         mGestureConsumer.onGestureStarted(mRichImm.getCurrentSubtypeLocale(), mKeyboardSwitcher.getKeyboard());
     }
@@ -2875,6 +2884,8 @@ public class LatinIME extends InputMethodService implements
                         SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION)) return;
         mStartupSuggestionSeedVisible = false;
         if (suggestedWords.isEmpty()) {
+            // Repeated empty callbacks must not renew the original display-only deadline.
+            if (mPendingEmptyPredictionClear != null) return;
             // The decoder has no contextual next word yet. Do not tear down
             // the three-slot row for a transient lookup gap after Space.
             // Old labels are DISPLAY ONLY: their tap tags are revoked now, and
@@ -2924,10 +2935,11 @@ public class LatinIME extends InputMethodService implements
         final SettingsValues values = mSettings.getCurrent();
         if (!values.needsToLookupSuggestions() || values.isApplicationSpecifiedCompletionsOn()
                 || values.mInputAttributes.mVaultPrivateEditor || values.mInputAttributes.mIsPasswordField
+                || values.mInputAttributes.mNoLearning
                 || values.mIncognitoModeEnabled || mInlineProviderViewActive
                 || !values.mInputAttributes.mIsGeneralTextInput || mSuggestionStripView == null
                 || !isInputViewShown()) {
-            cancelBackspaceSuggestionHold();
+            cancelBackspacePresentation();
             return;
         }
         if (!isBackspaceSuggestionHoldActive()) {
@@ -2936,14 +2948,41 @@ public class LatinIME extends InputMethodService implements
         }
         // Every delete invalidates any old lookup, including the one in flight.
         mHandler.cancelUpdateSuggestionStrip();
+        mHandler.cancelResumeSuggestions();
         mBackspaceSuggestionHold.noteDelete(mEditorSessionGeneration.current());
         mHandler.removeCallbacks(mSettleBackspaceSuggestions);
+        mHandler.removeCallbacks(mExpireBackspaceFrame);
         mHandler.postDelayed(mSettleBackspaceSuggestions, BackspaceSuggestionHold.SETTLE_MS);
+        mHandler.postDelayed(mExpireBackspaceFrame, BackspaceSuggestionHold.SETTLE_MS
+                + BackspaceSuggestionHold.RECOVERY_GRACE_MS);
     }
 
     private void cancelBackspaceSuggestionHold() {
         mBackspaceSuggestionHold.clear();
         mHandler.removeCallbacks(mSettleBackspaceSuggestions);
+    }
+
+    private void cancelBackspacePresentation() {
+        cancelBackspaceSuggestionHold();
+        mBackspaceSuggestionHold.clearRecovery();
+        mHandler.removeCallbacks(mExpireBackspaceFrame);
+        cancelPendingEmptyPredictionClear();
+        if (mSuggestionStripView != null) mSuggestionStripView.discardHeldBackspaceFrame();
+    }
+
+    private void expireBackspaceFrame() {
+        final boolean recover = mSuggestionStripView != null
+                && mBackspaceSuggestionHold.canRecover(mEditorSessionGeneration.current(),
+                        mSuggestionStripView.hasHeldBackspaceFrame());
+        mBackspaceSuggestionHold.clearRecovery();
+        if (!recover || mIsDestroyed) return;
+        // A fresh decoder callback or prefix preview has already revoked the held
+        // marker. Otherwise a rejected/absent result cannot leave stale disabled words.
+        if (mSuggestionStripView.discardHeldBackspaceFrame() && isInputViewShown()
+                && mSuggestionStripView.isShown()) {
+            cancelPendingEmptyPredictionClear();
+            setNeutralSuggestionStrip();
+        }
     }
 
     private void settleBackspaceSuggestions() {

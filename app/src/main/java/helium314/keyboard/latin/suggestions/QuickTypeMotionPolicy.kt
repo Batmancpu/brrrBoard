@@ -63,6 +63,21 @@ internal object QuickTypeMotionPolicy {
         return t * t * (3f - 2f * t)
     }
 
+    /** The original Scale contract is immutable; Improved favors readable ink. */
+    fun chromeDuration(preset: SuggestionMotionPreset): Long =
+        if (preset == SuggestionMotionPreset.SCALE_IMPROVED) 85L else CHROME_MS
+
+    fun exitScale(preset: SuggestionMotionPreset): Float =
+        if (preset == SuggestionMotionPreset.SCALE_IMPROVED) .82f else preset.entryScale
+
+    fun entryOpacity(preset: SuggestionMotionPreset, previousVisible: Boolean,
+                     hasMatchingInk: Boolean): Float = when {
+        preset == SuggestionMotionPreset.SCALE -> 0f
+        !previousVisible -> .65f
+        hasMatchingInk -> .30f
+        else -> 0f // unrelated words must not stack opaque ink
+    }
+
     fun delay(preset: SuggestionMotionPreset, ordinal: Int): Long =
         preset.staggerMs * ordinal.coerceIn(0, 5)
 

@@ -70,6 +70,20 @@ public class SuggestionPrefixPreviewTest {
         assertEquals(1, SuggestionPrefixPreview.forTypedPrefix(words, "tok", true).size());
     }
 
+    @Test public void previewCannotCarryExpiredRecallOrProviderCandidates() {
+        final ArrayList<SuggestedWordInfo> infos = new ArrayList<>();
+        infos.add(candidate("test", SuggestedWordInfo.KIND_TYPED));
+        infos.add(candidate("testing", SuggestedWordInfo.KIND_SESSION_RECALL));
+        infos.add(candidate("tester", SuggestedWordInfo.KIND_APP_DEFINED));
+        infos.add(candidate("tested", SuggestedWordInfo.KIND_COMPLETION));
+        final SuggestedWords prior = new SuggestedWords(infos, null, infos.get(0),
+                false, false, false, SuggestedWords.INPUT_STYLE_TYPING, SuggestedWords.NOT_A_SEQUENCE_NUMBER);
+        final SuggestedWords result = SuggestionPrefixPreview.forTypedPrefix(prior, "test", false);
+        assertEquals(2, result.size());
+        assertEquals("tested", result.getWord(1));
+        assertFalse(result.mWillAutoCorrect);
+    }
+
     @Test public void filterIsCaseInsensitiveAndDoesNotRepeatTypedWord() {
         final SuggestedWords words = suggestions(SuggestedWords.INPUT_STYLE_PREDICTION,
                 "There", "THERE", "the", "Theory");

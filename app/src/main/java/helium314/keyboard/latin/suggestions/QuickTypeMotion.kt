@@ -77,6 +77,10 @@ internal class QuickTypeMotion(
     private var finalBackground: Drawable? = null
     private var elapsed = 0f
     private var lastDrawnElapsed = 0f
+    private var hasDrawnArtwork = false
+    // A preview replaced before its first draw must not become the source of
+    // an invented intermediate pose. Keep only the previous animated slots.
+    private var undrawnSources = emptyMap<Int, Slot>()
     private val snapshotLocation = IntArray(2)
     private val snapshotOrigin = IntArray(2)
 
@@ -95,7 +99,10 @@ internal class QuickTypeMotion(
         val frame = Frame((0..2).map { index ->
             val active = motion.firstOrNull { it.index == index }
             if (active == null) words.getOrNull(index)?.let { snapshot(it, preset) }
-            else if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
+            else if (preset == SuggestionMotionPreset.SCALE_IMPROVED &&
+                !hasDrawnArtwork && undrawnSources.containsKey(index)) {
+                undrawnSources[index]
+            } else if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
                 // Preserve logical target identities, even before incoming ink is visible.
                 // Fading obsolete ink may draw out but cannot steal a new character match.
                 val sampleTime = QuickTypeMotionPolicy.captureElapsed(preset,elapsed,lastDrawnElapsed)
@@ -136,6 +143,10 @@ internal class QuickTypeMotion(
             view.setTextColor(Color.TRANSPARENT)
         }
         motion = plans
+        hasDrawnArtwork = false
+        undrawnSources = if (preset == SuggestionMotionPreset.SCALE_IMPROVED)
+            plans.mapNotNull { slot -> previous.slots.getOrNull(slot.index)?.let { slot.index to it } }.toMap()
+            else emptyMap()
         val center = words[1]
         val targetOpacity = if (centerConfidence) 1f else 0f
         if (center.isShown && center.width > 0 && previous.confidence != targetOpacity) {
@@ -166,6 +177,10 @@ internal class QuickTypeMotion(
             artwork = object : Drawable() {
                 override fun draw(canvas: Canvas) {
                     lastDrawnElapsed = elapsed
+                    if (!hasDrawnArtwork) {
+                        hasDrawnArtwork = true
+                        undrawnSources = emptyMap()
+                    }
                     for (slot in motion) {
                         val save = canvas.save()
                         canvas.clipRect(slot.target.clip)
@@ -202,8 +217,9 @@ internal class QuickTypeMotion(
                 owner.overlay.add(it)
             }
         }
+        val chromeDuration = QuickTypeMotionPolicy.chromeDuration(preset)
         val duration = maxOf(if (pill != null || dividerMotion.isNotEmpty())
-            QuickTypeMotionPolicy.CHROME_MS else 0L,
+            chromeDuration else 0L,
             motion.maxOfOrNull { slot -> slot.tracks.maxOf { it.duration + it.delay } } ?: 0L)
         val budget = MorphFrameBudget(owner.display?.refreshRate ?: 60f)
         activePreset = preset
@@ -218,7 +234,7 @@ internal class QuickTypeMotion(
                     return@addUpdateListener
                 }
                 elapsed = value.animatedValue as Float
-                val chrome = QuickTypeMotionPolicy.progress(elapsed, QuickTypeMotionPolicy.CHROME_MS)
+                val chrome = QuickTypeMotionPolicy.progress(elapsed, chromeDuration)
                 pill?.setProgress(chrome)
                 dividerMotion.forEach { it.view.alpha =
                     QuickTypeMotionPolicy.interpolate(it.from, it.to, chrome) }
@@ -256,6 +272,8 @@ internal class QuickTypeMotion(
         finalBackground = null
         pill = null
         motion = emptyList()
+        undrawnSources = emptyMap()
+        hasDrawnArtwork = false
         elapsed = 0f
         lastDrawnElapsed = 0f
     }
@@ -350,13 +368,15 @@ internal class QuickTypeMotion(
         val byNew = matches.associate { it.second to it.first }
         val used = matches.map { it.first }.toHashSet()
         val result = ArrayList<Track>(old.size + next.size)
+        val initialOpacity = QuickTypeMotionPolicy.entryOpacity(preset,
+            old.any { it.opacity > .035f }, matches.isNotEmpty())
         // Draw disappearing ink first, then matched and arriving glyphs above it.
         old.indices.filterNot { it in used }.forEachIndexed { ordinal, i ->
             val ink = old[i]
             val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, old, used), preset.compression)
             val delay = if (sameTarget || improved && ink.targetIndex < 0) 0L
                 else QuickTypeMotionPolicy.delay(preset, ordinal)
-            result.add(Track(ink, ink.copy(x = x, opacity = 0f, scale = preset.entryScale,
+            result.add(Track(ink, ink.copy(x = x, opacity = 0f, scale = QuickTypeMotionPolicy.exitScale(preset),
                 velocityX = 0f, velocityY = 0f, targetIndex = -1),
                 trackDuration(ink, delay), preset, delay))
         }
@@ -368,7 +388,7 @@ internal class QuickTypeMotion(
             } else {
                 val x = QuickTypeMotionPolicy.interpolate(ink.x, anchor(i, next, byNew.keys), preset.compression)
                 val delay = QuickTypeMotionPolicy.delay(preset, arriving++)
-                result.add(Track(ink.copy(x = x, opacity = 0f, scale = preset.entryScale), ink,
+                result.add(Track(ink.copy(x = x, opacity = initialOpacity, scale = preset.entryScale), ink,
                     trackDuration(null, delay), preset, delay))
             }
         }

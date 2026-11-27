@@ -34,6 +34,8 @@ public final class SuggestionPrefixPreview {
                 final SuggestedWordInfo candidate = previous.getInfo(i);
                 final String word = candidate.mWord;
                 if (candidate.isEmoji() || candidate.isKindOf(SuggestedWordInfo.KIND_TYPED)
+                        || candidate.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)
+                        || candidate.isKindOf(SuggestedWordInfo.KIND_APP_DEFINED)
                         || word.length() <= prefix.length()
                         || !word.regionMatches(true, 0, prefix, 0, prefix.length())
                         || !seen.add(word.toLowerCase(Locale.ROOT))) continue;

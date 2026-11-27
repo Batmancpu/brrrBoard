@@ -12,7 +12,7 @@ internal enum class SuggestionMotionPreset(
     val entryScale: Float, val compression: Float, val staggerMs: Long,
 ) {
     SCALE("scale", 145L, 130L, .12f, 1f, 0L),
-    SCALE_IMPROVED("scale_improved", 145L, 130L, .12f, 1f, 2L);
+    SCALE_IMPROVED("scale_improved", 145L, 130L, .72f, .35f, 2L);
 
     companion object {
         fun fromId(id: String?): SuggestionMotionPreset =

@@ -2553,6 +2553,12 @@ public final class InputLogic {
      * the user's typed text is a visible, disabled fallback, never an insertion.
      */
     public void showImmediateTypedWordIfNeeded(final SettingsValues settingsValues) {
+        showImmediateTypedWordIfNeeded(settingsValues, false);
+    }
+
+    /** A held row has revoked its tags even when the typed prefix did not change. */
+    public void showImmediateTypedWordIfNeeded(final SettingsValues settingsValues,
+            final boolean refreshHeldFrame) {
         if (!settingsValues.needsToLookupSuggestions()
                 || settingsValues.isApplicationSpecifiedCompletionsOn()
                 || !mWordComposer.isComposingWord()
@@ -2563,7 +2569,7 @@ public final class InputLogic {
         // representation of its prefix. Immediately filter the existing native
         // list to the new prefix while the next dictionary query is in flight.
         // Only a genuinely new prefix needs a UI update.
-        if (mSuggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING
+        if (!refreshHeldFrame && mSuggestedWords.mInputStyle == SuggestedWords.INPUT_STYLE_TYPING
                 && mSuggestedWords.mTypedWordInfo != null
                 && typed.equals(mSuggestedWords.mTypedWordInfo.mWord)) return;
         mSuggestionStripViewAccessor.setSuggestions(SuggestionPrefixPreview.forTypedPrefix(

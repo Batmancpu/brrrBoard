@@ -46,9 +46,24 @@ class QuickTypeMotionPolicyTest {
         assertEquals(.12f, scale.entryScale, 0f)
         assertEquals(scale.glyphMs, improved.glyphMs)
         assertEquals(scale.replacementMs, improved.replacementMs)
-        assertEquals(scale.entryScale, improved.entryScale, 0f)
+        assertEquals(.72f, improved.entryScale, 0f)
+        assertEquals(1f, scale.compression, 0f)
+        assertEquals(.35f, improved.compression, 0f)
         assertEquals(0L, QuickTypeMotionPolicy.delay(scale, 100))
         assertEquals(10L, QuickTypeMotionPolicy.delay(improved, 100))
+    }
+
+    @Test fun improvedInkIsReadableWithoutStackingUnrelatedWords() {
+        val scale = SuggestionMotionPreset.SCALE
+        val improved = SuggestionMotionPreset.SCALE_IMPROVED
+        assertEquals(33L, QuickTypeMotionPolicy.chromeDuration(scale))
+        assertEquals(85L, QuickTypeMotionPolicy.chromeDuration(improved))
+        assertEquals(.12f, QuickTypeMotionPolicy.exitScale(scale), 0f)
+        assertEquals(.82f, QuickTypeMotionPolicy.exitScale(improved), 0f)
+        assertEquals(0f, QuickTypeMotionPolicy.entryOpacity(scale, false, false), 0f)
+        assertEquals(.65f, QuickTypeMotionPolicy.entryOpacity(improved, false, false), 0f)
+        assertEquals(.30f, QuickTypeMotionPolicy.entryOpacity(improved, true, true), 0f)
+        assertEquals(0f, QuickTypeMotionPolicy.entryOpacity(improved, true, false), 0f)
     }
 
     @Test fun independentOpacityPreservesSlowGrowthAndExactEndpoints() {

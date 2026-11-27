@@ -1,34 +1,18 @@
 {
   "schema": 1,
-  "summary": "Zero-Waste Rendering: remove redundant and hidden work while preserving visible quality",
+  "summary": "QuickType readability and bounded backspace recovery",
   "changes": [
     {
-      "title": "Event-driven glass and layout",
-      "detail": "Unchanged panel glass configuration no longer dirties its source or schedules another recording. Cache highlight shaders, stable view references and unchanged footer presentation; preserve all blur, tint, sampling, geometry and Clipboard slab behavior."
+      "title": "Stable deletion, guaranteed recovery",
+      "detail": "Retain the 185 ms rapid-delete display-only hold; refresh the current prefix even if unchanged and discard an inert row after the additional 120 ms grace if no valid result arrives. Cancel held presentation at editor, privacy, cursor and swipe boundaries; repeated empty predictions cannot renew the same clear deadline."
     },
     {
-      "title": "Visible-only visual activity",
-      "detail": "Suspend hidden microphone pulse, glow masks, privacy artwork, key presentation, suggestion glyph overlays and particle animation without altering visible timings or voice/gesture functions. Deduplicate the private gesture UI deadline without extending its authorization."
+      "title": "Scale Improved readability and continuity",
+      "detail": "Keep the original Scale preset unchanged. Refine Improved glyph entry and exit size, reduce compression, give compatible arriving letters earlier readability, and coordinate confidence chrome over 85 ms. When a provisional frame is replaced before it draws, retarget from the previous presented ink rather than the unseen intermediate."
     },
     {
-      "title": "Less keyboard and swipe rendering work",
-      "detail": "Mark keyboard artwork dirty within the current draw instead of posting redundant frames, use one press-motion time per frame, and defer swipe trail buffer allocation until there is actual trail or clearing work. Preserve complete hardware display lists and swipe recognition."
-    },
-    {
-      "title": "Lazy Emoji Search and public row reuse",
-      "detail": "Build Search keyboard on actual entry, rebuild only for stale layout or geometry, clear hidden Search rows, bulk replace grid keys with one coordinate pass, and reuse the persistent emoji row when data, geometry and fonts still match."
-    },
-    {
-      "title": "Rendering allocation and regression safeguards",
-      "detail": "Reuse suggestion snapshot coordinates, avoid intermediate glyph comparison pairs, cache particle palette/blend state, and add policy and sequential-versus-bulk grid parity tests. No visible quality reduction or new permissions."
-    },
-    {
-      "title": "Privacy-safe version history",
-      "detail": "Remove personal test-device references and contact or local capture metadata from bundled release descriptions, including older entries imported during builds. Preserve verified release identities, timestamps, feature behavior and signing. Check production sources and APK contents for known personal device identifiers before publication."
-    },
-    {
-      "title": "Preserve existing settings during privacy cleanup",
-      "detail": "Remove remaining personal test-device references from production source and compiled preferences. Transfer the previous one-time Shift icon migration marker to a neutral key, preserving custom icon settings and avoiding a repeat migration."
+      "title": "Safer provisional suggestions",
+      "detail": "Exclude expiring correction recall and application-defined entries from prefix previews. Preserve native decoder ranking, autocorrection decisions, touch routing and the prior privacy cleanup. Add regression tests for the recovery state, preset contracts and preview exclusions."
     }
   ]
 }

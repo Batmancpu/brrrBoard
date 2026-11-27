@@ -176,9 +176,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     private val wordMorph by lazy { QuickTypeMotion(this, dividerViews.subList(1, 3)) }
     private var hasTypedInCurrentSession = false
     private var wordMotionHasEditorFrame = false
+    private var heldBackspaceFrame = false
 
     /** A keyboard-open prediction is present as part of the keyboard, not revealed by motion. */
     fun onNewEditorSession() {
+        discardHeldBackspaceFrame()
         clearEditorAccessory()
         clearClipboardAccessory()
         hasTypedInCurrentSession = false
@@ -770,6 +772,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (accessory != null && !accessory.retired && !accessory.compact &&
             (accessory.isVerificationCode || accessory.prefersProminent &&
                 ClipboardAccessoryPolicy.keepFullForIdle(hasTypedInCurrentSession, suggestions.mInputStyle))) return
+        heldBackspaceFrame = false
         if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_UPDATE_BATCH ||
             suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH)
             hasTypedInCurrentSession = true
@@ -896,7 +899,25 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     fun holdBackspaceFrame(): Boolean {
         if (!hasAttachedMotionSlots() || !suggestionsStrip.isVisible ||
             shouldUseChipSuggestions() || suggestedWords.isPunctuationSuggestions) return false
-        return holdUnselectablePredictions()
+        if (heldBackspaceFrame) return true
+        heldBackspaceFrame = holdUnselectablePredictions()
+        return heldBackspaceFrame
+    }
+
+    fun hasHeldBackspaceFrame(): Boolean = heldBackspaceFrame && !isExternalSuggestionVisible
+
+    /** Only discard the inert deletion row, never a provider or newly rebound words. */
+    fun discardHeldBackspaceFrame(): Boolean {
+        if (!hasHeldBackspaceFrame()) return false
+        heldBackspaceFrame = false
+        suggestedWords = SuggestedWords.getEmptyInstance()
+        clear()
+        for (word in wordViews) {
+            word.text = null
+            word.tag = null
+            word.isEnabled = false
+        }
+        return true
     }
 
     fun holdUnselectablePredictions(): Boolean {
@@ -1073,6 +1094,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     override fun onDetachedFromWindow() {
+        discardHeldBackspaceFrame()
         clearEditorAccessory()
         clearClipboardAccessory()
         wordMotionHasEditorFrame = false
@@ -1271,6 +1293,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     private fun clear() {
+        heldBackspaceFrame = false
         wordMotionHasEditorFrame = false
         wordMorph.cancel(wordViews)
         suggestionsStrip.removeAllViews()
