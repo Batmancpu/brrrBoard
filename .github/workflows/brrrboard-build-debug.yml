@@ -152,6 +152,8 @@ jobs:
           test -n "$APK"
           test -s "$APK"
           unzip -p "$APK" assets/version_history.json | python3 -c 'import json,sys; assert len(json.load(sys.stdin)["releases"]) >= 2'
+          python3 -m unittest discover -s tools -p 'test_audit_public_apk.py' -v
+          python3 tools/audit_public_apk.py --apk "$APK"
           python3 tools/verify_contextlm_experiment_packaging.py "$APK"
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
           bash tools/verify-gtcrn-packaging.sh "$APK"

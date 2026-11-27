@@ -211,6 +211,8 @@ jobs:
             echo "::error::The APK contains a full settings backup."
             exit 1
           fi
+          python3 -m unittest discover -s tools -p 'test_audit_public_apk.py' -v
+          python3 tools/audit_public_apk.py --apk "$apk"
           bash tools/verify-voice-model-packaging.sh "$apk" "$BUNDLE_MODE"
           bash tools/verify-gtcrn-packaging.sh "$apk"
           bash tools/verify-brrclean-packaging.sh "$apk"

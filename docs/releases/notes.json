@@ -21,6 +21,10 @@
     {
       "title": "Rendering allocation and regression safeguards",
       "detail": "Reuse suggestion snapshot coordinates, avoid intermediate glyph comparison pairs, cache particle palette/blend state, and add policy and sequential-versus-bulk grid parity tests. No visible quality reduction or new permissions."
+    },
+    {
+      "title": "Privacy-safe version history",
+      "detail": "Remove personal test-device references and contact or local capture metadata from bundled release descriptions, including older entries imported during builds. Preserve verified release identities, timestamps, feature behavior and signing. Check production sources and APK contents for known personal device identifiers before publication."
     }
   ]
 }

@@ -21,7 +21,7 @@
       "summary": "Emoji navigation remembered within a typing session, reset across new sessions.",
       "changes": [
         {"title": "Emoji session navigation", "detail": "Browsing a category and returning to ABC remembers the position within the editor session. Focusing a new session starts at Recents or Smart instead of an old category."},
-        {"title": "Emoji geometry diagnostics", "detail": "Added non-content diagnostic checks for the reported Emoji top-gap. The remaining physical Oppo gap requires direct on-device verification."}
+        {"title": "Emoji geometry diagnostics", "detail": "Added non-content diagnostic checks for the reported Emoji top-gap. The remaining panel gap requires direct on-device verification."}
       ]
     }
   ]

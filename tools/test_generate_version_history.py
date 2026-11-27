@@ -58,6 +58,29 @@ class VersionHistoryTest(unittest.TestCase):
         self.assertEqual([f"1.0.{v}" for v in range(194, 184, -1)],
                          [entry["version"] for entry in result["releases"]])
 
+    def test_public_notes_remove_personal_metadata_in_new_and_older_releases(self):
+        private = {"schema": 1, "summary": "Checked on Oppo Reno10 5G",
+                   "changes": [{"title": "Reference device testing",
+                                "detail": "Tested with Nirvana Ion; /home/tester/private.log and person@example.invalid."}]}
+        new = generate(private, {"releases": []}, [], "1.0.187",
+                       "2026-11-20T10:20:30Z", COMMIT)
+        row = new["releases"][0]
+        self.assertEqual("Checked on reference test device", row["summary"])
+        self.assertIn("Tested with reference test device", row["changes"][0]["detail"])
+        marker = {"schema": 1, "version": "1.0.187", "commit": COMMIT,
+                  "summary": private["summary"], "changes": private["changes"]}
+        observed = [{"tag_name": "v1.0.187", "published_at": "2026-11-20T10:24:33Z",
+                     "target_commitish": COMMIT,
+                     "body": "<!-- brrboard-version-history-v1\n" + json.dumps(marker) + "\n-->"}]
+        old = generate(NOTES, {"releases": []}, observed)["releases"][0]
+        self.assertEqual(row["summary"], old["summary"])
+        self.assertEqual(row["changes"], old["changes"])
+        self.assertEqual(COMMIT, old["commit"])
+        self.assertEqual("github_published", old["timeSource"])
+        for output in (json.dumps(new), json.dumps(old), release_notes(row)):
+            for identifier in ("Oppo", "Reno10", "Nirvana Ion", "/home/tester", "person@example.invalid"):
+                self.assertNotIn(identifier, output)
+
     def test_invalid_notes_and_timestamps_fail_closed(self):
         with self.assertRaises(ValueError):
             validate_notes({"schema": 1, "summary": "new", "changes": []})

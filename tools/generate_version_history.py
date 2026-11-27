@@ -20,6 +20,22 @@ VERSION = re.compile(r"1\.0\.([0-9]+)\Z")
 COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 MAX_HISTORY_RELEASES = 10
 
+# Historical changelog metadata is untrusted public text, not app data.
+# Keep technical changes and verified release identities intact.
+_DEVICE_DETAILS = re.compile(
+    r"\b(?:(?:oppo[\s_-]+)?reno[\s_-]*10(?:[\s_-]*5g)?|"
+    r"nirvana[\s_-]+ion|oppo)\b", re.IGNORECASE)
+_LOCAL_PATH = re.compile(r"(?:/Users/|/home/|[A-Za-z]:\\Users\\)[^\s<>\"'\x60]+")
+_EMAIL = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
+_CAPTURE = re.compile(r"\b(?:VID|IMG|Screenshot)[_-]\d{8}[\w.-]*\b", re.IGNORECASE)
+
+
+def public_release_text(value):
+    value = _DEVICE_DETAILS.sub("reference test device", value)
+    value = _LOCAL_PATH.sub("[local path]", value)
+    value = _EMAIL.sub("[contact removed]", value)
+    return _CAPTURE.sub("[test capture]", value)
+
 
 def utc_timestamp(value):
     if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value):
@@ -41,12 +57,12 @@ def validate_notes(payload):
     for change in changes:
         if not isinstance(change, dict) or not isinstance(change.get("title"), str) or not isinstance(change.get("detail"), str):
             raise ValueError("Every change requires a title and detail")
-        title = change["title"].strip()
-        detail = change["detail"].strip()
+        title = public_release_text(change["title"].strip())
+        detail = public_release_text(change["detail"].strip())
         if not 3 <= len(title) <= 100 or not 8 <= len(detail) <= 1600:
             raise ValueError("Change title/detail are missing or too long")
         cleaned.append({"title": title, "detail": detail})
-    return {"summary": summary.strip(), "changes": cleaned}
+    return {"summary": public_release_text(summary.strip()), "changes": cleaned}
 
 
 def validate_entry(entry):

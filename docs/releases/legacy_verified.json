@@ -35,7 +35,7 @@
         },
         {
           "title": "Emoji geometry diagnostics",
-          "detail": "Added non-content diagnostic checks for the reported Emoji top-gap. The remaining physical Oppo gap requires direct on-device verification."
+          "detail": "Added non-content diagnostic checks for the reported Emoji top-gap. The remaining panel gap requires direct on-device verification."
         }
       ]
     }
