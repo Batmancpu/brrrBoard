@@ -13,6 +13,15 @@ final class EmojiSearchSurfacePolicy {
         return searchMode && noMatches;
     }
 
+    static boolean canReuseResults(boolean searchMode,boolean entering,boolean finalAnswer,
+            boolean changed,boolean widthMatches,boolean surfaceMatches,boolean keysMatch) {
+        return searchMode && !entering && finalAnswer && !changed && widthMatches && surfaceMatches && keysMatch;
+    }
+
+    static float replacementStartAlpha(float departingAlpha) {
+        return 1f - Math.max(0f,Math.min(1f,departingAlpha));
+    }
+
     static boolean shouldMorphResults(final boolean searchMode, final boolean entering,
             final boolean changed, final boolean finalAnswer) {
         return searchMode && !entering && changed && finalAnswer;

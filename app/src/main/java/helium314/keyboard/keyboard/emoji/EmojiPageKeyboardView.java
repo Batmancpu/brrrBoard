@@ -61,6 +61,23 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     // This state is used only by the search results view, not browsing pages.
     private final EmojiSearchGlyphMotion mSearchGlyphMotion = new EmojiSearchGlyphMotion();
     private float mSearchDrawProgress = 1f;
+    private final SearchResultTouchGate mSearchTouchGate = new SearchResultTouchGate();
+
+    void setSearchInteractionPending(final boolean pending) {
+        mSearchTouchGate.setPending(pending);
+        if (pending) cancelSearchInteraction();
+    }
+
+    /** Invalidate only the Search row's old gesture, never a browsing-page gesture. */
+    void cancelSearchInteraction() {
+        if (!mSearchTouchGate.managed()) return;
+        mSearchTouchGate.invalidate();
+        releaseCurrentKey(false);
+        cancelLongPress();
+        dismissPopupKeysPanel();
+        mPointerId = MotionEvent.INVALID_POINTER_ID;
+        if (getParent() != null) disallowParentInterceptTouchEvent(false);
+    }
 
     void prepareSearchGlyphMotion(final boolean preserve) {
         mSearchGlyphMotion.capture(preserve ? getKeyboard() : null,mSearchDrawProgress);
@@ -112,7 +129,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
             final float exit = MotionContinuity.smooth(p / .6f);
             final float scale = MotionContinuity.lerp(track.departingScale,.35f,exit);
             canvas.scale(scale,scale,cx,cy);
-            params.mAnimAlpha = Math.round(originalAlpha * .40f * (1f-exit));
+            params.mAnimAlpha = Math.round(originalAlpha * track.departingAlpha * (1f-exit));
             super.onDrawKeyTopVisuals(track.departing,canvas,paint,params);
             canvas.restoreToCount(out);
         }
@@ -369,8 +386,14 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(final MotionEvent e) {
-        if (e.getActionMasked() == MotionEvent.ACTION_DOWN) cancelSearchGlyphMotion();
-        return switch (e.getActionMasked()) {
+        final int action = e.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN) {
+            if (!mSearchTouchGate.begin()) return true;
+            cancelSearchGlyphMotion();
+        } else if (!mSearchTouchGate.continuationAllowed()) return true;
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
+            mSearchTouchGate.invalidate();
+        return switch (action) {
             case MotionEvent.ACTION_DOWN -> {
                 mPointerId = e.getPointerId(0);
                 yield onDown(e);
@@ -517,7 +540,9 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
         } else if (key == currentKey && pendingKeyDown != null) {
             pendingKeyDown.run();
             // Trigger key-release event a little later so that a user can see visual feedback.
-            mHandler.postDelayed(() -> callListenerOnReleaseKey(key, true), KEY_RELEASE_DELAY_TIME);
+            // A Search result can be replaced before a delayed release fires.
+            if (mSearchTouchGate.managed()) callListenerOnReleaseKey(key, true);
+            else mHandler.postDelayed(() -> callListenerOnReleaseKey(key, true), KEY_RELEASE_DELAY_TIME);
         } else if (key != null) {
             callListenerOnReleaseKey(key, true /* withRegistering */);
         }
@@ -578,6 +603,7 @@ public final class EmojiPageKeyboardView extends KeyboardView implements
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelSearchInteraction();
         cancelSearchGlyphMotion();
         onDismissPopupKeysPanel();
         super.onDetachedFromWindow();

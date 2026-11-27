@@ -1,18 +1,18 @@
 {
   "schema": 1,
-  "summary": "Motion 2.0 batch 2: leaner panel reversals and bounded rendering safeguards",
+  "summary": "Motion 2.0 batch 3: stable search results and interruption-safe suggestions",
   "changes": [
     {
-      "title": "Less redundant artwork during panel reversal",
-      "detail": "Reuse the presented artwork for overlay-owned public controls instead of rendering unused native duplicates. Enforce one visual owner per shared control."
+      "title": "Stable Emoji Search results",
+      "detail": "Keep identical final result rows intact, including scroll and current animation; animate replacements from their visible opacity rather than fading the entire row."
     },
     {
-      "title": "Bounded geometry recovery",
-      "detail": "Limit internal layout-driven retargets to two per transition; normal taps and user-requested reversals retain their existing animation and hit targets."
+      "title": "Search touch continuity",
+      "detail": "Cancel obsolete search gestures when results change; completed Search taps dispatch immediately instead of a delayed callback against replaced keys. Browse behavior is unchanged."
     },
     {
-      "title": "More useful transition diagnostics",
-      "detail": "Record Clipboard transitions, interruption, geometry retarget and fallback reason in the existing content-free diagnostic report."
+      "title": "Scale Improved retargeting",
+      "detail": "Sample the last recorded glyph draw when interrupted, rather than a scheduled future frame. The original Scale preset is unchanged."
     }
   ]
 }

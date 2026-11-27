@@ -107,4 +107,10 @@ class QuickTypeMotionPolicyTest {
         assertEquals(178f, SuggestionConfidencePillGeometry.fixedWidth(180f, 1f), 0f)
         assertEquals(1f, SuggestionConfidencePillGeometry.fixedWidth(0f, 1f), 0f)
     }
+    @org.junit.Test fun improvedSamplesLastDrawInsteadOfScheduledFrame() {
+        org.junit.Assert.assertEquals(16f,QuickTypeMotionPolicy.captureElapsed(SuggestionMotionPreset.SCALE_IMPROVED,32f,16f),0f)
+        org.junit.Assert.assertEquals(0f,QuickTypeMotionPolicy.captureElapsed(SuggestionMotionPreset.SCALE_IMPROVED,32f,0f),0f)
+        org.junit.Assert.assertEquals(32f,QuickTypeMotionPolicy.captureElapsed(SuggestionMotionPreset.SCALE,32f,16f),0f)
+    }
+
 }

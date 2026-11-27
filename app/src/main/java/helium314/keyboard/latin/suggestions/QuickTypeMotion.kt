@@ -76,6 +76,7 @@ internal class QuickTypeMotion(
     private var pillView: TextView? = null
     private var finalBackground: Drawable? = null
     private var elapsed = 0f
+    private var lastDrawnElapsed = 0f
 
     fun capture(words: List<TextView>, centerConfidence: Boolean): Frame? {
         if (!owner.isShown || !KeyboardMotionSpec.isIos27(owner.context) ||
@@ -94,7 +95,8 @@ internal class QuickTypeMotion(
             else if (preset == SuggestionMotionPreset.SCALE_IMPROVED) {
                 // Preserve logical target identities, even before incoming ink is visible.
                 // Fading obsolete ink may draw out but cannot steal a new character match.
-                val sampled = active.tracks.map { it.at(elapsed) }
+                val sampleTime = QuickTypeMotionPolicy.captureElapsed(preset,elapsed,lastDrawnElapsed)
+                val sampled = active.tracks.map { it.at(sampleTime) }
                 val retained = sampled.filter { it.targetIndex >= 0 }
                 val fading = sampled.filter { it.targetIndex < 0 && it.opacity > .035f }
                     .sortedByDescending { it.opacity }
@@ -155,9 +157,11 @@ internal class QuickTypeMotion(
         }
         if (motion.isEmpty() && pill == null && dividerMotion.isEmpty()) return
         elapsed = 0f
+        lastDrawnElapsed = 0f
         if (motion.isNotEmpty()) {
             artwork = object : Drawable() {
                 override fun draw(canvas: Canvas) {
+                    lastDrawnElapsed = elapsed
                     for (slot in motion) {
                         val save = canvas.save()
                         canvas.clipRect(slot.target.clip)
@@ -248,6 +252,7 @@ internal class QuickTypeMotion(
         pill = null
         motion = emptyList()
         elapsed = 0f
+        lastDrawnElapsed = 0f
     }
 
     private fun drawInk(canvas: Canvas, ink: Ink, x: Float, y: Float) {

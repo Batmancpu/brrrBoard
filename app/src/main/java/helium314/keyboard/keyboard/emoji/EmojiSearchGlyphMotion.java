@@ -20,10 +20,10 @@ final class EmojiSearchGlyphMotion {
     static final class Track {
         final float offset,scale,alpha;
         final Key departing;
-        final float departingScale;
-        Track(float offset,float scale,float alpha,Key departing,float departingScale) {
+        final float departingScale,departingAlpha;
+        Track(float offset,float scale,float alpha,Key departing,float departingScale,float departingAlpha) {
             this.offset=offset;this.scale=scale;this.alpha=alpha;
-            this.departing=departing;this.departingScale=departingScale;
+            this.departing=departing;this.departingScale=departingScale;this.departingAlpha=departingAlpha;
         }
     }
     private final Map<String,Pose> prior=new HashMap<>();
@@ -62,16 +62,18 @@ final class EmojiSearchGlyphMotion {
             float offset=pose==null?0f:MotionContinuity.slotOffset(pose.x,x,key.getDrawWidth());
             float scale=pose==null?.55f:pose.scale, alpha=pose==null?.76f:pose.alpha;
             Key departing=null;
-            float departingScale=1f;
+            float departingScale=1f, departingAlpha=0f;
             if(pose==null) for(Pose old:prior.values()) {
                 if(!next.contains(old.key.getLabel()) && old.key.getDrawX()==key.getDrawX()
                         && old.key.getY()==key.getY() && old.key.getDrawWidth()==key.getDrawWidth()
                         && old.key.getHeight()==key.getHeight()) {
-                    departing=old.key;departingScale=old.scale;break;
+                    departing=old.key;departingScale=old.scale;departingAlpha=old.alpha;
+                    alpha=EmojiSearchSurfacePolicy.replacementStartAlpha(old.alpha);
+                    break;
                 }
             }
             if(Math.abs(offset)>.01f||scale<.999f||alpha<.999f||departing!=null)
-                tracks.put(label,new Track(offset,scale,alpha,departing,departingScale));
+                tracks.put(label,new Track(offset,scale,alpha,departing,departingScale,departingAlpha));
         }
         prior.clear();
     }

@@ -113,6 +113,11 @@ internal object QuickTypeMotionPolicy {
             1000f / duration
     }
 
+    /** Improved retargets from recorded draw commands; accepted Scale remains unchanged. */
+    fun captureElapsed(preset: SuggestionMotionPreset,scheduled: Float,drawn: Float): Float =
+        if (preset == SuggestionMotionPreset.SCALE_IMPROVED) drawn.coerceIn(0f,scheduled.coerceAtLeast(0f))
+        else scheduled
+
     fun interpolate(from: Float, to: Float, progress: Float): Float =
         from + (to - from) * progress
 }
