@@ -18,8 +18,8 @@
     <!-- This config_default_keyboard_height value should match with keyboard-heights.xml -->
     <dimen name="config_default_keyboard_height">205.6dp</dimen>
     <fraction name="config_max_keyboard_height">46%p</fraction>
-    <!-- Provisional portrait target from the iPhone reference proportions; Reno10
-         display scaling, footer spacing and ColorOS insets still need device acceptance. -->
+    <!-- Provisional portrait target from the iPhone reference proportions;
+         display scaling, footer spacing and system insets still need device acceptance. -->
     <fraction name="config_min_keyboard_height">-58.0%p</fraction>
 
     <!-- A 48dp footer preserves full-size touch targets. Its 10dp optical bottom

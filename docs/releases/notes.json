@@ -25,6 +25,10 @@
     {
       "title": "Privacy-safe version history",
       "detail": "Remove personal test-device references and contact or local capture metadata from bundled release descriptions, including older entries imported during builds. Preserve verified release identities, timestamps, feature behavior and signing. Check production sources and APK contents for known personal device identifiers before publication."
+    },
+    {
+      "title": "Preserve existing settings during privacy cleanup",
+      "detail": "Remove remaining personal test-device references from production source and compiled preferences. Transfer the previous one-time Shift icon migration marker to a neutral key, preserving custom icon settings and avoiding a repeat migration."
     }
   ]
 }

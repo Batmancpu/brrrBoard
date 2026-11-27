@@ -799,7 +799,7 @@ class ClipboardHistoryView @JvmOverloads constructor(
         (list.layoutParams as FrameLayout.LayoutParams).let { params ->
             // Search owns the entire gap between its fixed 48dp field and the
             // REAL alphabet top. A fixed 96dp card lane left a dead band on
-            // the Reno10 even though the outer Search body was expanded.
+            // a reference device even though the outer Search body was expanded.
             params.height = ViewGroup.LayoutParams.MATCH_PARENT
             params.topMargin = if (search) 48.dpToPx(resources) else 0
             params.bottomMargin = if (search) searchKeyboardClearance else 0

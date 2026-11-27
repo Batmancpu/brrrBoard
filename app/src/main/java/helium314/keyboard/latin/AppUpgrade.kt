@@ -2,6 +2,7 @@ package helium314.keyboard.latin
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import helium314.keyboard.compat.isDeviceLocked
 import helium314.keyboard.compat.isUserLocked
@@ -43,6 +44,7 @@ import helium314.keyboard.settings.screens.colorPrefsAndResIds
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.security.MessageDigest
 import java.util.EnumMap
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -52,7 +54,24 @@ private const val PREF_DEFAULT_BACKUP_RESTORED = "default_backup_restored"
 private const val PREF_EMOJI_GRID_COMPACT_DEFAULT_APPLIED = "emoji_grid_compact_default_applied"
 private const val OLD_DEFAULT_EMOJI_FONT_SCALE = 1.3046509f
 private const val VERSION_FROSTED_DUST_DEFAULT_OFF = 2409
-private const val PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED = "reno10_shift_icon_migration_applied"
+private const val PREF_SHIFT_ICON_MIGRATION_APPLIED = "shift_icon_migration_applied"
+
+// Match the obsolete preference by digest, not by embedding its identifying name.
+private const val LEGACY_SHIFT_MARKER_DIGEST = "d2878ed1c2da4196594745ecc834f057c6d84a36fb976ec7cffcd0e10d7aadef"
+
+internal fun migrateShiftIconPreferenceMarker(prefs: SharedPreferences) {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val legacy = prefs.all.entries.firstOrNull { (key, value) ->
+        value is Boolean && key.endsWith("_shift_icon_migration_applied") &&
+            digest.digest(key.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 0xff) } == LEGACY_SHIFT_MARKER_DIGEST
+    } ?: return
+    prefs.edit {
+        if (!prefs.contains(PREF_SHIFT_ICON_MIGRATION_APPLIED)) {
+            putBoolean(PREF_SHIFT_ICON_MIGRATION_APPLIED, legacy.value as Boolean)
+        }
+        remove(legacy.key)
+    }
+}
 
 fun checkVersionUpgrade(context: Context) {
     val prefs = context.prefs()
@@ -112,8 +131,9 @@ private object AppUpgrade {
             }
         }
         // Upgrade only the stock Shift glyphs saved by older icon-customization builds. Preserve
-        // any Shift glyph the owner explicitly replaced with a different drawable.
-        if (!prefs.getBoolean(PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED, false)) {
+        // any explicitly selected custom glyph, including on already migrated installations.
+        migrateShiftIconPreferenceMarker(prefs)
+        if (!prefs.getBoolean(PREF_SHIFT_ICON_MIGRATION_APPLIED, false)) {
             val storedIconNames = prefs.getString(Settings.PREF_CUSTOM_ICON_NAMES, null)
             val savedIconNames = storedIconNames?.let {
                 runCatching { Json.decodeFromString<Map<String, String>>(it).toMutableMap() }.getOrNull()
@@ -135,7 +155,7 @@ private object AppUpgrade {
                     putString(Settings.PREF_CUSTOM_ICON_NAMES, Json.encodeToString(savedIconNames))
                 }
             }
-            prefs.edit { putBoolean(PREF_RENO10_SHIFT_ICON_MIGRATION_APPLIED, true) }
+            prefs.edit { putBoolean(PREF_SHIFT_ICON_MIGRATION_APPLIED, true) }
         }
 
         // Obtainium uses its own small, sequential version codes and application ID.
