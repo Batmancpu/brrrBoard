@@ -8,8 +8,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import helium314.keyboard.settings.materialSymbols
+import helium314.keyboard.settings.SettingsVisuals
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,7 +56,7 @@ fun PreferenceCategory(
     Column {
         Text(
             text = title,
-            modifier = modifier.padding(top = 22.dp, start = 34.dp, end = 20.dp, bottom = 7.dp),
+            modifier = modifier.padding(top = SettingsVisuals.sectionGap, start = SettingsVisuals.pageInset + 2.dp, end = SettingsVisuals.pageInset, bottom = 8.dp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
         )
@@ -66,21 +72,38 @@ fun Preference(
     @DrawableRes icon: Int? = null,
     value: @Composable (RowScope.() -> Unit)? = null,
 ) {
+    PreferenceRow(name, onClick, modifier, description, icon, value = value)
+}
+
+/** Preserve the public preference signature; toggle rows use one accessible switch target. */
+@Composable
+internal fun PreferenceRow(
+    name: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+    @DrawableRes icon: Int? = null,
+    toggleState: Boolean? = null,
+    interactionSource: MutableInteractionSource? = null,
+    value: @Composable (RowScope.() -> Unit)? = null,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .then(if (LocalGroupedSettingsRows.current) Modifier else Modifier
-                .padding(horizontal = 20.dp, vertical = 2.dp)
-                .clip(RoundedCornerShape(26.dp))
+                .padding(horizontal = SettingsVisuals.pageInset, vertical = 2.dp)
+                .clip(RoundedCornerShape(SettingsVisuals.groupRadius))
                 .background(MaterialTheme.colorScheme.surface))
-            .clickable { onClick() }
-            .heightIn(min = 50.dp)
-            .padding(vertical = 10.dp, horizontal = 16.dp),
+            .then(if (toggleState == null) Modifier.clickable { onClick() }
+                else Modifier.toggleable(value = toggleState, role = Role.Switch, interactionSource = interactionSource,
+                    indication = LocalIndication.current, onValueChange = { onClick() }))
+            .heightIn(min = SettingsVisuals.rowHeight)
+            .padding(vertical = SettingsVisuals.rowVertical, horizontal = SettingsVisuals.rowInset),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null)
-            IconOrImage(icon, name, 32)
+            IconOrImage(icon, null, 24)
         Column(modifier = Modifier.weight(1f)) {
             Text(text = name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal))
             if (description != null) {
@@ -112,8 +135,9 @@ fun Preference(
                 ) { value() }
             }
         } else {
-            Text("chevron_right", fontFamily = materialSymbols, fontSize = 19.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .65f))
+            Text("chevron_right", fontFamily = materialSymbols, fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .65f),
+                modifier = Modifier.clearAndSetSemantics { })
         }
     }
 }

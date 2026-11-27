@@ -1,22 +1,18 @@
 {
   "schema": 1,
-  "summary": "Motion 2.0 final source batch: instant Clipboard switching and rendering safeguards",
+  "summary": "Settings visual system — compact, coherent and tactile",
   "changes": [
     {
-      "title": "Instant Clipboard switching",
-      "detail": "Remove the Clipboard panel morph in both directions and cancel previous shared-key overlays before switching. ABC to Emoji Browse keeps its existing animation."
+      "title": "Unified settings navigation",
+      "detail": "Adopt a restrained list-first visual system with shared row geometry, monochrome accent icons, neutral light and dark surfaces, compact search/navigation and a functional typing preview without decorative mock keyboard."
     },
     {
-      "title": "Hidden-panel glass cleanup",
-      "detail": "Release hidden panel display lists, observers and frame callbacks; rebuild glass when visible without changing its appearance."
+      "title": "Tactile shared controls",
+      "detail": "Use consistent capsule switches and sliders, fixed slider measurement during press, accessible row-level toggles, unified checkmark choices, multiselect checkboxes and segmented options."
     },
     {
-      "title": "Constrained-device rendering",
-      "detail": "Skip speculative layout warmup in power saver or on low-RAM devices; cancel panel overlays during memory cleanup."
-    },
-    {
-      "title": "Accessibility and frame safeguards",
-      "detail": "Use native presentation for optional motion when touch exploration or system motion settings require it. Add Emoji Search callback-gap fallback and preserve ordinary Scale timing."
+      "title": "Consistent editors and management",
+      "detail": "Apply the same palette, spacing and shapes to Glass Studio, voice model choices, app profiles, editing gestures, pickers, dialogs, reorder lists, reset and version history. Existing settings values and protected access are retained; keyboard renderer and motion untouched."
     }
   ]
 }

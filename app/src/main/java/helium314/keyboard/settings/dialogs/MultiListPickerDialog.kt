@@ -2,6 +2,10 @@
 package helium314.keyboard.settings.dialogs
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import helium314.keyboard.settings.SettingsVisuals
+import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -61,11 +65,11 @@ fun <T: Any> MultiListPickerDialog(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable {
-                                    selected = if (item in selected) selected - item else selected + item
-                                }
-                                .padding(horizontal = 16.dp)
-                                .heightIn(min = 56.dp)
+                                .toggleable(value = item in selected, role = Role.Checkbox, onValueChange = { checked ->
+                                    selected = if (checked) selected + item else selected - item
+                                })
+                                .padding(horizontal = SettingsVisuals.rowInset)
+                                .heightIn(min = SettingsVisuals.rowHeight)
                                 .fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -84,12 +88,7 @@ fun <T: Any> MultiListPickerDialog(
                                     )
                                 }
                             }
-                            SettingsSwitch(
-                                checked = item in selected,
-                                onCheckedChange = {
-                                    selected = if (it) selected + item else selected - item
-                                }
-                            )
+                            Checkbox(checked = item in selected, onCheckedChange = null)
                         }
                     }
                 }

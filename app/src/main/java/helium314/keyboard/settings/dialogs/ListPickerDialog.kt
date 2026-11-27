@@ -2,6 +2,12 @@
 package helium314.keyboard.settings.dialogs
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.semantics.Role
+import helium314.keyboard.settings.preferences.SettingsChoiceMark
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -61,36 +67,26 @@ fun <T: Any> ListPickerDialog(
             CompositionLocalProvider(
                 LocalTextStyle provides MaterialTheme.typography.bodyLarge
             ) {
-                LazyColumn(state = state) {
+                LazyColumn(state = state, modifier = Modifier.selectableGroup()) {
                     items(items) { item ->
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .clickable {
+                                .fillMaxWidth()
+                                .selectable(selected = selected == item, role = Role.RadioButton, onClick = {
                                     if (confirmImmediately) {
                                         onDismissRequest()
                                         onItemSelected(item)
                                     }
                                     selected = item
-                                }
+                                })
                                 .padding(
-                                    horizontal = if (showRadioButtons) 8.dp else 16.dp,
-                                    vertical = 8.dp
+                                    horizontal = SettingsVisuals.rowInset,
+                                    vertical = SettingsVisuals.rowVertical
                                 )
-                                .heightIn(min = 56.dp)
+                                .heightIn(min = SettingsVisuals.rowHeight)
                         ) {
-                            if (showRadioButtons)
-                                RadioButton(
-                                    selected = selected == item,
-                                    onClick = {
-                                        if (confirmImmediately) {
-                                            onDismissRequest()
-                                            onItemSelected(item)
-                                        }
-                                        selected = item
-                                    }
-                                )
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = getItemName(item))
                                 getItemDescription?.invoke(item)?.let {
@@ -101,6 +97,7 @@ fun <T: Any> ListPickerDialog(
                                     )
                                 }
                             }
+                            if (showRadioButtons) SettingsChoiceMark(selected == item)
                         }
                     }
                 }

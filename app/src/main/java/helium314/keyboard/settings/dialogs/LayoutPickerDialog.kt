@@ -2,6 +2,11 @@
 package helium314.keyboard.settings.dialogs
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
+import helium314.keyboard.settings.preferences.SettingsChoiceMark
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -142,7 +147,8 @@ private fun AddLayoutRow(onNewLayout: (String) -> Unit, layoutType: LayoutType, 
             onValueChange = { textValue = it },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            textStyle = contentTextDirectionStyle,
+            shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
+            textStyle = MaterialTheme.typography.bodyLarge.merge(contentTextDirectionStyle),
         )
         EditButton(textValue.text.isNotEmpty() && LayoutUtilsCustom.getLayoutName(textValue.text, layoutType) !in userLayouts) {
             onNewLayout(textValue.text)
@@ -166,22 +172,15 @@ private fun LayoutItemRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .clickable {
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = {
                 onDismissRequest()
                 Settings.writeDefaultLayoutName(layoutName, layoutType, prefs)
                 KeyboardSwitcher.getInstance().setThemeNeedsReload()
-            }
+            })
             .padding(start = 6.dp)
-            .heightIn(min = 40.dp)
+            .heightIn(min = SettingsVisuals.rowHeight)
     ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = {
-                onDismissRequest()
-                Settings.writeDefaultLayoutName(layoutName, layoutType, prefs)
-                KeyboardSwitcher.getInstance().setThemeNeedsReload()
-            }
-        )
+        SettingsChoiceMark(isSelected)
         Text(
             text = if (isCustom) LayoutUtilsCustom.getDisplayName(layoutName)
                 else layoutName.getStringResourceOrName("layout_", ctx),

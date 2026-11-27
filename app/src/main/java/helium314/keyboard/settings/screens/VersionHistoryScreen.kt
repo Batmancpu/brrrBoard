@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -75,24 +76,24 @@ fun VersionHistoryScreen(onClickBack: () -> Unit) {
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp),
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("v${selected.version}", style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        color = MaterialTheme.colorScheme.onSurface)
                     Text(selected.summary, style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        color = MaterialTheme.colorScheme.onSurface)
                     Text(VersionHistoryCatalog.localTime(selected),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        color = MaterialTheme.colorScheme.onSurface)
                     Text(stringResource(if (selected.isPublicationTime)
                             R.string.version_history_published_at
                         else R.string.version_history_prepared_at),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
@@ -101,9 +102,9 @@ fun VersionHistoryScreen(onClickBack: () -> Unit) {
                 fontWeight = FontWeight.SemiBold)
             selected.changes.forEach { change ->
                 Card(modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(change.title, style = MaterialTheme.typography.titleSmall,

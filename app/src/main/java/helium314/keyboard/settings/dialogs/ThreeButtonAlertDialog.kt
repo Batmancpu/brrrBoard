@@ -20,6 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -57,18 +60,18 @@ fun ThreeButtonAlertDialog(
             propagateMinConstraints = true
         ) {
             Surface(
-                shape = MaterialTheme.shapes.extraLarge,
+                shape = RoundedCornerShape(SettingsVisuals.dialogRadius),
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = contentColorFor(MaterialTheme.colorScheme.surface),
             ) {
                 Column(modifier = Modifier.padding(
-                    start = if (reducePadding) 8.dp else 16.dp,
-                    end = if (reducePadding) 8.dp else 16.dp,
-                    top = if (reducePadding) 8.dp else 16.dp,
-                    bottom = if (reducePadding) 2.dp else 6.dp
+                    start = if (reducePadding) 8.dp else 20.dp,
+                    end = if (reducePadding) 8.dp else 20.dp,
+                    top = if (reducePadding) 8.dp else 20.dp,
+                    bottom = if (reducePadding) 2.dp else 12.dp
                 )) {
                     title?.let {
-                        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.titleMedium) {
+                        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.titleLarge) {
                             Box(Modifier.padding(PaddingValues(bottom = if (reducePadding) 4.dp else 16.dp))) {
                                 title()
                             }
@@ -100,7 +103,8 @@ fun ThreeButtonAlertDialog(
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = onDismissRequest) { Text(cancelButtonText) }
                         if (confirmButtonText != null)
-                            TextButton(
+                            Button(
+                                shape = SettingsVisuals.actionShape,
                                 enabled = checkOk(),
                                 onClick = { onConfirmed(); onDismissRequest() },
                             ) { Text(confirmButtonText) }

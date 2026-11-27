@@ -10,7 +10,7 @@ private data class WorkspaceEntry(val icon: String, val title: String, val summa
 @Composable
 private fun Workspace(title: String, onClickBack: () -> Unit, navigate: (String) -> Unit, vararg entries: WorkspaceEntry) {
     SearchSettingsScreen(onClickBack, title, emptyList()) {
-        Md3ePreferenceGroup(title) {
+        Md3ePreferenceGroup("") {
             entries.forEachIndexed { index, entry ->
                 Md3ePreference(entry.icon, entry.title, entry.summary, { navigate(entry.route) },
                     isFirst = index == 0, isLast = index == entries.lastIndex)

@@ -50,4 +50,30 @@ assert "withContext(Dispatchers.Default) { filter(requested) }" in SCREEN
 assert "query == requested" in SCREEN and "vaultDeadline?.value ?: 0L" in SCREEN
 assert "if (useHaze)" in SCREEN and "imeInsets.getBottom(density) > 0" in SCREEN
 assert "itemKey = { it.key }" in SCREEN
+VISUAL = (SETTINGS / "SettingsVisuals.kt").read_text()
+ROW = (SETTINGS / "preferences/Preference.kt").read_text()
+SWITCH = (SETTINGS / "preferences/SettingsSwitch.kt").read_text()
+SWITCH_PREF = (SETTINGS / "preferences/SwitchPreference.kt").read_text()
+SLIDER = (SETTINGS / "preferences/SettingsSlider.kt").read_text()
+CHOICE = (SETTINGS / "preferences/SettingsChoiceControls.kt").read_text()
+TRYOUT = (SETTINGS / "screens/KeyboardTryoutCard.kt").read_text()
+PICKER = (SETTINGS / "dialogs/ListPickerDialog.kt").read_text()
+MULTI = (SETTINGS / "dialogs/MultiListPickerDialog.kt").read_text()
+for source in (HOME, SCREEN, ROW, THEME, TRYOUT):
+    assert "SettingsVisuals.groupRadius" in source, "Shared group geometry required"
+assert "val controlTarget = 48.dp" in VISUAL
+assert "val rowHeight = 52.dp" in VISUAL
+assert "Brush.verticalGradient" not in HOME.split("private fun QuickSetupCard")[0]
+assert 'listOf("QWERTYUIOP"' not in TRYOUT
+assert "NO_PERSONALIZED_LEARNING" in TRYOUT and "NO_MICROPHONE" in TRYOUT
+assert "Role.Switch" in ROW and "toggleState = value" in SWITCH_PREF
+assert "interactionSource = interaction" in SWITCH_PREF and "onCheckedChange = null" in SWITCH_PREF
+assert "Role.Switch" in SWITCH and "getTransitionAnimationScale" in SWITCH
+assert "Modifier.size(width = 36.dp, height = 32.dp)" in SLIDER
+assert "Slider(value = value" in SLIDER and "LayoutDirection.Rtl" in SLIDER
+assert "getTransitionAnimationScale" in SLIDER and "steps = steps" in SLIDER
+assert "selectableGroup()" in CHOICE and "Role.Tab" in CHOICE
+assert "SettingsChoiceMark" in PICKER and "Role.RadioButton" in PICKER
+assert "Role.Checkbox" in MULTI and "Checkbox(checked = item in selected" in MULTI
+assert "SettingsSegments" in GLASS
 print("Premium Settings source contract: PASS")

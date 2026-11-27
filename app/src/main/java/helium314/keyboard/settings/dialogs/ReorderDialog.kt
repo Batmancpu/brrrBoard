@@ -3,6 +3,8 @@ package helium314.keyboard.settings.dialogs
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -71,11 +73,13 @@ fun <T: Any> ReorderDialog(
                         key = getKey(item)
                     ) { dragging ->
                         val elevation by animateDpAsState(if (dragging) 4.dp else 0.dp)
-                        Surface(shadowElevation = elevation) {
+                        Surface(shadowElevation = elevation, shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
+                            color = if (dragging) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface) {
                             Row(
                                 modifier = Modifier
                                     .longPressDraggableHandle()
-                                    .heightIn(min = 36.dp),
+                                    .heightIn(min = SettingsVisuals.rowHeight)
+                                    .padding(horizontal = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(

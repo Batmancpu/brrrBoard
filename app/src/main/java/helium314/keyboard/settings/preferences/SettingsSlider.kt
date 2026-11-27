@@ -2,6 +2,12 @@
 package helium314.keyboard.settings.preferences
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import helium314.keyboard.latin.settings.getTransitionAnimationScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,19 +43,26 @@ fun SettingsSlider(value: Float, onValueChange: (Float) -> Unit,
     onValueChangeFinished: (() -> Unit)? = null,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }) {
     val active = MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else .4f)
-    val inactive = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (enabled) 1f else .5f)
+    val inactive = MaterialTheme.colorScheme.outline.copy(alpha = if (enabled) .58f else .28f)
     val pressed by interactionSource.collectIsPressedAsState()
     val dragged by interactionSource.collectIsDraggedAsState()
+    val reduceMotion = getTransitionAnimationScale(LocalContext.current) <= 0f
+    val thumbWidth by animateDpAsState(if ((pressed || dragged) && enabled) 34.dp else 28.dp,
+        animationSpec = if (reduceMotion) snap() else tween(120), label = "slider-thumb")
     Slider(value = value, onValueChange = onValueChange, modifier = modifier,
         enabled = enabled, valueRange = valueRange, steps = steps,
         onValueChangeFinished = onValueChangeFinished, interactionSource = interactionSource,
         thumb = {
-            Box(Modifier.size(if (pressed || dragged) 30.dp else 27.dp).shadow(if (pressed || dragged) 4.dp else 2.dp, CircleShape)
-                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF0F1F4)).map { it.copy(alpha = if (enabled) 1f else .7f) }), CircleShape)
-                .border(.5.dp, Color.Black.copy(alpha = .12f), CircleShape))
+            // Fixed outer geometry means grabbing the handle never changes its value mapping.
+            Box(Modifier.size(width = 36.dp, height = 32.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(width = thumbWidth, height = 22.dp)
+                    .shadow(if (enabled) 2.dp else 0.dp, CircleShape)
+                    .background(Color.White.copy(alpha = if (enabled) 1f else .7f), CircleShape)
+                    .border(.5.dp, Color.Black.copy(alpha = .12f), CircleShape))
+            }
         },
         track = { state ->
-            Canvas(Modifier.fillMaxWidth().height(5.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(6.dp)) {
                 val corner = CornerRadius(size.height / 2f)
                 drawRoundRect(inactive, cornerRadius = corner)
                 val length = valueRange.endInclusive - valueRange.start

@@ -2,6 +2,7 @@
 package helium314.keyboard.settings.screens
 
 import helium314.keyboard.settings.preferences.SettingsSwitch
+import helium314.keyboard.settings.preferences.SettingsSegments
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,12 +35,10 @@ internal fun EditingGestureControls() {
             Text("Optional Edit key in the ordinary alphabet row; unavailable in protected fields, URL/email, split and one-handed layouts. Existing keys and glide typing are unchanged by default.",
                 style=MaterialTheme.typography.bodySmall)
             if(config.enabled) {
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    FilterChip(config.mode==EditingGestureConfig.Mode.LETTER,
-                        {set(EditingGestureConfig.MODE,EditingGestureConfig.Mode.LETTER.name)}, {Text("Slide to letter")})
-                    FilterChip(config.mode==EditingGestureConfig.Mode.FLICK,
-                        {set(EditingGestureConfig.MODE,EditingGestureConfig.Mode.FLICK.name)}, {Text("Directional flick")})
-                }
+                SettingsSegments(listOf("Slide to letter", "Directional flick"),
+                    if (config.mode == EditingGestureConfig.Mode.LETTER) 0 else 1,
+                    onSelected = { set(EditingGestureConfig.MODE,
+                        if (it == 0) EditingGestureConfig.Mode.LETTER.name else EditingGestureConfig.Mode.FLICK.name) })
                 Text("Tap Edit to open text tools. " + if(config.mode==EditingGestureConfig.Mode.LETTER)
                     "Slide from Edit to C/V/X/A/Z for Copy/Paste/Cut/Select all/Undo."
                     else "Quickly flick from Edit in one direction. Diagonal or long gestures are ignored.",

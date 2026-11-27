@@ -90,8 +90,7 @@ fun SlideActionRail(
         Box(
             Modifier.fillMaxWidth().height(railHeight)
                 .clip(RoundedCornerShape(railHeight / 2))
-                .background(Brush.horizontalGradient(listOf(
-                    palette.surfaceVariant, palette.surface, palette.surfaceVariant)))
+                .background(palette.surfaceVariant)
                 .semantics {
                     customActions = listOf(CustomAccessibilityAction(
                         "Confirm: $label") { latestConfirmed(); true })
@@ -138,11 +137,10 @@ fun SlideActionRail(
                 .offset { IntOffset(animated.roundToInt() + with(density) { 3.dp.roundToPx() }, 0) }
                 .size(thumbDiameter)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(
-                    listOf(Color(0xFFE4AB4D), Color(0xFFFFE2A8)))),
+                .background(palette.primary),
                 contentAlignment = Alignment.Center) {
                 Text("››", style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold, color = Color(0xFF32240F))
+                    fontWeight = FontWeight.Bold, color = palette.onPrimary)
             }
         }
     }

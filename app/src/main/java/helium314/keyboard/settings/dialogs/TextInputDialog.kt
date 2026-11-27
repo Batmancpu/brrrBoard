@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldLabelScope
 import androidx.compose.runtime.Composable
@@ -75,7 +78,8 @@ fun TextInputDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType),
                     visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
                     singleLine = singleLine,
-                    textStyle = contentTextDirectionStyle,
+                    shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
+                    textStyle = MaterialTheme.typography.bodyLarge.merge(contentTextDirectionStyle),
                 )
                 LaunchedEffect(Unit) { focusRequester.requestFocus() }
             }

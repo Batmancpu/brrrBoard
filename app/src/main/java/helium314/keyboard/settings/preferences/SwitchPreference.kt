@@ -2,6 +2,8 @@
 package helium314.keyboard.settings.preferences
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,15 +67,19 @@ fun SwitchPreference(
         prefs.edit { putBoolean(key, newValue) }
         onCheckedChange(newValue)
     }
-    Preference(
+    val interaction = remember { MutableInteractionSource() }
+    PreferenceRow(
         name = name,
         onClick = { switched(!value) },
         modifier = modifier,
-        description = description
+        description = description,
+        toggleState = value,
+        interactionSource = interaction,
     ) {
         SettingsSwitch(
             checked = value,
-            onCheckedChange = { switched(it) },
+            onCheckedChange = null,
+            interactionSource = interaction,
         )
     }
 }

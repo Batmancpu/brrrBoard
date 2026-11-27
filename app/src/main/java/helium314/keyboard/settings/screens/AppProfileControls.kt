@@ -2,6 +2,7 @@
 package helium314.keyboard.settings.screens
 
 import helium314.keyboard.settings.preferences.SettingsSwitch
+import helium314.keyboard.settings.preferences.SettingsSegments
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -104,10 +105,8 @@ internal fun AppProfileControls() {
 @Composable private fun ProfileChoice(label: String, value: Boolean?, change: (Boolean?) -> Unit) {
     Column {
         Text(label)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(null to "Inherit", true to "On", false to "Off").forEach { (choice, name) ->
-                FilterChip(selected = value == choice, onClick = { change(choice) }, label = { Text(name) })
-            }
-        }
+        val choices = listOf(null, true, false)
+        SettingsSegments(listOf("Inherit", "On", "Off"), choices.indexOf(value),
+            onSelected = { change(choices[it]) })
     }
 }

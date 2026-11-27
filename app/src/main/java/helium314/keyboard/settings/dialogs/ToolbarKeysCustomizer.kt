@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -122,6 +124,7 @@ private fun ToolbarKeyCustomizer(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.key_code), Modifier.weight(0.5f))
                     TextField(
+                        shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
                         value = code,
                         onValueChange = { code = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -131,6 +134,7 @@ private fun ToolbarKeyCustomizer(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.long_press_code), Modifier.weight(0.5f))
                     TextField(
+                        shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
                         value = longPressCode,
                         onValueChange = { longPressCode = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

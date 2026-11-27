@@ -9,7 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
@@ -29,35 +30,33 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.settings.getTransitionAnimationScale
 
-/** Glass-style switch, Android toggle semantics, 48dp touch target, RTL-aware travel. */
+/** Capsule switch, Android toggle semantics, 48dp touch target, RTL-aware travel. */
 @Composable
 fun SettingsSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?,
-    modifier: Modifier = Modifier, enabled: Boolean = true) {
-    val dark = isSystemInDarkTheme()
+    modifier: Modifier = Modifier, enabled: Boolean = true,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }) {
     val reduceMotion = getTransitionAnimationScale(LocalContext.current) <= 0f
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
+    val pressed by interactionSource.collectIsPressedAsState()
+    val palette = MaterialTheme.colorScheme
     val track by animateColorAsState(
-        targetValue = (if (checked) {
-            if (dark) Color(0xFF30D158) else Color(0xFF258B41)
-        } else if (dark) Color(0xFF515159) else Color(0xFFD1D1D6)).let {
-            if (enabled) it else it.copy(alpha = .45f)
-        }, animationSpec = if (reduceMotion) snap() else tween(180), label = "switch-track")
-    val thumbWidth by animateDpAsState(if (pressed && enabled) 33.dp else 27.dp,
-        animationSpec = if (reduceMotion) snap() else tween(150), label = "switch-press")
-    val position by animateDpAsState(if (checked) 49.dp - thumbWidth else 2.dp,
-        animationSpec = if (reduceMotion) snap() else tween(180), label = "switch-slide")
-    Box(modifier.size(width = 52.dp, height = 48.dp).then(
+        targetValue = (if (checked) palette.primary else palette.outline).let {
+            if (enabled) it else it.copy(alpha = .42f)
+        }, animationSpec = if (reduceMotion) snap() else tween(160), label = "switch-track")
+    val thumbWidth by animateDpAsState(if (pressed && enabled) 29.dp else 25.dp,
+        animationSpec = if (reduceMotion) snap() else tween(120), label = "switch-press")
+    val position by animateDpAsState(if (checked) 47.dp - thumbWidth else 2.dp,
+        animationSpec = if (reduceMotion) snap() else tween(160), label = "switch-slide")
+    Box(modifier.size(width = 52.dp, height = SettingsVisuals.controlTarget).then(
         if (onCheckedChange == null) Modifier else Modifier.toggleable(
             value = checked, enabled = enabled, role = Role.Switch,
-            interactionSource = interaction, indication = null, onValueChange = onCheckedChange)
+            interactionSource = interactionSource, indication = null, onValueChange = onCheckedChange)
     ), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(width = 51.dp, height = 31.dp).clip(CircleShape).background(track).border(.5.dp, Color.Black.copy(alpha = .09f), CircleShape)) {
+        Box(Modifier.size(width = 49.dp, height = 29.dp).clip(CircleShape).background(track)) {
             Box(Modifier.align(Alignment.CenterStart).offset(x = position)
-                .size(width = thumbWidth, height = 27.dp)
-                .shadow(if (enabled) 2.dp else 0.dp, CircleShape)
-                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFF0F1F4)).map { it.copy(alpha = if (enabled) 1f else .65f) }), CircleShape)
-                .border(.5.dp, Color.Black.copy(alpha = .07f), CircleShape))
+                .size(width = thumbWidth, height = 25.dp)
+                .shadow(if (enabled) 1.dp else 0.dp, CircleShape)
+                .background(Color.White.copy(alpha = if (enabled) 1f else .72f), CircleShape)
+                .border(.5.dp, Color.Black.copy(alpha = .14f), CircleShape))
         }
     }
 }

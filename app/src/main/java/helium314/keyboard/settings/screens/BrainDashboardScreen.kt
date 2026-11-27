@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.geometry.Offset
@@ -70,7 +71,6 @@ fun BrainDashboardScreen(
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BrainGoldShimmer()
                         Text("Local intelligence", style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold)
                         Text(if (enabled) "Learning is enabled in eligible text fields."
@@ -167,7 +167,7 @@ fun BrainDashboardScreen(
             val palette = MaterialTheme.colorScheme
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .background(palette.surface, RoundedCornerShape(21.dp))
+                    .background(palette.surface, RoundedCornerShape(SettingsVisuals.groupRadius))
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -185,7 +185,7 @@ fun BrainDashboardScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenCorrection),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
             ) {
                 Row(Modifier.fillMaxWidth().padding(16.dp),
@@ -247,7 +247,7 @@ fun BrainDashboardScreen(
 
 
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                 colors = CardDefaults.cardColors(containerColor = palette.tertiaryContainer)) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -260,7 +260,7 @@ fun BrainDashboardScreen(
                 }
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                 colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -327,7 +327,7 @@ fun BrainDashboardScreen(
             Text("Review what has been learned",
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Card(colors = CardDefaults.cardColors(containerColor = palette.surfaceVariant),
-                shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                shape = RoundedCornerShape(SettingsVisuals.groupRadius), modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (snapshot.recentAssociations.isEmpty()) {
@@ -359,7 +359,7 @@ fun BrainDashboardScreen(
                 EvidenceMetric("Variety", emoji.distinct.toString(),
                     "Different Emoji used", Modifier.weight(1f))
             }
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                 colors = CardDefaults.cardColors(containerColor = palette.secondaryContainer)) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -384,7 +384,7 @@ fun BrainDashboardScreen(
                 Text(if (erasingEmoji) "Erasing Emoji patterns…" else "Erase Smart Emoji patterns")
             }
 
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(SettingsVisuals.groupRadius)) {
                 Column(modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     Text("Prediction accuracy", style = MaterialTheme.typography.titleMedium)
@@ -470,7 +470,7 @@ private fun LatencyMetric(
     title: String, metric: BrainPerformanceMetrics.Snapshot, modifier: Modifier
 ) {
     val colors = MaterialTheme.colorScheme
-    Card(modifier = modifier, shape = RoundedCornerShape(18.dp),
+    Card(modifier = modifier, shape = RoundedCornerShape(SettingsVisuals.groupRadius),
         colors = CardDefaults.cardColors(containerColor = colors.primaryContainer)) {
         Column(modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -497,7 +497,7 @@ private fun LatencyMetric(
 @Composable
 private fun EvidenceMetric(label: String, number: String, note: String, modifier: Modifier) {
     val colors = MaterialTheme.colorScheme
-    Card(modifier = modifier, shape = RoundedCornerShape(18.dp),
+    Card(modifier = modifier, shape = RoundedCornerShape(SettingsVisuals.groupRadius),
         colors = CardDefaults.cardColors(containerColor = colors.primaryContainer)) {
         Column(modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {

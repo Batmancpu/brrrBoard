@@ -119,6 +119,7 @@ import helium314.keyboard.latin.utils.prefs
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.SafeCrashReport
 import helium314.keyboard.settings.SearchSettingsScreen
+import helium314.keyboard.settings.SettingsVisuals
 import helium314.keyboard.settings.SettingsActivity
 import helium314.keyboard.latin.utils.Theme
 import helium314.keyboard.settings.initPreview
@@ -245,15 +246,15 @@ fun Md3ePreferenceGroup(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 11.dp)) {
-        Text(
+    Column(modifier = Modifier.padding(horizontal = SettingsVisuals.pageInset, vertical = 8.dp)) {
+        if (title.isNotBlank()) Text(
             text = title,
             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 14.dp, bottom = 7.dp, top = 2.dp)
+            modifier = Modifier.padding(start = 2.dp, bottom = 8.dp, top = 4.dp)
         )
         Column(
-            modifier = Modifier.clip(RoundedCornerShape(26.dp)).background(MaterialTheme.colorScheme.surface),
+            modifier = Modifier.clip(RoundedCornerShape(SettingsVisuals.groupRadius)).background(MaterialTheme.colorScheme.surface),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             content()
@@ -306,40 +307,27 @@ fun Md3ePreference(
             }
         }
     }
-    val iconColor = when (icon) {
-        "psychology" -> Color(0xFF6255C7)
-        "palette" -> Color(0xFF8B55BD)
-        "mic" -> Color(0xFFC83D52)
-        "content_paste" -> Color(0xFFA96818)
-        "shield" -> Color(0xFF23815D)
-        "graphic_eq" -> Color(0xFFC14476)
-        "tune" -> Color(0xFF676B78)
-        else -> Color(0xFF2865C7)
-    }
+    val iconColor = MaterialTheme.colorScheme.primary
     Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().then(interactionModifier)
-                .heightIn(min = 54.dp).padding(horizontal = 14.dp, vertical = 10.dp)
+                .heightIn(min = SettingsVisuals.rowHeight).padding(horizontal = SettingsVisuals.rowInset, vertical = SettingsVisuals.rowVertical)
         ) {
-            val tile = RoundedCornerShape(9.dp)
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(32.dp).then(if (brandIcon) Modifier else Modifier
-                    .clip(tile)
-                    .background(Brush.verticalGradient(listOf(iconColor.copy(alpha = .86f), iconColor)))
-                    .border(.5.dp, Color.White.copy(alpha = .22f), tile))
+                modifier = Modifier.size(SettingsVisuals.iconSize)
             ) {
                 if (brandIcon && icon is Int) {
-                    Image(painterResource(id = icon), null, Modifier.size(32.dp))
+                    Image(painterResource(id = icon), null, Modifier.size(SettingsVisuals.iconSize))
                 } else if (icon is String) {
-                    Text(icon, fontFamily = materialSymbols, fontSize = 20.sp, color = Color.White,
+                    Text(icon, fontFamily = materialSymbols, fontSize = 23.sp, color = iconColor,
                         modifier = Modifier.clearAndSetSemantics { })
                 } else if (icon is Int) {
-                    Icon(painterResource(id = icon), null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(painterResource(id = icon), null, tint = iconColor, modifier = Modifier.size(SettingsVisuals.iconSize))
                 }
             }
-            Spacer(Modifier.width(13.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Normal),
                     color = MaterialTheme.colorScheme.onSurface)
@@ -348,12 +336,12 @@ fun Md3ePreference(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Text("chevron_right", fontFamily = materialSymbols, fontSize = 19.sp,
+            Text("chevron_right", fontFamily = materialSymbols, fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .65f),
                 modifier = Modifier.clearAndSetSemantics { })
         }
-        if (!isLast) HorizontalDivider(Modifier.padding(start = 59.dp),
-            thickness = .5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+        if (!isLast) HorizontalDivider(Modifier.padding(start = SettingsVisuals.rowInset + SettingsVisuals.iconSize + 12.dp),
+            thickness = SettingsVisuals.divider, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .7f))
     }
 }
 

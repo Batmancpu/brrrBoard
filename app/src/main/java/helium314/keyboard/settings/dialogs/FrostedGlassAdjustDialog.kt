@@ -3,6 +3,8 @@ package helium314.keyboard.settings.dialogs
 
 import helium314.keyboard.settings.preferences.SettingsSwitch
 import helium314.keyboard.settings.preferences.SettingsSlider
+import helium314.keyboard.settings.preferences.SettingsSegments
+import helium314.keyboard.settings.SettingsVisuals
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
@@ -400,36 +402,16 @@ fun FrostedGlassAdjustDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 5.dp, bottom = 18.dp))
 
-                        // Theme Profile Selector
-                        TabRow(
-                            selectedTabIndex = if (activeProfile == "light") 0 else 1,
-                            modifier = Modifier.padding(bottom = 16.dp),
-                            containerColor = Color.Transparent,
-                            divider = {}
-                        ) {
-                            Tab(
-                                selected = activeProfile == "light",
-                                onClick = { 
-                                    if (activeProfile != "light") {
-                                        activeProfile = "light"
-                                        KeyboardTheme.themeOverride = "light"
-                                        applyLivePreview(snapshot.light)
-                                    }
-                                },
-                                text = { Text("Light") }
-                            )
-                            Tab(
-                                selected = activeProfile == "dark",
-                                onClick = { 
-                                    if (activeProfile != "dark") {
-                                        activeProfile = "dark"
-                                        KeyboardTheme.themeOverride = "dark"
-                                        applyLivePreview(snapshot.dark)
-                                    }
-                                },
-                                text = { Text("Dark") }
-                            )
-                        }
+                        // Both selectors use the same settings-only segmented control.
+                        SettingsSegments(listOf("Light", "Dark"), if (activeProfile == "light") 0 else 1,
+                            onSelected = { index ->
+                                val profile = if (index == 0) "light" else "dark"
+                                if (activeProfile != profile) {
+                                    activeProfile = profile
+                                    KeyboardTheme.themeOverride = profile
+                                    applyLivePreview(if (index == 0) snapshot.light else snapshot.dark)
+                                }
+                            }, modifier = Modifier.padding(bottom = 12.dp))
 
                         val focusRequester = remember { FocusRequester() }
                         // Keep the actual keyboard onscreen while comparing reflections.
@@ -444,16 +426,14 @@ fun FrostedGlassAdjustDialog(
                                 .focusRequester(focusRequester)
                                 .padding(bottom = 12.dp),
                             placeholder = { Text(stringResource(R.string.frosted_glass_test_input_title)) },
+                            shape = RoundedCornerShape(SettingsVisuals.fieldRadius),
                             lineLimits = TextFieldLineLimits.SingleLine,
                             keyboardOptions = KeyboardOptions(platformImeOptions = PlatformImeOptions(
                                 privateImeOptions = "${context.packageName}.${Constants.ImeOption.NO_PERSONALIZED_LEARNING}")),
                         )
 
-                        TabRow(selectedTabIndex = editorSection, containerColor = Color.Transparent) {
-                            listOf("Surface", "Keys", "Accent").forEachIndexed { index, name ->
-                                Tab(selected = editorSection == index, onClick = { editorSection = index }, text = { Text(name) })
-                            }
-                        }
+                        SettingsSegments(listOf("Surface", "Keys", "Accent"), editorSection,
+                            onSelected = { editorSection = it })
                         when (editorSection) {
                             0 -> {
                         Text("Light & reflection", style = MaterialTheme.typography.titleMedium,
@@ -497,7 +477,7 @@ fun FrostedGlassAdjustDialog(
                                                 focusRequester.requestFocus()
                                             },
                                             modifier = Modifier.weight(1f).height(74.dp),
-                                            shape = RoundedCornerShape(15.dp),
+                                            shape = RoundedCornerShape(SettingsVisuals.groupRadius),
                                             border = androidx.compose.foundation.BorderStroke(
                                                 if (chosen) 2.dp else 1.dp,
                                                 if (chosen) MaterialTheme.colorScheme.primary
@@ -816,7 +796,7 @@ fun FrostedGlassAdjustDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(percent = 50),
+                                shape = SettingsVisuals.actionShape,
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
                                     MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
@@ -837,7 +817,7 @@ fun FrostedGlassAdjustDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(percent = 50),
+                                shape = SettingsVisuals.actionShape,
                                 colors = ButtonDefaults.filledTonalButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                     contentColor = MaterialTheme.colorScheme.onSurface
@@ -859,7 +839,7 @@ fun FrostedGlassAdjustDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(48.dp),
-                                shape = RoundedCornerShape(percent = 50),
+                                shape = SettingsVisuals.actionShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary

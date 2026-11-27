@@ -68,6 +68,9 @@ fun SliderDialog(
                 Column {
                     val stepsCount = intermediateSteps ?: 0
                     val interactionSource = remember { MutableInteractionSource() }
+                    Text(positionString(sliderPosition), style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 4.dp))
                     SettingsSlider(
                         value = sliderPosition,
                         onValueChange = {
@@ -91,7 +94,6 @@ fun SliderDialog(
                         steps = stepsCount,
                         interactionSource = interactionSource,
                     )
-                    Text(positionString(sliderPosition))
                 }
             }
         },
