@@ -20,6 +20,8 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.core.view.ViewCompat
+import helium314.keyboard.keyboard.KeyboardSwitcher
+import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.AppsManager
 import helium314.keyboard.latin.ClipboardEntityExtractor
 import helium314.keyboard.latin.ClipboardHistoryEntry
@@ -49,11 +51,11 @@ internal class SmartSnippetController(
     private var notBefore = 0L
     private var activePackage: String? = null
 
-    private fun privateEditor() = !ime.mayUseTransientCorrectionMemory(ime.mSettings.current)
+    private fun privateEditor() = !ime.mayUseTransientCorrectionMemory(Settings.getInstance().current)
     private fun eligibleEditor(editor: EditorInfo?) = !privateEditor() &&
         editor?.packageName != ime.packageName &&
-        ime.mSettings.current.mClipboardHistoryEnabled &&
-        !ime.mSettings.current.isApplicationSpecifiedCompletionsOn() &&
+        Settings.getInstance().current.mClipboardHistoryEnabled &&
+        !Settings.getInstance().current.isApplicationSpecifiedCompletionsOn() &&
         SmartPastePolicy.destination(editor) == SmartPastePolicy.Destination.GENERAL &&
         editor?.hintText?.toString()?.let {
             !Regex("(?i)\\b(search|password|username|user name|login|credit card|security code|card number|cvv|cvc)\\b").containsMatchIn(it.take(160))
@@ -61,7 +63,7 @@ internal class SmartSnippetController(
         editor?.fieldName?.let {
             !Regex("(?i)(search|password|username|login|cardnumber|cvv|cvc)").containsMatchIn(it.take(160))
         } != false
-    private fun panelOpen() = ime.mKeyboardSwitcher.run {
+    private fun panelOpen() = KeyboardSwitcher.getInstance().run {
         isShowingClipboardHistory || isShowingEmojiPalettes || isShowingAiWritingTools ||
             isShowingAccessPointMenu || isShowingKlipyPalettes
     }
@@ -183,7 +185,7 @@ internal class SmartSnippetController(
         val binding = ClipboardSuggestionBinding.inflate(LayoutInflater.from(ime),parent,false)
         val view = binding.root
         view.isSmartSnippet = true
-        val colors = ime.mSettings.current.mColors
+        val colors = Settings.getInstance().current.mColors
         val title = if (eligible.size > 1) rule.title + "  ·  +" + (eligible.size - 1) else rule.title
         view.configure(colors,title,false)
         view.prefersProminent = true
@@ -263,7 +265,7 @@ internal class SmartSnippetController(
     }
 
     private fun theme(): Context = getPlatformDialogThemeContext(ime)
-    private fun toast(message: String) = ime.mKeyboardSwitcher.showToast(message,false)
+    private fun toast(message: String) = KeyboardSwitcher.getInstance().showToast(message,false)
     fun dismissDialog() {
         val old = dialog; dialog = null; old?.dismiss()
     }

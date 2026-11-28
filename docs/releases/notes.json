@@ -13,6 +13,10 @@
     {
       "title": "Suggestion menu and delete controls",
       "detail": "Corrected popup measurement and detached-window guards, outside dismissal and touch forwarding, plus suggestion deletion targets and accessibility. Normal predictions and existing visual motion remain unchanged."
+    },
+    {
+      "title": "Build integration",
+      "detail": "Use the existing public keyboard and settings accessors without widening IME field visibility."
     }
   ]
 }
