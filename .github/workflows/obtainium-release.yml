@@ -61,7 +61,7 @@ jobs:
             fi
           else
             changed_files="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" | grep -Ev '^app/src/test/' || true)"
-            if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify-(voice-model|gtcrn|brrclean|voice-endpoints)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
+            if grep -Eq '^(app/|buildSrc/|gradle/|tools/make-emoji-keys/|tools/fetch-board-|tools/verify_clean_dictionary_assets\.py$|tools/clean_dictionary_assets\.json$|tools/verify-(voice-model|gtcrn|brrclean|voice-endpoints)-packaging\.sh$|build.gradle.kts$|settings.gradle.kts$|gradle.properties$|gradlew(\.bat)?$)' <<< "$changed_files"; then
               echo "product_changed=true" >> "$GITHUB_OUTPUT"
             else
               echo "product_changed=false" >> "$GITHUB_OUTPUT"

@@ -12,7 +12,7 @@
     },
     {
       "title": "Safer import and dictionary provenance",
-      "detail": "Use bounded staged validation, atomic font replacement, native ELF checks and recoverable checksum transactions. Exclude two unverified backup-derived Hindi dictionaries; retain the English emoji dictionary after an exact public CLDR/Signal binary match, generic vocabulary and existing explicitly imported and learned data."
+      "detail": "Use bounded staged validation, atomic font replacement, native ELF checks and recoverable checksum transactions. Exclude two unverified backup-derived Hindi dictionaries; retain the English emoji dictionary after an exact public CLDR/Signal binary match, generic vocabulary and existing explicitly imported and learned data. The build gate verifies the full pinned source inventory separately from the three production dictionaries."
     },
     {
       "title": "Complete local diagnostics",
