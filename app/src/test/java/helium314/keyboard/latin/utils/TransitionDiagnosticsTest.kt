@@ -36,7 +36,7 @@ class TransitionDiagnosticsTest {
         assertTrue(clip.description.hasMimeType("text/plain"))
         assertTrue(clip.description.extras!!.getBoolean("android.content.extra.IS_SENSITIVE"))
         val report = clip.getItemAt(0).text.toString()
-        assertTrue(report.contains("brrBoard diagnostic report v1"))
+        assertTrue(report.contains(if (helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION) "brrBoard diagnostic report v2" else "brrBoard diagnostic report v1"))
         assertTrue(report.contains("recent transitions"))
         assertTrue(report.contains("safe crash and configuration"))
         assertFalse(report.contains("DO_NOT_EXPORT"))

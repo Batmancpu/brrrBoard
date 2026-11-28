@@ -87,6 +87,7 @@ public final class KeyboardLayoutSet {
         boolean mLanguageSwitchKeyEnabled;
         boolean mEmojiKeyEnabled;
         boolean mEditingGestureKeyEnabled;
+        boolean mCompatCommaPeriod;
         boolean mOneHandedModeEnabled;
         RichInputMethodSubtype mSubtype;
         boolean mIsSpellChecker;
@@ -275,6 +276,11 @@ public final class KeyboardLayoutSet {
 
         public Builder setEmojiKeyEnabled(final boolean enabled) {
             mParams.mEmojiKeyEnabled = enabled;
+            return this;
+        }
+
+        public Builder setCompatCommaPeriodEnabled(boolean enabled) {
+            mParams.mCompatCommaPeriod = enabled;
             return this;
         }
 

@@ -57,7 +57,7 @@ object KeyboardMotionSpec {
 
     /** Power saver suppresses optional result/preview choreography, never input dispatch. */
     @JvmStatic fun optionalMotion(context: Context): Boolean = enabled() &&
-        context.getSystemService(PowerManager::class.java)?.isPowerSaveMode != true
+        !VisualPowerPolicy.suppressOptional(context)
 
     internal fun decorativeAllowed(animatorsEnabled: Boolean, powerSave: Boolean,
                                    touchExploration: Boolean): Boolean =
@@ -68,7 +68,7 @@ object KeyboardMotionSpec {
 
     /** Optional artwork never competes with screen-reader exploration or power saving. */
     @JvmStatic fun decorativeMotion(context: Context): Boolean = decorativeAllowed(enabled(),
-        context.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true,
+        VisualPowerPolicy.suppressOptional(context),
         touchExploration(context))
 
     /** Cheap live check during a short motion; power-save eligibility is checked at start. */

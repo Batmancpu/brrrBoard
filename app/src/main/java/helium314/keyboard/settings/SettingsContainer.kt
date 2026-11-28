@@ -121,6 +121,7 @@ class SettingsContainer(context: Context) {
         SettingsDestination.Toolbar -> "Tools · Toolbar"
         SettingsDestination.Clipboard -> "Tools · Clipboard"
         SettingsDestination.Emoji -> "Tools · Emoji"
+        SettingsDestination.Custom -> "Custom"
         SettingsDestination.TextTools -> "Tools · Text tools"
         SettingsDestination.Privacy -> "Privacy & app profiles"
         SettingsDestination.Backup -> "Manage brrBoard · Backup & restore"
@@ -178,7 +179,15 @@ class SettingsContainer(context: Context) {
             val coverage = if (queryTokens.isEmpty()) 0f else matched.toFloat() / queryTokens.size
             val rank = settingsSearchRank(term, title, entry.titleParts, description, category,
                 aliasMatches || contextualMatch, coverage, queryTokens.size) ?: return@mapNotNull null
-            rank to setting
+            val preferred = helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION && when (setting.key) {
+                helium314.keyboard.latin.settings.Settings.PREF_COMPAT_COMMA_PERIOD -> term in setOf("comma", "period", "full stop", "punctuation", "comma key")
+                SettingsWithoutKey.CUSTOM_EMOJI_FONT -> term in setOf("custom", "emoji font", "custom emoji", "import emoji")
+                SettingsWithoutKey.LOAD_GESTURE_LIB -> term in setOf("custom", "swipe library", "swipe typing library", "gesture library", "import swipe")
+                "compat_battery_settings" -> term in setOf("battery", "battery optimization", "power saver")
+                SettingsWithoutKey.COPY_DIAGNOSTIC_REPORT -> term in setOf("log", "logs", "crash", "diagnostic report", "diagnostics")
+                else -> false
+            }
+            (if (preferred) -100 else rank) to setting
         }.sortedWith(compareBy<Pair<Int, Setting>> { it.first }.thenBy { it.second.title })
             .take(40).map { it.second }
     }
@@ -228,6 +237,11 @@ class SettingsContainer(context: Context) {
             ContextIntent(setOf("settings", "reset"), SettingsDestination.Reset),
         )
         private val SETTING_SYNONYMS = mapOf(
+            helium314.keyboard.latin.settings.Settings.PREF_COMPAT_COMMA_PERIOD to setOf("comma", "period", "fullstop", "punctuation", "spacebar"),
+            SettingsWithoutKey.CUSTOM_EMOJI_FONT to setOf("custom", "emoji", "font", "import", "apple"),
+            SettingsWithoutKey.LOAD_GESTURE_LIB to setOf("custom", "swipe", "gesture", "library", "import", "glide"),
+            "compat_battery_settings" to setOf("battery", "optimization", "power", "saver", "blur"),
+            SettingsWithoutKey.COPY_DIAGNOSTIC_REPORT to setOf("log", "logs", "crash", "diagnostics", "report", "error"),
             helium314.keyboard.latin.settings.Settings.PREF_MOTION_PROFILE to
                 setOf("animation", "suggestion", "suggestions", "typing", "transition", "smooth", "ios"),
             SettingsWithoutKey.BRAIN_PAGE to

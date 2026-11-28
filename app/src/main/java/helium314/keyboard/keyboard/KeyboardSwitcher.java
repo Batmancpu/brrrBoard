@@ -94,9 +94,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private boolean mayPrewarmPanels() {
         if (mLatinIME == null) return false;
         final ActivityManager activity = mLatinIME.getSystemService(ActivityManager.class);
-        final PowerManager power = mLatinIME.getSystemService(PowerManager.class);
         return PanelMotionPolicy.canPrewarm(activity != null && activity.isLowRamDevice(),
-                power != null && power.isPowerSaveMode());
+                helium314.keyboard.latin.VisualPowerPolicy.suppressOptional(mLatinIME));
     }
 
     private void schedulePanelWarmup(final EditorInfo editorInfo) {
@@ -305,6 +304,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                 .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                 .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                .setCompatCommaPeriodEnabled(settingsValues.mCompatCommaPeriod)
                 .setEditingGestureKeyEnabled(internalAction == null && settingsValues.mEditingGestureConfig.getEnabled()
                         && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                 .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)
@@ -325,6 +325,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                         .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                         .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                         .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                        .setCompatCommaPeriodEnabled(settingsValues.mCompatCommaPeriod)
                         .setEditingGestureKeyEnabled(internalAction == null && settingsValues.mEditingGestureConfig.getEnabled()
                         && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                         .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)
@@ -1130,6 +1131,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
                 .setNumberRowInSymbolsEnabled(settingsValues.mShowsNumberRowInSymbols)
                 .setLanguageSwitchKeyEnabled(settingsValues.isLanguageSwitchKeyEnabled())
                 .setEmojiKeyEnabled(settingsValues.mShowsEmojiKey)
+                .setCompatCommaPeriodEnabled(settingsValues.mCompatCommaPeriod)
                 .setEditingGestureKeyEnabled(settingsValues.mEditingGestureConfig.getEnabled()
                         && mLatinIME.mayUseTransientCorrectionMemory(settingsValues))
                 .setSplitLayoutEnabled(settingsValues.mIsSplitKeyboardEnabled)

@@ -3,7 +3,7 @@
 Once the first APK appears under [GitHub Releases](https://github.com/Batmancpu/brrrBoard/releases):
 
 1. In Obtainium, tap **Add App** and enter `https://github.com/Batmancpu/brrrBoard`.
-2. Set **Filter Release Titles by Regular Expression** to `^brr+Board Obtainium`. Leave prereleases disabled.
+2. Set **Filter Release Titles by Regular Expression** to `^brr+Board Obtainium`. Leave prereleases disabled. A one-time full compatibility release uses a different GitHub display title; install its signed APK directly once if the filter excludes it, then resume ordinary updates. The package ID and signer are unchanged.
 3. Tap **Add**, then **Install**. For later builds, refresh in Obtainium and tap **Update**.
 
 The current package ID is **`com.mangoloads.board`**. It can install alongside former `com.orion.frostkeys.brrrboard` APKs, but it **cannot** update the former package in place. To migrate, export a local ZIP from the old keyboard's Settings → Backup and restore, install the current brrBoard, restore the ZIP there, verify personal settings/words and any compatible gesture library, and enable the new keyboard in Android settings. Keep the older app until the restored setup works. Backup ZIPs are **unencrypted** and can contain sensitive words or Clipboard history.

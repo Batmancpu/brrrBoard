@@ -48,6 +48,8 @@ internal object WorkspaceSettings {
     fun destination(key: String, registered: String): String = when {
         key == "adjust_frosted_glass_dialog" || key == "keyboard_glass_highlight_dialog" -> SettingsDestination.GlassEditor
         key == SettingsWithoutKey.INLINE_VOICE || key == SettingsWithoutKey.VOICE_SERVICE -> SettingsDestination.Voice
+        helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION && (key == SettingsWithoutKey.CUSTOM_EMOJI_FONT || key == SettingsWithoutKey.LOAD_GESTURE_LIB) -> SettingsDestination.Custom
+        key == S.PREF_COMPAT_COMMA_PERIOD -> SettingsDestination.KeySymbols
         key in privacy -> SettingsDestination.Privacy
         key in emoji -> SettingsDestination.Emoji
         key in gestures -> SettingsDestination.GestureAssignments

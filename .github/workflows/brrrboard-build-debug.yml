@@ -32,6 +32,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_compatibilityEdition: "true"
     timeout-minutes: 45
 
     steps:
@@ -156,6 +158,7 @@ jobs:
           python3 tools/audit_public_apk.py --apk "$APK"
           python3 tools/verify_contextlm_experiment_packaging.py "$APK"
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
+          python3 tools/verify_clean_dictionary_assets.py "$APK"
           bash tools/verify-gtcrn-packaging.sh "$APK"
           bash tools/verify-brrclean-packaging.sh "$APK"
           bash tools/verify-voice-endpoints-packaging.sh "$APK"

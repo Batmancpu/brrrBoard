@@ -83,6 +83,7 @@ public class SettingsValues {
     public final helium314.keyboard.keyboard.EditingGestureConfig mEditingGestureConfig;
     public final long mAppProfileRevision;
     public final boolean mUseDoubleSpacePeriod;
+    public final boolean mCompatCommaPeriod;
     public final boolean mBlockPotentiallyOffensive;
     public final KeyboardActionListener.SwipeAction mSpaceSwipeHorizontal;
     public final KeyboardActionListener.SwipeAction mSpaceSwipeVertical;
@@ -229,6 +230,7 @@ public class SettingsValues {
         mShowTldPopupKeys = prefs.getBoolean(Settings.PREF_SHOW_TLD_POPUP_KEYS, Defaults.PREF_SHOW_TLD_POPUP_KEYS);
         mSpaceForLangChange = prefs.getBoolean(Settings.PREF_SPACE_TO_CHANGE_LANG, Defaults.PREF_SPACE_TO_CHANGE_LANG);
         mShowsEmojiKey = prefs.getBoolean(Settings.PREF_SHOW_EMOJI_KEY, Defaults.PREF_SHOW_EMOJI_KEY);
+        mCompatCommaPeriod = helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION && prefs.getBoolean(Settings.PREF_COMPAT_COMMA_PERIOD, false);
         mVarToolbarDirection = mToolbarMode != ToolbarMode.HIDDEN && prefs.getBoolean(Settings.PREF_VARIABLE_TOOLBAR_DIRECTION, Defaults.PREF_VARIABLE_TOOLBAR_DIRECTION);
         mUsePersonalizedDicts = prefs.getBoolean(Settings.PREF_KEY_USE_PERSONALIZED_DICTS, Defaults.PREF_KEY_USE_PERSONALIZED_DICTS);
         mAdaptiveTouchEnabled = prefs.getBoolean(Settings.PREF_ADAPTIVE_TOUCH, true);

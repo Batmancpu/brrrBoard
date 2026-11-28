@@ -75,7 +75,8 @@ fun AdvancedSettingsScreen(
         R.string.settings_category_experimental,
         Settings.PREF_EMOJI_MAX_SDK,
         Settings.PREF_BLUR_RENDER_OVERRIDE,
-        if (BuildConfig.BUILD_TYPE != "nouserlib") SettingsWithoutKey.LOAD_GESTURE_LIB else null
+        if (BuildConfig.BUILD_TYPE != "nouserlib" && !BuildConfig.COMPATIBILITY_EDITION) SettingsWithoutKey.LOAD_GESTURE_LIB else null,
+        if (BuildConfig.COMPATIBILITY_EDITION) "compat_battery_settings" else null
     )
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -296,7 +297,16 @@ fun createAdvancedSettings(context: Context) = listOf(
     Setting(context, SettingsWithoutKey.LOAD_GESTURE_LIB, R.string.load_gesture_library, R.string.load_gesture_library_summary) {
         LoadGestureLibPreference(it)
     },
-)
+) + if (BuildConfig.COMPATIBILITY_EDITION) listOf(
+    Setting(context, Settings.PREF_COMPAT_COMMA_PERIOD, R.string.compat_comma_period_title, R.string.compat_comma_period_summary) {
+        SwitchPreference(it, false) { KeyboardSwitcher.getInstance().reloadKeyboard() }
+    },
+    Setting(context, "compat_battery_settings", R.string.compat_battery_title, R.string.compat_battery_summary) {
+        val ctx = LocalContext.current
+        helium314.keyboard.settings.preferences.Preference(name = it.title, description = it.description,
+            onClick = { helium314.keyboard.latin.VisualPowerPolicy.openBatterySettings(ctx) })
+    },
+) else emptyList()
 
 @Preview
 @Composable

@@ -158,10 +158,12 @@ fun SettingsNavHost(
                 onClickKeyboardHub = { navController.navigate(SettingsDestination.KeyboardHub) },
                 onClickInteractionsHub = { navController.navigate(SettingsDestination.InteractionsHub) },
                 onClickToolsHub = { navController.navigate(SettingsDestination.ToolsHub) },
+                onClickCustom = { navController.navigate(SettingsDestination.Custom) },
             )
         }
         composable(SettingsDestination.KeyboardHub) { KeyboardSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
         composable(SettingsDestination.InteractionsHub) { InteractionsSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
+        composable(SettingsDestination.Custom) { helium314.keyboard.settings.screens.CustomAdditionsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.ToolsHub) { ToolsSettingsHub(onClickBack = ::goBack, navigate = { navController.navigate(it) }) }
         composable(SettingsDestination.GlassEditor) {
             if (helium314.keyboard.latin.FrostedGlassHelper.isFrostedTheme(LocalContext.current)) {
@@ -315,6 +317,7 @@ object SettingsDestination {
     const val KeyboardHub = "keyboard_hub"
     const val InteractionsHub = "interactions_hub"
     const val ToolsHub = "tools_hub"
+    const val Custom = "custom_additions"
     const val Glass = "glass_studio"
     const val GlassEditor = "glass_editor"
     const val Size = "keyboard_dimensions"

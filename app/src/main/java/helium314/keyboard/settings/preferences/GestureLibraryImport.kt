@@ -54,6 +54,7 @@ internal fun stageGestureLibrary(context: Context, uri: Uri): File {
                 }
             }
         }
+        validateElfLibrary(staged)
         stagedSuccessfully = true
         return staged
     } finally {
@@ -66,8 +67,44 @@ internal fun installGestureLibrary(context: Context, staged: File, checksum: Str
     val appFilesDir = DeviceProtectedUtils.getFilesDir(context)
         ?: throw IOException("App data directory unavailable")
     val destination = File(appFilesDir, JniUtils.JNI_LIB_IMPORT_FILE_NAME)
-    Os.rename(staged.absolutePath, destination.absolutePath)
-    context.protectedPrefs().edit(commit = true) { putString(Settings.PREF_LIBRARY_CHECKSUM, checksum) }
+    validateElfLibrary(staged)
+    if (checksum.isBlank() || ChecksumCalculator.checksum(staged) != checksum) throw IOException("Library checksum changed")
+    val prefs = context.protectedPrefs()
+    val oldChecksum = prefs.getString(Settings.PREF_LIBRARY_CHECKSUM, JniUtils.expectedDefaultChecksum())
+    val previous = File(appFilesDir, JniUtils.JNI_LIB_IMPORT_FILE_NAME + ".previous")
+    if (previous.exists()) throw IOException("Previous library recovery pending")
+    if (destination.exists()) Os.link(destination.absolutePath, previous.absolutePath)
+    try {
+        Os.rename(staged.absolutePath, destination.absolutePath)
+        if (!prefs.edit().putString(Settings.PREF_LIBRARY_CHECKSUM, checksum)
+                .putString(JniUtils.PREVIOUS_LIBRARY_CHECKSUM, oldChecksum).commit())
+            throw IOException("Cannot commit library checksum")
+    } catch (error: Exception) {
+        if (previous.isFile) Os.rename(previous.absolutePath, destination.absolutePath)
+        else destination.delete()
+        prefs.edit().putString(Settings.PREF_LIBRARY_CHECKSUM, oldChecksum)
+            .remove(JniUtils.PREVIOUS_LIBRARY_CHECKSUM).commit()
+        throw error
+    }
+    // The previous bytes survive until the next successful native load.
+}
+
+private fun validateElfLibrary(file: File) {
+    val header = ByteArray(20)
+    file.inputStream().use { input -> java.io.DataInputStream(input).readFully(header) }
+    if (header[0] != 0x7f.toByte() || header[1] != 0x45.toByte() || header[2] != 0x4c.toByte() ||
+        header[3] != 0x46.toByte() || header[5] != 1.toByte() || header[6] != 1.toByte())
+        throw IOException("Not a supported ELF library")
+    val (elfClass, machine) = when (Build.SUPPORTED_ABIS.firstOrNull()) {
+        "arm64-v8a" -> 2 to 183
+        "armeabi-v7a" -> 1 to 40
+        "x86_64" -> 2 to 62
+        "x86" -> 1 to 3
+        else -> throw IOException("Unsupported ABI")
+    }
+    fun u16(offset: Int) = (header[offset].toInt() and 255) or ((header[offset+1].toInt() and 255) shl 8)
+    if (header[4].toInt() != elfClass || u16(16) != 3 || u16(18) != machine)
+        throw IOException("Incompatible native library")
 }
 
 private fun InputStream.copyBounded(output: OutputStream) {

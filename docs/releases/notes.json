@@ -1,18 +1,26 @@
 {
   "schema": 1,
-  "summary": "QuickType readability and bounded backspace recovery",
+  "summary": "Compatibility, clean dictionaries, custom imports and detailed diagnostics",
   "changes": [
     {
-      "title": "Stable deletion, guaranteed recovery",
-      "detail": "Retain the 185 ms rapid-delete display-only hold; refresh the current prefix even if unchanged and discard an inert row after the additional 120 ms grace if no valid result arrives. Cancel held presentation at editor, privacy, cursor and swipe boundaries; repeated empty predictions cannot renew the same clear deadline."
+      "title": "Compatibility and power handling",
+      "detail": "Optional visual quality follows a local 19% threshold in this edition; respect real system compositor availability and accessibility, recover from visibility and capability changes, and provide an optional Android battery settings shortcut."
     },
     {
-      "title": "Scale Improved readability and continuity",
-      "detail": "Keep the original Scale preset unchanged. Refine Improved glyph entry and exit size, reduce compression, give compatible arriving letters earlier readability, and coordinate confidence chrome over 85 ms. When a provisional frame is replaced before it draws, retarget from the previous presented ink rather than the unseen intermediate."
+      "title": "Custom additions and punctuation",
+      "detail": "A searchable Custom page brings emoji font and swipe library import together. A default-off comma and full stop toggle adds direct punctuation beside space in regular alphabet rows without changing email, URL or numeric rows."
     },
     {
-      "title": "Safer provisional suggestions",
-      "detail": "Exclude expiring correction recall and application-defined entries from prefix previews. Preserve native decoder ranking, autocorrection decisions, touch routing and the prior privacy cleanup. Add regression tests for the recovery state, preset contracts and preview exclusions."
+      "title": "Safer import and dictionary provenance",
+      "detail": "Use bounded staged validation, atomic font replacement, native ELF checks and recoverable checksum transactions. Exclude two unverified backup-derived Hindi dictionaries; retain the English emoji dictionary after an exact public CLDR/Signal binary match, generic vocabulary and existing explicitly imported and learned data."
+    },
+    {
+      "title": "Complete local diagnostics",
+      "detail": "Extend the safe report with source revision, power state, blur request status, motion failure codes, own-process exit metadata, model and library status and memory. Generate it off the UI thread; no raw editor text, audio, clipboard, unrelated logs or new permissions."
+    },
+    {
+      "title": "Offline voice model package",
+      "detail": "The selected one-time package includes the pinned Parakeet Ultra model and retains the existing verified local installation and migration path. Future regular packages omit the model weights."
     }
   ]
 }

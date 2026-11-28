@@ -162,6 +162,7 @@ fun MainSettingsScreen(
     onClickKeyboardHub: () -> Unit = onClickAppearance,
     onClickInteractionsHub: () -> Unit = onClickSound,
     onClickToolsHub: () -> Unit = onClickToolbar,
+    onClickCustom: () -> Unit = onClickAppearance,
 ) {
     SearchSettingsScreen(
         onClickBack = onClickBack,
@@ -219,6 +220,7 @@ fun MainSettingsScreen(
             }
         }
 
+        if (helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION && isImeReady) BatteryCompatibilityPrompt()
         Md3ePreferenceGroup("Your keyboard") {
             Md3ePreference("keyboard", "Keyboard", "Glass, size, keys, languages and fonts", onClickKeyboardHub, isFirst = true)
             Md3ePreference("psychology", "Typing & intelligence", "Correction, predictions, swipe and BR Brain", onClickTypingHub)
@@ -228,7 +230,9 @@ fun MainSettingsScreen(
                     VoiceModelInstaller.InstallState.INSTALLING -> "Preparing model · $offlineInstallPercent%"
                     VoiceModelInstaller.InstallState.FAILED -> "Model unavailable"
                     else -> "Models and microphone"
-                }, onClickVoice, isLast = true)
+                }, onClickVoice, isLast = !helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION)
+            if (helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION)
+                Md3ePreference("settings", "Custom", "Emoji font and swipe typing library", onClickCustom, isLast = true)
         }
         Md3ePreferenceGroup("Tools & management") {
             Md3ePreference("content_paste", "Tools", "Toolbar, clipboard, emoji and text tools", onClickToolsHub, isFirst = true)

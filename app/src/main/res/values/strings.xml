@@ -1452,4 +1452,10 @@ New dictionary:
     <string name="diagnostic_report_copied">Diagnostic report copied</string>
     <string name="diagnostic_report_copy_failed">Could not copy diagnostic report</string>
     <string name="brr_workspace_reset_title">Reset settings</string>
+    <string name="compat_comma_period_title">Comma and full stop keys</string>
+    <string name="compat_comma_period_summary">Show comma and period beside the space bar in ordinary alphabet layouts.</string>
+    <string name="compat_battery_title">Battery optimization</string>
+    <string name="compat_battery_summary">Open Android settings to allow reliable keyboard effects. System-wide power controls still apply.</string>
+    <string name="compat_diagnostic_title">Copy complete diagnostic report</string>
+    <string name="compat_diagnostic_summary">Copy detailed app health, rendering, voice, crashes and safe technical counters without private text.</string>
 </resources>

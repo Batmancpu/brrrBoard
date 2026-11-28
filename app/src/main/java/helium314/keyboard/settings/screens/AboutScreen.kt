@@ -255,17 +255,26 @@ fun createAboutSettings(context: Context) = listOf(
         )
     },
     Setting(context, SettingsWithoutKey.COPY_DIAGNOSTIC_REPORT,
-        R.string.copy_diagnostic_report, R.string.copy_diagnostic_report_summary) {
+        if (BuildConfig.COMPATIBILITY_EDITION) R.string.compat_diagnostic_title else R.string.copy_diagnostic_report,
+        if (BuildConfig.COMPATIBILITY_EDITION) R.string.compat_diagnostic_summary else R.string.copy_diagnostic_report_summary) {
         val ctx = LocalContext.current
+        val scope = rememberCoroutineScope()
         Preference(
             name = it.title,
             description = it.description,
             onClick = {
-                val copied = runCatching {
-                    helium314.keyboard.latin.utils.TransitionDiagnostics.copyReport(ctx)
-                }.getOrDefault(false)
-                Toast.makeText(ctx, if (copied) R.string.diagnostic_report_copied
-                    else R.string.diagnostic_report_copy_failed, Toast.LENGTH_SHORT).show()
+                scope.launch {
+                    val copied = runCatching {
+                        val report = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                            helium314.keyboard.latin.utils.TransitionDiagnostics.reportText(ctx)
+                        }
+                        val clipboard = ctx.getSystemService(ClipboardManager::class.java) ?: error("Clipboard unavailable")
+                        clipboard.setPrimaryClip(helium314.keyboard.latin.utils.TransitionDiagnostics.reportClip(report))
+                        true
+                    }.getOrDefault(false)
+                    Toast.makeText(ctx, if (copied) R.string.diagnostic_report_copied
+                        else R.string.diagnostic_report_copy_failed, Toast.LENGTH_SHORT).show()
+                }
             },
             icon = R.drawable.ic_settings_about_log
         )

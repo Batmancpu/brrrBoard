@@ -67,6 +67,8 @@ android {
     }
 
     defaultConfig {
+        buildConfigField("boolean", "COMPATIBILITY_EDITION", providers.gradleProperty("compatibilityEdition").orElse("false").get().toBoolean().toString())
+        buildConfigField("String", "SOURCE_REVISION", "\"" + providers.gradleProperty("sourceRevision").orElse("unknown").get() + "\"")
         applicationId = "com.mangoloads.board"
         minSdk = 24
         targetSdk = 36

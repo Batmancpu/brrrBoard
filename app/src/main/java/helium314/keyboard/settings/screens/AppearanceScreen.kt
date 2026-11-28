@@ -84,7 +84,7 @@ fun AppearanceScreen(
         R.string.brr_category_lettering_emoji,
         SettingsWithoutKey.CUSTOM_FONT,
         Settings.PREF_FONT_SCALE,
-        SettingsWithoutKey.CUSTOM_EMOJI_FONT,
+        if (!helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION) SettingsWithoutKey.CUSTOM_EMOJI_FONT else null,
         SettingsWithoutKey.CUSTOM_EMOJI_SEARCH_SHORTCUTS,
         Settings.PREF_EMOJI_FONT_SCALE,
         if (prefs.getFloat(Settings.PREF_EMOJI_FONT_SCALE, Defaults.PREF_EMOJI_FONT_SCALE) != 1f)

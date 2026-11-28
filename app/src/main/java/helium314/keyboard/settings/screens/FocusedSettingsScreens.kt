@@ -81,6 +81,7 @@ fun KeysLayoutScreen(onClickBack: () -> Unit, section: String = "legacy") {
         Settings.PREF_SHOW_LANGUAGE_SWITCH_KEY,
         Settings.PREF_LANGUAGE_SWITCH_KEY,
         Settings.PREF_SHOW_EMOJI_KEY,
+        if (helium314.keyboard.latin.BuildConfig.COMPATIBILITY_EDITION) Settings.PREF_COMPAT_COMMA_PERIOD else null,
         Settings.PREF_SHOW_HINTS,
         if (prefs.getBoolean(Settings.PREF_SHOW_HINTS, Defaults.PREF_SHOW_HINTS)) Settings.PREF_POPUP_KEYS_HINT_ORDER else null,
         Settings.PREF_POPUP_KEYS_ORDER,

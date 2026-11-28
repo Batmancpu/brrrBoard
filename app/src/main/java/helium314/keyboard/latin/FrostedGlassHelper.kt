@@ -312,9 +312,11 @@ object FrostedGlassHelper {
 
         constrainImeWindowToKeyboardBounds(service, window, inputView)
         val blurAvailable = isSystemBlurAvailable(service)
-        val shouldUseSolidFallback = overrideMode == "force_solid" || (!blurAvailable && !shouldTrySamsungBlur)
+        val shouldUseSolidFallback = overrideMode == "force_solid" || (!blurAvailable && !shouldTrySamsungBlur) ||
+            (BuildConfig.COMPATIBILITY_EDITION && VisualPowerPolicy.suppressOptional(service))
 
         if (shouldUseSolidFallback) {
+            lastRenderer = if (overrideMode == "force_solid") "manual_solid" else if (VisualPowerPolicy.suppressOptional(service)) "power_policy_solid" else "system_blur_unavailable"
             cancelPendingNativeBlurCleanup(nativeState)
             clearNativeBlurReady(nativeState)
             val nativeBlurChanged = applyDefaultBlur(service, window, false, solidFallbackColor(service))
@@ -330,6 +332,7 @@ object FrostedGlassHelper {
             return
         }
 
+        lastRenderer = if (shouldTrySamsungBlur) "manufacturer_renderer_requested" else "native_requested"
         when (overrideMode) {
             "force_native" -> {
                 restoreFrostedThemeBackground(service, inputView)
@@ -723,9 +726,24 @@ object FrostedGlassHelper {
                     !service.isInputViewShown) {
                 return@post
             }
-            applyDefaultBlur(service, window, true, force = true)
-            markNativeBlurReady(window, inputView, nativeState, cornerRadiusPx, targetBlurRadius)
-            Log.d(TAG, "Native Android window blur enabled via window.setBackgroundBlurRadius.")
+            try {
+                if (BuildConfig.COMPATIBILITY_EDITION && !isSystemBlurAvailable(service)) {
+                    clearNativeBlurReady(nativeState)
+                    applyDefaultBlur(service, window, false, solidFallbackColor(service), force = true)
+                    applySolidFallbackBackground(service, window, inputView)
+                    lastRenderer = "capability_changed_before_activation"
+                    return@post
+                }
+                applyDefaultBlur(service, window, true, force = true)
+                markNativeBlurReady(window, inputView, nativeState, cornerRadiusPx, targetBlurRadius)
+                lastRenderer = "native_request_applied"
+            } catch (error: RuntimeException) {
+                clearNativeBlurReady(nativeState)
+                lastRenderer = "native_request_failed"
+                runCatching { applyDefaultBlur(service, window, false, solidFallbackColor(service), force = true) }
+                runCatching { applySolidFallbackBackground(service, window, inputView) }
+            }
+            Log.d(TAG, "Native Android window blur request processed.")
             samsungBlurTarget(inputView)?.invalidateOutline()
             inputView?.invalidate()
             decorView.invalidate()
@@ -895,16 +913,18 @@ object FrostedGlassHelper {
     private fun restoreFrostedThemeBackground(context: Context, inputView: View?) {
         val target = samsungBlurTarget(inputView)
         if (target == null) return
-        target.setBackgroundColor(Color.WHITE)
+        if (!BuildConfig.COMPATIBILITY_EDITION) target.setBackgroundColor(Color.WHITE)
         val colors = runCatching { KeyboardTheme.getColorsForCurrentTheme(context) }
             .getOrNull()
             ?: Settings.getValues()?.mColors
-        colors?.setBackground(target, ColorType.MAIN_BACKGROUND)
+        if (colors != null) colors.setBackground(target, ColorType.MAIN_BACKGROUND)
+        else if (BuildConfig.COMPATIBILITY_EDITION) target.setBackgroundColor(solidFallbackColor(context))
         target.invalidate()
     }
 
     private fun applySolidFallbackBackground(context: Context, window: Window, inputView: View?) {
         val color = solidFallbackColor(context)
+        if (BuildConfig.COMPATIBILITY_EDITION && lastRenderer == "manufacturer_renderer_requested") lastRenderer = "manufacturer_fallback_solid"
         window.setBackgroundDrawable(roundedWindowBackground(context, color))
         inputView?.setBackgroundColor(Color.TRANSPARENT)
         samsungBlurTarget(inputView)?.let { target ->
@@ -926,9 +946,20 @@ object FrostedGlassHelper {
         }
     }
 
+    @Volatile var lastRenderer: String = "not_requested"
+        private set
+
+    @JvmStatic fun onVisibleWindow(service: InputMethodService) {
+        if (!BuildConfig.COMPATIBILITY_EDITION) return
+        val window = service.window?.window ?: return
+        val state = nativeBlurState(window)
+        // Explicit show cancels stale hide cleanup, not a generic layout callback.
+        cancelPendingNativeBlurCleanup(state)
+    }
+
     private fun isSystemBlurAvailable(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
-        if (isBatterySaverMode(context)) return false
+        if (VisualPowerPolicy.suppressOptional(context)) return false
         return try {
             val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
             windowManager?.isCrossWindowBlurEnabled == true

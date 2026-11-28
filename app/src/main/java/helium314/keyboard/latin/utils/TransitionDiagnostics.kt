@@ -22,7 +22,8 @@ import helium314.keyboard.latin.R
 object TransitionDiagnostics {
     enum class Event { ENTER_BROWSE, ENTER_SEARCH, EXIT_BROWSE, EXIT_SEARCH, EXIT_EMOJI,
         PANEL_COMMITTED, MORPH_OVERLAY, MORPH_RELEASE, ENTER_CLIPBOARD, EXIT_CLIPBOARD,
-        MORPH_INTERRUPTED, MORPH_GEOMETRY_RETARGET, MORPH_LAYOUT_FALLBACK, MORPH_BUDGET_FALLBACK }
+        MORPH_INTERRUPTED, MORPH_GEOMETRY_RETARGET, MORPH_LAYOUT_FALLBACK, MORPH_BUDGET_FALLBACK,
+        MORPH_SOURCE_UNAVAILABLE, MORPH_POLICY_DISABLED, MORPH_START_REJECTED, MORPH_NO_TRACKS }
     private const val CAPACITY = 96
     private const val WINDOW_MS = 650L
     private const val MAX_FRAMES = 48
@@ -101,11 +102,12 @@ object TransitionDiagnostics {
         else trace.joinToString("\n")
 
     fun reportText(context: Context): String = buildString {
-        appendLine("brrBoard diagnostic report v1")
+        appendLine(if (BuildConfig.COMPATIBILITY_EDITION) "brrBoard diagnostic report v2" else "brrBoard diagnostic report v1")
         appendLine("app=${BuildConfig.VERSION_NAME} android_api=${Build.VERSION.SDK_INT}")
         appendLine("device=${Build.MANUFACTURER.take(64)} ${Build.MODEL.take(64)}")
         appendLine("motion_enabled=${KeyboardMotionSpec.enabled()} ios_profile=${KeyboardMotionSpec.isIos27(context)}")
         appendLine("density=${context.resources.displayMetrics.density} orientation=${context.resources.configuration.orientation}")
+        if (BuildConfig.COMPATIBILITY_EDITION) appendLine(runCatching { CompatibilityDiagnostics.report(context) }.getOrElse { "detailed_health_unavailable=${it.javaClass.simpleName}" })
         appendLine("Draw gaps are app traversal intervals, NOT physical display FPS.")
         appendLine("Fields: shown/alpha_percent@left,top,width,height; hideS/hideD=native key suppression.")
         appendLine("--- latest voice timing (RAM only; -1 = unavailable) ---")

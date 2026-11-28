@@ -28,6 +28,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -123,26 +128,35 @@ fun GestureLibrarySetupGuide() {
     
     var tempFilePath: String? by rememberSaveable { mutableStateOf(null) }
     
+    val importScope = rememberCoroutineScope()
     fun renameToLibFileAndRestart(file: File, checksum: String) {
+        importScope.launch {
         try {
-            installGestureLibrary(context, file, checksum)
+            withContext(Dispatchers.IO) { installGestureLibrary(context, file, checksum) }
             Runtime.getRuntime().exit(0)
-        } catch (_: Exception) {
+        } catch (cancelled: CancellationException) { file.delete(); throw cancelled }
+        catch (_: Exception) {
             file.delete()
             Toast.makeText(context, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
         }
+        }
     }
     val launcher = filePicker { uri ->
+        importScope.launch {
         try {
-            val staged = stageGestureLibrary(context, uri)
-            val checksum = ChecksumCalculator.checksum(staged).orEmpty()
+            val (staged, checksum) = withContext(Dispatchers.IO) {
+                val file = stageGestureLibrary(context, uri)
+                file to ChecksumCalculator.checksum(file).orEmpty()
+            }
             if (checksum == JniUtils.expectedDefaultChecksum()) {
                 renameToLibFileAndRestart(staged, checksum)
             } else {
                 tempFilePath = staged.absolutePath
             }
-        } catch (_: Exception) {
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) {
             Toast.makeText(context, R.string.gesture_import_failed, Toast.LENGTH_LONG).show()
+        }
         }
     }
 

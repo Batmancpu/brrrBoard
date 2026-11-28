@@ -953,6 +953,7 @@ public class LatinIME extends InputMethodService implements
 
         final IntentFilter powerSaveFilter = new IntentFilter();
         powerSaveFilter.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);
+        if (BuildConfig.COMPATIBILITY_EDITION) powerSaveFilter.addAction(Intent.ACTION_BATTERY_CHANGED);
         ContextCompat.registerReceiver(this, mPowerSaveModeChangeReceiver, powerSaveFilter,
                 ContextCompat.RECEIVER_NOT_EXPORTED);
 
@@ -1226,6 +1227,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onDestroy() {
+        stopCrossWindowBlurListener();
         cancelBackspacePresentation();
         mEditorSessionGeneration.invalidate();
         BrContextLmExperiment.clearContextCache();
@@ -1796,6 +1798,8 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onWindowShown() {
         super.onWindowShown();
+        FrostedGlassHelper.onVisibleWindow(this);
+        startCrossWindowBlurListener();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);
         if (isInputViewShown()) {
             setNavigationBarColor();
@@ -1806,6 +1810,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        stopCrossWindowBlurListener();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();
@@ -3297,10 +3302,43 @@ public class LatinIME extends InputMethodService implements
         AudioAndHapticFeedbackManager.getInstance().onRingerModeChanged(dnd);
     }
 
+    private android.view.WindowManager mBlurCapabilityManager;
+    private java.util.function.Consumer<Boolean> mBlurCapabilityListener;
+    private Boolean mLastBlurCapability;
+    private int mBlurListenerGeneration;
+    private void startCrossWindowBlurListener() {
+        if (!BuildConfig.COMPATIBILITY_EDITION || Build.VERSION.SDK_INT < 31 || mBlurCapabilityListener != null) return;
+        try {
+            mBlurCapabilityManager = getSystemService(android.view.WindowManager.class);
+            if (mBlurCapabilityManager == null) return;
+            mLastBlurCapability = mBlurCapabilityManager.isCrossWindowBlurEnabled();
+            final int generation = ++mBlurListenerGeneration;
+            mBlurCapabilityListener = enabled -> {
+                if (generation != mBlurListenerGeneration || java.util.Objects.equals(mLastBlurCapability, enabled)) return;
+                mLastBlurCapability = enabled;
+                if (!mIsDestroyed && mInputView != null && isInputViewShown())
+                    FrostedGlassHelper.configureFrostedGlass(this, mInputView, FrostedGlassHelper.isFrostedTheme(this));
+            };
+            mBlurCapabilityManager.addCrossWindowBlurEnabledListener(getMainExecutor(), mBlurCapabilityListener);
+        } catch (RuntimeException ignored) { stopCrossWindowBlurListener(); }
+    }
+    private void stopCrossWindowBlurListener() {
+        ++mBlurListenerGeneration;
+        if (Build.VERSION.SDK_INT >= 31 && mBlurCapabilityManager != null && mBlurCapabilityListener != null) {
+            try { mBlurCapabilityManager.removeCrossWindowBlurEnabledListener(mBlurCapabilityListener); }
+            catch (RuntimeException ignored) { }
+        }
+        mBlurCapabilityListener = null;
+        mBlurCapabilityManager = null;
+        mLastBlurCapability = null;
+    }
+
     private final BroadcastReceiver mPowerSaveModeChangeReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(final Context context, final Intent intent) {
-            if (!PowerManager.ACTION_POWER_SAVE_MODE_CHANGED.equals(intent.getAction())) {
+            if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
+                if (!BuildConfig.COMPATIBILITY_EDITION || !VisualPowerPolicy.updateBattery(intent)) return;
+            } else if (!PowerManager.ACTION_POWER_SAVE_MODE_CHANGED.equals(intent.getAction())) {
                 return;
             }
             if (mInputView == null || !isInputViewShown()) {

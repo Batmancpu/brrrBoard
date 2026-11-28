@@ -80,8 +80,14 @@ object EmojiPanelKeyMorph {
         captureNative(root,view,emptySet())
 
     private fun captureNative(root: ViewGroup?, view: MainKeyboardView?, skipCodes: Set<Int>): Snapshot? {
-        if (root == null || view == null || !view.isShown || !supported(view) ||
-            !KeyboardMotionSpec.decorativeMotion(root.context)) return null
+        if (root == null || view == null || !view.isShown || !supported(view)) {
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_SOURCE_UNAVAILABLE)
+            return null
+        }
+        if (!KeyboardMotionSpec.decorativeMotion(root.context)) {
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_POLICY_DISABLED)
+            return null
+        }
         val origin = IntArray(2)
         root.getLocationOnScreen(origin)
         val keys = listOf(Constants.CODE_ENTER, KeyCode.SHIFT_ENTER, KeyCode.EMOJI_SEARCH, KeyCode.DELETE, Constants.CODE_SPACE).mapNotNull { code ->
@@ -92,6 +98,7 @@ object EmojiPanelKeyMorph {
             val artwork = view.renderEmojiMorphKey(code) ?: return@mapNotNull null
             KeyImage(code,RectF(bounds),artwork)
         }
+        if (keys.isEmpty()) TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_SOURCE_UNAVAILABLE)
         return if (keys.isEmpty()) null else Snapshot(keys)
     }
 
@@ -155,7 +162,10 @@ object EmojiPanelKeyMorph {
                               geometryRetargets: Int) {
         cancel()
         if (destination == null || !root.isAttachedToWindow || !supported(destination) ||
-            !KeyboardMotionSpec.decorativeMotion(root.context)) return
+            !KeyboardMotionSpec.decorativeMotion(root.context)) {
+            TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_START_REJECTED)
+            return
+        }
         val cold = !destination.isLaidOut || destination.width <= 0 || destination.height <= 0
         val session = Session(root,destination,source,geometryRetargets)
         current = session
@@ -197,7 +207,7 @@ object EmojiPanelKeyMorph {
                     val to = target.keys.first { it.code == b }
                     if (a == b && from.bounds == to.bounds && !from.composite) null else Track(from,to)
                 }
-                if (tracks.isEmpty()) { cancel(); return true }
+                if (tracks.isEmpty()) { TransitionDiagnostics.event(TransitionDiagnostics.Event.MORPH_NO_TRACKS); cancel(); return true }
                 val drawable = MovingKeys(tracks, KeyboardMotionSpec.easing(root.context))
                 drawable.setBounds(0,0,root.width,root.height)
                 session.overlay = drawable

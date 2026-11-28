@@ -26,6 +26,14 @@ import helium314.keyboard.settings.Setting
 import helium314.keyboard.settings.dialogs.ConfirmationDialog
 import helium314.keyboard.settings.dialogs.InfoDialog
 import java.io.File
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import android.system.Os
+import java.io.IOException
 
 private fun isEmojiFontFile(file: File): Boolean {
     return runCatching {
@@ -51,81 +59,97 @@ private fun isEmojiFontFile(file: File): Boolean {
 @Composable
 fun CustomFontPreference(setting: Setting, fontFile: File, title: Int) {
     val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     var showDialog by rememberSaveable { mutableStateOf(false) }
     var showErrorDialog by rememberSaveable { mutableStateOf(false) }
-    var showWarningDialog by rememberSaveable { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
-        val uri = it.data?.data ?: return@rememberLauncherForActivityResult
-        val tempFile = File(DeviceProtectedUtils.getFilesDir(ctx), "temp_file")
-        FileUtils.copyContentUriToNewFile(uri, ctx, tempFile)
-        try {
-            Typeface.createFromFile(tempFile)
-            val isCustomFont = fontFile.name == "custom_font"
-            val isCustomEmojiFont = fontFile.name == "custom_emoji_font"
-            val isEmoji = isEmojiFontFile(tempFile)
-            if ((isCustomFont && isEmoji) || (isCustomEmojiFont && !isEmoji)) {
-                showWarningDialog = true
-            } else {
-                fontFile.delete()
-                tempFile.renameTo(fontFile)
-                KeyboardTypeface.clearCache()
-                SupportedEmojis.load(ctx)
-                KeyboardSwitcher.getInstance().reloadKeyboard()
-            }
-        } catch (_: Exception) {
-            showErrorDialog = true
-            tempFile.delete()
+    var warningPath: String? by rememberSaveable { mutableStateOf(null) }
+    var busy by remember { mutableStateOf(false) }
+    fun refresh() {
+        KeyboardTypeface.clearCache()
+        SupportedEmojis.load(ctx)
+        KeyboardSwitcher.getInstance().reloadKeyboard()
+    }
+    fun install(staged: File) {
+        scope.launch {
+            busy = true
+            try {
+                withContext(Dispatchers.IO) { Os.rename(staged.absolutePath, fontFile.absolutePath) }
+                refresh()
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { showErrorDialog = true }
+            finally { staged.delete(); busy = false }
         }
     }
-    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-        .addCategory(Intent.CATEGORY_OPENABLE)
-        .setType("*/*")
-    Preference(
-        name = setting.title,
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode != Activity.RESULT_OK || busy) return@rememberLauncherForActivityResult
+        val uri = it.data?.data ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            busy = true
+            var staged: File? = null
+            var retained = false
+            try {
+                val parent = fontFile.parentFile ?: throw IOException("Font storage unavailable")
+                val temp = File.createTempFile("font-import-", ".tmp", parent)
+                staged = temp
+                val emoji = withContext(Dispatchers.IO) {
+                    val stream = ctx.contentResolver.openInputStream(uri) ?: throw IOException("Empty font")
+                    stream.use { input -> temp.outputStream().use { output ->
+                        val buffer = ByteArray(8192)
+                        var total = 0L
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            total += count
+                            if (total > 128L * 1024 * 1024) throw IOException("Font too large")
+                            output.write(buffer, 0, count)
+                        }
+                        if (total == 0L) throw IOException("Empty font")
+                        output.fd.sync()
+                    } }
+                    Typeface.createFromFile(temp)
+                    isEmojiFontFile(temp)
+                }
+                val mismatch = (fontFile.name == "custom_font" && emoji) || (fontFile.name == "custom_emoji_font" && !emoji)
+                if (mismatch) {
+                    warningPath = temp.absolutePath
+                    retained = true
+                } else {
+                    withContext(Dispatchers.IO) { Os.rename(temp.absolutePath, fontFile.absolutePath) }
+                    refresh()
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { showErrorDialog = true }
+            finally { if (!retained) staged?.delete(); busy = false }
+        }
+    }
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+    Preference(name = setting.title,
+        description = if (busy) "Validating file…" else if (fontFile.isFile) "Installed · replace or remove" else "Not installed · import",
         onClick = {
-            if (fontFile.exists())
-                showDialog = true
-            else launcher.launch(intent)
-        },
-    )
+            if (!busy && warningPath == null) {
+                if (fontFile.exists()) showDialog = true else launcher.launch(intent)
+            }
+        })
     if (showDialog)
         ConfirmationDialog(
             onDismissRequest = { showDialog = false },
-            onConfirmed = { launcher.launch(intent) },
+            onConfirmed = { showDialog = false; launcher.launch(intent) },
             onNeutral = {
                 showDialog = false
-                fontFile.delete()
-                KeyboardTypeface.clearCache()
-                SupportedEmojis.load(ctx)
-                KeyboardSwitcher.getInstance().reloadKeyboard()
+                if (!fontFile.exists() || fontFile.delete()) refresh() else showErrorDialog = true
             },
             neutralButtonText = stringResource(R.string.delete),
             confirmButtonText = stringResource(R.string.load),
             title = { Text(stringResource(title)) }
         )
-    if (showErrorDialog)
-        InfoDialog(stringResource(R.string.file_read_error)) { showErrorDialog = false }
-    if (showWarningDialog) {
-        val tempFile = File(DeviceProtectedUtils.getFilesDir(ctx), "temp_file")
-        val warningStringRes = if (fontFile.name == "custom_emoji_font") {
-            R.string.custom_emoji_font_safeguard_warning
-        } else {
-            R.string.custom_font_safeguard_warning
-        }
+    if (showErrorDialog) InfoDialog(stringResource(R.string.file_read_error)) { showErrorDialog = false }
+    warningPath?.let { path ->
+        val temp = File(path)
+        val warningStringRes = if (fontFile.name == "custom_emoji_font") R.string.custom_emoji_font_safeguard_warning
+            else R.string.custom_font_safeguard_warning
         ConfirmationDialog(
-            onDismissRequest = {
-                showWarningDialog = false
-                tempFile.delete()
-            },
-            onConfirmed = {
-                showWarningDialog = false
-                fontFile.delete()
-                tempFile.renameTo(fontFile)
-                KeyboardTypeface.clearCache()
-                SupportedEmojis.load(ctx)
-                KeyboardSwitcher.getInstance().reloadKeyboard()
-            },
+            onDismissRequest = { warningPath = null; temp.delete() },
+            onConfirmed = { warningPath = null; install(temp) },
             title = { Text(stringResource(title)) },
             content = { Text(stringResource(warningStringRes)) }
         )

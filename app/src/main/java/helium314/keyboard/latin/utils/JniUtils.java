@@ -23,6 +23,7 @@ public final class JniUtils {
     public static final String JNI_LIB_NAME = "jni_latinime";
     public static final String JNI_LIB_NAME_GOOGLE = "jni_latinimegoogle";
     public static final String JNI_LIB_IMPORT_FILE_NAME = "libjni_latinime.so";
+    public static final String PREVIOUS_LIBRARY_CHECKSUM = "gesture_previous_checksum";
     private static final String CHECKSUM_ARM64 = "b1049983e6ac5cfc6d1c66e38959751044fad213dff0637a6cf1d2a2703e754f";
     private static final String CHECKSUM_ARM32 = "442a2a8bfcb25489564bc9433a916fa4dc0dba9000fe6f6f03f5939b985091e6";
     private static final String CHECKSUM_X86_64 = "c882e12e6d48dd946e0b644c66868a720bd11ac3fecf152000e21a3d5abd59c9";
@@ -58,7 +59,7 @@ public final class JniUtils {
         File userSuppliedLibrary;
         try {
             userSuppliedLibrary = new File(filesDir + File.separator + JNI_LIB_IMPORT_FILE_NAME);
-            if (!userSuppliedLibrary.isFile())
+            if (!userSuppliedLibrary.isFile() && !new File(userSuppliedLibrary.getAbsolutePath() + ".previous").isFile())
                 userSuppliedLibrary = null;
         } catch (Exception e) {
             userSuppliedLibrary = null;
@@ -72,16 +73,36 @@ public final class JniUtils {
                     // if device is locked, this will throw an IllegalStateException
                     wantedChecksum = KtxKt.protectedPrefs(app).getString(Settings.PREF_LIBRARY_CHECKSUM, expectedDefaultChecksum());
                 }
-                final String checksum = ChecksumCalculator.INSTANCE.checksum(userSuppliedLibrary);
-                if (TextUtils.equals(wantedChecksum, checksum)) {
+                final File previous = new File(userSuppliedLibrary.getAbsolutePath() + ".previous");
+                String checksum = userSuppliedLibrary.isFile() ? ChecksumCalculator.INSTANCE.checksum(userSuppliedLibrary) : null;
+                if (!TextUtils.equals(wantedChecksum, checksum) && previous.isFile()
+                        && TextUtils.equals(wantedChecksum, ChecksumCalculator.INSTANCE.checksum(previous))) {
+                    android.system.Os.rename(previous.getAbsolutePath(), userSuppliedLibrary.getAbsolutePath());
+                    checksum = ChecksumCalculator.INSTANCE.checksum(userSuppliedLibrary);
+                }
+                if (wantedChecksum != null && !wantedChecksum.isEmpty() && TextUtils.equals(wantedChecksum, checksum)) {
                     // try loading the library
-                    System.load(userSuppliedLibrary.getAbsolutePath());
-                    sHaveGestureLib = true; // this is an assumption, any way to actually check?
+                    try {
+                        System.load(userSuppliedLibrary.getAbsolutePath());
+                        sHaveGestureLib = true;
+                        if (previous.isFile()) previous.delete();
+                        if (app != null) KtxKt.protectedPrefs(app).edit().remove(PREVIOUS_LIBRARY_CHECKSUM).apply();
+                    } catch (UnsatisfiedLinkError badLibrary) {
+                        final String oldChecksum = app == null ? null :
+                                KtxKt.protectedPrefs(app).getString(PREVIOUS_LIBRARY_CHECKSUM, null);
+                        if (oldChecksum != null && previous.isFile()
+                                && TextUtils.equals(oldChecksum, ChecksumCalculator.INSTANCE.checksum(previous))) {
+                            android.system.Os.rename(previous.getAbsolutePath(), userSuppliedLibrary.getAbsolutePath());
+                            if (KtxKt.protectedPrefs(app).edit().putString(Settings.PREF_LIBRARY_CHECKSUM, oldChecksum)
+                                    .remove(PREVIOUS_LIBRARY_CHECKSUM).commit()) {
+                                System.load(userSuppliedLibrary.getAbsolutePath());
+                                sHaveGestureLib = true;
+                            }
+                        } else throw badLibrary;
+                    }
                 } else {
-                    // delete if checksum doesn't match
-                    // this is bad if we can't get the application and the user has a different library than expected...
-                    //noinspection ResultOfMethodCallIgnored
-                    userSuppliedLibrary.delete();
+                    // Never load unverified code or erase a library because protected preferences
+                    // are unavailable or a transaction was interrupted.
                     sHaveGestureLib = false;
                 }
             } catch (Throwable t) { // catch everything, maybe provided library simply doesn't work
