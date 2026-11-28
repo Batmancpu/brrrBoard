@@ -160,6 +160,7 @@ public final class Settings implements SharedPreferences.OnSharedPreferenceChang
     public static final String PREF_SHIFT_REMOVES_AUTOSPACE = "shift_removes_autospace";
     public static final String PREF_ALWAYS_INCOGNITO_MODE = "always_incognito_mode";
     public static final String PREF_SECURE_APPS = "brr_secure_apps";
+    public static final String PREF_OFFLINE_CONTEXT = "offline_context_predictions";
     public static final String PREF_BIGRAM_PREDICTIONS = "next_word_prediction";
     public static final String PREF_SUGGEST_PUNCTUATION = "suggest_punctuation";
     public static final String PREF_PUNCTUATION_SUGGESTIONS = "punctuation_suggestions";

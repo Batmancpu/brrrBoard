@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import helium314.keyboard.latin.brain.SwipeCorrectionLearner
+import helium314.keyboard.latin.brain.BrOfflineContext
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.brain.BrContextLmExperiment
 import helium314.keyboard.keyboard.emoji.BrrSmartEmojiEngine
@@ -139,6 +140,8 @@ fun BrainDashboardScreen(
     val emoji = remember(refresh) { readEmojiUsage(context) }
     val activity = remember(refresh) { BrainPerformanceMetrics.activity() }
     val typingSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.TYPING) }
+    val offlineContext = remember(refresh) { BrOfflineContext.status() }
+    val offlineSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.OFFLINE_CONTEXT) }
     val wordSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.NEXT_WORD) }
     val swipeSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SWIPE) }
     val emojiSpeed = remember(refresh) { BrainPerformanceMetrics.snapshot(BrainPerformanceMetrics.Stage.SMART_EMOJI) }
@@ -253,7 +256,7 @@ fun BrainDashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("What powers your suggestions", fontWeight = FontWeight.SemiBold,
                         color = palette.onTertiaryContainer)
-                    Text("Typing and next word: existing offline dictionaries and native word history. Swipe: native gesture candidates, n-gram reranking and the existing confirmed-correction learner. Emoji: reviewed phrase cues, Recents and encrypted local associations. An experimental ContextLM can be enabled below for manual-suggestion testing.",
+                    Text("Typing and next word use the native dictionaries, native word history and the optional offline context model. Completed swipe can reorder manual alternatives. The separate neural experiment is available below.",
                         color = palette.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
                     Text("How BR Brain learns: deliberate word/swipe corrections and Emoji selections in eligible fields. It never uses protected fields, clipboard or voice transcripts as training input.",
                         color = palette.onTertiaryContainer, style = MaterialTheme.typography.bodySmall)
@@ -268,6 +271,10 @@ fun BrainDashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(offlineContext,
+                                style = MaterialTheme.typography.bodySmall)
+                            Text("Context p50 ${"%.2f".format(offlineSpeed.p50Ms)} ms · p95 ${"%.2f".format(offlineSpeed.p95Ms)} ms",
+                                style = MaterialTheme.typography.bodySmall)
                             Text("ContextLM test", fontWeight = FontWeight.SemiBold,
                                 color = palette.onSurface)
                             Text("Experimental on-device candidate ranking",

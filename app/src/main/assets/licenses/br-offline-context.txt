@@ -1,0 +1,16 @@
+brrBoard production offline context data, version brr-context-1
+
+English n-gram observations derive from the Tatoeba CC0 sentence export.
+https://tatoeba.org/en/downloads
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Roman Hindi and mixed n-gram observations derive from the following datasets
+curated by the Lingo Research Group at IIT Gandhinagar. CC BY 4.0 applies.
+https://creativecommons.org/licenses/by/4.0/
+PHINC: https://huggingface.co/datasets/LingoIITGN/PHINC/tree/44b5471df75e508b9d6fcdbcc93df04bb1e84056
+COMI-LINGUA: https://huggingface.co/datasets/LingoIITGN/COMI-LINGUA/tree/0214cb358e59e36da60e01d3d59ddd24df897749
+HinGE: https://huggingface.co/datasets/LingoIITGN/HinGE/tree/e25a10382d9adb77f3a4f03b721fbd0a43c0de4c
+
+The distributed model contains filtered, aggregated and quantized short
+n-grams and authored usage examples. Public input revisions and digests,
+data transformations and replay are available in tools/dictionary/.

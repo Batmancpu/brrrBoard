@@ -83,6 +83,7 @@ fun TextCorrectionScreen(
         if (suggestionsEnabled || autocorrectEnabled) Settings.PREF_INLINE_EMOJI_SEARCH else null,
         Settings.PREF_KEY_USE_PERSONALIZED_DICTS,
         Settings.PREF_BIGRAM_PREDICTIONS,
+        Settings.PREF_OFFLINE_CONTEXT,
         Settings.PREF_SUGGEST_PUNCTUATION,
         if (prefs.getBoolean(Settings.PREF_SUGGEST_PUNCTUATION, Defaults.PREF_SUGGEST_PUNCTUATION))
             Settings.PREF_PUNCTUATION_SUGGESTIONS else null,
@@ -256,6 +257,11 @@ fun createCorrectionSettings(context: Context) = listOf(
             )
         }
 
+    },
+    Setting(context, Settings.PREF_OFFLINE_CONTEXT,
+        R.string.brr_offline_context, R.string.brr_offline_context_summary
+    ) {
+        SwitchPreference(it, Defaults.PREF_OFFLINE_CONTEXT)
     },
     Setting(context, Settings.PREF_BIGRAM_PREDICTIONS,
         R.string.bigram_prediction, R.string.bigram_prediction_summary

@@ -230,6 +230,7 @@ jobs:
           bash tools/verify-brrclean-packaging.sh "$apk"
           bash tools/verify-voice-endpoints-packaging.sh "$apk"
           python3 tools/verify_clean_dictionary_assets.py "$apk"
+          python3 tools/dictionary/verify_context.py --apk "$apk"
           badging="$("$sdk_tools/aapt" dump badging "$apk")"
           grep -Fx "application-label:'brrBoard'" <<< "$badging"
           package="${badging%%$'\n'*}"

@@ -730,6 +730,10 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
                 if (!composedData.mIsBatchMode && !info.isEmoji
                     && word.splitOnWhitespace().any { BrrPersonalDictionary.isNoSuggestionWord(it) })
                     continue
+                if (!composedData.mIsBatchMode && dictType == Dictionary.TYPE_BRR_PERSONAL
+                    && BrrPersonalDictionary.requiresPrefix(word)
+                    && (composedData.mTypedWord.length < 2 ||
+                        !word.startsWith(composedData.mTypedWord, ignoreCase = true))) continue
                 if (checkForGarbage
                     // consider the user might use custom main dictionary containing shortcuts
                     //  assume this is unlikely to happen, and take care about common shortcuts that are not actual words (emoji, symbols)
@@ -776,6 +780,25 @@ class DictionaryFacilitatorImpl : DictionaryFacilitator {
 
     private fun isBlacklisted(word: String, groups: List<DictionaryGroup> = dictionaryGroups): Boolean =
         groups.any { it.isBlacklisted(word) }
+
+    override fun allowsContextPrediction(word: String): Boolean {
+        val lock = dictionaryLifecycleLock.readLock()
+        if (!lock.tryLock()) return false
+        return try {
+            val normalized = word.lowercase(Locale.ROOT)
+            !isBlacklisted(word) && !isBlacklisted(normalized) &&
+                !BrrPersonalDictionary.isNoSuggestionWord(word) &&
+                dictionaryGroups.any { group ->
+                    listOf(Dictionary.TYPE_MAIN, Dictionary.TYPE_BRR_PERSONAL).any { type ->
+                        val dictionary = group.getDict(type)
+                        dictionary?.isValidWord(word) == true ||
+                            (normalized != word && dictionary?.isValidWord(normalized) == true)
+                    }
+                }
+        } finally {
+            lock.unlock()
+        }
+    }
 
     override fun removeWord(word: String) = withDictionaryWriteLock {
         for (dictionaryGroup in dictionaryGroups) {

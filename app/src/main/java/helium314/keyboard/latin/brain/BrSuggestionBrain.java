@@ -97,6 +97,17 @@ public final class BrSuggestionBrain {
         return BrrSmartEmojiEngine.picksFromSnapshot(candidates, maxPicks);
     }
 
+    /** Use the current editor receipt and the stricter existing protected-text policy. */
+    public static boolean isOfflineTextEligible(@Nullable final LatinIME ime,
+            @Nullable final SettingsValues values, final long editorGeneration) {
+        return ime != null && values != null && editorGeneration >= 0
+                && ime.editorGeneration() == editorGeneration && Settings.getValues() == values
+                && values.mInputAttributes.mShouldShowSuggestions
+                && !values.isApplicationSpecifiedCompletionsOn()
+                && isEligible(ime, ime.getCurrentInputEditorInfo(), values)
+                && ime.mayUseTransientCorrectionMemory(values);
+    }
+
     /** The native user-history dictionary already participated before this call. */
     @NonNull public static List<SuggestedWordInfo> rerankManualSuggestions(
             @NonNull final LatinIME ime, @Nullable final EditorInfo editor,

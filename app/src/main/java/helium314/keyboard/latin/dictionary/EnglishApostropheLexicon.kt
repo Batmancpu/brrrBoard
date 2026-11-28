@@ -25,6 +25,9 @@ internal object EnglishApostropheLexicon {
         "youll", "theyll", "neednt", "mustnt", "mightnt", "oughtnt", "shant"
     )
 
+    @Volatile private var reviewedEntries: List<Entry>? = null
+    @Volatile private var reviewedAliases = emptyMap<String, String>()
+
     private val ambiguousAliases = setOf(
         "cant", "wont", "were", "well", "ill", "its", "lets", "hell", "shell",
         "shed", "wed", "id", "im", "ive", "hes", "shes", "whos", "thats", "whats",
@@ -32,7 +35,26 @@ internal object EnglishApostropheLexicon {
         "theyd", "youd", "hed", "itd"
     )
 
-    /** Only guard a new supplement-sourced candidate; native main decisions stay unchanged. */
+    // Deliberate initial automatic set. All other omissions may remain manual alternatives.
+    private val safeAutomatic = setOf("dont", "doesnt", "didnt", "youre", "shouldnt")
+
+    fun canonicalAlias(typed: String): String? {
+        if (typed.length !in 2..24 || typed.any { it !in 'a'..'z' && it !in 'A'..'Z' }) return null
+        val target = reviewedAliases[typed.lowercase(Locale.ROOT)] ?: return null
+        return if (typed[0].isUpperCase()) target.replaceFirstChar { it.uppercaseChar() } else target
+    }
+
+    @JvmStatic
+    fun isReviewedSafeAutomatic(typed: String, candidate: String?): Boolean =
+        typed.lowercase(Locale.ROOT) in safeAutomatic &&
+            canonicalAlias(typed)?.equals(candidate?.replace('’', '\''), ignoreCase = true) == true
+
+    @JvmStatic
+    fun altersTypedApostropheSurface(typed: String, candidate: String?): Boolean =
+        candidate != null && typed != candidate && ('’' in typed || '’' in candidate) &&
+            typed.replace('’', '\'') == candidate.replace('’', '\'')
+
+    /** Apply the reviewed omission protection regardless of decoder source. */
     @JvmStatic
     fun isAmbiguousOmission(typed: String, candidate: String?): Boolean {
         val lower = typed.lowercase(Locale.ROOT)
@@ -79,6 +101,28 @@ internal object EnglishApostropheLexicon {
         return Audit(missing, aliases)
     }
 
+    fun warmReview(context: Context) {
+        try {
+            loadReview(context)
+        } catch (_: Exception) {
+            Log.w("EnglishApostropheLexicon", "Bundled contraction review unavailable")
+        }
+    }
+
+    private fun loadReview(context: Context): List<Entry> {
+        reviewedEntries?.let { return it }
+        return synchronized(this) {
+            reviewedEntries?.let { return@synchronized it }
+            val entries = context.assets.open(ASSET).bufferedReader(Charsets.UTF_8).use {
+                parse(it.lineSequence())
+            }
+            reviewedAliases = entries.groupBy { it.word.replace("'", "").lowercase(Locale.ROOT) }
+                .filterValues { it.size == 1 }.mapValues { it.value.single().word }
+            reviewedEntries = entries
+            entries
+        }
+    }
+
     /**
      * Called once on the existing static dictionary cache-build worker, never per keystroke.
      * Copy only a public bundled dictionary to a private temporary file, open read-only with
@@ -90,9 +134,7 @@ internal object EnglishApostropheLexicon {
         val empty = Audit(emptyList(), emptySet())
         if (locale.language != "en") return empty
         return try {
-            val entries = context.assets.open(ASSET).bufferedReader(Charsets.UTF_8).use {
-                parse(it.lineSequence())
-            }
+            val entries = loadReview(context)
             val names = DictionaryInfoUtils.getAssetsDictionaryList(context).orEmpty()
                 .filter { it.startsWith("main_en") && it.endsWith(".dict") }
             val name = LocaleUtils.getBestMatch(locale, names) {

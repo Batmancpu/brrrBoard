@@ -297,6 +297,7 @@ public class SuggestedWords {
         // in java for re-correction)
         public static final int KIND_RESUMED = 9;
         public static final int KIND_OOV_CORRECTION = 10; // Most probable string correction
+        public static final int KIND_OFFLINE_ALIAS = 12; // reviewed omission; revalidated on commit
         public static final int KIND_SESSION_RECALL = 11; // Expiring editor-local recall, manual only
 
         public static final int KIND_FLAG_POSSIBLY_OFFENSIVE = 0x80000000;

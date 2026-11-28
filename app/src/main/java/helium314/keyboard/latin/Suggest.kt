@@ -15,6 +15,7 @@ import helium314.keyboard.keyboard.internal.keyboard_parser.getEmojiDefaultVersi
 import helium314.keyboard.latin.SuggestedWords.SuggestedWordInfo
 import helium314.keyboard.latin.brain.BrainPerformanceMetrics
 import helium314.keyboard.latin.brain.BrSuggestionBrain
+import helium314.keyboard.latin.brain.BrOfflineContext
 import helium314.keyboard.latin.common.ComposedData
 import helium314.keyboard.latin.common.Constants
 import helium314.keyboard.latin.common.InputPointers
@@ -24,12 +25,14 @@ import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_AUTO_CORR
 import helium314.keyboard.latin.define.DecoderSpecificConstants.SHOULD_REMOVE_PREVIOUSLY_REJECTED_SUGGESTION
 import helium314.keyboard.latin.dictionary.BrrPersonalDictionary
 import helium314.keyboard.latin.dictionary.Dictionary
+import helium314.keyboard.latin.dictionary.EnglishApostropheLexicon
 import helium314.keyboard.latin.settings.Settings
 import helium314.keyboard.latin.settings.SettingsValuesForSuggestion
 import helium314.keyboard.latin.suggestions.SuggestionStripView
 import helium314.keyboard.latin.utils.AutoCorrectionUtils
 import helium314.keyboard.latin.utils.Log
 import helium314.keyboard.latin.utils.SuggestionResults
+import java.util.Collections
 import java.util.Locale
 import java.util.function.LongSupplier
 import kotlin.math.min
@@ -42,7 +45,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     private var mAutoCorrectionThreshold = 0f
     private val mPlausibilityThreshold = 0f
     private val nextWordSuggestionsCache =
-        EpochLruCache<NextWordCacheKey, SuggestionResults>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
+        EpochLruCache<NextWordCacheKey, NativePredictionSnapshot>(MAX_NEXT_WORD_SUGGESTIONS_CACHE_SIZE)
 
     // cache cleared whenever LatinIME.loadSettings is called, notably on changing layout and switching input fields
     fun clearNextWordSuggestionsCache() = nextWordSuggestionsCache.clear()
@@ -65,12 +68,12 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                           settingsValuesForSuggestion: SettingsValuesForSuggestion, isCorrectionEnabled: Boolean,
                           inputStyle: Int, sequenceNumber: Int): SuggestedWords =
         getSuggestedWords(wordComposer, ngramContext, keyboard, settingsValuesForSuggestion,
-            isCorrectionEnabled, inputStyle, sequenceNumber, -1L, null)
+            isCorrectionEnabled, inputStyle, sequenceNumber, -1L, null, false)
 
     fun getSuggestedWords(wordComposer: WordComposer, ngramContext: NgramContext, keyboard: Keyboard,
                           settingsValuesForSuggestion: SettingsValuesForSuggestion, isCorrectionEnabled: Boolean,
                           inputStyle: Int, sequenceNumber: Int, requestSerial: Long,
-                          requestSerialSupplier: LongSupplier?): SuggestedWords {
+                          requestSerialSupplier: LongSupplier?, forCommit: Boolean): SuggestedWords {
         // Only content-free timing/counts, and never while an incognito/protected editor is active.
         // The timing covers this entire local candidate generation call, not display latency.
         val values = Settings.getValues()
@@ -89,11 +92,11 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             val result = if (wordComposer.isBatchMode) {
                 getSuggestedWordsForBatchInput(wordComposer, ngramContext, keyboard,
                     settingsValuesForSuggestion, inputStyle, sequenceNumber,
-                    requestedEditorGeneration, cacheEpoch)
+                    requestedEditorGeneration, cacheEpoch, requestSerial, requestSerialSupplier)
             } else {
                 getSuggestedWordsForNonBatchInput(wordComposer, ngramContext, keyboard,
                     settingsValuesForSuggestion, inputStyle, isCorrectionEnabled, sequenceNumber,
-                    requestedEditorGeneration, cacheEpoch, requestSerial, requestSerialSupplier)
+                    requestedEditorGeneration, cacheEpoch, requestSerial, requestSerialSupplier, forCommit)
             }
             if (measurable) BrainPerformanceMetrics.recordSuggestionBatch(result.size())
             return result
@@ -108,15 +111,30 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                       settingsValuesForSuggestion: SettingsValuesForSuggestion, inputStyleIfNotPrediction: Int,
                       isCorrectionEnabled: Boolean, sequenceNumber: Int,
                       requestedEditorGeneration: Long, cacheEpoch: Long,
-                      requestSerial: Long, requestSerialSupplier: LongSupplier?): SuggestedWords {
+                      requestSerial: Long, requestSerialSupplier: LongSupplier?, forCommit: Boolean): SuggestedWords {
         val typedWordString = wordComposer.typedWord
         val resultsArePredictions = !wordComposer.isComposingWord
-        val suggestionResults = if (typedWordString.isEmpty())
-                getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion, requestedEditorGeneration, cacheEpoch)
-            else mDictionaryFacilitator.getSuggestionResults(wordComposer.composedDataSnapshot, ngramContext, keyboard,
+        val predictions = if (typedWordString.isEmpty())
+            getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion,
+                requestedEditorGeneration, cacheEpoch)
+            else null
+        val suggestionResults = if (predictions == null)
+            mDictionaryFacilitator.getSuggestionResults(wordComposer.composedDataSnapshot, ngramContext, keyboard,
                 settingsValuesForSuggestion, SESSION_ID_TYPING, inputStyleIfNotPrediction)
+            else null
+        val isBeginningOfSentence = predictions?.beginningOfSentence
+            ?: suggestionResults?.mIsBeginningOfSentence ?: false
+        val currentSettings = Settings.getValues()
+        val ime = LatinIME.getInstance()
+        val editor = ime?.currentInputEditorInfo
+        val locale = mDictionaryFacilitator.mainLocale
+        val supportedContextLocale = locale.language == "en" || locale.language == "hi" && locale.script == "Latn"
+        val eligible = supportedContextLocale && requestSerialSupplier != null &&
+            requestSerialSupplier.asLong == requestSerial &&
+            BrSuggestionBrain.isOfflineTextEligible(ime, currentSettings, requestedEditorGeneration)
         val trailingSingleQuotesCount = StringUtils.getTrailingSingleQuotesCount(typedWordString)
-        val suggestionsContainer = getTransformedSuggestedWordInfoList(wordComposer, suggestionResults,
+        val suggestionsContainer = getTransformedSuggestedWordInfoList(wordComposer,
+            predictions?.words ?: suggestionResults.orEmpty(),
             trailingSingleQuotesCount, mDictionaryFacilitator.mainLocale, keyboard)
         val keyboardShiftMode = keyboard.mId.keyboardCapsMode
         val capitalizedTypedWord = capitalize(typedWordString, keyboardShiftMode == WordComposer.CAPS_MODE_MANUAL_SHIFT_LOCKED,
@@ -132,19 +150,21 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val typedWordFirstOccurrenceWordInfo = if (noSuggestionTypedWord) null else
             suggestionsContainer.firstOrNull { it.mWord == capitalizedTypedWord }
         val firstOccurrenceOfTypedWordInSuggestions = SuggestedWordInfo.removeDupsAndTypedWord(capitalizedTypedWord, suggestionsContainer)
+        if (eligible) removeEquivalentApostrophes(capitalizedTypedWord, suggestionsContainer)
         // Keep the decoder's best text candidate in the center, but allow relevant Emoji from
         // the following results to occupy the two side slots in the three-part strip.
         makeFirstSuggestionNonEmoji(suggestionsContainer)
 
-        val (decoderAllowsToBeAutoCorrected, decoderHasAutoCorrection) = shouldBeAutoCorrected(
+        val (decoderAllowsToBeAutoCorrected, decoderHasAutoCorrection) =
+            if (suggestionResults == null) false to false else shouldBeAutoCorrected(
             trailingSingleQuotesCount,
             capitalizedTypedWord,
             suggestionsContainer.firstOrNull(),
             {
                 val first = suggestionsContainer.firstOrNull() ?: suggestionResults.first()
                 val suggestions = getNextWordSuggestions(ngramContext, keyboard, inputStyleIfNotPrediction, settingsValuesForSuggestion, requestedEditorGeneration, cacheEpoch)
-                val suggestionForFirstInContainer = suggestions.firstOrNull { it.mWord == first.word }
-                val suggestionForTypedWord = suggestions.firstOrNull { it.mWord == capitalizedTypedWord }
+                val suggestionForFirstInContainer = suggestions.words.firstOrNull { it.mWord == first.word }
+                val suggestionForTypedWord = suggestions.words.firstOrNull { it.mWord == capitalizedTypedWord }
                 suggestionForFirstInContainer to suggestionForTypedWord
             },
             isCorrectionEnabled,
@@ -153,33 +173,67 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             firstOccurrenceOfTypedWordInSuggestions,
             typedWordFirstOccurrenceWordInfo
         )
-        // Valid-only brrPersonal words may be intentionally typed and remain
-        // visible as manual choices, but never silently replace another word.
-        // No frequency/ranking changes: this is an isolated safety condition.
-        val firstCandidateIsValidOnly = BrrCorrectionSafety.blocksCandidate(
-            suggestionsContainer.firstOrNull()?.mWord)
         val firstCandidate = suggestionsContainer.firstOrNull()
-        val ambiguousSupplementCorrection = firstCandidate?.mSourceDict?.mDictType == Dictionary.TYPE_BRR_PERSONAL &&
-            helium314.keyboard.latin.dictionary.EnglishApostropheLexicon.isAmbiguousOmission(
-                capitalizedTypedWord, firstCandidate?.mWord)
-        val intentionalToken = !SmartCorrectionSafety.permitsAutomaticReplacement(capitalizedTypedWord) ||
-            ambiguousSupplementCorrection
-        val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected &&
-            !noSuggestionTypedWord && !firstCandidateIsValidOnly && !intentionalToken
-        val hasAutoCorrection = decoderHasAutoCorrection &&
-            !noSuggestionTypedWord && !firstCandidateIsValidOnly && !intentionalToken
+        val intentionalToken = !SmartCorrectionSafety.permitsAutomaticReplacement(capitalizedTypedWord)
+        val blocked = noSuggestionTypedWord || intentionalToken ||
+            (eligible && BrrPersonalDictionary.requiresPrefix(capitalizedTypedWord)) ||
+            blocksOfflineReplacement(capitalizedTypedWord, firstCandidate, eligible)
+        val allowsToBeAutoCorrected = decoderAllowsToBeAutoCorrected && !blocked
+        var hasAutoCorrection = decoderHasAutoCorrection && !blocked
+        if (eligible && !intentionalToken && !noSuggestionTypedWord && !wordComposer.isResumed &&
+            !wordComposer.isMostlyCaps && trailingSingleQuotesCount == 0 &&
+            locale.language == "en" && firstCandidate?.mSourceDict?.isUserSpecific != true &&
+            firstCandidate?.mSourceDict?.mDictType != Dictionary.TYPE_USER_SHORTCUT) {
+            val canonical = EnglishApostropheLexicon.canonicalAlias(capitalizedTypedWord)
+            val normalizedCanonical = canonical?.lowercase(Locale.ROOT)
+            if (canonical != null && normalizedCanonical != null && !EnglishApostropheLexicon.isAmbiguousOmission(capitalizedTypedWord, canonical)
+                && mDictionaryFacilitator.allowsContextPrediction(canonical) &&
+                (mDictionaryFacilitator.isValidSuggestionWord(canonical) ||
+                    mDictionaryFacilitator.isValidSuggestionWord(normalizedCanonical)) &&
+                typedWordFirstOccurrenceWordInfo?.isExactMatch != true &&
+                !mDictionaryFacilitator.isValidSpellingWord(capitalizedTypedWord) &&
+                !mDictionaryFacilitator.isValidSpellingWord(capitalizedTypedWord.lowercase(Locale.ROOT))) {
+                val existing = suggestionsContainer.firstOrNull {
+                    BrOfflineContext.normalize(it.mWord) == BrOfflineContext.normalize(canonical)
+                }
+                val safeAutomatic = isCorrectionEnabled &&
+                    mDictionaryFacilitator.hasAtLeastOneInitializedMainDictionary() &&
+                    EnglishApostropheLexicon.isReviewedSafeAutomatic(capitalizedTypedWord, canonical)
+                // A reviewed full omission can be featured with autocorrect off. An unrelated
+                // native automatic target keeps its place unless this is an approved exact alias.
+                if (safeAutomatic || !hasAutoCorrection) {
+                    if (existing != null) suggestionsContainer.remove(existing)
+                    suggestionsContainer.add(0, SuggestedWordInfo(canonical, "", existing?.mScore ?: 0,
+                        SuggestedWordInfo.KIND_OFFLINE_ALIAS, existing?.mSourceDict ?: Dictionary.DICTIONARY_APOSTROPHE_REVIEW,
+                        SuggestedWordInfo.NOT_AN_INDEX, SuggestedWordInfo.NOT_A_CONFIDENCE))
+                    hasAutoCorrection = safeAutomatic
+                }
+            }
+        }
+        val productionRanked = if (eligible && !forCommit && currentSettings.mOfflineContextEnabled &&
+            currentSettings.isSuggestionsEnabledPerUserSettings() &&
+            (!resultsArePredictions || currentSettings.mBigramPredictionEnabled)) {
+            BrOfflineContext.rank(suggestionsContainer, ngramContext, mDictionaryFacilitator.currentLocale,
+                capitalizedTypedWord, resultsArePredictions, swipe = false,
+                pinnedCount = if (hasAutoCorrection) 1 else 0,
+                allowNewAlias = !wordComposer.isResumed && !wordComposer.isMostlyCaps && !intentionalToken,
+                isCurrent = { requestSerialSupplier?.asLong == requestSerial &&
+                    ime?.editorGeneration() == requestedEditorGeneration &&
+                    ime?.currentInputEditorInfo === editor && Settings.getValues() === currentSettings },
+                allowNewPrediction = mDictionaryFacilitator::allowsContextPrediction)
+        } else suggestionsContainer
         val typedWordInfo = SuggestedWordInfo(capitalizedTypedWord, "", SuggestedWordInfo.MAX_SCORE,
             SuggestedWordInfo.KIND_TYPED, typedWordFirstOccurrenceWordInfo?.mSourceDict ?: Dictionary.DICTIONARY_USER_TYPED,
             SuggestedWordInfo.NOT_AN_INDEX , SuggestedWordInfo.NOT_A_CONFIDENCE)
         if (!TextUtils.isEmpty(capitalizedTypedWord)) {
-            suggestionsContainer.add(0, typedWordInfo)
+            productionRanked.add(0, typedWordInfo)
         }
-        val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && suggestionsContainer.isNotEmpty())
-                getSuggestionsInfoListWithDebugInfo(capitalizedTypedWord, suggestionsContainer)
-            else suggestionsContainer
+        val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && productionRanked.isNotEmpty())
+                getSuggestionsInfoListWithDebugInfo(capitalizedTypedWord, productionRanked)
+            else productionRanked
 
         val inputStyle = if (resultsArePredictions) {
-            if (suggestionResults.mIsBeginningOfSentence) SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
+            if (isBeginningOfSentence) SuggestedWords.INPUT_STYLE_BEGINNING_OF_SENTENCE_PREDICTION
             else SuggestedWords.INPUT_STYLE_PREDICTION
         } else {
             inputStyleIfNotPrediction
@@ -209,7 +263,6 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // as while composing. In particular, after "happy birthday " the word
         // composer is empty, but the accepted phrase can still suggest 🎂.
         // Never issue an extra surrounding-editor-text IPC from this path.
-        val currentSettings = Settings.getValues()
         val mayUseEmojiContext = !currentSettings.mIncognitoModeEnabled
             && !currentSettings.mInputAttributes.mNoLearning
             && requestedEditorGeneration >= 0
@@ -227,7 +280,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         // list instead of re-running the scorer on the UI thread.
         val emojiService = LatinIME.getInstance()
         val emojiSuggestionEditor = emojiService?.currentInputEditorInfo
-        val rankedEmojiPicks = if (mayUseEmojiContext && emojiContext.isNotBlank()
+        val rankedEmojiPicks = if (!forCommit && mayUseEmojiContext && emojiContext.isNotBlank()
             && emojiService != null
             && emojiService.currentInputEditorInfo === emojiSuggestionEditor) {
             BrSuggestionBrain.suggestEmoji(
@@ -240,7 +293,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             && Settings.getValues() === currentSettings) rankedEmojiPicks else emptyList()
         val rankedEmojiCandidates = currentEmojiPicks.map { it.emoji }
         if (resultsArePredictions && mayUseEmojiContext
-            && !suggestionResults.mIsBeginningOfSentence && emojiContext.isNotBlank()
+            && !isBeginningOfSentence && emojiContext.isNotBlank()
             && suggestionsList.none { it.isEmoji }) {
             // Learned suggestions are manual actions only and never take either
             // text-prediction slot.
@@ -254,7 +307,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                         SuggestedWordInfo.NOT_A_CONFIDENCE))
             }
         }
-        val contextLmSuggestions = if (!hasAutoCorrection
+        val contextLmSuggestions = if (!forCommit && !hasAutoCorrection
             && mayUseEmojiContext && !currentSettings.mInputAttributes.mNoLearning
             && emojiService != null) {
             BrSuggestionBrain.rerankManualSuggestions(
@@ -262,7 +315,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 suggestionsList, requestedEditorGeneration, requestSerial, requestSerialSupplier
             )
         } else suggestionsList
-        return SuggestedWords(ArrayList(contextLmSuggestions), suggestionResults.mRawSuggestions,
+        return SuggestedWords(ArrayList(contextLmSuggestions),
+            suggestionsRaw(predictions, suggestionResults),
             typedWordInfo, isTypedWordValid, hasAutoCorrection, false, inputStyle, sequenceNumber,
             rankedEmojiCandidates, emojiSuggestionEditor.takeIf { rankedEmojiCandidates.isNotEmpty() })
     }
@@ -389,7 +443,8 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         ngramContext: NgramContext, keyboard: Keyboard,
         settingsValuesForSuggestion: SettingsValuesForSuggestion,
         inputStyle: Int, sequenceNumber: Int,
-        requestedEditorGeneration: Long, cacheEpoch: Long
+        requestedEditorGeneration: Long, cacheEpoch: Long,
+        requestSerial: Long, requestSerialSupplier: LongSupplier?
     ): SuggestedWords {
         val suggestionResults = mDictionaryFacilitator.getSuggestionResults(
             wordComposer.composedDataSnapshot, ngramContext, keyboard,
@@ -457,12 +512,28 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         val pseudoTypedWordInfo = preferNextWordSuggestion(
             suggestionsContainer.firstOrNull(),
             suggestionsContainer, getNextWordSuggestions(ngramContext, keyboard, inputStyle, settingsValuesForSuggestion,
-                requestedEditorGeneration, cacheEpoch), rejected
+                requestedEditorGeneration, cacheEpoch).words, rejected
         )
-        val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && suggestionsContainer.isNotEmpty()) {
-            getSuggestionsInfoListWithDebugInfo(suggestionResults.first().mWord, suggestionsContainer)
+        val values = Settings.getValues()
+        val service = LatinIME.getInstance()
+        val editor = service?.currentInputEditorInfo
+        val ranked = if (inputStyle == SuggestedWords.INPUT_STYLE_TAIL_BATCH && requestSerialSupplier != null &&
+            requestSerialSupplier.asLong == requestSerial && values.mOfflineContextEnabled &&
+            values.isSuggestionsEnabledPerUserSettings() &&
+            (locale.language == "en" || locale.language == "hi" && locale.script == "Latn") &&
+            BrSuggestionBrain.isOfflineTextEligible(service, values, requestedEditorGeneration)) {
+            // Keep the exact decoded winner and rejected-swipe slot. Only existing alternatives move.
+            BrOfflineContext.rank(suggestionsContainer, ngramContext, mDictionaryFacilitator.currentLocale,
+                "", prediction = false, swipe = true, pinnedCount = if (rejected == null) 1 else 2,
+                isCurrent = { requestSerialSupplier.asLong == requestSerial &&
+                    service?.editorGeneration() == requestedEditorGeneration &&
+                    service?.currentInputEditorInfo === editor && Settings.getValues() === values },
+                allowNewPrediction = { false })
+        } else suggestionsContainer
+        val suggestionsList = if (SuggestionStripView.DEBUG_SUGGESTIONS && ranked.isNotEmpty()) {
+            getSuggestionsInfoListWithDebugInfo(suggestionResults.first().mWord, ranked)
         } else {
-            suggestionsContainer
+            ranked
         }
         return SuggestedWords(suggestionsList, suggestionResults.mRawSuggestions, pseudoTypedWordInfo, true,
             false, false, inputStyle, sequenceNumber)
@@ -477,19 +548,16 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
     /** get suggestions based on the current ngram context, with an empty typed word (that's what next word suggestions do)  */
     private fun getNextWordSuggestions(ngramContext: NgramContext, keyboard: Keyboard, inputStyle: Int,
                                        settingsValuesForSuggestion: SettingsValuesForSuggestion,
-                                       requestedEditorGeneration: Long, cacheEpoch: Long): SuggestionResults {
+                                       requestedEditorGeneration: Long, cacheEpoch: Long): NativePredictionSnapshot {
         // Do not even allocate a retained-context key for an ineligible or stale editor.
         fun cacheable(): Boolean {
             val settings = Settings.getValues() ?: return false
-            return requestedEditorGeneration >= 0 &&
-                LatinIME.getInstance()?.editorGeneration() == requestedEditorGeneration &&
-                !settings.mIncognitoModeEnabled && !settings.mInputAttributes.mNoLearning &&
-                !settings.mInputAttributes.mIsPasswordField && !settings.mInputAttributes.mVaultPrivateEditor
+            return BrSuggestionBrain.isOfflineTextEligible(LatinIME.getInstance(), settings, requestedEditorGeneration)
         }
-        val key = if (cacheable()) NextWordCacheKey.from(ngramContext, mDictionaryFacilitator.mainLocale.toLanguageTag(),
+        val key = if (cacheable()) NextWordCacheKey.from(ngramContext, mDictionaryFacilitator.localesAndConfidences() ?: mDictionaryFacilitator.mainLocale.toLanguageTag(),
             keyboard.mId.hashCode(), inputStyle,
             settingsValuesForSuggestion.mBlockPotentiallyOffensive,
-            settingsValuesForSuggestion.mSpaceAwareGesture) else null
+            settingsValuesForSuggestion.mSpaceAwareGesture, requestedEditorGeneration) else null
         if (key != null) nextWordSuggestionsCache.get(cacheEpoch, key)?.let { return it }
         val started = IntelligenceMetrics.begin()
         val newResults = try {
@@ -498,12 +566,53 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         } finally {
             IntelligenceMetrics.end(IntelligenceMetrics.Path.NEXT_WORD, started)
         }
-        if (key != null && cacheable()) nextWordSuggestionsCache.put(cacheEpoch, key, newResults)
-        return newResults
+        val snapshot = NativePredictionSnapshot(Collections.unmodifiableList(ArrayList(newResults)),
+            newResults.mIsBeginningOfSentence, newResults.mRawSuggestions?.toList())
+        if (key != null && cacheable()) nextWordSuggestionsCache.put(cacheEpoch, key, snapshot)
+        return snapshot
+    }
+
+    private data class NativePredictionSnapshot(
+        val words: List<SuggestedWordInfo>,
+        val beginningOfSentence: Boolean,
+        val raw: List<SuggestedWordInfo>?,
+    )
+
+    private fun suggestionsRaw(predictions: NativePredictionSnapshot?, results: SuggestionResults?) =
+        predictions?.raw?.let { ArrayList(it) } ?: results?.mRawSuggestions
+
+    private fun removeEquivalentApostrophes(typed: String, suggestions: ArrayList<SuggestedWordInfo>) {
+        // Keep each user's actual offered surface and leave explicit personal shortcuts alone.
+        val alreadyOffered = hashSetOf<String>()
+        if ('\'' in typed || '’' in typed) alreadyOffered.add(typed.replace('’', '\''))
+        suggestions.removeAll {
+            val word = it.mWord
+            ('\'' in word || '’' in word) && !it.mSourceDict.isUserSpecific &&
+                it.mSourceDict.mDictType != Dictionary.TYPE_USER_SHORTCUT &&
+                !alreadyOffered.add(word.replace('’', '\''))
+        }
     }
 
     companion object {
         private val TAG: String = Suggest::class.java.simpleName
+
+        @JvmStatic
+        fun blocksOfflineReplacement(typed: String, candidate: SuggestedWordInfo?, eligible: Boolean): Boolean {
+            if (candidate == null) return false
+            if (BrrCorrectionSafety.blocksCandidate(candidate.mWord) ||
+                candidate.mSourceDict.mDictType == Dictionary.TYPE_BRR_PERSONAL &&
+                BrrPersonalDictionary.requiresPrefix(candidate.mWord)) return true
+            if (candidate.isKindOf(SuggestedWordInfo.KIND_OFFLINE_ALIAS)) {
+                return !eligible || !EnglishApostropheLexicon.isReviewedSafeAutomatic(typed, candidate.mWord)
+            }
+            if (eligible && EnglishApostropheLexicon.altersTypedApostropheSurface(typed, candidate.mWord)) return true
+            if (!eligible && candidate.mSourceDict.mDictType != Dictionary.TYPE_BRR_PERSONAL) return false
+            val explicit = candidate.mSourceDict.mDictType == Dictionary.TYPE_USER_SHORTCUT ||
+                candidate.mSourceDict.mDictType == Dictionary.TYPE_USER &&
+                    (candidate.isKindOf(SuggestedWordInfo.KIND_SHORTCUT) ||
+                        candidate.isKindOf(SuggestedWordInfo.KIND_WHITELIST))
+            return !explicit && EnglishApostropheLexicon.isAmbiguousOmission(typed, candidate.mWord)
+        }
 
         // Session id for {@link #getSuggestedWords(WordComposer,String,ProximityInfo,boolean,int)}.
         // We are sharing the same ID between typing and gesture to save RAM footprint.
@@ -519,7 +628,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
         private val sLanguageToMaximumAutoCorrectionWithSpaceLength = hashMapOf(Locale.GERMAN.language to MAXIMUM_AUTO_CORRECT_LENGTH_FOR_GERMAN)
 
         private fun getTransformedSuggestedWordInfoList(
-            wordComposer: WordComposer, results: SuggestionResults,
+            wordComposer: WordComposer, results: Collection<SuggestedWordInfo>,
             trailingSingleQuotesCount: Int, defaultLocale: Locale, keyboard: Keyboard
         ): ArrayList<SuggestedWordInfo> {
             val keyboardShiftMode = keyboard.mId.keyboardCapsMode
@@ -683,16 +792,15 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
             }
         }
 
-        /** returns new pseudoTypedWordInfo, puts it in suggestionsContainer, modifies nextWordSuggestions */
+        /** returns new pseudoTypedWordInfo, puts it in suggestionsContainer without modifying cached predictions */
         private fun preferNextWordSuggestion(
             pseudoTypedWordInfo: SuggestedWordInfo?,
             suggestionsContainer: ArrayList<SuggestedWordInfo>,
-            nextWordSuggestions: SuggestionResults, rejected: SuggestedWordInfo?
+            nextWordSuggestions: List<SuggestedWordInfo>, rejected: SuggestedWordInfo?
         ): SuggestedWordInfo? {
             if (pseudoTypedWordInfo == null || !Settings.getValues().mUsePersonalizedDicts
                 || pseudoTypedWordInfo.mSourceDict.mDictType != Dictionary.TYPE_MAIN || suggestionsContainer.size < 2
             ) return pseudoTypedWordInfo
-            nextWordSuggestions.removeAll { info: SuggestedWordInfo -> info.mScore < 170 } // we only want reasonably often typed words, value may require tuning
             if (nextWordSuggestions.isEmpty()) return pseudoTypedWordInfo
 
             // for each suggestion, check whether the word was already typed in this ngram context (i.e. is nextWordSuggestion)
@@ -700,6 +808,7 @@ class Suggest(private val mDictionaryFacilitator: DictionaryFacilitator) {
                 if (suggestion.mScore < pseudoTypedWordInfo.mScore * 0.93) break // we only want reasonably good suggestions, value may require tuning
                 if (suggestion === rejected) continue  // ignore rejected suggestions
                 for (nextWordSuggestion in nextWordSuggestions) {
+                    if (nextWordSuggestion.mScore < 170) break
                     if (nextWordSuggestion.mWord != suggestion.mWord) continue
                     // if we have a high scoring suggestion in next word suggestions, take it (because it's expected that user might want to type it again)
                     suggestionsContainer.remove(suggestion)

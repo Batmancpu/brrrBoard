@@ -191,6 +191,8 @@
     <string name="use_5_word_suggestion_chips">Use 5 word suggestion chips</string>
     <string name="use_5_word_suggestion_chips_summary">Show 5 word suggestions chips instead of default 3 suggestions</string>
     <!-- Option to enable using next word suggestions. After the user types a space, with this option on, the keyboard will try to predict the next word. -->
+    <string name="brr_offline_context">Offline contextual suggestions</string>
+    <string name="brr_offline_context_summary">Use nearby words to improve English and Roman Hindi suggestions on this device.</string>
     <string name="bigram_prediction">Next-word suggestions</string>
     <!-- Description for "next word suggestion" option. This displays suggestions even when there is no input, based on the previous word. -->
     <string name="bigram_prediction_summary">Use the previous word in making suggestions</string>

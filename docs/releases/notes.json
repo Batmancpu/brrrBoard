@@ -1,22 +1,18 @@
 {
   "schema": 1,
-  "summary": "Smart Snippets and suggestion interaction improvements",
+  "summary": "Modern dictionaries and offline contextual suggestions",
   "changes": [
     {
-      "title": "App-aware Smart Snippets",
-      "detail": "Long-press a clipboard text card to configure app targets, daily or session frequency, a fixed time window, and optional empty-field/new-line recovery. Tap a private title to paste; dismiss or choose another matching snippet."
+      "title": "Modern English and Roman Hindi vocabulary",
+      "detail": "Adds reviewed modern terms, Indian English and Roman Hindi forms, with conservative prefix suggestions and spelling-valid entries. Existing stock English dictionaries and installed user dictionaries are retained."
     },
     {
-      "title": "Snippet controls and privacy",
-      "detail": "Manage pinned rules in the keyboard and searchable Clipboard settings, including schedules and custom titles. Rules are encrypted locally without duplicating clipboard text, and protected editors are excluded."
+      "title": "Offline contextual suggestions",
+      "detail": "A compact model improves eligible English, Indian English and Roman Hindi next-word and manual suggestions. It is enabled by default and can be switched off in Predictions & suggestions. Completed swipe keeps the native winner and can reorder alternatives."
     },
     {
-      "title": "Suggestion menu and delete controls",
-      "detail": "Corrected popup measurement and detached-window guards, outside dismissal and touch forwarding, plus suggestion deletion targets and accessibility. Normal predictions and existing visual motion remain unchanged."
-    },
-    {
-      "title": "Build integration",
-      "detail": "Use the existing public keyboard and settings accessors without widening IME field visibility."
+      "title": "Safer apostrophe suggestions",
+      "detail": "Reviewed omissions such as dont and shouldnt can suggest their written contractions. Ambiguous real words such as were and well retain their literal forms on automatic commit, while contextual alternatives remain available for manual selection."
     }
   ]
 }

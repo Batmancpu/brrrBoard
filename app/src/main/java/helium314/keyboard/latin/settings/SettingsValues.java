@@ -108,6 +108,7 @@ public class SettingsValues {
     public final List<String> mPopupKeyOrder;
     public final List<String> mPopupKeyHintOrder;
     public final List<Locale> mSecondaryLocales;
+    public final boolean mOfflineContextEnabled;
     public final boolean mBigramPredictionEnabled;// Use bigrams to predict the next word when there is no input for it yet
     public final boolean mSuggestPunctuation;
     public final boolean mCenterSuggestionTextToEnter;
@@ -251,6 +252,7 @@ public class SettingsValues {
                 : (mAutoCorrectionThreshold < 0.07 ? 800000 : 950000); // aggressive or modest
         mAutoCorrectShortcuts = prefs.getBoolean(Settings.PREF_AUTOCORRECT_SHORTCUTS, Defaults.PREF_AUTOCORRECT_SHORTCUTS);
         mBackspaceRevertsAutocorrect = prefs.getBoolean(Settings.PREF_BACKSPACE_REVERTS_AUTOCORRECT, Defaults.PREF_BACKSPACE_REVERTS_AUTOCORRECT);
+        mOfflineContextEnabled = prefs.getBoolean(Settings.PREF_OFFLINE_CONTEXT, Defaults.PREF_OFFLINE_CONTEXT);
         mBigramPredictionEnabled = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_BIGRAM_PREDICTIONS, Defaults.PREF_BIGRAM_PREDICTIONS);
         mSuggestPunctuation = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_SUGGEST_PUNCTUATION, Defaults.PREF_SUGGEST_PUNCTUATION);
         mSuggestClipboardContent = !mInputAttributes.mVaultPrivateEditor && prefs.getBoolean(Settings.PREF_SUGGEST_CLIPBOARD_CONTENT, Defaults.PREF_SUGGEST_CLIPBOARD_CONTENT);

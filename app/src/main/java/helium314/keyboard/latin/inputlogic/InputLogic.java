@@ -32,6 +32,7 @@ import helium314.keyboard.keyboard.KeyboardSwitcher;
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode;
 import helium314.keyboard.latin.dictionary.Dictionary;
 import helium314.keyboard.latin.dictionary.BrrPersonalDictionary;
+import helium314.keyboard.latin.dictionary.EnglishApostropheLexicon;
 import helium314.keyboard.latin.DictionaryFacilitator;
 import helium314.keyboard.latin.dictionary.DictionaryFactory;
 import helium314.keyboard.latin.LastComposedWord;
@@ -2629,13 +2630,20 @@ public final class InputLogic {
     private void refreshPendingCorrectionBeforeCommit(final SettingsValues settingsValues) {
         if (!settingsValues.needsToLookupSuggestions() || !mWordComposer.isComposingWord()) return;
         final String expectedTyped = mWordComposer.getTypedWord();
+        final long requestSerial = mSuggestionRequestSerial;
+        final long editorGeneration = mLatinIME.mHandler.editorGeneration();
+        final int selectionStart = mConnection.getExpectedSelectionStart();
+        final int selectionEnd = mConnection.getExpectedSelectionEnd();
         final AsyncResultHolder<SuggestedWords> holder = new AsyncResultHolder<>("SuggestCommit");
         mInputLogicHandler.getSuggestedWords(() -> getSuggestedWords(
                 SuggestedWords.INPUT_STYLE_TYPING, SuggestedWords.NOT_A_SEQUENCE_NUMBER,
-                holder::set));
+                requestSerial, true, holder::set));
         final SuggestedWords fresh = holder.get(null, Constants.GET_SUGGESTED_WORDS_TIMEOUT);
         if (fresh != null && fresh.size() > 1
-                && expectedTyped.equals(mWordComposer.getTypedWord())) {
+                && SuggestionDeliveryPolicy.isCurrent(editorGeneration, mLatinIME.mHandler.editorGeneration(),
+                        requestSerial, mSuggestionRequestSerial, expectedTyped, mWordComposer.getTypedWord(),
+                        selectionStart, mConnection.getExpectedSelectionStart(),
+                        selectionEnd, mConnection.getExpectedSelectionEnd())) {
             mSuggestionStripViewAccessor.setSuggestions(fresh);
         } else {
             // A slow decoder must not auto-commit an obsolete correction.
@@ -3467,7 +3475,19 @@ public final class InputLogic {
         }
         final SuggestedWordInfo autoCorrectionOrNull = mWordComposer.getAutoCorrectionOrNull();
         final String typedWord = mWordComposer.getTypedWord();
-        final String proposedCorrection = autoCorrectionOrNull != null ? autoCorrectionOrNull.mWord : typedWord;
+        final boolean offlinePolicyApplies = autoCorrectionOrNull != null
+                && !mWordComposer.isBatchMode()
+                && (autoCorrectionOrNull.isKindOf(SuggestedWordInfo.KIND_OFFLINE_ALIAS)
+                    || EnglishApostropheLexicon.isAmbiguousOmission(typedWord, autoCorrectionOrNull.mWord)
+                    || EnglishApostropheLexicon.altersTypedApostropheSurface(typedWord, autoCorrectionOrNull.mWord)
+                    || BrrPersonalDictionary.requiresPrefix(autoCorrectionOrNull.mWord));
+        final boolean blockedByOfflinePolicy = offlinePolicyApplies && Suggest.blocksOfflineReplacement(
+                typedWord, autoCorrectionOrNull,
+                settingsValues.mAutoCorrectEnabled && !mWordComposer.isResumed()
+                    && BrSuggestionBrain.isOfflineTextEligible(mLatinIME, settingsValues,
+                            mLatinIME.editorGeneration()));
+        final String proposedCorrection = autoCorrectionOrNull != null && !blockedByOfflinePolicy
+                ? autoCorrectionOrNull.mWord : typedWord;
         boolean rejectRepeatedCorrection = false;
         if (mCorrectionRejection.hasReceipt()) {
             rejectRepeatedCorrection = mCorrectionRejection.consumeIfEligible(
@@ -3521,7 +3541,9 @@ public final class InputLogic {
         if (mRejectedSwipeSkeleton != null) {
             // The first *typed* word directly after deleting a bad swipe can
             // confirm the intended target. A later/pasted/swiped word cannot.
-            if (!mWordComposer.isBatchMode() && SystemClock.uptimeMillis() - mRejectedSwipeAt <= 20_000L) {
+            if (!mWordComposer.isBatchMode() && SystemClock.uptimeMillis() - mRejectedSwipeAt <= 20_000L
+                    && (commitType == LastComposedWord.COMMIT_TYPE_MANUAL_PICK
+                        || chosenWord.equals(mWordComposer.getTypedWord()))) {
                 confirmSwipeCorrection(settingsValues, mRejectedSwipeSkeleton, chosenWord);
             }
             mRejectedSwipeSkeleton = null;
@@ -3659,6 +3681,11 @@ public final class InputLogic {
 
     void getSuggestedWords(final int inputStyle, final int sequenceNumber,
             final long requestSerial, final OnGetSuggestedWordsCallback callback) {
+        getSuggestedWords(inputStyle, sequenceNumber, requestSerial, false, callback);
+    }
+
+    private void getSuggestedWords(final int inputStyle, final int sequenceNumber,
+            final long requestSerial, final boolean forCommit, final OnGetSuggestedWordsCallback callback) {
         final Keyboard keyboard = KeyboardSwitcher.getInstance().getKeyboard();
         if (keyboard == null) {
             callback.onGetSuggestedWords(SuggestedWords.getEmptyInstance());
@@ -3683,7 +3710,7 @@ public final class InputLogic {
                     keyboard,
                     settingsValues.mSettingsValuesForSuggestion,
                     settingsValues.mAutoCorrectEnabled,
-                    inputStyle, sequenceNumber, requestSerial, mSuggestionRequestSerialSupplier);
+                    inputStyle, sequenceNumber, requestSerial, mSuggestionRequestSerialSupplier, forCommit);
             callback.onGetSuggestedWords(suggestedWords);
         } catch (Exception e) {
             // better go without suggestions than have the keyboard crash

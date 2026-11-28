@@ -114,6 +114,7 @@ object Defaults {
     const val PREF_AUTOSPACE_BEFORE_GESTURE_TYPING = true
     const val PREF_SHIFT_REMOVES_AUTOSPACE = false
     const val PREF_ALWAYS_INCOGNITO_MODE = false
+    const val PREF_OFFLINE_CONTEXT = true
     const val PREF_BIGRAM_PREDICTIONS = true
     const val PREF_SUGGEST_PUNCTUATION = false
     const val PREF_SUGGEST_CLIPBOARD_CONTENT = true

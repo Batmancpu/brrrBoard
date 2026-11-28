@@ -155,6 +155,9 @@ public interface DictionaryFacilitator {
 
     boolean isValidSuggestionWord(final String word);
 
+    /** A new public-model prediction must honor the current local word removals. */
+    default boolean allowsContextPrediction(final String word) { return false; }
+
     void clearUserHistoryDictionary(final Context context);
 
     String dump(final Context context);

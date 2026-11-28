@@ -40,6 +40,11 @@ public abstract class Dictionary {
     public static final PhonyDictionary DICTIONARY_HARDCODED =
             new PhonyDictionary(TYPE_HARDCODED);
 
+    public static final PhonyDictionary DICTIONARY_OFFLINE_CONTEXT =
+            new PhonyDictionary("offline_context");
+    public static final PhonyDictionary DICTIONARY_APOSTROPHE_REVIEW =
+            new PhonyDictionary("reviewed_apostrophe");
+
     // Spawned by resuming suggestions. Comes from a span that was in the TextView.
     public static final String TYPE_RESUMED = "resumed";
     public static final PhonyDictionary DICTIONARY_RESUMED = new PhonyDictionary(TYPE_RESUMED);

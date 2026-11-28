@@ -37,3 +37,12 @@ The sherpa-onnx runtime is authored by the k2-fsa contributors and distributed
 under Apache License 2.0: https://github.com/k2-fsa/sherpa-onnx . brrBoard pins
 release v2.0.2 at build time. These speech assets are absent from the ordinary
 small Obtainium APK except the necessary speech runtime binaries.
+
+brrBoard ContextLM public count inputs
+Tatoeba CC0 sentences export: https://tatoeba.org/en/downloads
+PHINC: Lingo Research Group, Indian Institute of Technology Gandhinagar (CC BY 4.0).
+https://huggingface.co/datasets/LingoIITGN/PHINC/tree/44b5471df75e508b9d6fcdbcc93df04bb1e84056
+brrBoard normalizes, filters and aggregates short n-grams from these sources.
+COMI-LINGUA and HinGE: Lingo Research Group, Indian Institute of Technology
+Gandhinagar (CC BY 4.0). Dataset revisions and terms for derived assets are
+recorded in app/src/main/assets/licenses/br-offline-context.txt.

@@ -157,6 +157,7 @@ jobs:
           python3 -m unittest discover -s tools -p 'test_audit_public_apk.py' -v
           python3 tools/audit_public_apk.py --apk "$APK"
           python3 tools/verify_contextlm_experiment_packaging.py "$APK"
+          python3 tools/dictionary/verify_context.py --apk "$APK"
           bash tools/verify-voice-model-packaging.sh "$APK" unbundled
           python3 tools/verify_clean_dictionary_assets.py "$APK"
           bash tools/verify-gtcrn-packaging.sh "$APK"
@@ -204,6 +205,56 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_offline_voice_contract.py' -v
       - name: Verify optional voice models stay opt-in
         run: python3 -m unittest discover -s tools -p 'test_ultra_voice_packaging.py' -v
+
+      - name: Replay native English tap fixtures with the reviewed overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tools/dictionary/build_native_replay.sh "$RUNNER_TEMP/brr-native-replay"
+          for locale in US GB; do
+            "$RUNNER_TEMP/brr-native-replay" "app/src/main/assets/dicts/main_en-${locale}.dict" \
+              tools/dictionary/tap_fixtures.tsv app/src/main/assets/brrPersonal_modern.tsv > "$RUNNER_TEMP/brr-tap-${locale}.tsv"
+          done
+          python3 tools/dictionary/verify_context.py --native-taps "$RUNNER_TEMP/brr-tap-US.tsv" "$RUNNER_TEMP/brr-tap-GB.tsv"
+
+      - name: Rebuild context model from pinned public counts
+        if: github.event_name == 'push'
+        id: brr_context_rebuild
+        shell: bash
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if git cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null &&
+             git diff --quiet "$PREVIOUS_SHA" HEAD -- app/src/main/assets/contextlm/production.tsv tools/dictionary/replay_report.json; then
+            exit 0
+          fi
+          work="$RUNNER_TEMP/brr-context-rebuild"
+          mkdir -p "$work"
+          curl --retry 3 --max-time 90 -fsSL 'https://downloads.tatoeba.org/exports/sentences_CC0.tar.bz2' -o "$work/tatoeba.tar.bz2"
+          curl --retry 3 --max-time 90 -fsSL 'https://huggingface.co/datasets/LingoIITGN/PHINC/resolve/44b5471df75e508b9d6fcdbcc93df04bb1e84056/PHINC.csv' -o "$work/phinc.csv"
+          curl --retry 3 --max-time 120 -fsSL 'https://huggingface.co/datasets/LingoIITGN/COMI-LINGUA/resolve/0214cb358e59e36da60e01d3d59ddd24df897749/MT_train.csv' -o "$work/comi.csv"
+          curl --retry 3 --max-time 90 -fsSL 'https://huggingface.co/datasets/LingoIITGN/HinGE/resolve/e25a10382d9adb77f3a4f03b721fbd0a43c0de4c/HinGE.csv' -o "$work/hinge.csv"
+          for locale in US GB; do
+            "$RUNNER_TEMP/brr-native-replay" "app/src/main/assets/dicts/main_en-${locale}.dict" > "$work/$locale.tsv"
+          done
+          python3 tools/dictionary/prepare_context.py --tatoeba "$work/tatoeba.tar.bz2" \
+            --phinc "$work/phinc.csv" --comi "$work/comi.csv" --hinge "$work/hinge.csv" \
+            --us "$work/US.tsv" --gb "$work/GB.tsv" --counts "$work/counts.tsv" \
+            --output "$work/model.tsv" > "$work/replay.json"
+          cmp "$work/replay.json" tools/dictionary/replay_report.json
+          cmp "$work/model.tsv" app/src/main/assets/contextlm/production.tsv
+          python3 tools/dictionary/prepare_context.py --from-counts "$work/counts.tsv" --output "$work/from-counts.tsv"
+          cmp "$work/from-counts.tsv" "$work/model.tsv"
+          echo "generated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Archive the public aggregate count snapshot
+        if: steps.brr_context_rebuild.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: brr-context-public-counts-${{ github.sha }}
+          path: ${{ runner.temp }}/brr-context-rebuild/counts.tsv
+          if-no-files-found: error
 
       - name: Validate synthetic next-word comparison safety gate (B16B)
         if: steps.unit_tests.outcome == 'success'
