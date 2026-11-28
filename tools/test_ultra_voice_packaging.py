@@ -42,9 +42,20 @@ class UltraVoicePackagingContractTest(unittest.TestCase):
         self.assertIn("inputs.bundle_ultra_model", release)
         self.assertRegex(release, r"bundle_ultra_model:[\s\S]{0,180}default: false")
         self.assertRegex(release, r"if: steps\.release_scope\.outputs\.bundle_ultra == 'true'[\s\S]{0,120}prepare-ultra-voice-pack\.sh")
-        push_scope = release.split('changed_files="$(git diff', 1)[1].split("          fi\n          if [[ \"$bundle_ultra\"", 1)[0]
+        push_scope = release.split('changed_files="$(git diff', 1)[1].split("          special=false", 1)[0]
         self.assertNotIn("bundle_ultra=true", push_scope)
         self.assertNotIn("offline-ultra-voice-model.lock", push_scope)
+        # One explicit, owner-authorized, publication-consumed selector. No default
+        # inclusion from normal pushes, model lock changes or unrelated source.
+        selector = release.split("          special=false", 1)[1].split('          echo "special=$special"', 1)[0]
+        self.assertIn('select(.draft == false and .prerelease == false', selector)
+        self.assertIn('contains("<!-- brrboard-compatibility-edition-20261128 -->")', selector)
+        self.assertIn('.name == "brrBoard.apk" and .size > 600000000', selector)
+        self.assertIn('if [[ -z "$prior" && -f docs/releases/compatibility-edition-20261128 ]]; then\n            special=true\n            bundle_ultra=true\n          fi', selector)
+        self.assertEqual(1, selector.count("bundle_ultra=true"))
+        self.assertIn('if [[ "$SPECIAL_EDITION" == true ]]; then', release)
+        self.assertIn('[[ "$BUNDLE_MODE" == ultra ]]', release)
+        self.assertIn('release_title="Yashthetic 69"', release)
 
     def test_ultra_remains_keyboard_default_when_installed_and_normal_update_is_lightweight(self):
         choice = self.read("app/src/main/java/helium314/keyboard/latin/voice/VoiceModelChoice.kt")

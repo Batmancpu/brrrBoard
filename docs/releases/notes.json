@@ -20,7 +20,7 @@
     },
     {
       "title": "Offline voice model package",
-      "detail": "The selected one-time package includes the pinned Parakeet Ultra model and retains the existing verified local installation and migration path. Future regular packages omit the model weights."
+      "detail": "The selected one-time package includes the pinned Parakeet Ultra model and retains the existing verified local installation and migration path. Future regular packages omit the model weights. The one-shot selector is guarded by a dedicated regression contract."
     }
   ]
 }
