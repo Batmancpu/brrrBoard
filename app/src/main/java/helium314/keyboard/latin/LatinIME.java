@@ -1394,6 +1394,7 @@ public class LatinIME extends InputMethodService implements
         mVaultSelectionEpoch++;
         // Clear transient words at the actual editor boundary, even when
         // settings are reused by a restart or delayed orientation handling.
+        mClipboardHistoryManager.hideSmartSnippet();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
         mClipboardHistoryManager.clearDecryptedHistory();
@@ -1452,6 +1453,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onFinishInput() {
+        mClipboardHistoryManager.hideSmartSnippet();
         BrContextLmExperiment.clearContextCache();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
@@ -1741,6 +1743,7 @@ public class LatinIME extends InputMethodService implements
             // Space state must be updated before calling updateShiftState
             switcher.requestUpdatingShiftState(getCurrentAutoCapsState(), getCurrentRecapitalizeState());
         }
+        mClipboardHistoryManager.beginSmartSnippetEditor(editorInfo);
         if (hasSuggestionStripView()) mSuggestionStripView.onNewEditorSession();
         // Set neutral suggestions and show the toolbar if the "Auto show toolbar"
         // setting is enabled.
@@ -1798,6 +1801,7 @@ public class LatinIME extends InputMethodService implements
     @Override
     public void onWindowShown() {
         super.onWindowShown();
+        mClipboardHistoryManager.resumeSmartSnippetEditor(getCurrentInputEditorInfo());
         FrostedGlassHelper.onVisibleWindow(this);
         startCrossWindowBlurListener();
         mLifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);
@@ -1810,6 +1814,7 @@ public class LatinIME extends InputMethodService implements
 
     @Override
     public void onWindowHidden() {
+        mClipboardHistoryManager.smartSnippetWindowHidden();
         stopCrossWindowBlurListener();
         mTextTools.dismiss();
         mClipboardHistoryManager.dismissExtraction();
@@ -1927,6 +1932,7 @@ public class LatinIME extends InputMethodService implements
                 && mInputLogic.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd,
                         composingSpanStart, composingSpanEnd, settingsValues);
         if (oldSelStart != newSelStart || oldSelEnd != newSelEnd) {
+            mClipboardHistoryManager.onSmartSnippetSelectionChanged(newSelStart,newSelEnd);
             updateSelectionToolsAccessory(newSelStart, newSelEnd);
         }
         if (userSelectionChanged) {
@@ -2386,6 +2392,9 @@ public class LatinIME extends InputMethodService implements
                 || event.getKeyCode() == KeyCode.GIFS || event.getKeyCode() == KeyCode.STICKERS) {
             return;
         }
+        if (!event.isFunctionalKeyEvent() || event.getKeyCode() == KeyCode.DELETE
+                || event.getCodePoint() == Constants.CODE_ENTER)
+            mClipboardHistoryManager.onSmartSnippetTyping();
         final boolean hadBackspaceHold = isBackspaceSuggestionHoldActive();
         if (event.getKeyCode() == KeyCode.DELETE) {
             beginBackspaceSuggestionHold();
@@ -2412,6 +2421,7 @@ public class LatinIME extends InputMethodService implements
 
     public void onTextInput(final String rawText) {
         if (rawText == null) return;
+        mClipboardHistoryManager.onSmartSnippetTyping();
         cancelBackspaceSuggestionHold();
         ChatGptVoiceSuggestionStability.noteKeyboardInput(android.os.SystemClock.uptimeMillis());
         // TODO: have the keyboard pass the correct key code when we need it.
@@ -2547,6 +2557,26 @@ public class LatinIME extends InputMethodService implements
                 mSettings.getCurrent().mIncognitoModeEnabled) ? "" : mInputLogic.mConnection.cachedSmartPasteSuffix();
     }
     public boolean smartPasteIsComposing() { return mInputLogic.getComposingLength() > 0; }
+
+    /** Cache-only prefilter: actual snippet candidates are verified at the host on show and tap. */
+    public int cachedSmartSnippetBoundary() {
+        if (smartPasteIsComposing()) return 0;
+        final int start = mInputLogic.mConnection.getExpectedSelectionStart();
+        final int end = mInputLogic.mConnection.getExpectedSelectionEnd();
+        if (start < 0 || start != end) return 0;
+        if (start == 0) return 1;
+        return cachedSmartPasteSuffix().endsWith("\n") ? 2 : 0;
+    }
+
+    public boolean tryShowSmartSnippet() {
+        if (mIsDestroyed || !hasSuggestionStripView() || mInlineProviderViewActive
+                || isBackspaceSuggestionHoldActive() || !onEvaluateInputViewShown()
+                || mSettings.getCurrent().isApplicationSpecifiedCompletionsOn()) return false;
+        final View view = mClipboardHistoryManager.getSmartSnippetView(getCurrentInputEditorInfo(),mSuggestionStripView);
+        if (view == null) return false;
+        mSuggestionStripView.setExternalSuggestionView(view,false);
+        return true;
+    }
 
     /** Explicit compatible entity insertion. Provider priority is absolute. */
     public boolean insertSmartPasteEntity(final String text, final long epoch,
@@ -2733,6 +2763,7 @@ public class LatinIME extends InputMethodService implements
     public long editorGeneration() { return mEditorSessionGeneration.current(); }
 
     public void onStartBatchInput() {
+        mClipboardHistoryManager.onSmartSnippetTyping();
         cancelBackspacePresentation();
         mInputLogic.onStartBatchInput(mSettings.getCurrent(), mKeyboardSwitcher, mHandler);
         mGestureConsumer.onGestureStarted(mRichImm.getCurrentSubtypeLocale(), mKeyboardSwitcher.getKeyboard());
@@ -2838,6 +2869,7 @@ public class LatinIME extends InputMethodService implements
                 // We should clear the contextual strip if there is no suggestion from
                 // dictionaries.
                 || noSuggestionsFromDictionaries) {
+            if (tryShowSmartSnippet()) return;
             if (mClipboardHistoryManager.hasActiveSmartPaste())
                 mClipboardHistoryManager.updateSmartPasteIntent(cachedSmartPasteSuffix(), smartPasteIsComposing());
             mSuggestionStripView.setSuggestions(suggestedWords,
@@ -3018,6 +3050,7 @@ public class LatinIME extends InputMethodService implements
     // interface
     @Override
     public void pickSuggestionManually(final SuggestedWordInfo suggestionInfo) {
+        mClipboardHistoryManager.onSmartSnippetTyping();
         // A deliberate tap is observable; it is NOT proof that the prediction was correct.
         // Never count interactions in incognito, password or non-prose editor fields.
         if (helium314.keyboard.keyboard.emoji.EmojiContextEligibility.isEligible(

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="smart_snippets_title">Smart snippets</string>
+    <string name="smart_snippets_description">App-aware paste suggestions, daily templates, schedules and saved clipboard messages</string>
+</resources>

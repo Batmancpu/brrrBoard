@@ -128,6 +128,7 @@ class MoreSuggestionsView @JvmOverloads constructor(
         suggestedWords: SuggestedWords, fromIndex: Int, container: View,
         layoutHelper: SuggestionStripLayoutHelper, parentView: View
     ): Boolean {
+        if (!parentView.isAttachedToWindow || parentView.width <= 0) return false
         val maxWidth = (parentView.width - container.paddingLeft - container.paddingRight).coerceAtLeast(1)
         val parentKeyboard = mainKeyboardView.keyboard ?: return false
         val minWidth = (maxWidth * layoutHelper.mMinMoreSuggestionsWidth).toInt().coerceIn(1, maxWidth)
@@ -137,7 +138,8 @@ class MoreSuggestionsView @JvmOverloads constructor(
             layoutHelper.maxMoreSuggestionsRow, parentKeyboard
         ).build()
         setKeyboard(keyboard)
-        container.measure(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        container.measure(View.MeasureSpec.makeMeasureSpec(parentView.width, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
 
         val pointX = parentView.width / 2
         val pointY = -layoutHelper.mMoreSuggestionsBottomGap
@@ -145,7 +147,7 @@ class MoreSuggestionsView @JvmOverloads constructor(
         showPopupKeysPanel(parentView, moreSuggestionsController, pointX, pointY, moreSuggestionsListener)
         originX = lastX
         originY = lastY
-        return true
+        return isShowingInParent
     }
 
     override fun isShowingInParent(): Boolean {
@@ -169,7 +171,7 @@ class MoreSuggestionsView @JvmOverloads constructor(
             false
         ).apply {
             isTouchable = true
-            isOutsideTouchable = false
+            isOutsideTouchable = true
             isClippingEnabled = false
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         }
@@ -179,7 +181,12 @@ class MoreSuggestionsView @JvmOverloads constructor(
                 popupWindow = null
             }
         }
-        window.showAtLocation(anchor.rootView, Gravity.NO_GRAVITY, popupX, popupY)
+        window.setTouchInterceptor { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) dismissPopupKeysPanel()
+            false
+        }
+        try { window.showAtLocation(anchor.rootView, Gravity.NO_GRAVITY, popupX, popupY) }
+        catch (_: RuntimeException) { dismissPopupKeysPanel() }
     }
 
     private fun dismissFloatingPopup() {
@@ -194,6 +201,7 @@ class MoreSuggestionsView @JvmOverloads constructor(
             lastY = motionEvent.y.toInt()
             return gestureDetector.onTouchEvent(motionEvent)
         }
+        if (motionEvent.actionMasked == MotionEvent.ACTION_DOWN) setModalMode()
         if (isInModalMode) {
             return false
         }
@@ -221,12 +229,16 @@ class MoreSuggestionsView @JvmOverloads constructor(
             return // Ignore any touch event while more suggestions panel hasn't been shown.
         }
         // In the sliding input mode. MotionEvent should be forwarded to MoreSuggestionsView.
+        if (motionEvent.actionMasked == MotionEvent.ACTION_CANCEL) {
+            dismissPopupKeysPanel(); return
+        }
         val index = motionEvent.actionIndex
         val x = translateX(motionEvent.getX(index).toInt())
         val y = translateY(motionEvent.getY(index).toInt())
-        motionEvent.setLocation(x.toFloat(), y.toFloat())
         if (!needsToTransformTouchEventToHoverEvent) {
-            onTouchEvent(motionEvent)
+            val translated = MotionEvent.obtain(motionEvent)
+            try { translated.setLocation(x.toFloat(), y.toFloat()); onTouchEvent(translated) }
+            finally { translated.recycle() }
             return
         }
         // In sliding suggestion mode with accessibility mode on, a touch event should be transformed to a hover event.
@@ -250,8 +262,12 @@ class MoreSuggestionsView @JvmOverloads constructor(
             // Transform this touch event to a hover move event.
             hoverAction = MotionEvent.ACTION_HOVER_MOVE
         }
-        motionEvent.action = hoverAction
-        onHoverEvent(motionEvent)
+        val translated = MotionEvent.obtain(motionEvent)
+        try {
+            translated.setLocation(x.toFloat(), y.toFloat())
+            translated.action = hoverAction
+            onHoverEvent(translated)
+        } finally { translated.recycle() }
     }
 
     companion object {

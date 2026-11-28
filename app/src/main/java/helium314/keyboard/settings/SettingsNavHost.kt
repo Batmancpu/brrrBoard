@@ -60,6 +60,7 @@ import helium314.keyboard.settings.screens.ToolbarScreen
 import helium314.keyboard.settings.screens.KeysLayoutScreen
 import helium314.keyboard.settings.screens.SoundFeedbackScreen
 import helium314.keyboard.settings.screens.ClipboardSettingsScreen
+import helium314.keyboard.settings.screens.SmartSnippetSettingsScreen
 import helium314.keyboard.settings.screens.PrivacySettingsScreen
 import helium314.keyboard.settings.screens.BackupSettingsScreen
 import helium314.keyboard.settings.screens.VoiceSettingsScreen
@@ -206,6 +207,7 @@ fun SettingsNavHost(
         composable(SettingsDestination.Keys) { KeysLayoutScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Sound) { SoundFeedbackScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Clipboard) { ClipboardSettingsScreen(onClickBack = ::goBack) }
+        composable(SettingsDestination.SmartSnippets) { SmartSnippetSettingsScreen(onClickBack = ::goBack) }
         composable(SettingsDestination.Privacy) { PrivacySettingsScreen(onClickBack = ::goBack) }
         composable("private_vault_setup") {
             helium314.keyboard.settings.screens.VaultSetupScreen(onClickBack = ::goBack)
@@ -343,6 +345,7 @@ object SettingsDestination {
     const val Keys = "keys_layout"
     const val Sound = "sound_feedback"
     const val Clipboard = "clipboard"
+    const val SmartSnippets = "smart_snippets"
     const val Privacy = "privacy"
     const val ProtectedPrivacy = "protected_privacy"
     const val ProtectedBrain = "protected_brain"

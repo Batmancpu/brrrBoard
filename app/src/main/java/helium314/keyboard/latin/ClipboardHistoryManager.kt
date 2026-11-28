@@ -14,6 +14,7 @@ import android.content.IntentFilter
 import androidx.core.content.ContextCompat
 import android.database.ContentObserver
 import helium314.keyboard.latin.suggestions.ClipboardAccessoryView
+import helium314.keyboard.latin.snippets.SmartSnippetController
 import helium314.keyboard.latin.suggestions.ContextualAccessoryPolicy
 import helium314.keyboard.latin.brain.SmartPastePolicy
 import helium314.keyboard.latin.brain.SmartPasteLearning
@@ -68,6 +69,20 @@ import kotlinx.coroutines.launch
 class ClipboardHistoryManager(
         private val latinIME: LatinIME
 ) : ClipboardManager.OnPrimaryClipChangedListener {
+
+    private val smartSnippets by lazy { SmartSnippetController(latinIME,this) }
+    fun beginSmartSnippetEditor(editor: EditorInfo?) = smartSnippets.beginEditor(editor)
+    fun resumeSmartSnippetEditor(editor: EditorInfo?) = smartSnippets.resumeEditor(editor)
+    fun smartSnippetWindowHidden() = smartSnippets.windowHidden()
+    fun onSmartSnippetTyping() = smartSnippets.onTyping()
+    fun onSmartSnippetSelectionChanged(start: Int, end: Int) = smartSnippets.selectionChanged(start,end)
+    fun openClipboardItemMenu(id: Long) = smartSnippets.itemMenu(id)
+    fun manageSmartSnippets() = smartSnippets.manage()
+    fun getSmartSnippetView(editor: EditorInfo?, parent: ViewGroup): View? {
+        val view = smartSnippets.suggestion(editor,parent) ?: return null
+        releaseRecentClipboardAccessory()
+        return view
+    }
 
     private lateinit var clipboardManager: ClipboardManager
     private var clipboardSuggestionView: ClipboardAccessoryView? = null
@@ -133,7 +148,14 @@ class ClipboardHistoryManager(
     private var accessoryKey: AccessoryKey? = null
     private var pasteExpiry: Runnable? = null
 
+    fun hideSmartSnippet() = smartSnippets.hide()
+
     fun releaseClipboardAccessory() {
+        smartSnippets.hide()
+        releaseRecentClipboardAccessory()
+    }
+
+    private fun releaseRecentClipboardAccessory() {
         cancelChromeExpiry()
         pasteExpiry?.let { latinIME.mHandler.removeCallbacks(it) }
         pasteExpiry = null
@@ -186,6 +208,7 @@ class ClipboardHistoryManager(
     private var extractionDialog: AlertDialog? = null
     private val expireExtraction = Runnable { dismissExtraction() }
     fun dismissExtraction() {
+        smartSnippets.dismissDialog()
         latinIME.mHandler.removeCallbacks(expireExtraction)
         val dialog = extractionDialog
         extractionDialog = null
@@ -223,6 +246,7 @@ class ClipboardHistoryManager(
     private val recoveryScreenOff = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                smartSnippets.privacyBoundary()
                 clearRecoveredTranscripts()
                 invalidateChrome()
                 releaseClipboardAccessory()
@@ -253,6 +277,7 @@ class ClipboardHistoryManager(
     }
 
     fun onDestroy() {
+        smartSnippets.privacyBoundary()
         releaseClipboardAccessory()
         setVoiceRecoveryChangeListener(null)
         clearRecoveredTranscripts()
@@ -703,6 +728,7 @@ class ClipboardHistoryManager(
     fun onClipboardPrivacyBoundary() = suppressPrivateClipboardSuggestions()
 
     private fun suppressPrivateClipboardSuggestions() {
+        smartSnippets.privacyBoundary()
         SmartPasteLearning.pause()
         invalidateChrome()
         releaseClipboardAccessory()
@@ -760,6 +786,8 @@ class ClipboardHistoryManager(
     }
 
     fun toggleClipPinned(id: Long) {
+        val live = getHistoryEntryContent(id) ?: return
+        if (live.isPinned && !smartSnippets.beforeUnpin(id)) return
         clipboardDao?.togglePinned(id)
     }
 
@@ -1160,6 +1188,7 @@ class ClipboardHistoryManager(
     }
 
     fun getClipboardSuggestionView(editorInfo: EditorInfo?, parent: ViewGroup?): View? {
+        if (parent != null) getSmartSnippetView(editorInfo,parent)?.let { return it }
         if (chromePrivate() || !latinIME.mSettings.current.mSuggestClipboardContent ||
             dontShowCurrentSuggestion || parent == null) {
             releaseClipboardAccessory()

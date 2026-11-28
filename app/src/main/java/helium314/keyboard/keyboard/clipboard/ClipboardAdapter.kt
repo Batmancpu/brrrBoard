@@ -421,14 +421,14 @@ class ClipboardAdapter(
                 }
             }
             pinnedIconView.visibility = if (historyEntry?.isPinned == true) View.VISIBLE else View.GONE
-            val pinAction = if (historyEntry?.isPinned == true) R.string.clipboard_unpin_item else R.string.clipboard_pin_item
+            val menuAction = "Clipboard item options"
             ViewCompat.replaceAccessibilityAction(
                 itemView,
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_LONG_CLICK,
-                itemView.context.getString(pinAction),
+                menuAction,
             ) { _, _ ->
                 val clipId = itemView.tag as? Long ?: return@replaceAccessibilityAction false
-                clipboardHistoryManager?.toggleClipPinned(clipId)
+                clipboardHistoryManager?.openClipboardItemMenu(clipId)
                 true
             }
         }
@@ -465,7 +465,7 @@ class ClipboardAdapter(
 
         override fun onLongClick(view: View): Boolean {
             val id = view.tag as? Long ?: return false
-            clipboardHistoryManager?.toggleClipPinned(id)
+            clipboardHistoryManager?.openClipboardItemMenu(id)
             return true
         }
     }

@@ -171,6 +171,11 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
 
     private val moreSuggestionsContainer: View
     private val wordViews = ArrayList<TextView>()
+    private val wordDeleteActions = HashMap<TextView, Int>()
+    private fun clearWordDeleteActions() {
+        wordDeleteActions.forEach { (word, action) -> ViewCompat.removeAccessibilityAction(word, action) }
+        wordDeleteActions.clear()
+    }
     private val debugInfoViews = ArrayList<TextView>()
     private val dividerViews = ArrayList<View>()
     private val wordMorph by lazy { QuickTypeMotion(this, dividerViews.subList(1, 3)) }
@@ -770,7 +775,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         // Do not collapse a fresh full capsule before the user can see it.
         val accessory = clipboardAccessory
         if (accessory != null && !accessory.retired && !accessory.compact &&
-            (accessory.isVerificationCode || accessory.prefersProminent &&
+            (accessory.isSmartSnippet || accessory.isVerificationCode || accessory.prefersProminent &&
                 ClipboardAccessoryPolicy.keepFullForIdle(hasTypedInCurrentSession, suggestions.mInputStyle))) return
         heldBackspaceFrame = false
         if (suggestions.mInputStyle == SuggestedWords.INPUT_STYLE_UPDATE_BATCH ||
@@ -836,6 +841,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (reusedIndex >= 0) {
             startIndexOfMoreSuggestions = reusedIndex
             dismissMoreSuggestionsPanel()
+            clearWordDeleteActions()
             wordViews.forEach { it.setOnTouchListener(null) }
         } else {
             clear()
@@ -967,7 +973,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
             // must not retain disabled words indefinitely. Re-expand the same
             // bound view when there are no live word targets; never renew timers.
             val liveWords = wordViews.any { it.isEnabled && it.tag is Int }
-            if (!view.isVerificationCode && ClipboardAccessoryPolicy.preferCompact(hasTypedInCurrentSession,
+            if (!view.isSmartSnippet && !view.isVerificationCode && ClipboardAccessoryPolicy.preferCompact(hasTypedInCurrentSession,
                     shouldShowSuggestionContent(), liveWords, isExternalSuggestionVisible)) {
                 moveClipboardToCompact()
                 updateSuggestionContainersVisibility(true)
@@ -1126,7 +1132,8 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     override fun onInterceptTouchEvent(motionEvent: MotionEvent): Boolean {
-        // Detecting sliding up finger to show MoreSuggestionsView.
+        // Provider and clipboard accessories own their own touch targets.
+        if (isExternalSuggestionVisible) return false
         return moreSuggestionsView.shouldInterceptTouchEvent(motionEvent)
     }
 
@@ -1192,54 +1199,70 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility") // no need for View#performClick, we only return false mostly anyway
+    @SuppressLint("ClickableViewAccessibility")
     private fun onLongClickSuggestion(wordView: TextView): Boolean {
-        var showIcon = true
-        if (wordView.tag is Int) {
-            val index = wordView.tag as Int
-            if (index !in 0 until suggestedWords.size()) return false
-            val info = suggestedWords.getInfo(index)
-            if (info.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)) return true
-            val type = info.mSourceDict
-            if (type == Dictionary.DICTIONARY_USER_TYPED || type == Dictionary.DICTIONARY_HARDCODED)
-                showIcon = false
-        }
-        if (showIcon) {
-            val icon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_BIN, context)!!
-            Settings.getValues().mColors.setColor(icon, ColorType.REMOVE_SUGGESTION_ICON)
-            val w = icon.intrinsicWidth
-            val h = icon.intrinsicHeight
-            wordView.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
-            wordView.ellipsize = TextUtils.TruncateAt.END
-            val downOk = AtomicBoolean(false)
-            wordView.setOnTouchListener { _, motionEvent ->
-                if (motionEvent.action == MotionEvent.ACTION_UP && downOk.get()) {
-                    val x = motionEvent.x
-                    val y = motionEvent.y
-                    if (0 < x && x < w && 0 < y && y < h) {
-                        removeSuggestion(wordView)
-                        wordView.cancelLongPress()
-                        wordView.isPressed = false
-                        return@setOnTouchListener true
-                    }
-                } else if (motionEvent.action == MotionEvent.ACTION_DOWN) {
-                    val x = motionEvent.x
-                    val y = motionEvent.y
-                    if (0 < x && x < w && 0 < y && y < h) {
-                        downOk.set(true)
+        if (isExternalSuggestionVisible || !wordView.isEnabled) return false
+        val index = wordView.tag as? Int ?: return false
+        if (index !in 0 until suggestedWords.size()) return false
+        val info = suggestedWords.getInfo(index)
+        if (info.isKindOf(SuggestedWordInfo.KIND_SESSION_RECALL)) return true
+        val removable = info.mSourceDict != Dictionary.DICTIONARY_USER_TYPED &&
+            info.mSourceDict != Dictionary.DICTIONARY_HARDCODED
+        var hasDelete = false
+        if (removable) {
+            val icon = KeyboardIconsSet.instance.getNewDrawable(KeyboardIconsSet.NAME_BIN, context)
+            if (icon != null) {
+                Settings.getValues().mColors.setColor(icon, ColorType.REMOVE_SUGGESTION_ICON)
+                wordView.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null)
+                wordView.ellipsize = TextUtils.TruncateAt.END
+                hasDelete = true
+                fun current() = wordView.isEnabled && wordView.tag == index &&
+                    index < suggestedWords.size() && suggestedWords.getInfo(index) === info &&
+                    !isExternalSuggestionVisible
+                fun hit(event: MotionEvent): Boolean {
+                    val touchWidth = maxOf(icon.intrinsicWidth + wordView.paddingStart, 40.dpToPx(resources))
+                        .coerceAtMost(wordView.width)
+                    val x = if (wordView.layoutDirection == View.LAYOUT_DIRECTION_RTL)
+                        wordView.width - event.x else event.x
+                    return x >= 0 && x < touchWidth && event.y >= 0 && event.y < wordView.height
+                }
+                var armed = false
+                wordView.setOnTouchListener { _, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> { armed = current() && hit(event); armed }
+                        MotionEvent.ACTION_MOVE -> {
+                            val captured = armed
+                            if (!hit(event)) armed = false
+                            captured
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            val captured = armed
+                            armed = false
+                            if (captured && current() && hit(event)) {
+                                wordView.cancelLongPress()
+                                wordView.isPressed = false
+                                removeSuggestion(wordView)
+                            }
+                            captured
+                        }
+                        MotionEvent.ACTION_CANCEL -> { val captured = armed; armed = false; captured }
+                        else -> armed
                     }
                 }
-                false
+                wordDeleteActions.remove(wordView)?.let { ViewCompat.removeAccessibilityAction(wordView,it) }
+                wordDeleteActions[wordView] = ViewCompat.addAccessibilityAction(wordView, "Remove suggestion") { _, _ ->
+                    if (current()) { removeSuggestion(wordView); true } else false
+                }
             }
         }
-        if (DebugFlags.DEBUG_ENABLED && (isShowingMoreSuggestionPanel || !showMoreSuggestions())) {
-            showSourceDict(wordView)
-            return true
-        }
-        return showMoreSuggestions()
+        val opened = showMoreSuggestions()
+        if (DebugFlags.DEBUG_ENABLED && !opened) showSourceDict(wordView)
+        // A successful long press must never fall through to a word insertion.
+        return hasDelete || opened
     }
 
     private fun showMoreSuggestions(): Boolean {
+        if (isExternalSuggestionVisible || !isShown) return false
         if (suggestedWords.size() <= startIndexOfMoreSuggestions) {
             return false
         }
@@ -1268,7 +1291,9 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
     }
 
     private fun removeSuggestion(wordView: TextView) {
-        val word = wordView.text.toString()
+        val index = wordView.tag as? Int ?: return
+        if (index !in 0 until suggestedWords.size() || !wordView.isEnabled || isExternalSuggestionVisible) return
+        val word = suggestedWords.getInfo(index).word
         listener.removeSuggestion(word)
         moreSuggestionsView.dismissPopupKeysPanel()
         // show suggestions, but without the removed word
@@ -1302,6 +1327,7 @@ class SuggestionStripView(context: Context, attrs: AttributeSet?, defStyle: Int)
         if (!toolbarContainer.isVisible)
             updateSuggestionContainersVisibility(true)
         dismissMoreSuggestionsPanel()
+        clearWordDeleteActions()
         for (word in wordViews) {
             word.setOnTouchListener(null)
         }

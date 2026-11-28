@@ -150,6 +150,7 @@ fun ClipboardSettingsScreen(onClickBack: () -> Unit) {
     }
     SearchSettingsScreen(onClickBack, "Clipboard", listOf(
         R.string.settings_category_clipboard_history,
+        "smart_snippets_page",
         Settings.PREF_ENABLE_CLIPBOARD_HISTORY,
         Settings.PREF_SHOW_SCREENSHOTS_IN_CLIPBOARD,
         if (screenshotsOn) Settings.PREF_CHANGE_SCREENSHOTS_FOLDER else null,

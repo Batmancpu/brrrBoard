@@ -1,26 +1,18 @@
 {
   "schema": 1,
-  "summary": "Compatibility, clean dictionaries, custom imports and detailed diagnostics",
+  "summary": "Smart Snippets and suggestion interaction improvements",
   "changes": [
     {
-      "title": "Compatibility and power handling",
-      "detail": "Optional visual quality follows a local 19% threshold in this edition; respect real system compositor availability and accessibility, recover from visibility and capability changes, and provide an optional Android battery settings shortcut."
+      "title": "App-aware Smart Snippets",
+      "detail": "Long-press a clipboard text card to configure app targets, daily or session frequency, a fixed time window, and optional empty-field/new-line recovery. Tap a private title to paste; dismiss or choose another matching snippet."
     },
     {
-      "title": "Custom additions and punctuation",
-      "detail": "A searchable Custom page brings emoji font and swipe library import together. A default-off comma and full stop toggle adds direct punctuation beside space in regular alphabet rows without changing email, URL or numeric rows."
+      "title": "Snippet controls and privacy",
+      "detail": "Manage pinned rules in the keyboard and searchable Clipboard settings, including schedules and custom titles. Rules are encrypted locally without duplicating clipboard text, and protected editors are excluded."
     },
     {
-      "title": "Safer import and dictionary provenance",
-      "detail": "Use bounded staged validation, atomic font replacement, native ELF checks and recoverable checksum transactions. Exclude two unverified backup-derived Hindi dictionaries; retain the English emoji dictionary after an exact public CLDR/Signal binary match, generic vocabulary and existing explicitly imported and learned data. The build gate verifies the full pinned source inventory separately from the three production dictionaries."
-    },
-    {
-      "title": "Complete local diagnostics",
-      "detail": "Extend the safe report with source revision, power state, blur request status, motion failure codes, own-process exit metadata, model and library status and memory. Generate it off the UI thread; no raw editor text, audio, clipboard, unrelated logs or new permissions."
-    },
-    {
-      "title": "Offline voice model package",
-      "detail": "The selected one-time package includes the pinned Parakeet Ultra model and retains the existing verified local installation and migration path. Future regular packages omit the model weights. The one-shot selector is guarded by a dedicated regression contract."
+      "title": "Suggestion menu and delete controls",
+      "detail": "Corrected popup measurement and detached-window guards, outside dismissal and touch forwarding, plus suggestion deletion targets and accessibility. Normal predictions and existing visual motion remain unchanged."
     }
   ]
 }

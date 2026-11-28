@@ -35,6 +35,11 @@ class SettingsContainer(context: Context) {
                 Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.Voice) }, description = it.description)
             }
         ),
+        SettingsDestination.SmartSnippets to listOf(
+            Setting(context, "smart_snippets_page", R.string.smart_snippets_title, R.string.smart_snippets_description) {
+                Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.SmartSnippets) }, description = it.description)
+            }
+        ),
         SettingsDestination.Reset to listOf(
             Setting(context, "reset_settings_page", R.string.brr_workspace_reset_title) {
                 Preference(it.title, onClick = { SettingsDestination.navigateTo(SettingsDestination.Reset) })
@@ -119,7 +124,7 @@ class SettingsContainer(context: Context) {
         SettingsDestination.Sound -> "Interactions · Sound & haptics"
         SettingsDestination.Voice -> "Voice · On-device dictation"
         SettingsDestination.Toolbar -> "Tools · Toolbar"
-        SettingsDestination.Clipboard -> "Tools · Clipboard"
+        SettingsDestination.Clipboard, SettingsDestination.SmartSnippets -> "Tools · Clipboard"
         SettingsDestination.Emoji -> "Tools · Emoji"
         SettingsDestination.Custom -> "Custom"
         SettingsDestination.TextTools -> "Tools · Text tools"
@@ -237,6 +242,7 @@ class SettingsContainer(context: Context) {
             ContextIntent(setOf("settings", "reset"), SettingsDestination.Reset),
         )
         private val SETTING_SYNONYMS = mapOf(
+            "smart_snippets_page" to setOf("smart", "snippets", "snippet", "clipboard", "paste", "suggestion", "suggestions", "app", "schedule", "template", "daily"),
             helium314.keyboard.latin.settings.Settings.PREF_COMPAT_COMMA_PERIOD to setOf("comma", "period", "fullstop", "punctuation", "spacebar"),
             SettingsWithoutKey.CUSTOM_EMOJI_FONT to setOf("custom", "emoji", "font", "import", "apple"),
             SettingsWithoutKey.LOAD_GESTURE_LIB to setOf("custom", "swipe", "gesture", "library", "import", "glide"),

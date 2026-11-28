@@ -442,10 +442,20 @@ class ClipboardHistoryView @JvmOverloads constructor(
         )
         titleView.setTextColor(colors.get(ColorType.KEY_TEXT))
         titleView.text = "Clipboard · Extract"
-        titleView.contentDescription = "Extract items from the current clipboard"
+        titleView.contentDescription = "Extract items from the current clipboard. Long press for Smart snippets."
         titleView.setOnClickListener {
             if (!searchMode && ::clipboardHistoryManager.isInitialized)
                 clipboardHistoryManager.requestExtractCurrentClip()
+        }
+        titleView.setOnLongClickListener {
+            if (searchMode || !::clipboardHistoryManager.isInitialized) false else {
+                clipboardHistoryManager.manageSmartSnippets(); true
+            }
+        }
+        androidx.core.view.ViewCompat.addAccessibilityAction(titleView,"Manage Smart snippets") { _,_ ->
+            if (searchMode || !::clipboardHistoryManager.isInitialized) false else {
+                clipboardHistoryManager.manageSmartSnippets(); true
+            }
         }
         
         clearButton.setOnClickListener(this)

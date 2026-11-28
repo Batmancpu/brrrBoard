@@ -39,6 +39,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     var onAccessoryChanged: (() -> Unit)? = null
     var prefersProminent = true
     var isVerificationCode = false
+    var isSmartSnippet = false
     private var intentEmphasized = false
     private var chromeRevealed = false
     private var chromeExiting = false
@@ -176,6 +177,7 @@ class ClipboardAccessoryView(context: Context, attrs: AttributeSet?) : LinearLay
     fun reveal() {
         if (!hasLiveChrome || chromeRevealed || chromeExiting) return
         chromeRevealed = true
+        if (isSmartSnippet) { chrome.alpha = 1f; chrome.translationX = 0f; return }
         chrome.animate().cancel()
         val motion = Build.VERSION.SDK_INT < 26 || ValueAnimator.areAnimatorsEnabled()
         val direction = if (layoutDirection == View.LAYOUT_DIRECTION_RTL) -1 else 1
